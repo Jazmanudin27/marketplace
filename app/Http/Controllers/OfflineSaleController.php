@@ -29,7 +29,14 @@ class OfflineSaleController extends Controller
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            if ($request->status === 'perlu_follow_up') {
+                $query->where('status', OfflineSale::STATUS_WAITING_DP)
+                      ->where('paid_amount', '<=', 0)
+                      ->whereNotNull('follow_up_date')
+                      ->whereDate('follow_up_date', '<', now()->toDateString());
+            } else {
+                $query->where('status', $request->status);
+            }
         }
 
         if ($request->filled('payment_method')) {
@@ -66,12 +73,20 @@ class OfflineSaleController extends Controller
             ->selectRaw('COUNT(*) as total_count, SUM(grand_total) as total_revenue')
             ->first();
 
+        // Hitung pesanan PO yang perlu follow up (lewat tanggal follow up dan belum bayar DP)
+        $overdueFollowUpCount = OfflineSale::where('tenant_id', $tenantId)
+            ->where('status', OfflineSale::STATUS_WAITING_DP)
+            ->where('paid_amount', '<=', 0)
+            ->whereNotNull('follow_up_date')
+            ->whereDate('follow_up_date', '<', now()->toDateString())
+            ->count();
+
         $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->orderBy('bank_name')
             ->get();
 
-        return view('offline_sales.index', compact('sales', 'summary', 'bankAccounts'));
+        return view('offline_sales.index', compact('sales', 'summary', 'bankAccounts', 'overdueFollowUpCount'));
     }
 
     public function create()
@@ -112,6 +127,7 @@ class OfflineSaleController extends Controller
             'dropshipper_phone'         => 'nullable|required_if:is_dropship,1|string|max:20',
             'resi_number'               => 'nullable|string|max:100',
             'resi_file'                 => 'nullable|file|mimes:jpeg,jpg,png,pdf,webp|max:5120',
+            'follow_up_date'            => 'nullable|date',
         ];
 
         $paymentMethod = $request->payment_method ?: 'piutang';
@@ -243,12 +259,16 @@ class OfflineSaleController extends Controller
                 }
             }
 
+            $isPo = $request->boolean('is_po');
+            $initialStatus = $isPo ? OfflineSale::STATUS_WAITING_DP : OfflineSale::STATUS_PENDING_APPROVAL;
+            $followUpDate = $isPo ? ($request->follow_up_date ?: now()->addDays(3)->toDateString()) : null;
+
             $sale = OfflineSale::create([
                 'tenant_id'       => $tenantId,
                 'user_id'         => Auth::id(),
                 'customer_id'     => $customerId,
                 'sale_number'     => OfflineSale::generateSaleNumber(),
-                'status'          => OfflineSale::STATUS_PENDING_APPROVAL,
+                'status'          => $initialStatus,
                 'buyer_name'      => $request->buyer_name,
                 'buyer_phone'     => $request->buyer_phone,
                 'institution_name'=> $request->institution_name,
@@ -267,6 +287,8 @@ class OfflineSaleController extends Controller
                 'dropshipper_phone' => $request->is_dropship ? $request->dropshipper_phone : null,
                 'resi_number'       => $request->is_dropship ? $request->resi_number : null,
                 'resi_file'         => $request->is_dropship ? $resiFilePath : null,
+                'is_po'             => $isPo,
+                'follow_up_date'    => $followUpDate,
             ]);
 
             if ($paymentMethod === 'reseller_balance' && $paidAmount > 0) {
@@ -313,8 +335,12 @@ class OfflineSaleController extends Controller
             }
         });
 
+        $successMsg = $request->boolean('is_po')
+            ? '✅ Pesanan PO berhasil dibuat dan berstatus Menunggu DP Masuk.'
+            : '✅ Transaksi berhasil dibuat dan menunggu approval Gudang.';
+
         return redirect()->route('offline_sales.index')
-            ->with('success', '✅ Transaksi berhasil dibuat dan menunggu approval Gudang.');
+            ->with('success', $successMsg);
     }
 
     public function show(OfflineSale $offlineSale)
@@ -611,17 +637,30 @@ class OfflineSaleController extends Controller
             ]);
 
             $newPaid = (float) $offlineSale->paid_amount + $payAmount;
-            $offlineSale->update([
+            $updateData = [
                 'paid_amount'         => $newPaid,
                 'change_amount'       => 0,
                 'payment_destination' => $paymentDest,
                 'payment_method'      => $request->payment_method,
-            ]);
+            ];
+
+            // Jika transaksi sebelumnya berstatus Menunggu DP dan sekarang ada pembayaran DP masuk,
+            // transisikan status menjadi Menunggu Approval Gudang
+            if ($offlineSale->status === OfflineSale::STATUS_WAITING_DP && $newPaid > 0) {
+                $updateData['status'] = OfflineSale::STATUS_PENDING_APPROVAL;
+            }
+
+            $offlineSale->update($updateData);
         });
 
-        $message = $offlineSale->fresh()->is_paid
-            ? '✅ Pembayaran berhasil dicatat dan transaksi dinyatakan LUNAS!'
-            : '✅ Pembayaran cicilan sebesar Rp ' . number_format($payAmount, 0, ',', '.') . ' berhasil dicatat!';
+        $fresh = $offlineSale->fresh();
+        if ($fresh->is_paid) {
+            $message = '✅ Pembayaran berhasil dicatat dan transaksi dinyatakan LUNAS!';
+        } elseif ($offlineSale->status === OfflineSale::STATUS_WAITING_DP && $fresh->status === OfflineSale::STATUS_PENDING_APPROVAL) {
+            $message = '✅ Pembayaran DP sebesar Rp ' . number_format($payAmount, 0, ',', '.') . ' berhasil dicatat! Status transaksi kini Menunggu Approval Gudang.';
+        } else {
+            $message = '✅ Pembayaran cicilan sebesar Rp ' . number_format($payAmount, 0, ',', '.') . ' berhasil dicatat!';
+        }
 
         return back()->with('success', $message);
     }

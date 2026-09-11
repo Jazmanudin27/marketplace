@@ -436,7 +436,7 @@ class OfflineSaleTest extends TestCase
         ]);
 
         $this->assertEquals(100000, $sale->remaining_amount);
-        $this->assertEquals('Belum Bayar', $sale->payment_status_label);
+        $this->assertEquals('Belum Lunas', $sale->payment_status_label);
 
         // Cicilan ke-1: 40.000
         $response1 = $this->actingAs($this->user)
@@ -516,5 +516,80 @@ class OfflineSaleTest extends TestCase
             'id' => $payment2->id,
         ]);
     }
+
+    public function test_po_offline_sale_waiting_dp_and_follow_up(): void
+    {
+        $followUpDate = now()->addDays(3)->toDateString();
+
+        $payload = [
+            'items' => [
+                [
+                    'master_product_id' => $this->masterProduct->id,
+                    'quantity'          => 2,
+                    'unit_price'        => 50000,
+                ]
+            ],
+            'is_po'          => 1,
+            'deadline'       => now()->addDays(10)->toDateString(),
+            'follow_up_date' => $followUpDate,
+            'buyer_name'     => 'Customer PO Test',
+            'buyer_phone'    => '081299887766',
+        ];
+
+        $response = $this->actingAs($this->user)
+            ->post(route('offline_sales.store'), $payload);
+
+        $response->assertRedirect(route('offline_sales.index'));
+        $response->assertSessionHas('success');
+
+        // Check if OfflineSale record was created with status menunggu_dp and follow_up_date
+        $sale = OfflineSale::where('tenant_id', $this->tenant->id)
+            ->where('buyer_name', 'Customer PO Test')
+            ->first();
+
+        $this->assertNotNull($sale);
+        $this->assertEquals(OfflineSale::STATUS_WAITING_DP, $sale->status);
+        $this->assertEquals('Menunggu DP Masuk', $sale->status_label);
+        $this->assertEquals($followUpDate, $sale->follow_up_date->toDateString());
+        $this->assertEquals(0, (float)$sale->paid_amount);
+        $this->assertEquals(100000, (float)$sale->grand_total);
+        $this->assertFalse($sale->needs_follow_up); // Not overdue yet
+
+        // Set follow_up_date to past date to test overdue follow-up alert
+        $sale->update(['follow_up_date' => now()->subDay()->toDateString()]);
+        $sale->refresh();
+        $this->assertTrue($sale->needs_follow_up); // Now it needs follow up!
+
+        // Record DP payment
+        $bank = \App\Models\BankAccount::create([
+            'tenant_id'       => $this->tenant->id,
+            'bank_name'       => 'BCA PO',
+            'account_number'  => '1234567890',
+            'account_name'    => 'Tenant Account',
+            'current_balance' => 0,
+            'is_active'       => true,
+        ]);
+
+        $payResponse = $this->actingAs($this->user)
+            ->post(route('offline_sales.payments.store', $sale), [
+                'amount'              => 30000, // DP 30.000
+                'payment_method'      => 'transfer',
+                'payment_destination' => 'BCA PO',
+                'payment_date'        => now()->toDateString(),
+                'notes'               => 'DP Produksi 30%',
+            ]);
+
+        $payResponse->assertRedirect();
+        $payResponse->assertSessionHas('success');
+
+        $sale->refresh();
+        // After DP payment, status automatically transitions to STATUS_PENDING_APPROVAL
+        $this->assertEquals(OfflineSale::STATUS_PENDING_APPROVAL, $sale->status);
+        $this->assertEquals('Menunggu Approval', $sale->status_label);
+        $this->assertEquals(30000, (float)$sale->paid_amount);
+        $this->assertEquals(70000, (float)$sale->remaining_amount);
+        $this->assertFalse($sale->needs_follow_up); // Because DP has been paid!
+    }
 }
+
 

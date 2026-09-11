@@ -42,7 +42,7 @@
                             <i class="fas fa-undo me-1"></i> Retur Barang
                         </button>
                     @endif
-                    @if (in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_COMPLETED, \App\Models\OfflineSale::STATUS_PENDING_APPROVAL]))
+                    @if (in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_COMPLETED, \App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_WAITING_DP]))
                         <button type="button" class="btn btn-danger btn-sm px-3"
                             data-bs-toggle="modal" data-bs-target="#modalCancelShow"
                             data-status="{{ $offlineSale->status }}">
@@ -51,6 +51,35 @@
                     @endif
                 </div>
             </div>
+
+            {{-- Alert Perlu Follow Up --}}
+            @if ($offlineSale->needs_follow_up)
+                <div class="alert alert-danger d-flex align-items-center gap-3 mb-3 py-3 border-danger shadow-sm">
+                    <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                    <div>
+                        <strong class="fs-6">⚠️ PERINGATAN: PERLU SEGERA DI-FOLLOW UP!</strong><br>
+                        <span>Batas tanggal follow up transaksi ini adalah <strong>{{ $offlineSale->follow_up_date?->format('d M Y') }}</strong> (sudah lewat), dan belum ada DP yang diterima. Silakan segera hubungi pembeli di nomor <strong>{{ $offlineSale->buyer_phone ?: '-' }}</strong>.</span>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Banner Menunggu DP Masuk --}}
+            @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_WAITING_DP)
+                <div class="alert alert-info d-flex align-items-center justify-content-between gap-3 mb-3 py-3" style="background-color: #e0f2fe; border-color: #7dd3fc; color: #0369a1;">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="fas fa-hourglass-half fa-2x text-info"></i>
+                        <div>
+                            <strong>Menunggu Pembayaran DP</strong><br>
+                            <small>Pesanan PO ini sedang menunggu pembayaran Down Payment (DP) dari pembeli. Setelah pembayaran DP dicatat, transaksi akan otomatis berpindah ke status <strong>Menunggu Approval</strong>.</small>
+                        </div>
+                    </div>
+                    @if (!$offlineSale->is_paid)
+                        <button type="button" class="btn btn-primary btn-sm px-3 text-nowrap" data-bs-toggle="modal" data-bs-target="#modalMarkPaidShow">
+                            <i class="fas fa-money-bill-wave me-1"></i> Catat DP Sekarang
+                        </button>
+                    @endif
+                </div>
+            @endif
 
             {{-- Banner Pesanan PO Produksi --}}
             @if ($offlineSale->is_po && $offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL)
@@ -173,6 +202,20 @@
                                                 class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 small fw-medium mt-1">
                                                 {{ $offlineSale->payment_destination === 'kas_kecil' ? 'Kas Kecil (Operasional)' : ($offlineSale->payment_destination === 'kas_besar' ? 'Kas Besar (Utama)' : $offlineSale->payment_destination) }}
                                             </span>
+                                        </div>
+                                    </div>
+                                @endif
+                                @if ($offlineSale->follow_up_date)
+                                    <div class="col-md-4">
+                                        <div class="p-3 border rounded h-100 {{ $offlineSale->needs_follow_up ? 'bg-danger bg-opacity-10 border-danger' : 'bg-light' }}">
+                                            <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
+                                                style="font-size: 0.65rem;">Tanggal Follow Up DP</small>
+                                            <div class="fw-bold {{ $offlineSale->needs_follow_up ? 'text-danger' : 'text-dark' }} small">
+                                                <i class="far fa-calendar-alt me-1"></i>{{ $offlineSale->follow_up_date->format('d M Y') }}
+                                                @if ($offlineSale->needs_follow_up)
+                                                    <span class="badge bg-danger ms-1">Overdue</span>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                 @endif

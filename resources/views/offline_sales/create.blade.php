@@ -129,8 +129,21 @@
                                 </label>
                             </div>
                             <div id="po-deadline-container" class="mt-2 pt-2 border-top" style="display: none;">
-                                <label class="form-label small fw-semibold text-dark mb-1">Deadline SPK Produksi</label>
-                                <input type="date" name="deadline" id="po-deadline-input" class="form-control form-control-sm" value="{{ now()->addDays(7)->format('Y-m-d') }}">
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold text-dark mb-1">
+                                        <i class="fas fa-calendar-alt text-primary me-1"></i>Deadline SPK Produksi
+                                    </label>
+                                    <input type="date" name="deadline" id="po-deadline-input" class="form-control form-control-sm" value="{{ now()->addDays(7)->format('Y-m-d') }}">
+                                </div>
+                                <div class="mb-1">
+                                    <label class="form-label small fw-semibold text-danger mb-1">
+                                        <i class="fas fa-bell text-danger me-1"></i>Tanggal Follow Up DP
+                                    </label>
+                                    <input type="date" name="follow_up_date" id="po-follow-up-input" class="form-control form-control-sm border-danger border-opacity-50" value="{{ now()->addDays(3)->format('Y-m-d') }}">
+                                    <div class="form-text text-muted small" style="font-size: 0.72rem;">
+                                        Jika DP belum masuk hingga tanggal ini, sistem akan memunculkan alert perlu follow up.
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -810,8 +823,13 @@
             $('#display-grand-total').text('Rp ' + Math.round(grandTotal).toLocaleString('id-ID'));
             $('#display-order-grand-total').text('Rp ' + Math.round(grandTotal).toLocaleString('id-ID'));
 
+            const isPo = $('#is-po-switch').is(':checked');
             const payType = $('input[name="payment_type"]:checked').val() || 'tunai';
-            if (payType === 'tunai') {
+            if (isPo) {
+                $('#payment-method-input').val('piutang');
+                $('#paid-input').val(0);
+                $('#payment-hint-text').html('<i class="fas fa-hourglass-half text-info me-1"></i> Pesanan PO akan masuk status <strong>Menunggu DP Masuk</strong>. Pembayaran DP dicatat via tombol Catat Pembayaran.');
+            } else if (payType === 'tunai') {
                 $('#payment-method-input').val('tunai');
                 $('#paid-input').val(grandTotal);
                 $('#payment-hint-text').html('<i class="fas fa-check-circle text-success me-1"></i> Pembayaran langsung lunas (Tunai).');
@@ -822,7 +840,6 @@
             }
 
             let isValid = Object.keys(cartItems).length > 0;
-            const isPo = $('#is-po-switch').is(':checked');
 
             if (!isPo) {
                 const custVal = $('#customer-select').val();
@@ -940,6 +957,7 @@
         $('#is-po-switch').on('change', function() {
             if ($(this).is(':checked')) {
                 $('#po-deadline-container').slideDown(200);
+                $('#pay_type_kredit').prop('checked', true);
             } else {
                 $('#po-deadline-container').slideUp(200);
             }

@@ -13,7 +13,7 @@ class OfflineSale extends Model
         'buyer_name', 'buyer_phone', 'buyer_address', 'institution_name', 'payment_method', 'payment_destination',
         'total_amount', 'discount_amount', 'discount_type', 'discount_value', 'grand_total',
         'paid_amount', 'change_amount', 'notes', 'sold_at',
-        'is_dropship', 'dropshipper_name', 'dropshipper_phone', 'resi_number', 'resi_file', 'is_po',
+        'is_dropship', 'dropshipper_name', 'dropshipper_phone', 'resi_number', 'resi_file', 'is_po', 'follow_up_date',
         'approved_by', 'approved_at',
         'cancellation_reason', 'cancelled_by',
     ];
@@ -26,6 +26,7 @@ class OfflineSale extends Model
         'paid_amount'     => 'decimal:2',
         'change_amount'   => 'decimal:2',
         'sold_at'         => 'datetime',
+        'follow_up_date'  => 'date',
         'is_dropship'     => 'boolean',
         'is_po'           => 'boolean',
     ];
@@ -33,6 +34,7 @@ class OfflineSale extends Model
     const STATUS_COMPLETED        = 'completed';
     const STATUS_CANCELLED        = 'cancelled';
     const STATUS_PENDING          = 'pending';
+    const STATUS_WAITING_DP       = 'menunggu_dp';
     const STATUS_PENDING_APPROVAL = 'pending_approval';
 
     const PAYMENT_METHODS = [
@@ -92,6 +94,7 @@ class OfflineSale extends Model
         return match ($this->status) {
             self::STATUS_COMPLETED        => 'success',
             self::STATUS_CANCELLED        => 'danger',
+            self::STATUS_WAITING_DP       => 'info',
             self::STATUS_PENDING_APPROVAL => 'warning',
             default                       => 'secondary',
         };
@@ -102,9 +105,30 @@ class OfflineSale extends Model
         return match ($this->status) {
             self::STATUS_COMPLETED        => 'Selesai',
             self::STATUS_CANCELLED        => 'Dibatalkan',
+            self::STATUS_WAITING_DP       => 'Menunggu DP Masuk',
             self::STATUS_PENDING_APPROVAL => 'Menunggu Approval',
             default                       => ucfirst($this->status),
         };
+    }
+
+    /**
+     * Cek apakah pesanan PO membutuhkan follow up (lewat tanggal follow up dan DP belum masuk).
+     */
+    public function getNeedsFollowUpAttribute(): bool
+    {
+        if (in_array($this->status, [self::STATUS_CANCELLED, self::STATUS_COMPLETED])) {
+            return false;
+        }
+
+        if ((float) $this->paid_amount > 0) {
+            return false;
+        }
+
+        if (!$this->follow_up_date) {
+            return false;
+        }
+
+        return now()->startOfDay()->gt($this->follow_up_date->startOfDay());
     }
 
     public function getPaymentMethodLabelAttribute(): string

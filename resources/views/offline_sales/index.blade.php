@@ -51,6 +51,19 @@
                 <i class="fas fa-plus me-1"></i> Transaksi Baru
             </a>
         </div>
+        @if (!empty($overdueFollowUpCount) && $overdueFollowUpCount > 0)
+            <div class="alert alert-danger d-flex align-items-center justify-content-between mx-3 mt-3 mb-0 py-2 px-3 border-danger shadow-sm">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-exclamation-triangle fa-lg text-danger"></i>
+                    <div>
+                        <strong>Peringatan Follow Up:</strong> Terdapat <strong>{{ $overdueFollowUpCount }}</strong> pesanan PO yang telah melewati batas tanggal follow up dan belum membayar DP!
+                    </div>
+                </div>
+                <a href="{{ route('offline_sales.index', ['status' => 'perlu_follow_up']) }}" class="btn btn-danger btn-sm text-nowrap">
+                    <i class="fas fa-filter me-1"></i> Lihat Pesanan Overdue
+                </a>
+            </div>
+        @endif
         <div class="card-body p-0">
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body py-2 px-3">
@@ -68,10 +81,11 @@
                             </label>
                             <select name="status" class="form-select form-select-sm">
                                 <option value="">Semua Status</option>
-                                <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Selesai
-                                </option>
-                                <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>
-                                    Dibatalkan</option>
+                                <option value="menunggu_dp" {{ request('status') === 'menunggu_dp' ? 'selected' : '' }}>Menunggu DP Masuk</option>
+                                <option value="perlu_follow_up" {{ request('status') === 'perlu_follow_up' ? 'selected' : '' }}>⚠️ Perlu Follow Up (Overdue DP)</option>
+                                <option value="pending_approval" {{ request('status') === 'pending_approval' ? 'selected' : '' }}>Menunggu Approval</option>
+                                <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Selesai</option>
+                                <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
                             </select>
                         </div>
                         <div class="col-12 col-sm-6 col-md-2">
@@ -176,6 +190,12 @@
                                             style="background-color: #8b5cf6; font-size: 0.6rem; padding: 0.15em 0.3em;">PO
                                             Produksi</span>
                                     @endif
+                                    @if ($sale->needs_follow_up)
+                                        <span class="badge bg-danger text-white ms-1"
+                                            style="font-size: 0.6rem; padding: 0.15em 0.3em;" title="Perlu Follow Up DP">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="small text-muted text-nowrap">
                                     {{ $sale->sold_at ? $sale->sold_at->format('d M Y, H:i') : '-' }}
@@ -219,10 +239,25 @@
                                             'success' => 'bg-success',
                                             'danger' => 'bg-danger',
                                             'warning' => 'bg-warning text-dark',
+                                            'info' => 'bg-info text-dark',
                                             default => 'bg-secondary',
                                         };
                                     @endphp
                                     <span class="badge {{ $badgeClass }} small">{{ $sale->status_label }}</span>
+                                    @if ($sale->needs_follow_up)
+                                        <div class="mt-1">
+                                            <span class="badge bg-danger text-white small py-1 px-2 shadow-sm" title="Batas Follow Up: {{ $sale->follow_up_date?->format('d/m/Y') }}">
+                                                <i class="fas fa-bell me-1"></i>Perlu Follow Up
+                                            </span>
+                                        </div>
+                                        <div class="small text-danger fw-semibold mt-1" style="font-size: 0.7rem;">
+                                            <i class="fas fa-calendar-times me-1"></i>F/U: {{ $sale->follow_up_date->format('d/m/Y') }}
+                                        </div>
+                                    @elseif ($sale->follow_up_date && $sale->status === \App\Models\OfflineSale::STATUS_WAITING_DP)
+                                        <div class="small text-muted mt-1" style="font-size: 0.7rem;">
+                                            <i class="far fa-clock me-1"></i>F/U: {{ $sale->follow_up_date->format('d/m/Y') }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex gap-1 justify-content-center">
