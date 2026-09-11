@@ -906,10 +906,11 @@
                             <table class="table table-sm product-table-custom align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th style="width: 32%;">SKU PRODUK / VARIAN</th>
-                                        <th style="width: 38%;">NAMA PRODUK</th>
-                                        <th style="width: 13%;" class="text-center">UKURAN</th>
-                                        <th style="width: 13%;" class="text-center">QTY</th>
+                                        <th style="width: 24%;">SKU PRODUK / VARIAN</th>
+                                        <th style="width: 30%;">NAMA PRODUK</th>
+                                        <th style="width: 12%;" class="text-center">UKURAN</th>
+                                        <th style="width: 12%;" class="text-center">QTY</th>
+                                        <th style="width: 18%;" class="text-center">ESTIMASI KAIN (M/KG)</th>
                                         <th style="width: 4%;" class="text-center"></th>
                                     </tr>
                                 </thead>
@@ -945,6 +946,13 @@
                                                     name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qty_produksi]"
                                                     class="form-control text-center fw-bold row-qty-produksi"
                                                     min="1" value="{{ $item->quantity }}">
+                                            </td>
+                                            <td>
+                                                <input type="number" step="any"
+                                                    name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][est_kain]"
+                                                    class="form-control text-center row-est-kain"
+                                                    placeholder="0"
+                                                    value="{{ (float) $item->est_kain > 0 ? (float) $item->est_kain : '' }}">
                                             </td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-product-row" title="Hapus Varian">
@@ -2197,6 +2205,11 @@
                 <input type="number" name="rincian[${rIdx}][produk][${pIdx}][qty_produksi]" 
                        class="form-control text-center fw-bold row-qty-produksi input-qty-produksi" 
                        value="1" min="1">
+            </td>
+            <td>
+                <input type="number" step="any" name="rincian[${rIdx}][produk][${pIdx}][est_kain]" 
+                       class="form-control text-center row-est-kain input-est-kain" 
+                       placeholder="0">
             </td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-product-row" onclick="removeProductRow('${rIdx}-${pIdx}')" title="Hapus Varian">
