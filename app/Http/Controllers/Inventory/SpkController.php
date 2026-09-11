@@ -1458,6 +1458,14 @@ class SpkController extends Controller
                                 ->whereNotIn('id', $savedItemIds)
                                 ->delete();
                         }
+
+                        if ($request->has('total_est_kain')) {
+                            $inputTotalEst = max(0, (float) $request->input('total_est_kain'));
+                            $firstItem = SpkItem::where('spk_id', $spk->id)->first();
+                            if ($firstItem) {
+                                $firstItem->update(['est_kain' => $inputTotalEst]);
+                            }
+                        }
                     }
                 }
             }

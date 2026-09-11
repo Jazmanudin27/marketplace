@@ -818,17 +818,15 @@
                                 $sumEstKainHeader = (float) ($spk->items->first()->est_kain ?? 0);
                             }
                         @endphp
-                        @if ($sumEstKainHeader > 0)
-                            <span class="badge bg-white text-primary border px-2.5 py-1.5 rounded-pill shadow-2xs" style="font-size: 11px; font-weight: 700;">
-                                <i class="fas fa-ruler-combined me-1"></i> TOTAL ESTIMASI KAIN: {{ number_format($sumEstKainHeader, 2, ',', '.') }} M / KG
-                            </span>
-                        @endif
+                        <span class="badge bg-white text-primary border px-3 py-2 rounded-pill shadow-2xs" style="font-size: 12px; font-weight: 700;">
+                            <i class="fas fa-ruler-combined me-1 text-primary"></i> TOTAL ESTIMASI KAIN: {{ number_format($sumEstKainHeader, 2, ',', '.') }} M / KG
+                        </span>
                     </div>
                     <div class="rincian-body">
 
-                        {{-- Kategori Produk & Link File Mentah --}}
+                        {{-- Kategori Produk, Total Estimasi Kain & Link File Mentah --}}
                         <div class="row g-3 mb-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="section-label mb-1"
                                     style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#4f46e5;">
                                     🏷️ KATEGORI PRODUK
@@ -838,7 +836,16 @@
                                     value="{{ old('kategori', $spk->kategori) }}"
                                     placeholder="Contoh: Baju Olah Raga, Jaket, Seragam...">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <div class="section-label mb-1"
+                                    style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#0284c7;">
+                                    📏 TOTAL ESTIMASI KAIN (M / KG)
+                                </div>
+                                <input type="number" step="any" name="total_est_kain" class="form-control form-control-sm text-primary fw-bold"
+                                    style="font-size:12px;" value="{{ (float)$sumEstKainHeader > 0 ? (float)$sumEstKainHeader : '' }}"
+                                    placeholder="0">
+                            </div>
+                            <div class="col-md-4">
                                 <div class="section-label mb-1"
                                     style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#16a34a;">
                                     🔗 LINK FILE MENTAH (G-DRIVE / DROPBOX)
@@ -965,11 +972,9 @@
                                     <span class="badge bg-white text-dark border px-3 py-2 rounded-3 shadow-2xs" style="font-size: 11.5px;">
                                         <i class="fas fa-box text-primary me-1"></i> Total Qty: <strong>{{ number_format($spk->items->sum('quantity')) }} Pcs</strong>
                                     </span>
-                                    @if ($totEstKain > 0)
-                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-3" style="font-size: 11.5px;">
-                                            <i class="fas fa-ruler-combined me-1"></i> TOTAL ESTIMASI KAIN: <strong>{{ number_format($totEstKain, 2, ',', '.') }} M / Kg</strong>
-                                        </span>
-                                    @endif
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-3" style="font-size: 11.5px;">
+                                        <i class="fas fa-ruler-combined me-1"></i> TOTAL ESTIMASI KAIN: <strong>{{ number_format($totEstKain, 2, ',', '.') }} M / Kg</strong>
+                                    </span>
                                 </div>
                             </div>
                         </div>
