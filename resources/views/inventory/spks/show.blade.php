@@ -819,7 +819,7 @@
                             }
                         @endphp
                         <span class="badge bg-white text-primary border px-3 py-2 rounded-pill shadow-2xs" style="font-size: 12px; font-weight: 700;">
-                            <i class="fas fa-ruler-combined me-1 text-primary"></i> TOTAL ESTIMASI KAIN: {{ number_format($sumEstKainHeader, 2, ',', '.') }} M / KG
+                            <i class="fas fa-ruler-combined me-1 text-primary"></i> TOTAL ESTIMASI KAIN: {{ number_format($sumEstKainHeader, 0, ',', '.') }} CM ({{ number_format($sumEstKainHeader / 100, 2, ',', '.') }} M)
                         </span>
                     </div>
                     <div class="rincian-body">
@@ -839,11 +839,20 @@
                             <div class="col-md-4">
                                 <div class="section-label mb-1"
                                     style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#0284c7;">
-                                    📏 TOTAL ESTIMASI KAIN (M / KG)
+                                    📏 TOTAL ESTIMASI KAIN (CM)
                                 </div>
-                                <input type="number" step="any" name="total_est_kain" class="form-control form-control-sm text-primary fw-bold"
-                                    style="font-size:12px;" value="{{ (float)$sumEstKainHeader > 0 ? (float)$sumEstKainHeader : '' }}"
-                                    placeholder="0">
+                                <div class="input-group input-group-sm">
+                                    <input type="number" step="any" name="total_est_kain" id="input_total_est_kain" class="form-control form-control-sm text-primary fw-bold"
+                                        style="font-size:12px;" value="{{ (float)$sumEstKainHeader > 0 ? (float)$sumEstKainHeader : '' }}"
+                                        oninput="updateTotalMeterConversion(this)"
+                                        placeholder="0">
+                                    <span class="input-group-text bg-light text-muted px-2" style="font-size: 11px;">CM</span>
+                                </div>
+                                <small class="text-primary fw-semibold d-block mt-0.5" id="total_meter_conv_text" style="font-size: 11px;">
+                                    @if ($sumEstKainHeader > 0)
+                                        = {{ number_format($sumEstKainHeader / 100, 2, ',', '.') }} Meter
+                                    @endif
+                                </small>
                             </div>
                             <div class="col-md-4">
                                 <div class="section-label mb-1"
@@ -906,11 +915,11 @@
                             <table class="table table-sm product-table-custom align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th style="width: 24%;">SKU PRODUK / VARIAN</th>
+                                        <th style="width: 22%;">SKU PRODUK / VARIAN</th>
                                         <th style="width: 30%;">NAMA PRODUK</th>
                                         <th style="width: 12%;" class="text-center">UKURAN</th>
-                                        <th style="width: 12%;" class="text-center">QTY</th>
-                                        <th style="width: 18%;" class="text-center">ESTIMASI KAIN (M/KG)</th>
+                                        <th style="width: 10%;" class="text-center">QTY</th>
+                                        <th style="width: 22%;" class="text-center">ESTIMASI KAIN (CM)</th>
                                         <th style="width: 4%;" class="text-center"></th>
                                     </tr>
                                 </thead>
@@ -948,11 +957,19 @@
                                                     min="1" value="{{ $item->quantity }}">
                                             </td>
                                             <td>
-                                                <input type="number" step="any"
-                                                    name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][est_kain]"
-                                                    class="form-control text-center row-est-kain"
-                                                    placeholder="0"
-                                                    value="{{ (float) $item->est_kain > 0 ? (float) $item->est_kain : '' }}">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" step="any"
+                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][est_kain]"
+                                                        class="form-control text-center row-est-kain input-est-kain"
+                                                        placeholder="0"
+                                                        oninput="updateMeterConversion(this)"
+                                                        value="{{ (float) $item->est_kain > 0 ? (float) $item->est_kain : '' }}">
+                                                    <span class="input-group-text bg-light text-muted px-1" style="font-size: 10px;">CM</span>
+                                                </div>
+                                                <div class="text-center mt-1 row-meter-conv" style="font-size: 10.5px; font-weight: 600; color: #0284c7;">
+                                                    @php $cmVal = (float)$item->est_kain; @endphp
+                                                    <span class="conv-text">{{ $cmVal > 0 ? '(' . number_format($cmVal / 100, 2, ',', '.') . ' Meter)' : '' }}</span>
+                                                </div>
                                             </td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-product-row" title="Hapus Varian">
@@ -981,7 +998,7 @@
                                         <i class="fas fa-box text-primary me-1"></i> Total Qty: <strong>{{ number_format($spk->items->sum('quantity')) }} Pcs</strong>
                                     </span>
                                     <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-3" style="font-size: 11.5px;">
-                                        <i class="fas fa-ruler-combined me-1"></i> TOTAL ESTIMASI KAIN: <strong>{{ number_format($totEstKain, 2, ',', '.') }} M / Kg</strong>
+                                        <i class="fas fa-ruler-combined me-1"></i> TOTAL ESTIMASI KAIN: <strong>{{ number_format($totEstKain, 0, ',', '.') }} CM ({{ number_format($totEstKain / 100, 2, ',', '.') }} M)</strong>
                                     </span>
                                 </div>
                             </div>
@@ -2207,9 +2224,16 @@
                        value="1" min="1">
             </td>
             <td>
-                <input type="number" step="any" name="rincian[${rIdx}][produk][${pIdx}][est_kain]" 
-                       class="form-control text-center row-est-kain input-est-kain" 
-                       placeholder="0">
+                <div class="input-group input-group-sm">
+                    <input type="number" step="any" name="rincian[${rIdx}][produk][${pIdx}][est_kain]" 
+                           class="form-control text-center row-est-kain input-est-kain" 
+                           placeholder="0"
+                           oninput="updateMeterConversion(this)">
+                    <span class="input-group-text bg-light text-muted px-1" style="font-size: 10px;">CM</span>
+                </div>
+                <div class="text-center mt-1 row-meter-conv" style="font-size: 10.5px; font-weight: 600; color: #0284c7;">
+                    <span class="conv-text"></span>
+                </div>
             </td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-product-row" onclick="removeProductRow('${rIdx}-${pIdx}')" title="Hapus Varian">
@@ -2221,6 +2245,36 @@
             tbody.appendChild(tr);
             if (window.recalculateSpkCosts) {
                 window.recalculateSpkCosts();
+            }
+        }
+
+        function updateMeterConversion(input) {
+            if (!input) return;
+            const val = parseFloat(input.value) || 0;
+            const td = input.closest('td');
+            if (!td) return;
+            const convSpan = td.querySelector('.conv-text');
+            if (convSpan) {
+                if (val > 0) {
+                    const meter = (val / 100).toFixed(2).replace('.', ',');
+                    convSpan.textContent = `(${meter} Meter)`;
+                } else {
+                    convSpan.textContent = '';
+                }
+            }
+        }
+
+        function updateTotalMeterConversion(input) {
+            if (!input) return;
+            const val = parseFloat(input.value) || 0;
+            const targetEl = document.getElementById('total_meter_conv_text');
+            if (targetEl) {
+                if (val > 0) {
+                    const meter = (val / 100).toFixed(2).replace('.', ',');
+                    targetEl.textContent = `= ${meter} Meter`;
+                } else {
+                    targetEl.textContent = '';
+                }
             }
         }
 
