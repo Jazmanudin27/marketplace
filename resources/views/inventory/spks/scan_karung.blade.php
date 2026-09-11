@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Scan Karung Penerimaan Hasil Produksi')
+@section('title', 'Penerimaan Hasil Produksi - Fast Scan Karung')
 @section('page-title', 'Penerimaan Hasil Produksi')
 
 @push('styles')
@@ -8,90 +8,96 @@
         animation: rowPulseGreen 0.8s ease;
     }
     @keyframes rowPulseGreen {
-        0% { background-color: #d1e7dd !important; }
+        0% { background-color: rgba(16, 185, 129, 0.35) !important; }
         100% { background-color: inherit; }
     }
-    .font-monospace-code {
-        font-family: var(--bs-font-monospace);
+    .badge-spk {
+        font-family: monospace;
         letter-spacing: 0.5px;
-    }
-    #barcode-input:focus {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
     }
 </style>
 @endpush
 
 @section('content')
-<div class="container-fluid px-3 py-3">
+    <div class="row">
+        <div class="col-md-12">
 
-    {{-- HEADER UTAMA (CLEAN BOOTSTRAP 5) --}}
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-4">
-        <div>
-            <h4 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
-                <i class="bi bi-qr-code-scan text-primary"></i>
-                <span>Scan Karung Penerimaan Hasil Produksi</span>
-            </h4>
-            <p class="text-muted small mb-0">
-                Mode Fast Scan Karung Multi-SPK — Tembak label stiker produk secara acak dari karung, sistem otomatis menyimpan ke SPK &amp; SKU terkait.
-            </p>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <button type="button" id="btn-toggle-sound" class="btn btn-outline-secondary btn-sm rounded-2 px-3 fw-semibold">
-                <i class="bi bi-volume-up me-1 text-primary"></i><span id="sound-status-label">Suara: ON</span>
-            </button>
-            <a href="{{ route('spks.index') }}" class="btn btn-outline-secondary btn-sm rounded-2 px-3 fw-semibold">
-                <i class="bi bi-arrow-left me-1"></i>Kembali
-            </a>
-        </div>
-    </div>
+            {{-- ── 1. Control & Scanner Card (Style Menu Users) ───────────────── --}}
+            <div class="card border shadow-sm mb-3">
+                <div class="card-body py-3 px-3">
 
-    {{-- RINGKASAN METRIK SESI & FORM SCANNER --}}
-    <div class="row g-3 mb-4">
-        
-        {{-- CARD FORM SCANNER UTAMA --}}
-        <div class="col-12 col-lg-8">
-            <div class="card border shadow-sm rounded-3 bg-white h-100">
-                <div class="card-body p-3 p-md-4">
+                    {{-- Header Meta Info & Quick Summary --}}
+                    <div class="row g-2 mb-2">
+                        <div class="col-12">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 flex-shrink-0 small fw-bold">
+                                        <i class="fas fa-boxes-packing me-1"></i>MODE FAST SCAN KARUNG (MULTI-SPK)
+                                    </span>
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 small">
+                                        <i class="fas fa-industry me-1"></i>{{ $activeSpksCount }} SPK Aktif Berjalan
+                                    </span>
+                                    <span class="text-muted small">
+                                        Scan barcode/QR dari karung &bull; Otomatis menyimpan penerimaan ke SPK &amp; SKU terkait
+                                    </span>
+                                </div>
+
+                                {{-- Ringkasan Metrik Sesi --}}
+                                <div class="d-flex align-items-center gap-3 flex-wrap small ms-auto">
+                                    <span class="text-muted">Total Scan Sesi Ini: <strong class="text-dark" id="stat-session-count">0</strong>x</span>
+                                    <span class="text-muted">&bull; Total Volume: <strong class="text-success" id="stat-session-pcs">0 Pcs</strong></span>
+                                    <button type="button" id="btn-toggle-sound" class="btn btn-outline-secondary btn-sm px-2 py-0 border-0 ms-1" style="font-size: 0.85rem;">
+                                        <i class="fas fa-volume-up text-primary me-1"></i><span id="sound-status-label">Suara: ON</span>
+                                    </button>
+                                    <a href="{{ route('spks.index') }}" class="btn btn-secondary btn-sm px-3">
+                                        <i class="fas fa-arrow-left me-1"></i>Kembali
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-2">
+
+                    {{-- Form Scanner Barcode --}}
                     <form id="scan-form" onsubmit="return false;">
-                        <div class="row g-3 align-items-end">
+                        <div class="row g-2 align-items-end">
 
                             {{-- Input Barcode / SKU / QR --}}
-                            <div class="col-12 col-md-6">
-                                <label class="form-label fw-bold text-dark small mb-1">
-                                    <i class="bi bi-barcode text-primary me-1"></i>Scan / Ketik Barcode / QR Label
+                            <div class="col-md-5">
+                                <label class="form-label form-label-sm fw-semibold mb-1 text-dark">
+                                    <i class="fas fa-barcode text-primary me-1"></i>Scan / Ketik Barcode / QR Label Kemasan
                                 </label>
-                                <div class="input-group">
-                                    <input type="text" id="barcode-input" class="form-control form-control-lg font-monospace-code fw-bold fs-6"
+                                <div class="input-group input-group-sm">
+                                    <input type="text" id="barcode-input" class="form-control form-control-sm font-monospace fw-bold"
                                         placeholder="Tembak barcode kemasan dari karung..." autofocus autocomplete="off">
-                                    <button type="button" id="btn-submit-scan" class="btn btn-primary px-4 fw-bold">
-                                        <i class="bi bi-arrow-right me-1"></i>Proses
+                                    <button type="button" id="btn-submit-scan" class="btn btn-primary btn-sm px-3">
+                                        <i class="fas fa-arrow-right me-1"></i>Proses
                                     </button>
                                 </div>
                             </div>
 
-                            {{-- Qty / Scan --}}
-                            <div class="col-6 col-md-2">
-                                <label class="form-label fw-semibold text-dark small mb-1">
-                                    <i class="bi bi-calculator me-1"></i>Qty / Scan
+                            {{-- Qty per Scan --}}
+                            <div class="col-md-2">
+                                <label class="form-label form-label-sm fw-semibold mb-1 text-dark">
+                                    <i class="fas fa-calculator text-muted me-1"></i>Qty / Scan
                                 </label>
-                                <input type="number" id="qty-scan-input" class="form-control form-control-lg text-center fw-bold fs-6"
+                                <input type="number" id="qty-scan-input" class="form-control form-control-sm text-center fw-bold"
                                     value="1" min="1" max="500">
                             </div>
 
                             {{-- Petugas Penerima --}}
-                            <div class="col-6 col-md-2">
-                                <label class="form-label fw-semibold text-dark small mb-1">
-                                    <i class="bi bi-person-check me-1"></i>Petugas
+                            <div class="col-md-3">
+                                <label class="form-label form-label-sm fw-semibold mb-1 text-dark">
+                                    <i class="fas fa-user-check text-muted me-1"></i>Petugas Penerima
                                 </label>
-                                <input type="text" id="nama-pengambil-input" class="form-control form-control-lg fs-6"
+                                <input type="text" id="nama-pengambil-input" class="form-control form-control-sm"
                                     value="{{ Auth::user()->name ?? 'Petugas Gudang' }}" placeholder="Nama Penerima">
                             </div>
 
-                            {{-- Kamera Toggle --}}
-                            <div class="col-12 col-md-2">
-                                <button type="button" id="btn-toggle-camera" class="btn btn-outline-secondary btn-lg w-100 fs-6 fw-semibold">
-                                    <i class="bi bi-camera me-1"></i><span id="camera-btn-text">Kamera</span>
+                            {{-- Toggle Kamera --}}
+                            <div class="col-md-2">
+                                <button type="button" id="btn-toggle-camera" class="btn btn-outline-secondary btn-sm w-100">
+                                    <i class="fas fa-camera me-1"></i><span id="camera-btn-text">Kamera</span>
                                 </button>
                             </div>
                         </div>
@@ -99,13 +105,13 @@
 
                     {{-- Container Kamera QR Reader --}}
                     <div id="camera-scanner-container" class="mt-3 d-none text-center bg-light p-3 rounded-3 border">
-                        <div id="reader" style="max-width: 320px; margin: 0 auto;"></div>
-                        <small class="text-muted mt-2 d-block">Arahkan kamera ke QR Code label stiker pakaian</small>
+                        <div id="reader" style="max-width: 300px; margin: 0 auto;"></div>
+                        <span class="text-muted small mt-2 d-block">Arahkan kamera ke QR Code label stiker pakaian</span>
                     </div>
 
-                    {{-- BANNER FEEDBACK HASIL SCAN (LIVE ALERT) --}}
+                    {{-- Banner Live Result Alert --}}
                     <div id="live-alert-banner" class="mt-3 d-none">
-                        <div id="live-alert-box" class="alert alert-success border-0 rounded-3 p-3 mb-0 shadow-sm d-flex align-items-center gap-3">
+                        <div id="live-alert-box" class="alert border-0 rounded-3 p-3 mb-0 shadow-sm d-flex align-items-center gap-3">
                             <div id="live-alert-icon" class="fs-3"></div>
                             <div class="flex-grow-1">
                                 <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
@@ -121,133 +127,99 @@
 
                 </div>
             </div>
-        </div>
 
-        {{-- METRIK STATISTIK SESI SCAN --}}
-        <div class="col-12 col-lg-4">
-            <div class="card border shadow-sm rounded-3 bg-white h-100">
-                <div class="card-header bg-white py-3 border-bottom">
-                    <h6 class="fw-bold mb-0 text-dark">
-                        <i class="bi bi-bar-chart-line text-primary me-1"></i>Statistik Sesi Scan Ini
-                    </h6>
+            {{-- ── 2. Tabel Riwayat Utama (Style Menu Users) ───────────────────── --}}
+            <div class="card border shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2.5 px-3 border-bottom">
+                    <div>
+                        <h6 class="m-0 fw-bold text-primary">
+                            <i class="fas fa-history me-2"></i>Riwayat Scan Penerimaan Karung Sesi Ini
+                        </h6>
+                        <p class="text-muted mb-0 small mt-1">
+                            Daftar riwayat scan penerimaan barang karung real-time (50 transaksi terbaru)
+                        </p>
+                    </div>
+                    <span class="badge bg-white text-secondary border px-2 py-1 small">Sesi Aktif</span>
                 </div>
-                <div class="card-body p-3 d-flex flex-column justify-content-center gap-3">
-                    <div class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-light border">
-                        <div>
-                            <span class="text-muted small fw-semibold text-uppercase">Total Scan Berhasil</span>
-                            <h3 class="fw-bold text-dark mb-0" id="stat-session-count">0</h3>
-                        </div>
-                        <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3">
-                            <i class="bi bi-qr-code fs-4"></i>
-                        </div>
-                    </div>
 
-                    <div class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-light border">
-                        <div>
-                            <span class="text-muted small fw-semibold text-uppercase">Total Volume Pcs</span>
-                            <h3 class="fw-bold text-success mb-0" id="stat-session-pcs">0 Pcs</h3>
-                        </div>
-                        <div class="rounded-circle bg-success bg-opacity-10 text-success p-3">
-                            <i class="bi bi-box-seam fs-4"></i>
-                        </div>
-                    </div>
-
-                    <div class="d-flex align-items-center justify-content-between px-3 py-2 rounded-2 bg-info bg-opacity-10 border border-info border-opacity-25 text-info">
-                        <span class="small fw-semibold"><i class="bi bi-info-circle me-1"></i>Status SPK Aktif:</span>
-                        <span class="fw-bold small">{{ $activeSpksCount }} SPK Berjalan</span>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr class="text-uppercase small text-muted">
+                                    <th class="ps-3" style="width: 140px;">Waktu</th>
+                                    <th>No SPK</th>
+                                    <th>Kode Produksi</th>
+                                    <th>Produk &amp; SKU</th>
+                                    <th class="text-center">Size</th>
+                                    <th class="text-center">Qty Diterima</th>
+                                    <th>Petugas</th>
+                                    <th class="text-center pe-3" style="width: 80px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-history">
+                                @forelse($recentPickups as $p)
+                                    @php
+                                        $spk = $p->item->spk ?? null;
+                                    @endphp
+                                    <tr id="pickup-row-{{ $p->id }}">
+                                        <td class="ps-3 text-muted small font-monospace">
+                                            {{ $p->created_at->format('d/m/Y H:i') }}
+                                        </td>
+                                        <td>
+                                            @if($spk)
+                                                <a href="{{ route('spks.show', $spk->id) }}" target="_blank" class="fw-bold text-decoration-none text-primary badge-spk">
+                                                    #{{ $spk->no_spk }}
+                                                </a>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border font-monospace">
+                                                {{ $spk->no_produksi ?? '-' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-dark">{{ $p->item->nama_produk ?? 'Produk' }}</div>
+                                            <span class="text-muted small font-monospace">{{ $p->item->sku ?? '-' }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-secondary">
+                                                {{ $p->item->ukuran ?: 'All' }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 fw-bold fs-6">
+                                                +{{ $p->qty_diambil }} Pcs
+                                            </span>
+                                        </td>
+                                        <td class="small text-secondary">
+                                            <i class="fas fa-user-circle me-1"></i>{{ $p->nama_pengambil ?: ($p->pemberi->name ?? 'Gudang') }}
+                                        </td>
+                                        <td class="text-center pe-3">
+                                            <button type="button" class="btn btn-outline-danger btn-sm px-2 py-1 border-0"
+                                                title="Batalkan Catatan Penerimaan Ini" onclick="cancelPickup({{ $p->id }})">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr id="empty-row">
+                                        <td colspan="8" class="text-center py-5 text-muted">
+                                            <i class="fas fa-barcode fs-2 d-block mb-2 opacity-50"></i>
+                                            Belum ada data scan penerimaan pada sesi ini. Tembak barcode untuk mulai!
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-        </div>
 
-    </div>
-
-    {{-- TABEL RIWAYAT SCAN SESI INI --}}
-    <div class="card border shadow-sm rounded-3 bg-white">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-            <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
-                <i class="bi bi-clock-history text-primary"></i>
-                <span>Riwayat Scan Penerimaan Karung Sesi Ini</span>
-            </h6>
-            <span class="badge bg-light text-dark border small fw-normal">Terbaru 50 Transaksi</span>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr class="text-uppercase small text-muted">
-                            <th class="ps-3" style="width: 140px;">Waktu</th>
-                            <th>No SPK</th>
-                            <th>Kode Produksi</th>
-                            <th>Produk &amp; SKU</th>
-                            <th class="text-center">Size</th>
-                            <th class="text-center">Qty Diterima</th>
-                            <th>Petugas</th>
-                            <th class="text-center pe-3" style="width: 80px;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody-history">
-                        @forelse($recentPickups as $p)
-                            @php
-                                $spk = $p->item->spk ?? null;
-                            @endphp
-                            <tr id="pickup-row-{{ $p->id }}">
-                                <td class="ps-3 text-muted small font-monospace-code">
-                                    {{ $p->created_at->format('d/m/Y H:i') }}
-                                </td>
-                                <td>
-                                    @if($spk)
-                                        <a href="{{ route('spks.show', $spk->id) }}" target="_blank" class="fw-bold text-decoration-none text-primary font-monospace-code">
-                                            #{{ $spk->no_spk }}
-                                        </a>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <span class="badge bg-light text-dark border font-monospace-code">
-                                        {{ $spk->no_produksi ?? '-' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="fw-bold text-dark">{{ $p->item->nama_produk ?? 'Produk' }}</div>
-                                    <span class="text-muted small font-monospace-code">{{ $p->item->sku ?? '-' }}</span>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-secondary">
-                                        {{ $p->item->ukuran ?: 'All' }}
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold fs-6">
-                                        +{{ $p->qty_diambil }} Pcs
-                                    </span>
-                                </td>
-                                <td class="small text-secondary">
-                                    <i class="bi bi-person me-1"></i>{{ $p->nama_pengambil ?: ($p->pemberi->name ?? 'Gudang') }}
-                                </td>
-                                <td class="text-center pe-3">
-                                    <button type="button" class="btn btn-outline-danger btn-sm px-2 py-1 border-0"
-                                        title="Batalkan Catatan Penerimaan Ini" onclick="cancelPickup({{ $p->id }})">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr id="empty-row">
-                                <td colspan="8" class="text-center py-5 text-muted">
-                                    <i class="bi bi-qr-code fs-1 text-secondary opacity-50 d-block mb-2"></i>
-                                    Belum ada data scan penerimaan pada sesi ini. Tembak barcode untuk mulai!
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
         </div>
     </div>
-
-</div>
 
 @push('scripts')
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -358,7 +330,7 @@
 
             isProcessing = true;
             btnSubmitScan.disabled = true;
-            btnSubmitScan.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Proses...`;
+            btnSubmitScan.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i>Proses...`;
 
             fetch(`{{ route('spks.process_scan_karung') }}`, {
                 method: 'POST',
@@ -391,7 +363,7 @@
             .finally(() => {
                 isProcessing = false;
                 btnSubmitScan.disabled = false;
-                btnSubmitScan.innerHTML = `<i class="bi bi-arrow-right me-1"></i>Proses`;
+                btnSubmitScan.innerHTML = `<i class="fas fa-arrow-right me-1"></i>Proses`;
                 barcodeInput.value = '';
                 barcodeInput.focus();
             });
@@ -408,8 +380,8 @@
 
             // Live Alert Banner
             liveAlertBanner.classList.remove('d-none');
-            liveAlertBox.className = 'alert alert-success border-0 rounded-3 p-3 mb-0 shadow-sm d-flex align-items-center gap-3';
-            liveAlertIcon.innerHTML = `<i class="bi bi-check-circle-fill text-success"></i>`;
+            liveAlertBox.className = 'alert alert-success border-0 rounded-3 p-3 mb-0 shadow-sm d-flex align-items-center gap-3 bg-success bg-opacity-10 text-success';
+            liveAlertIcon.innerHTML = `<i class="fas fa-check-circle text-success"></i>`;
             badgeSpkNum.innerText = `SPK #${res.spk.no_spk}`;
             badgeProdNum.innerText = `PROD #${res.spk.no_produksi}`;
             badgeSizeNum.innerText = `SIZE: ${res.item.ukuran}`;
@@ -423,36 +395,36 @@
             tr.id = `pickup-row-${res.pickup.id}`;
             tr.className = 'row-scan-pulse';
             tr.innerHTML = `
-                <td class="ps-3 text-muted small font-monospace-code">${res.pickup.tanggal}</td>
+                <td class="ps-3 text-muted small font-monospace">${res.pickup.tanggal}</td>
                 <td>
-                    <a href="/spks/${res.spk.id}" target="_blank" class="fw-bold text-decoration-none text-primary font-monospace-code">
+                    <a href="/spks/${res.spk.id}" target="_blank" class="fw-bold text-decoration-none text-primary badge-spk">
                         #${res.spk.no_spk}
                     </a>
                 </td>
                 <td>
-                    <span class="badge bg-light text-dark border font-monospace-code">
+                    <span class="badge bg-light text-dark border font-monospace">
                         ${res.spk.no_produksi}
                     </span>
                 </td>
                 <td>
                     <div class="fw-bold text-dark">${res.item.nama_produk}</div>
-                    <span class="text-muted small font-monospace-code">${res.item.sku}</span>
+                    <span class="text-muted small font-monospace">${res.item.sku}</span>
                 </td>
                 <td class="text-center">
                     <span class="badge bg-secondary">${res.item.ukuran}</span>
                 </td>
                 <td class="text-center">
-                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold fs-6">
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 fw-bold fs-6">
                         +${res.pickup.qty} Pcs
                     </span>
                 </td>
                 <td class="small text-secondary">
-                    <i class="bi bi-person me-1"></i>${res.pickup.nama_pengambil}
+                    <i class="fas fa-user-circle me-1"></i>${res.pickup.nama_pengambil}
                 </td>
                 <td class="text-center pe-3">
                     <button type="button" class="btn btn-outline-danger btn-sm px-2 py-1 border-0"
                         title="Batalkan Catatan Penerimaan Ini" onclick="cancelPickup(${res.pickup.id})">
-                        <i class="bi bi-trash"></i>
+                        <i class="fas fa-trash-alt"></i>
                     </button>
                 </td>
             `;
@@ -463,8 +435,8 @@
             playErrorBuzzer();
 
             liveAlertBanner.classList.remove('d-none');
-            liveAlertBox.className = 'alert alert-danger border-0 rounded-3 p-3 mb-0 shadow-sm d-flex align-items-center gap-3';
-            liveAlertIcon.innerHTML = `<i class="bi bi-exclamation-triangle-fill text-danger"></i>`;
+            liveAlertBox.className = 'alert alert-danger border-0 rounded-3 p-3 mb-0 shadow-sm d-flex align-items-center gap-3 bg-danger bg-opacity-10 text-danger';
+            liveAlertIcon.innerHTML = `<i class="fas fa-exclamation-triangle text-danger"></i>`;
             badgeSpkNum.innerText = `GAGAL`;
             badgeProdNum.innerText = `ERR`;
             badgeSizeNum.innerText = `!`;
