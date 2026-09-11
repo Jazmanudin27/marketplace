@@ -134,22 +134,34 @@
                                 <div class="col-md-4">
                                     <div class="p-3 border rounded h-100 bg-light">
                                         <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
-                                            style="font-size: 0.65rem;">Metode Pembayaran</small>
-                                        <span
-                                            class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-10 small fw-medium mt-1">
-                                            {{ $offlineSale->payment_method_label }}
-                                        </span>
+                                            style="font-size: 0.65rem;">Jenis Transaksi</small>
+                                        @if ($offlineSale->payment_method === 'piutang')
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 small fw-semibold mt-1">
+                                                <i class="fas fa-file-invoice-dollar me-1"></i>Kredit (Tempo)
+                                            </span>
+                                        @else
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 small fw-semibold mt-1">
+                                                <i class="fas fa-money-bill-wave me-1"></i>Tunai (Lunas)
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="p-3 border rounded h-100 bg-light">
                                         <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
                                             style="font-size: 0.65rem;">Status Pembayaran</small>
-                                        <span
-                                            class="badge bg-{{ $offlineSale->payment_status_badge }} bg-opacity-10 text-{{ $offlineSale->payment_status_badge }} border border-{{ $offlineSale->payment_status_badge }} border-opacity-10 small fw-semibold mt-1">
-                                            <i class="fas fa-{{ $offlineSale->is_paid ? 'check-circle' : 'exclamation-circle' }} me-1"></i>
-                                            {{ $offlineSale->payment_status_label }}
-                                        </span>
+                                        <div>
+                                            <span
+                                                class="badge bg-{{ $offlineSale->payment_status_badge }} bg-opacity-10 text-{{ $offlineSale->payment_status_badge }} border border-{{ $offlineSale->payment_status_badge }} border-opacity-10 small fw-semibold mt-1">
+                                                <i class="fas fa-{{ $offlineSale->is_paid ? 'check-circle' : 'exclamation-circle' }} me-1"></i>
+                                                {{ $offlineSale->payment_status_label }}
+                                            </span>
+                                            @if (!$offlineSale->is_paid && $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED)
+                                                <div class="small font-monospace text-danger fw-semibold mt-1" style="font-size: 0.75rem;">
+                                                    Sisa: Rp {{ number_format($offlineSale->remaining_amount, 0, ',', '.') }}
+                                                </div>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                                 @if ($offlineSale->payment_destination)

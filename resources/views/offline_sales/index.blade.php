@@ -76,22 +76,22 @@
                         </div>
                         <div class="col-12 col-sm-6 col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">
-                                <i class="fas fa-wallet me-1"></i>Pembayaran
+                                <i class="fas fa-tags me-1"></i>Jenis Transaksi
                             </label>
                             <select name="payment_method" class="form-select form-select-sm">
-                                <option value="">Semua Pembayaran</option>
+                                <option value="">Semua Jenis</option>
                                 <option value="tunai" {{ request('payment_method') === 'tunai' ? 'selected' : '' }}>Tunai</option>
                                 <option value="piutang" {{ in_array(request('payment_method'), ['piutang', 'kredit']) ? 'selected' : '' }}>Kredit</option>
                             </select>
                         </div>
                         <div class="col-12 col-sm-6 col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">
-                                <i class="fas fa-money-bill-wave me-1"></i>Status Bayar
+                                <i class="fas fa-money-bill-wave me-1"></i>Pembayaran
                             </label>
                             <select name="payment_status" class="form-select form-select-sm">
-                                <option value="">Semua Status Bayar</option>
+                                <option value="">Semua Pembayaran</option>
                                 <option value="lunas" {{ request('payment_status') === 'lunas' ? 'selected' : '' }}>Lunas</option>
-                                <option value="belum_lunas" {{ request('payment_status') === 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
+                                <option value="belum_lunas" {{ request('payment_status') === 'belum_lunas' ? 'selected' : '' }}>Belum Lunas / Cicil</option>
                             </select>
                         </div>
                         <div class="col-12 col-sm-6 col-md-2">
@@ -129,6 +129,7 @@
                             <th class="ps-3">NO. TRANSAKSI</th>
                             <th>PEMBELI</th>
                             <th>KASIR</th>
+                            <th class="text-center">JENIS TRANSAKSI</th>
                             <th>PEMBAYARAN</th>
                             <th class="text-end">GRAND TOTAL</th>
                             <th class="text-center">STATUS</th>
@@ -156,17 +157,39 @@
                                     <div class="text-muted">{{ $sale->buyer_phone ?? '' }}</div>
                                 </td>
                                 <td class="small text-muted">{{ $sale->user->name ?? '-' }}</td>
+                                <td class="text-center align-middle">
+                                    @if ($sale->payment_method === 'piutang')
+                                        <span class="badge bg-danger small py-1 px-2">
+                                            <i class="fas fa-file-invoice-dollar me-1"></i>Kredit
+                                        </span>
+                                    @else
+                                        <span class="badge bg-success small py-1 px-2">
+                                            <i class="fas fa-money-bill-wave me-1"></i>Tunai
+                                        </span>
+                                    @endif
+                                </td>
                                 <td class="align-middle">
-                                    <span class="badge bg-{{ $sale->payment_type_badge }} small py-1 px-2">
-                                        @if ($sale->payment_type_label === 'Tunai' || str_contains($sale->payment_type_label, 'Lunas'))
-                                            <i class="fas fa-check-circle me-1"></i>
-                                        @elseif (str_contains($sale->payment_type_label, 'Dicicil'))
-                                            <i class="fas fa-clock me-1"></i>
-                                        @else
-                                            <i class="fas fa-file-invoice-dollar me-1"></i>
-                                        @endif
-                                        {{ $sale->payment_type_label }}
-                                    </span>
+                                    @if ($sale->status === \App\Models\OfflineSale::STATUS_CANCELLED)
+                                        <span class="badge bg-secondary small">Dibatalkan</span>
+                                    @elseif ($sale->is_paid)
+                                        <span class="badge bg-success small py-1 px-2">
+                                            <i class="fas fa-check-circle me-1"></i>Lunas
+                                        </span>
+                                    @elseif ((float)$sale->paid_amount > 0)
+                                        <span class="badge bg-warning text-dark small py-1 px-2">
+                                            <i class="fas fa-clock me-1"></i>Dicicil
+                                        </span>
+                                        <div class="small font-monospace text-danger fw-semibold mt-1" style="font-size: 0.75rem;">
+                                            Sisa: Rp {{ number_format($sale->remaining_amount, 0, ',', '.') }}
+                                        </div>
+                                    @else
+                                        <span class="badge bg-danger small py-1 px-2">
+                                            <i class="fas fa-exclamation-circle me-1"></i>Belum Lunas
+                                        </span>
+                                        <div class="small font-monospace text-danger fw-semibold mt-1" style="font-size: 0.75rem;">
+                                            Sisa: Rp {{ number_format($sale->remaining_amount, 0, ',', '.') }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="text-end fw-bold text-success font-monospace small">
                                     Rp {{ number_format($sale->grand_total, 0, ',', '.') }}
@@ -238,7 +261,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-5 text-muted">
+                                <td colspan="9" class="text-center py-5 text-muted">
                                     <i class="fas fa-store-slash fa-3x mb-3 d-block opacity-25"></i>
                                     Belum ada transaksi penjualan offline.
                                     <div class="mt-2">

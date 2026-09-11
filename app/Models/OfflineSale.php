@@ -196,7 +196,7 @@ class OfflineSale extends Model
         if ((float) $this->paid_amount > 0) {
             return 'Dicicil';
         }
-        return 'Belum Bayar';
+        return 'Belum Lunas';
     }
 
     public function getPaymentStatusBadgeAttribute(): string
