@@ -810,8 +810,19 @@
             <div id="rincianContainer">
                 @php $rIdx = 0; @endphp
                 <div class="rincian-card" id="rincian-block-{{ $rIdx }}">
-                    <div class="rincian-header">
+                    <div class="rincian-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <span>📋 DETAIL RINCIAN PRODUK (SPK #{{ $spk->no_spk }})</span>
+                        @php
+                            $sumEstKainHeader = (float) $spk->items->sum('est_kain');
+                            if ($sumEstKainHeader <= 0 && $spk->items->first()) {
+                                $sumEstKainHeader = (float) ($spk->items->first()->est_kain ?? 0);
+                            }
+                        @endphp
+                        @if ($sumEstKainHeader > 0)
+                            <span class="badge bg-white text-primary border px-2.5 py-1.5 rounded-pill shadow-2xs" style="font-size: 11px; font-weight: 700;">
+                                <i class="fas fa-ruler-combined me-1"></i> TOTAL ESTIMASI KAIN: {{ number_format($sumEstKainHeader, 2, ',', '.') }} M / KG
+                            </span>
+                        @endif
                     </div>
                     <div class="rincian-body">
 
@@ -888,11 +899,10 @@
                             <table class="table table-sm product-table-custom align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th style="width: 24%;">SKU PRODUK / VARIAN</th>
-                                        <th style="width: 30%;">NAMA PRODUK</th>
-                                        <th style="width: 12%;" class="text-center">UKURAN</th>
-                                        <th style="width: 12%;" class="text-center">QTY</th>
-                                        <th style="width: 18%;" class="text-center">ESTIMASI KAIN (M/KG)</th>
+                                        <th style="width: 32%;">SKU PRODUK / VARIAN</th>
+                                        <th style="width: 38%;">NAMA PRODUK</th>
+                                        <th style="width: 13%;" class="text-center">UKURAN</th>
+                                        <th style="width: 13%;" class="text-center">QTY</th>
                                         <th style="width: 4%;" class="text-center"></th>
                                     </tr>
                                 </thead>
@@ -929,13 +939,6 @@
                                                     class="form-control text-center fw-bold row-qty-produksi"
                                                     min="1" value="{{ $item->quantity }}">
                                             </td>
-                                            <td>
-                                                <input type="number" step="any"
-                                                    name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][est_kain]"
-                                                    class="form-control text-center row-est-kain"
-                                                    placeholder="0"
-                                                    value="{{ (float) $item->est_kain > 0 ? (float) $item->est_kain : '' }}">
-                                            </td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-product-row" title="Hapus Varian">
                                                     <i class="fas fa-trash-alt"></i>
@@ -945,12 +948,29 @@
                                     @endforeach
                                 </tbody>
                             </table>
-                            <div class="p-2 bg-light border-top text-start">
+                            <div class="p-2 bg-light border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
                                 <button type="button"
                                     class="btn btn-sm btn-success fw-bold px-3 py-1 text-uppercase rounded-3"
                                     onclick="addNewProductRow({{ $rIdx }})">
                                     <i class="fas fa-plus-circle me-1"></i> + Tambah Produk / Varian Baru
                                 </button>
+
+                                @php
+                                    $totEstKain = (float) $spk->items->sum('est_kain');
+                                    if ($totEstKain <= 0 && $spk->items->first()) {
+                                        $totEstKain = (float) ($spk->items->first()->est_kain ?? 0);
+                                    }
+                                @endphp
+                                <div class="d-flex align-items-center gap-2 px-2 flex-wrap">
+                                    <span class="badge bg-white text-dark border px-3 py-2 rounded-3 shadow-2xs" style="font-size: 11.5px;">
+                                        <i class="fas fa-box text-primary me-1"></i> Total Qty: <strong>{{ number_format($spk->items->sum('quantity')) }} Pcs</strong>
+                                    </span>
+                                    @if ($totEstKain > 0)
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-3" style="font-size: 11.5px;">
+                                            <i class="fas fa-ruler-combined me-1"></i> TOTAL ESTIMASI KAIN: <strong>{{ number_format($totEstKain, 2, ',', '.') }} M / Kg</strong>
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
 
@@ -2172,11 +2192,6 @@
                 <input type="number" name="rincian[${rIdx}][produk][${pIdx}][qty_produksi]" 
                        class="form-control text-center fw-bold row-qty-produksi input-qty-produksi" 
                        value="1" min="1">
-            </td>
-            <td>
-                <input type="number" step="any" name="rincian[${rIdx}][produk][${pIdx}][est_kain]" 
-                       class="form-control text-center row-est-kain input-est-kain" 
-                       placeholder="0">
             </td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-product-row" onclick="removeProductRow('${rIdx}-${pIdx}')" title="Hapus Varian">

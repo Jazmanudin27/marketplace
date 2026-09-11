@@ -1428,9 +1428,9 @@ class SpkController extends Controller
                             $skuProduk  = trim($pRow['sku_produk'] ?? '');
                             $ukuran     = trim($pRow['ukuran'] ?? '') ?: 'ALL SIZE';
                             $qtyProd    = max(1, (int) ($pRow['qty_produksi'] ?? 1));
-                            $estKain    = (float) ($pRow['est_kain'] ?? 0);
+                            $spkItem    = $itemsOrdered->get((int)$pIdx);
+                            $estKain    = isset($pRow['est_kain']) ? (float)$pRow['est_kain'] : ($spkItem->est_kain ?? 0);
 
-                            $spkItem = $itemsOrdered->get((int)$pIdx);
                             if (!$spkItem) {
                                 $spkItem = SpkItem::create([
                                     'spk_id'      => $spk->id,
