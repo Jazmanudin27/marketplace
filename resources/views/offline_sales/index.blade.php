@@ -79,12 +79,9 @@
                                 <i class="fas fa-wallet me-1"></i>Pembayaran
                             </label>
                             <select name="payment_method" class="form-select form-select-sm">
-                                <option value="">Semua Metode</option>
-                                @foreach (\App\Models\OfflineSale::PAYMENT_METHODS as $key => $label)
-                                    <option value="{{ $key }}"
-                                        {{ request('payment_method') === $key ? 'selected' : '' }}>{{ $label }}
-                                    </option>
-                                @endforeach
+                                <option value="">Semua Pembayaran</option>
+                                <option value="tunai" {{ request('payment_method') === 'tunai' ? 'selected' : '' }}>Tunai</option>
+                                <option value="piutang" {{ in_array(request('payment_method'), ['piutang', 'kredit']) ? 'selected' : '' }}>Kredit</option>
                             </select>
                         </div>
                         <div class="col-12 col-sm-6 col-md-2">
@@ -159,20 +156,17 @@
                                     <div class="text-muted">{{ $sale->buyer_phone ?? '' }}</div>
                                 </td>
                                 <td class="small text-muted">{{ $sale->user->name ?? '-' }}</td>
-                                <td>
-                                    <div class="d-flex flex-column gap-1">
-                                        <div>
-                                            <span class="badge bg-secondary small">{{ $sale->payment_method_label }}</span>
-                                        </div>
-                                        @if ($sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED)
-                                            <div>
-                                                <span class="badge bg-{{ $sale->payment_status_badge }} small">
-                                                    <i class="fas fa-{{ $sale->is_paid ? 'check-circle' : 'exclamation-circle' }} me-1"></i>
-                                                    {{ $sale->payment_status_label }}
-                                                </span>
-                                            </div>
+                                <td class="align-middle">
+                                    <span class="badge bg-{{ $sale->payment_type_badge }} small py-1 px-2">
+                                        @if ($sale->payment_type_label === 'Tunai' || str_contains($sale->payment_type_label, 'Lunas'))
+                                            <i class="fas fa-check-circle me-1"></i>
+                                        @elseif (str_contains($sale->payment_type_label, 'Dicicil'))
+                                            <i class="fas fa-clock me-1"></i>
+                                        @else
+                                            <i class="fas fa-file-invoice-dollar me-1"></i>
                                         @endif
-                                    </div>
+                                        {{ $sale->payment_type_label }}
+                                    </span>
                                 </td>
                                 <td class="text-end fw-bold text-success font-monospace small">
                                     Rp {{ number_format($sale->grand_total, 0, ',', '.') }}

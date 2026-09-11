@@ -266,16 +266,34 @@
 
                         <hr class="my-3">
 
+                        {{-- Pilihan Jenis Pembayaran: Tunai / Kredit --}}
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-secondary mb-1">
+                                <i class="fas fa-wallet me-1"></i>Jenis Pembayaran <span class="text-danger">*</span>
+                            </label>
+                            <div class="btn-group w-100" role="group" id="payment-type-group">
+                                <input type="radio" class="btn-check" name="payment_type" id="pay_type_tunai" value="tunai" checked autocomplete="off">
+                                <label class="btn btn-outline-success btn-sm fw-bold py-2" for="pay_type_tunai">
+                                    <i class="fas fa-money-bill-wave me-1"></i> Tunai (Lunas)
+                                </label>
+
+                                <input type="radio" class="btn-check" name="payment_type" id="pay_type_kredit" value="kredit" autocomplete="off">
+                                <label class="btn btn-outline-danger btn-sm fw-bold py-2" for="pay_type_kredit">
+                                    <i class="fas fa-file-invoice-dollar me-1"></i> Kredit (Tempo)
+                                </label>
+                            </div>
+                        </div>
+
                         {{-- Total Tagihan --}}
                         <div class="card bg-light border p-3 mb-3 text-center">
                             <div class="text-muted small fw-semibold mb-1">Total Tagihan</div>
                             <div class="fs-4 fw-bold text-dark font-monospace" id="display-order-grand-total">Rp 0</div>
-                            <div class="text-muted small mt-1">
-                                <i class="fas fa-info-circle text-primary me-1"></i> Pembayaran dapat dicicil / dilunasi setelah transaksi tersimpan.
+                            <div class="text-muted small mt-1" id="payment-hint-text">
+                                <i class="fas fa-check-circle text-success me-1"></i> Pembayaran langsung lunas (Tunai).
                             </div>
                         </div>
 
-                        <input type="hidden" name="payment_method" id="payment-method-input" value="piutang">
+                        <input type="hidden" name="payment_method" id="payment-method-input" value="tunai">
                         <input type="hidden" name="paid_amount" id="paid-input" value="0">
 
                         <div class="mb-3">
@@ -792,6 +810,17 @@
             $('#display-grand-total').text('Rp ' + Math.round(grandTotal).toLocaleString('id-ID'));
             $('#display-order-grand-total').text('Rp ' + Math.round(grandTotal).toLocaleString('id-ID'));
 
+            const payType = $('input[name="payment_type"]:checked').val() || 'tunai';
+            if (payType === 'tunai') {
+                $('#payment-method-input').val('tunai');
+                $('#paid-input').val(grandTotal);
+                $('#payment-hint-text').html('<i class="fas fa-check-circle text-success me-1"></i> Pembayaran langsung lunas (Tunai).');
+            } else {
+                $('#payment-method-input').val('piutang');
+                $('#paid-input').val(0);
+                $('#payment-hint-text').html('<i class="fas fa-info-circle text-primary me-1"></i> Pembayaran tempo / dapat dicicil setelah transaksi tersimpan.');
+            }
+
             let isValid = Object.keys(cartItems).length > 0;
             const isPo = $('#is-po-switch').is(':checked');
 
@@ -914,6 +943,10 @@
             } else {
                 $('#po-deadline-container').slideUp(200);
             }
+            recalculate();
+        });
+
+        $('input[name="payment_type"]').on('change', function() {
             recalculate();
         });
 

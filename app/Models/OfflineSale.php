@@ -39,7 +39,7 @@ class OfflineSale extends Model
         'tunai'    => 'Tunai',
         'transfer' => 'Transfer Bank',
         'qris'     => 'QRIS',
-        'piutang'  => 'Piutang / Bayar Nanti',
+        'piutang'  => 'Kredit (Tempo / Bayar Nanti)',
     ];
 
     public function tenant(): BelongsTo
@@ -110,6 +110,52 @@ class OfflineSale extends Model
     public function getPaymentMethodLabelAttribute(): string
     {
         return self::PAYMENT_METHODS[$this->payment_method] ?? ucfirst($this->payment_method);
+    }
+
+    public function getPaymentTypeLabelAttribute(): string
+    {
+        if ($this->payment_method === 'piutang') {
+            if ($this->is_paid) {
+                return 'Kredit (Lunas)';
+            }
+            if ((float) $this->paid_amount > 0) {
+                return 'Kredit (Dicicil)';
+            }
+            return 'Kredit';
+        }
+
+        if ($this->is_paid) {
+            return 'Tunai';
+        }
+
+        if ((float) $this->paid_amount > 0) {
+            return 'Tunai (Dicicil)';
+        }
+
+        return 'Tunai (Belum Lunas)';
+    }
+
+    public function getPaymentTypeBadgeAttribute(): string
+    {
+        if ($this->payment_method === 'piutang') {
+            if ($this->is_paid) {
+                return 'success';
+            }
+            if ((float) $this->paid_amount > 0) {
+                return 'warning text-dark';
+            }
+            return 'danger';
+        }
+
+        if ($this->is_paid) {
+            return 'success';
+        }
+
+        if ((float) $this->paid_amount > 0) {
+            return 'warning text-dark';
+        }
+
+        return 'danger';
     }
 
     /**

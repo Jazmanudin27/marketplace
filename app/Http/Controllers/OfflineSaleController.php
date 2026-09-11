@@ -33,7 +33,13 @@ class OfflineSaleController extends Controller
         }
 
         if ($request->filled('payment_method')) {
-            $query->where('payment_method', $request->payment_method);
+            if ($request->payment_method === 'piutang' || $request->payment_method === 'kredit') {
+                $query->where('payment_method', 'piutang');
+            } elseif ($request->payment_method === 'tunai') {
+                $query->where('payment_method', '!=', 'piutang');
+            } else {
+                $query->where('payment_method', $request->payment_method);
+            }
         }
 
         if ($request->filled('payment_status')) {
