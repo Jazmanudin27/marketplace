@@ -639,6 +639,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/offline-sales/{offlineSale}/complete', [OfflineSaleController::class, 'complete'])->name('offline_sales.complete');
         Route::post('/offline-sales/{offlineSale}/cancel', [OfflineSaleController::class, 'cancel'])->name('offline_sales.cancel');
         Route::post('/offline-sales/{offlineSale}/return', [OfflineSaleController::class, 'processReturn'])->name('offline_sales.return');
+        Route::post('/offline-sales/{offlineSale}/create-spk', [OfflineSaleController::class, 'createSpk'])->name('offline_sales.create_spk');
         Route::get('/offline-sales/{offlineSale}/print', [OfflineSaleController::class, 'printReceipt'])->name('offline_sales.print');
     });
 

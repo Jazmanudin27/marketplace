@@ -301,38 +301,6 @@ class OfflineSaleController extends Controller
             foreach ($itemsData as $itemData) {
                 $sale->items()->create($itemData);
             }
-
-            // Jika pesanan Pre-Order (PO Produksi), buatkan SPK otomatis untuk Tim Produksi
-            if ($request->boolean('is_po')) {
-                $today = date('Ymd');
-                $countToday = \App\Models\Spk::where('tenant_id', $tenantId)
-                    ->whereDate('tanggal', date('Y-m-d'))
-                    ->count();
-                $noSpk = 'SPK-PO-' . $today . '-' . sprintf('%03d', $countToday + 1);
-
-                $spk = \App\Models\Spk::create([
-                    'tenant_id'     => $tenantId,
-                    'no_spk'        => $noSpk,
-                    'tanggal'       => now(),
-                    'deadline'      => $request->filled('deadline') ? $request->deadline : now()->addDays(7),
-                    'pemesan'       => $request->buyer_name ?: 'Pelanggan PO',
-                    'no_hp_pemesan' => $request->buyer_phone ?: '',
-                    'instansi'      => 'Penjualan PO #' . $sale->sale_number,
-                    'penginput_id'  => Auth::id(),
-                ]);
-
-                foreach ($itemsData as $itemData) {
-                    \App\Models\SpkItem::create([
-                        'spk_id'            => $spk->id,
-                        'master_product_id' => $itemData['master_product_id'],
-                        'nama_produk'       => $itemData['product_name'],
-                        'sku'               => $itemData['sku'],
-                        'quantity'          => $itemData['quantity'],
-                        'hpp'               => $itemData['unit_price'],
-                        'status'            => 'Pending',
-                    ]);
-                }
-            }
         });
 
         $successMsg = $request->boolean('is_po')
@@ -645,9 +613,9 @@ class OfflineSaleController extends Controller
             ];
 
             // Jika transaksi sebelumnya berstatus Menunggu DP dan sekarang ada pembayaran DP masuk,
-            // transisikan status menjadi Menunggu Approval Gudang
+            // transisikan status menjadi Belum dibuat SPK
             if ($offlineSale->status === OfflineSale::STATUS_WAITING_DP && $newPaid > 0) {
-                $updateData['status'] = OfflineSale::STATUS_PENDING_APPROVAL;
+                $updateData['status'] = OfflineSale::STATUS_PENDING_SPK;
             }
 
             $offlineSale->update($updateData);
@@ -656,8 +624,8 @@ class OfflineSaleController extends Controller
         $fresh = $offlineSale->fresh();
         if ($fresh->is_paid) {
             $message = '✅ Pembayaran berhasil dicatat dan transaksi dinyatakan LUNAS!';
-        } elseif ($offlineSale->status === OfflineSale::STATUS_WAITING_DP && $fresh->status === OfflineSale::STATUS_PENDING_APPROVAL) {
-            $message = '✅ Pembayaran DP sebesar Rp ' . number_format($payAmount, 0, ',', '.') . ' berhasil dicatat! Status transaksi kini Menunggu Approval Gudang.';
+        } elseif ($offlineSale->status === OfflineSale::STATUS_WAITING_DP && $fresh->status === OfflineSale::STATUS_PENDING_SPK) {
+            $message = '✅ Pembayaran DP sebesar Rp ' . number_format($payAmount, 0, ',', '.') . ' berhasil dicatat! Status transaksi kini: Belum dibuat SPK.';
         } else {
             $message = '✅ Pembayaran cicilan sebesar Rp ' . number_format($payAmount, 0, ',', '.') . ' berhasil dicatat!';
         }
@@ -808,5 +776,52 @@ class OfflineSaleController extends Controller
         $offlineSale->load('items.masterProduct', 'user');
         $tenant = $offlineSale->tenant;
         return view('offline_sales.receipt', compact('offlineSale', 'tenant'));
+    }
+
+    public function createSpk(Request $request, OfflineSale $offlineSale)
+    {
+        abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
+
+        $tenantId = Auth::user()->tenant_id;
+        $offlineSale->load('items');
+
+        $noSpk = null;
+        DB::transaction(function () use ($offlineSale, $tenantId, $request, &$noSpk) {
+            $today = date('Ymd');
+            $countToday = \App\Models\Spk::where('tenant_id', $tenantId)
+                ->whereDate('tanggal', date('Y-m-d'))
+                ->count();
+            $noSpk = 'SPK-PO-' . $today . '-' . sprintf('%03d', $countToday + 1);
+
+            $spk = \App\Models\Spk::create([
+                'tenant_id'     => $tenantId,
+                'no_spk'        => $noSpk,
+                'tanggal'       => now(),
+                'deadline'      => $request->filled('deadline') ? $request->deadline : now()->addDays(7),
+                'pemesan'       => $offlineSale->buyer_name ?: 'Pelanggan PO',
+                'no_hp_pemesan' => $offlineSale->buyer_phone ?: '',
+                'instansi'      => 'Penjualan PO #' . $offlineSale->sale_number,
+                'penginput_id'  => Auth::id(),
+            ]);
+
+            foreach ($offlineSale->items as $itemData) {
+                \App\Models\SpkItem::create([
+                    'spk_id'            => $spk->id,
+                    'master_product_id' => $itemData->master_product_id,
+                    'nama_produk'       => $itemData->product_name,
+                    'sku'               => $itemData->sku,
+                    'quantity'          => $itemData->quantity,
+                    'hpp'               => $itemData->unit_price,
+                    'status'            => 'Pending',
+                ]);
+            }
+
+            // Setelah SPK dibuat, status penjualan offline naik menjadi Menunggu Approval Gudang
+            $offlineSale->update([
+                'status' => OfflineSale::STATUS_PENDING_APPROVAL,
+            ]);
+        });
+
+        return back()->with('success', "✅ SPK Produksi ({$noSpk}) berhasil diterbitkan! Status transaksi kini Menunggu Approval Gudang.");
     }
 }

@@ -37,12 +37,17 @@
                             <i class="fas fa-money-bill-wave me-1"></i> Catat Pembayaran / Cicilan
                         </button>
                     @endif
+                    @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK)
+                        <button type="button" class="btn btn-warning btn-sm px-3 text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalCreateSpkShow">
+                            <i class="fas fa-hammer me-1"></i> Buat SPK Produksi
+                        </button>
+                    @endif
                     @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_COMPLETED)
                         <button type="button" class="btn btn-warning btn-sm px-3 text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalReturnShow">
                             <i class="fas fa-undo me-1"></i> Retur Barang
                         </button>
                     @endif
-                    @if (in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_COMPLETED, \App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_WAITING_DP]))
+                    @if (in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_COMPLETED, \App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_WAITING_DP, \App\Models\OfflineSale::STATUS_PENDING_SPK]))
                         <button type="button" class="btn btn-danger btn-sm px-3"
                             data-bs-toggle="modal" data-bs-target="#modalCancelShow"
                             data-status="{{ $offlineSale->status }}">
@@ -70,7 +75,7 @@
                         <i class="fas fa-hourglass-half fa-2x text-info"></i>
                         <div>
                             <strong>Menunggu Pembayaran DP</strong><br>
-                            <small>Pesanan PO ini sedang menunggu pembayaran Down Payment (DP) dari pembeli. Setelah pembayaran DP dicatat, transaksi akan otomatis berpindah ke status <strong>Menunggu Approval</strong>.</small>
+                            <small>Pesanan PO ini sedang menunggu pembayaran Down Payment (DP) dari pembeli. Setelah DP dicatat, status akan berganti menjadi <strong>Belum dibuat SPK</strong>.</small>
                         </div>
                     </div>
                     @if (!$offlineSale->is_paid)
@@ -78,6 +83,22 @@
                             <i class="fas fa-money-bill-wave me-1"></i> Catat DP Sekarang
                         </button>
                     @endif
+                </div>
+            @endif
+
+            {{-- Banner Belum Dibuat SPK --}}
+            @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK)
+                <div class="alert alert-warning d-flex align-items-center justify-content-between gap-3 mb-3 py-3" style="background-color: #fef3c7; border-color: #fcd34d; color: #92400e;">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="fas fa-hammer fa-2x text-warning"></i>
+                        <div>
+                            <strong class="fs-6">Pembayaran DP Diterima — Belum Dibuat SPK</strong><br>
+                            <small>DP pesanan ini telah masuk. Silakan terbitkan SPK untuk Tim Produksi agar proses pengerjaan dapat dimulai.</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-warning btn-sm px-3 text-dark fw-bold text-nowrap shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCreateSpkShow">
+                        <i class="fas fa-hammer me-1"></i> Buat SPK Sekarang
+                    </button>
                 </div>
             @endif
 
@@ -680,7 +701,9 @@
 
                     <div class="mb-2">
                         <label for="show_notes" class="form-label fw-semibold small text-dark mb-1">Catatan / Keterangan (Opsional)</label>
-                        <input type="text" name="notes" id="show_notes" class="form-control form-control-sm" placeholder="Contoh: Cicilan ke-1, DP tambahan, pelunasan transfer...">
+                        <input type="text" name="notes" id="show_notes" class="form-control form-control-sm"
+                            value="{{ $offlineSale->status === \App\Models\OfflineSale::STATUS_WAITING_DP ? 'Pembayaran DP' : '' }}"
+                            placeholder="Contoh: Cicilan ke-1, DP tambahan, pelunasan transfer...">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -694,6 +717,44 @@
     </div>
 </div>
 @endif
+
+{{-- Modal Terbitkan SPK Produksi --}}
+@push('modals')
+@if($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK)
+<div class="modal fade" id="modalCreateSpkShow" tabindex="-1" aria-labelledby="modalCreateSpkShowLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning bg-opacity-10 border-bottom">
+                <h6 class="modal-title fw-bold text-dark" id="modalCreateSpkShowLabel">
+                    <i class="fas fa-hammer me-2 text-warning"></i>Terbitkan SPK Produksi
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('offline_sales.create_spk', $offlineSale->id) }}" method="POST" class="m-0">
+                @csrf
+                <div class="modal-body p-3">
+                    <p class="mb-1 text-dark">Terbitkan SPK Produksi untuk transaksi PO:</p>
+                    <p class="fw-bold font-monospace text-primary mb-3">{{ $offlineSale->sale_number }}</p>
+                    <div class="mb-3">
+                        <label for="show_spk_deadline" class="form-label fw-semibold small text-dark mb-1">
+                            <i class="fas fa-calendar-alt text-primary me-1"></i>Deadline SPK Produksi <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" name="deadline" id="show_spk_deadline" class="form-control form-control-sm" value="{{ now()->addDays(7)->format('Y-m-d') }}" required>
+                        <div class="form-text text-muted small">Target selesai pengerjaan pesanan ini oleh tim produksi.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                        <i class="fas fa-hammer me-1"></i> Terbitkan SPK Sekarang
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+@endpush
 
 {{-- Modal Konfirmasi Pembatalan --}}
 @push('modals')

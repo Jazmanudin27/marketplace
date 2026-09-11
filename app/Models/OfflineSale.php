@@ -35,6 +35,7 @@ class OfflineSale extends Model
     const STATUS_CANCELLED        = 'cancelled';
     const STATUS_PENDING          = 'pending';
     const STATUS_WAITING_DP       = 'menunggu_dp';
+    const STATUS_PENDING_SPK      = 'belum_spk';
     const STATUS_PENDING_APPROVAL = 'pending_approval';
 
     const PAYMENT_METHODS = [
@@ -95,7 +96,8 @@ class OfflineSale extends Model
             self::STATUS_COMPLETED        => 'success',
             self::STATUS_CANCELLED        => 'danger',
             self::STATUS_WAITING_DP       => 'info',
-            self::STATUS_PENDING_APPROVAL => 'warning',
+            self::STATUS_PENDING_SPK      => 'warning text-dark',
+            self::STATUS_PENDING_APPROVAL => 'primary',
             default                       => 'secondary',
         };
     }
@@ -106,6 +108,7 @@ class OfflineSale extends Model
             self::STATUS_COMPLETED        => 'Selesai',
             self::STATUS_CANCELLED        => 'Dibatalkan',
             self::STATUS_WAITING_DP       => 'Menunggu DP Masuk',
+            self::STATUS_PENDING_SPK      => 'Belum dibuat SPK',
             self::STATUS_PENDING_APPROVAL => 'Menunggu Approval',
             default                       => ucfirst($this->status),
         };

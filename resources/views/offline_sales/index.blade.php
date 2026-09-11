@@ -83,6 +83,7 @@
                                 <option value="">Semua Status</option>
                                 <option value="menunggu_dp" {{ request('status') === 'menunggu_dp' ? 'selected' : '' }}>Menunggu DP Masuk</option>
                                 <option value="perlu_follow_up" {{ request('status') === 'perlu_follow_up' ? 'selected' : '' }}>⚠️ Perlu Follow Up (Overdue DP)</option>
+                                <option value="belum_spk" {{ request('status') === 'belum_spk' ? 'selected' : '' }}>Belum dibuat SPK</option>
                                 <option value="pending_approval" {{ request('status') === 'pending_approval' ? 'selected' : '' }}>Menunggu Approval</option>
                                 <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Selesai</option>
                                 <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
@@ -282,11 +283,20 @@
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         @endif
+                                        @if ($sale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK)
+                                            <button type="button" class="btn btn-sm btn-warning text-dark py-1 px-2 fw-bold"
+                                                title="Buat SPK Produksi" data-bs-toggle="modal"
+                                                data-bs-target="#modalCreateSpk" data-id="{{ $sale->id }}"
+                                                data-sale-number="{{ $sale->sale_number }}">
+                                                <i class="fas fa-hammer"></i>
+                                            </button>
+                                        @endif
                                         @if ($sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && !$sale->is_paid)
                                             <button type="button" class="btn btn-sm btn-outline-success py-1 px-2"
                                                 title="Catat Pembayaran / Cicilan" data-bs-toggle="modal"
                                                 data-bs-target="#modalMarkPaid" data-id="{{ $sale->id }}"
                                                 data-sale-number="{{ $sale->sale_number }}"
+                                                data-status="{{ $sale->status }}"
                                                 data-grand-total="Rp {{ number_format($sale->grand_total, 0, ',', '.') }}"
                                                 data-paid-amount="Rp {{ number_format($sale->paid_amount, 0, ',', '.') }}"
                                                 data-unpaid-amount="Rp {{ number_format(max(0, $sale->grand_total - $sale->paid_amount), 0, ',', '.') }}"
@@ -552,6 +562,40 @@
             </div>
         </div>
     </div>
+
+    {{-- Modal Terbitkan SPK Produksi --}}
+    <div class="modal fade" id="modalCreateSpk" tabindex="-1" aria-labelledby="modalCreateSpkLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-warning bg-opacity-10 border-bottom">
+                    <h6 class="modal-title fw-bold text-dark" id="modalCreateSpkLabel">
+                        <i class="fas fa-hammer me-2 text-warning"></i>Terbitkan SPK Produksi
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="form-create-spk" method="POST" class="m-0">
+                    @csrf
+                    <div class="modal-body p-3">
+                        <p class="mb-1 text-dark">Terbitkan SPK Produksi untuk transaksi PO:</p>
+                        <p class="fw-bold font-monospace text-primary mb-3" id="modal-spk-sale-number"></p>
+                        <div class="mb-3">
+                            <label for="spk_deadline" class="form-label fw-semibold small text-dark mb-1">
+                                <i class="fas fa-calendar-alt text-primary me-1"></i>Deadline SPK Produksi <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="deadline" id="spk_deadline" class="form-control form-control-sm" value="{{ now()->addDays(7)->format('Y-m-d') }}" required>
+                            <div class="form-text text-muted small">Target selesai produksi pesanan ini.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-primary btn-sm px-4">
+                            <i class="fas fa-hammer me-1"></i> Terbitkan SPK Sekarang
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endpush
 
 @push('scripts')
@@ -616,6 +660,12 @@
                     rawInput.value = unpaidRaw;
 
                     document.getElementById('form-mark-paid').action = '/offline-sales/' + id + '/payments';
+
+                    const status = btn.getAttribute('data-status');
+                    const notesInput = document.getElementById('paid_notes');
+                    if (notesInput) {
+                        notesInput.value = (status === 'menunggu_dp') ? 'Pembayaran DP' : '';
+                    }
                 });
 
                 const displayInput = document.getElementById('modal-index-paid-amount-display');
@@ -633,8 +683,18 @@
                 }
             }
 
+            // Modal Buat SPK
+            const modalCreateSpk = document.getElementById('modalCreateSpk');
+            if (modalCreateSpk) {
+                modalCreateSpk.addEventListener('show.bs.modal', function(event) {
+                    const btn = event.relatedTarget;
+                    document.getElementById('modal-spk-sale-number').textContent = btn.getAttribute('data-sale-number');
+                    document.getElementById('form-create-spk').action = '/offline-sales/' + btn.getAttribute('data-id') + '/create-spk';
+                });
+            }
+
             // Loading state saat submit
-            ['form-approve', 'form-cancel', 'form-mark-paid'].forEach(function(formId) {
+            ['form-approve', 'form-cancel', 'form-mark-paid', 'form-create-spk'].forEach(function(formId) {
                 const form = document.getElementById(formId);
                 if (form) {
                     form.addEventListener('submit', function() {

@@ -555,6 +555,9 @@ class OfflineSaleTest extends TestCase
         $this->assertEquals(100000, (float)$sale->grand_total);
         $this->assertFalse($sale->needs_follow_up); // Not overdue yet
 
+        // Pastikan SPK BELUM dibuat saat input penjualan
+        $this->assertEquals(0, \App\Models\Spk::where('tenant_id', $this->tenant->id)->count());
+
         // Set follow_up_date to past date to test overdue follow-up alert
         $sale->update(['follow_up_date' => now()->subDay()->toDateString()]);
         $sale->refresh();
@@ -576,19 +579,33 @@ class OfflineSaleTest extends TestCase
                 'payment_method'      => 'transfer',
                 'payment_destination' => 'BCA PO',
                 'payment_date'        => now()->toDateString(),
-                'notes'               => 'DP Produksi 30%',
+                'notes'               => 'Pembayaran DP',
             ]);
 
         $payResponse->assertRedirect();
         $payResponse->assertSessionHas('success');
 
         $sale->refresh();
-        // After DP payment, status automatically transitions to STATUS_PENDING_APPROVAL
-        $this->assertEquals(OfflineSale::STATUS_PENDING_APPROVAL, $sale->status);
-        $this->assertEquals('Menunggu Approval', $sale->status_label);
+        // After DP payment, status automatically transitions to STATUS_PENDING_SPK ("Belum dibuat SPK")
+        $this->assertEquals(OfflineSale::STATUS_PENDING_SPK, $sale->status);
+        $this->assertEquals('Belum dibuat SPK', $sale->status_label);
         $this->assertEquals(30000, (float)$sale->paid_amount);
         $this->assertEquals(70000, (float)$sale->remaining_amount);
         $this->assertFalse($sale->needs_follow_up); // Because DP has been paid!
+
+        // Terbitkan SPK
+        $spkResponse = $this->actingAs($this->user)
+            ->post(route('offline_sales.create_spk', $sale), [
+                'deadline' => now()->addDays(7)->toDateString(),
+            ]);
+
+        $spkResponse->assertRedirect();
+        $spkResponse->assertSessionHas('success');
+
+        $this->assertEquals(1, \App\Models\Spk::where('tenant_id', $this->tenant->id)->count());
+        $sale->refresh();
+        $this->assertEquals(OfflineSale::STATUS_PENDING_APPROVAL, $sale->status);
+        $this->assertEquals('Menunggu Approval', $sale->status_label);
     }
 }
 
