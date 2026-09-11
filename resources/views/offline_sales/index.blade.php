@@ -138,8 +138,9 @@
                     vertical-align: middle;
                     white-space: nowrap;
                 }
+
                 .table-offline td {
-                    padding: 0.85rem 0.75rem !important;
+                    padding: 0.55rem 0.45rem !important;
                     vertical-align: middle;
                 }
             </style>
