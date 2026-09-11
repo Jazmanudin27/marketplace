@@ -285,12 +285,12 @@
                                 <i class="fas fa-wallet me-1"></i>Jenis Pembayaran <span class="text-danger">*</span>
                             </label>
                             <div class="btn-group w-100" role="group" id="payment-type-group">
-                                <input type="radio" class="btn-check" name="payment_type" id="pay_type_tunai" value="tunai" checked autocomplete="off">
+                                <input type="radio" class="btn-check" name="payment_type" id="pay_type_tunai" value="tunai" autocomplete="off">
                                 <label class="btn btn-outline-success btn-sm fw-bold py-2" for="pay_type_tunai">
                                     <i class="fas fa-money-bill-wave me-1"></i> Tunai (Lunas)
                                 </label>
 
-                                <input type="radio" class="btn-check" name="payment_type" id="pay_type_kredit" value="kredit" autocomplete="off">
+                                <input type="radio" class="btn-check" name="payment_type" id="pay_type_kredit" value="kredit" checked autocomplete="off">
                                 <label class="btn btn-outline-danger btn-sm fw-bold py-2" for="pay_type_kredit">
                                     <i class="fas fa-file-invoice-dollar me-1"></i> Kredit (Tempo)
                                 </label>
@@ -302,11 +302,11 @@
                             <div class="text-muted small fw-semibold mb-1">Total Tagihan</div>
                             <div class="fs-4 fw-bold text-dark font-monospace" id="display-order-grand-total">Rp 0</div>
                             <div class="text-muted small mt-1" id="payment-hint-text">
-                                <i class="fas fa-check-circle text-success me-1"></i> Pembayaran langsung lunas (Tunai).
+                                <i class="fas fa-info-circle text-primary me-1"></i> Pembayaran tempo / dapat dicicil setelah transaksi tersimpan.
                             </div>
                         </div>
 
-                        <input type="hidden" name="payment_method" id="payment-method-input" value="tunai">
+                        <input type="hidden" name="payment_method" id="payment-method-input" value="piutang">
                         <input type="hidden" name="paid_amount" id="paid-input" value="0">
 
                         <div class="mb-3">
@@ -824,7 +824,7 @@
             $('#display-order-grand-total').text('Rp ' + Math.round(grandTotal).toLocaleString('id-ID'));
 
             const isPo = $('#is-po-switch').is(':checked');
-            const payType = $('input[name="payment_type"]:checked').val() || 'tunai';
+            const payType = $('input[name="payment_type"]:checked').val() || 'kredit';
             if (isPo) {
                 $('#payment-method-input').val('piutang');
                 $('#paid-input').val(0);
