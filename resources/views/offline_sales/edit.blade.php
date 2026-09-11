@@ -106,7 +106,7 @@
                             <div class="col-md-6">
                                 <label class="form-label small fw-semibold text-secondary mb-1">Alamat Pelanggan</label>
                                 <textarea name="buyer_address" id="buyer-address-input" class="form-control form-control-sm"
-                                    rows="1" placeholder="Alamat pelanggan...">{{ $offlineSale->buyer_address }}</textarea>
+                                    rows="1" placeholder="Alamat pelanggan...">{{ $offlineSale->customer->address ?? '' }}</textarea>
                             </div>
 
                             {{-- Instansi / Saluran / Channel (Opsional) --}}

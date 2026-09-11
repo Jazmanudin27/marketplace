@@ -576,7 +576,7 @@ class OfflineSaleController extends Controller
                 $customerId = $customer->id;
             } elseif ($customerId && $request->filled('buyer_address')) {
                 $customer = \App\Models\Customer::where('tenant_id', $tenantId)->find($customerId);
-                if ($customer && empty($customer->address)) {
+                if ($customer) {
                     $customer->update(['address' => $request->buyer_address]);
                 }
             }
@@ -623,7 +623,6 @@ class OfflineSaleController extends Controller
                 'customer_id'       => $customerId,
                 'buyer_name'        => $request->buyer_name,
                 'buyer_phone'       => $request->buyer_phone,
-                'buyer_address'     => $request->buyer_address,
                 'institution_name'  => $request->institution_name,
                 'payment_method'    => $paymentMethod,
                 'total_amount'      => $totalAmount,
