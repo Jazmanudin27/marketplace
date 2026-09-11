@@ -127,13 +127,13 @@
                     <thead class="table-light">
                         <tr>
                             <th class="ps-3">NO. TRANSAKSI</th>
+                            <th>TANGGAL</th>
                             <th>PEMBELI</th>
-                            <th>KASIR</th>
-                            <th class="text-center">JENIS TRANSAKSI</th>
-                            <th>PEMBAYARAN</th>
-                            <th class="text-end">GRAND TOTAL</th>
+                            <th>DIINPUT</th>
+                            <th class="text-center">TRANSAKSI</th>
+                            <th class="text-end">TOTAL</th>
+                            <th class="text-center">SISA BAYAR</th>
                             <th class="text-center">STATUS</th>
-                            <th>WAKTU</th>
                             <th class="text-center">AKSI</th>
                         </tr>
                     </thead>
@@ -152,6 +152,9 @@
                                         <span class="badge text-white font-monospace ms-1" style="background-color: #8b5cf6; font-size: 0.6rem; padding: 0.15em 0.3em;">PO Produksi</span>
                                     @endif
                                 </td>
+                                <td class="small text-muted text-nowrap">
+                                    {{ $sale->sold_at ? $sale->sold_at->format('d M Y, H:i') : '-' }}
+                                </td>
                                 <td class="small">
                                     <div class="fw-semibold">{{ $sale->buyer_name ?: '(Umum)' }}</div>
                                     <div class="text-muted">{{ $sale->buyer_phone ?? '' }}</div>
@@ -168,7 +171,10 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="align-middle">
+                                <td class="text-end fw-bold text-success font-monospace small text-nowrap">
+                                    Rp {{ number_format($sale->grand_total, 0, ',', '.') }}
+                                </td>
+                                <td class="text-center align-middle">
                                     @if ($sale->status === \App\Models\OfflineSale::STATUS_CANCELLED)
                                         <span class="badge bg-secondary small">Dibatalkan</span>
                                     @elseif ($sale->is_paid)
@@ -176,14 +182,14 @@
                                             <i class="fas fa-check-circle me-1"></i>Lunas
                                         </span>
                                     @elseif ((float)$sale->paid_amount > 0)
-                                        <span class="badge bg-warning text-dark small py-1 px-2">
+                                        <span class="badge bg-warning text-dark small py-1 px-2 mb-1">
                                             <i class="fas fa-clock me-1"></i>Dicicil
                                         </span>
                                         <div class="small font-monospace text-danger fw-semibold mt-1" style="font-size: 0.75rem;">
                                             Sisa: Rp {{ number_format($sale->remaining_amount, 0, ',', '.') }}
                                         </div>
                                     @else
-                                        <span class="badge bg-danger small py-1 px-2">
+                                        <span class="badge bg-danger small py-1 px-2 mb-1">
                                             <i class="fas fa-exclamation-circle me-1"></i>Belum Lunas
                                         </span>
                                         <div class="small font-monospace text-danger fw-semibold mt-1" style="font-size: 0.75rem;">
@@ -191,10 +197,7 @@
                                         </div>
                                     @endif
                                 </td>
-                                <td class="text-end fw-bold text-success font-monospace small">
-                                    Rp {{ number_format($sale->grand_total, 0, ',', '.') }}
-                                </td>
-                                <td class="text-center">
+                                <td class="text-center align-middle">
                                     @php
                                         $badgeClass = match ($sale->status_badge) {
                                             'success' => 'bg-success',
@@ -204,9 +207,6 @@
                                         };
                                     @endphp
                                     <span class="badge {{ $badgeClass }} small">{{ $sale->status_label }}</span>
-                                </td>
-                                <td class="small text-muted">
-                                    {{ $sale->sold_at ? $sale->sold_at->format('d M Y, H:i') : '-' }}
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex gap-1 justify-content-center">
