@@ -128,13 +128,28 @@
                 </div>
             </div>
 
+            <style>
+                .table-offline th {
+                    padding: 0.85rem 0.75rem !important;
+                    font-size: 0.78rem;
+                    font-weight: 700;
+                    letter-spacing: 0.03em;
+                    text-transform: uppercase;
+                    vertical-align: middle;
+                    white-space: nowrap;
+                }
+                .table-offline td {
+                    padding: 0.85rem 0.75rem !important;
+                    vertical-align: middle;
+                }
+            </style>
             <div class="table-responsive">
-                <table class="table table-sm table-bordered table-hover align-middle mb-0">
+                <table class="table table-bordered table-hover align-middle mb-0 table-offline">
                     <thead class="table-light">
                         <tr>
                             <th class="ps-3">NO. TRANSAKSI</th>
                             <th>TANGGAL</th>
-                            <th>CUSTOMER</th>
+                            <th>PEMBELI</th>
                             <th>DIINPUT</th>
                             <th class="text-center">TRANSAKSI</th>
                             <th class="text-end">TOTAL</th>
@@ -211,11 +226,11 @@
                                 <td class="text-center">
                                     <div class="d-flex gap-1 justify-content-center">
                                         <a href="{{ route('offline_sales.show', $sale->id) }}"
-                                            class="btn btn-sm btn-outline-primary py-0 px-2" title="Detail">
+                                            class="btn btn-sm btn-outline-primary py-1 px-2" title="Detail">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         <a href="{{ route('offline_sales.print', $sale->id) }}" target="_blank"
-                                            class="btn btn-sm btn-outline-secondary py-0 px-2" title="Cetak Struk">
+                                            class="btn btn-sm btn-outline-secondary py-1 px-2" title="Cetak Struk">
                                             <i class="fas fa-print"></i>
                                         </a>
                                         @if (
@@ -224,7 +239,7 @@
                                                     auth()->user()->isAdmin() ||
                                                     auth()->user()->isOwner() ||
                                                     in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang'])))
-                                            <button type="button" class="btn btn-sm btn-success py-0 px-2"
+                                            <button type="button" class="btn btn-sm btn-success py-1 px-2"
                                                 title="Approve Transaksi" data-bs-toggle="modal"
                                                 data-bs-target="#modalApprove" data-id="{{ $sale->id }}"
                                                 data-sale-number="{{ $sale->sale_number }}">
@@ -232,7 +247,7 @@
                                             </button>
                                         @endif
                                         @if ($sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && !$sale->is_paid)
-                                            <button type="button" class="btn btn-sm btn-outline-success py-0 px-2"
+                                            <button type="button" class="btn btn-sm btn-outline-success py-1 px-2"
                                                 title="Catat Pembayaran / Cicilan" data-bs-toggle="modal"
                                                 data-bs-target="#modalMarkPaid" data-id="{{ $sale->id }}"
                                                 data-sale-number="{{ $sale->sale_number }}"
@@ -244,7 +259,7 @@
                                             </button>
                                         @endif
                                         @if ($sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED)
-                                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2"
+                                            <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2"
                                                 title="Batalkan Transaksi" data-bs-toggle="modal"
                                                 data-bs-target="#modalCancel" data-id="{{ $sale->id }}"
                                                 data-sale-number="{{ $sale->sale_number }}"
