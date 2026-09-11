@@ -24,6 +24,11 @@
                 </p>
             </div>
             <div class="d-flex align-items-center gap-2">
+                <a href="{{ route('spks.scan_karung') }}"
+                    class="btn btn-success text-white px-3 py-2 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2" style="background: linear-gradient(135deg, #059669, #10b981);">
+                    <i class="fas fa-barcode"></i>
+                    <span>Scan Karung (Multi-SPK)</span>
+                </a>
                 <a href="{{ route('spks.payments.index') }}"
                     class="btn btn-warning text-dark px-3 py-2 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
                     <i class="fas fa-wallet text-dark"></i>

@@ -212,7 +212,16 @@
     <div class="labels-grid">
         @foreach($spk->items as $item)
             @php
-                $codeVal = $item->sku ?: ($item->masterProduct->sku ?? ('SPK-ITEM-' . $item->id));
+                $skuDisplay = $item->sku ?: ($item->masterProduct->sku ?? ('ITEM-' . $item->id));
+                $uniqueBarcode = "SPK-" . $spk->id . "-ITEM-" . $item->id;
+                $qrPayload = json_encode([
+                    'spk_id'      => $spk->id,
+                    'no_spk'      => $spk->no_spk,
+                    'no_produksi' => $spk->no_produksi,
+                    'item_id'     => $item->id,
+                    'sku'         => $skuDisplay,
+                    'ukuran'      => $item->ukuran ?: '',
+                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                 $repeatQty = max(1, (int) $item->quantity);
             @endphp
 
@@ -227,7 +236,7 @@
                         <div class="qr-wrapper" id="qr-box-{{ $item->id }}-{{ $i }}"></div>
                         <div class="product-info">
                             <div class="product-name">{{ $item->nama_produk }}</div>
-                            <span class="sku-tag">{{ $codeVal }}</span>
+                            <span class="sku-tag">{{ $skuDisplay }}</span>
                             <div>
                                 <span class="size-box">SIZE {{ $item->ukuran ?: 'ALL' }}</span>
                                 <span style="font-size: 9px; color: #64748b; font-weight: 700; margin-left: 6px;">
@@ -249,21 +258,30 @@
         document.addEventListener("DOMContentLoaded", function() {
             @foreach($spk->items as $item)
                 @php
-                    $codeVal = $item->sku ?: ($item->masterProduct->sku ?? ('SPK-ITEM-' . $item->id));
+                    $skuDisplay = $item->sku ?: ($item->masterProduct->sku ?? ('ITEM-' . $item->id));
+                    $uniqueBarcode = "SPK-" . $spk->id . "-ITEM-" . $item->id;
+                    $qrPayload = json_encode([
+                        'spk_id'      => $spk->id,
+                        'no_spk'      => $spk->no_spk,
+                        'no_produksi' => $spk->no_produksi,
+                        'item_id'     => $item->id,
+                        'sku'         => $skuDisplay,
+                        'ukuran'      => $item->ukuran ?: '',
+                    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                     $repeatQty = max(1, (int) $item->quantity);
                 @endphp
                 @for($i = 1; $i <= $repeatQty; $i++)
                     try {
-                        // Generate QR Code
+                        // Generate QR Code with full JSON payload
                         new QRCode(document.getElementById("qr-box-{{ $item->id }}-{{ $i }}"), {
-                            text: "{{ $codeVal }}",
+                            text: {!! json_encode($qrPayload) !!},
                             width: 76,
                             height: 76,
                             correctLevel: QRCode.CorrectLevel.M
                         });
 
-                        // Generate Barcode
-                        JsBarcode("#barcode-svg-{{ $item->id }}-{{ $i }}", "{{ $codeVal }}", {
+                        // Generate Barcode with unique composite string CODE128
+                        JsBarcode("#barcode-svg-{{ $item->id }}-{{ $i }}", "{{ $uniqueBarcode }}", {
                             format: "CODE128",
                             height: 26,
                             fontSize: 10,

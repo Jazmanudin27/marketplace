@@ -595,6 +595,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/spks/progres/{progres}/update', [\App\Http\Controllers\Inventory\SpkController::class, 'updateItemProgres'])->name('spks.progres.update');
         Route::post('/spks/items/{item}/pickup', [\App\Http\Controllers\Inventory\SpkController::class, 'storePickup'])->name('spks.items.store_pickup');
         Route::delete('/spks/pickups/{pickup}', [\App\Http\Controllers\Inventory\SpkController::class, 'destroyPickup'])->name('spks.pickups.destroy');
+        Route::get('/spks/scan-karung', [\App\Http\Controllers\Inventory\SpkController::class, 'scanKarungPage'])->name('spks.scan_karung');
+        Route::post('/spks/scan-karung', [\App\Http\Controllers\Inventory\SpkController::class, 'processScanKarung'])->name('spks.process_scan_karung');
         Route::get('/spks/{spk}/scan-pickup', [\App\Http\Controllers\Inventory\SpkController::class, 'scanPickupPage'])->name('spks.scan_pickup');
         Route::post('/spks/{spk}/scan-pickup', [\App\Http\Controllers\Inventory\SpkController::class, 'processScanPickup'])->name('spks.process_scan_pickup');
         Route::get('/spks/{spk}/print-labels', [\App\Http\Controllers\Inventory\SpkController::class, 'printItemLabels'])->name('spks.print_labels');
