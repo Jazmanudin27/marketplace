@@ -52,6 +52,7 @@ class OrderController extends Controller
                 'SHIPPED'       => ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE', 'DELIVERED'],
                 'COMPLETED'     => ['COMPLETED', 'FINISHED', 'SELESAI'],
                 'CANCELLED'     => ['CANCELLED', 'BATAL', 'IN_CANCEL'],
+                'TO_RETURN'     => ['TO_RETURN', 'RETURN', 'RETURNED', 'REFUNDED', 'RETUR', 'RETURNING'],
             ];
 
             $reqStatus = strtoupper($request->status);
@@ -266,6 +267,7 @@ class OrderController extends Controller
             'SHIPPED'       => ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE', 'DELIVERED'],
             'COMPLETED'     => ['COMPLETED', 'FINISHED', 'SELESAI'],
             'CANCELLED'     => ['CANCELLED', 'BATAL', 'IN_CANCEL'],
+            'TO_RETURN'     => ['TO_RETURN', 'RETURN', 'RETURNED', 'REFUNDED', 'RETUR', 'RETURNING'],
         ];
 
         $tabCounts = ['__all__' => $rawCounts->sum()];

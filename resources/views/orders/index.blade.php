@@ -745,6 +745,11 @@
                     ],
                     'SHIPPED' => ['label' => 'Dikirim', 'icon' => 'fas fa-truck', 'countKey' => 'SHIPPED'],
                     'COMPLETED' => ['label' => 'Selesai', 'icon' => 'fas fa-check-circle', 'countKey' => 'COMPLETED'],
+                    'TO_RETURN' => [
+                        'label' => 'Pengembalian',
+                        'icon' => 'fas fa-undo',
+                        'countKey' => 'TO_RETURN',
+                    ],
                     'CANCELLED' => [
                         'label' => 'Dibatalkan',
                         'icon' => 'fas fa-times-circle',

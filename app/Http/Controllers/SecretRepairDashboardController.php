@@ -995,6 +995,7 @@ class SecretRepairDashboardController extends Controller
                             'COMPLETED'          => 'COMPLETED',
                             'CANCELLED'          => 'CANCELLED',
                             'IN_CANCEL'          => 'CANCELLED',
+                            'TO_RETURN'          => 'TO_RETURN',
                         ];
                         $correctStatus = $shopeeStatusMap[$statusRaw] ?? $statusRaw;
 

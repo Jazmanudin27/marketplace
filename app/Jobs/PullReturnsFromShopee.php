@@ -167,8 +167,8 @@ class PullReturnsFromShopee implements ShouldQueue
             $returnOrder->save();
         }
 
-        // Ubah status pesanan asli ke RETURN
-        $order->update(['order_status' => Order::STATUS_RETURN]);
+        // Ubah status pesanan asli ke TO_RETURN
+        $order->update(['order_status' => Order::STATUS_TO_RETURN]);
 
         // Simpan Return Items jika ada
         if (isset($shopeeReturn['item']) && is_array($shopeeReturn['item'])) {
@@ -230,7 +230,7 @@ class PullReturnsFromShopee implements ShouldQueue
                 'is_restocked' => false,
             ]);
 
-            $order->update(['order_status' => Order::STATUS_RETURN]);
+            $order->update(['order_status' => Order::STATUS_TO_RETURN]);
 
             foreach ($order->items as $item) {
                 ReturnOrderItem::create([

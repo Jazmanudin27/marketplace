@@ -185,7 +185,8 @@ class Order extends Model
     const STATUS_DELIVERED = 'DELIVERED';
     const STATUS_COMPLETED = 'COMPLETED';
     const STATUS_CANCELLED = 'CANCELLED';
-    const STATUS_RETURN = 'RETURN';
+    const STATUS_TO_RETURN = 'TO_RETURN';
+    const STATUS_RETURN = 'TO_RETURN';
 
     public function approvedWarehouseBy(): BelongsTo
     {
@@ -239,14 +240,15 @@ class Order extends Model
 
     public function getStatusBadgeAttribute(): string
     {
-        return match ($this->order_status) {
+        return match (strtoupper((string)$this->order_status)) {
             self::STATUS_PENDING_APPROVAL => 'warning',
             self::STATUS_UNPAID => 'warning',
             self::STATUS_READY_TO_SHIP => 'primary',
             self::STATUS_SHIPPED => 'info',
             self::STATUS_DELIVERED => 'success',
+            self::STATUS_COMPLETED => 'success',
             self::STATUS_CANCELLED => 'danger',
-            self::STATUS_RETURN => 'secondary',
+            'TO_RETURN', 'RETURN', 'RETURNED', 'REFUNDED', 'RETUR' => 'warning',
             default => 'dark',
         };
     }

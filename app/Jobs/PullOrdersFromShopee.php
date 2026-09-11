@@ -223,6 +223,7 @@ class PullOrdersFromShopee implements ShouldQueue
             'COMPLETED' => 'COMPLETED',
             'CANCELLED' => 'CANCELLED',
             'IN_CANCEL' => 'CANCELLED',
+            'TO_RETURN' => 'TO_RETURN',
         ];
         $erpStatus = $shopeeStatusMap[$statusRaw] ?? $statusRaw;
 

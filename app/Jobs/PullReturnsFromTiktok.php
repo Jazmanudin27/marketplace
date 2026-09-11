@@ -137,7 +137,7 @@ class PullReturnsFromTiktok implements ShouldQueue
             $returnOrder->save();
         }
 
-        $order->update(['order_status' => Order::STATUS_RETURN]);
+        $order->update(['order_status' => Order::STATUS_TO_RETURN]);
 
         if (isset($tiktokReturn['return_line_items']) && is_array($tiktokReturn['return_line_items'])) {
             foreach ($tiktokReturn['return_line_items'] as $item) {
@@ -200,7 +200,7 @@ class PullReturnsFromTiktok implements ShouldQueue
                 'is_restocked' => false,
             ]);
 
-            $order->update(['order_status' => Order::STATUS_RETURN]);
+            $order->update(['order_status' => Order::STATUS_TO_RETURN]);
 
             foreach ($order->items as $item) {
                 ReturnOrderItem::create([
