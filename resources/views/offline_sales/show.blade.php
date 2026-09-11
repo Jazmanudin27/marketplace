@@ -25,7 +25,7 @@
                     </a>
                     <a href="{{ route('offline_sales.print', $offlineSale->id) }}" target="_blank"
                         class="btn btn-primary btn-sm px-3 text-white">
-                        <i class="fas fa-print me-1"></i> Cetak Struk
+                        <i class="fas fa-print me-1"></i> Cetak Invoice
                     </a>
                     @if ($offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && !$offlineSale->is_paid)
                         <button type="button" class="btn btn-outline-success btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalMarkPaidShow">

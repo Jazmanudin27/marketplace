@@ -96,10 +96,6 @@ class OfflineSaleController extends Controller
         }
 
         $sales   = $query->paginate(20)->withQueryString();
-        $summary = OfflineSale::where('tenant_id', $tenantId)
-            ->where('status', OfflineSale::STATUS_COMPLETED)
-            ->selectRaw('COUNT(*) as total_count, SUM(grand_total) as total_revenue')
-            ->first();
 
         // Hitung pesanan PO yang perlu follow up (lewat tanggal follow up dan belum bayar DP)
         $overdueFollowUpCount = OfflineSale::where('tenant_id', $tenantId)
@@ -114,7 +110,7 @@ class OfflineSaleController extends Controller
             ->orderBy('bank_name')
             ->get();
 
-        return view('offline_sales.index', compact('sales', 'summary', 'bankAccounts', 'overdueFollowUpCount'));
+        return view('offline_sales.index', compact('sales', 'bankAccounts', 'overdueFollowUpCount'));
     }
 
     public function create()
@@ -891,12 +887,19 @@ class OfflineSaleController extends Controller
         return back()->with('success', $msg);
     }
 
-    public function printReceipt(OfflineSale $offlineSale)
+    public function printReceipt(Request $request, OfflineSale $offlineSale)
     {
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
-        $offlineSale->load('items.masterProduct', 'user');
+        $offlineSale->load(['items.masterProduct', 'user', 'customer', 'payments']);
         $tenant = $offlineSale->tenant;
-        return view('offline_sales.receipt', compact('offlineSale', 'tenant'));
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $offlineSale->tenant_id)
+            ->where('is_active', true)
+            ->orderBy('bank_name')
+            ->get();
+
+        $format = $request->query('format', 'invoice');
+
+        return view('offline_sales.receipt', compact('offlineSale', 'tenant', 'bankAccounts', 'format'));
     }
 
     public function createSpk(Request $request, OfflineSale $offlineSale)

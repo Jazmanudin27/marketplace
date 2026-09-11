@@ -5,39 +5,7 @@
 
 @section('content')
 
-    {{-- SUMMARY CARDS --}}
-    <div class="row g-3 mb-3">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm text-center">
-                <div class="card-body py-3">
-                    <div class="fs-4 fw-bold text-success">{{ number_format($summary->total_count ?? 0) }}</div>
-                    <div class="text-muted small">Total Transaksi Selesai</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm text-center">
-                <div class="card-body py-3">
-                    <div class="fs-5 fw-bold text-primary font-monospace">Rp
-                        {{ number_format($summary->total_revenue ?? 0, 0, ',', '.') }}</div>
-                    <div class="text-muted small">Total Pendapatan Offline</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm text-center">
-                <div class="card-body py-3">
-                    <div class="fs-5 fw-bold text-warning font-monospace">
-                        Rp
-                        {{ $summary->total_count > 0 ? number_format(($summary->total_revenue ?? 0) / $summary->total_count, 0, ',', '.') : '0' }}
-                    </div>
-                    <div class="text-muted small">Rata-rata per Transaksi</div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    {{-- FILTER --}}
 
     {{-- TABLE CARD --}}
     <div class="card border-0 shadow-sm">
@@ -269,7 +237,7 @@
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         <a href="{{ route('offline_sales.print', $sale->id) }}" target="_blank"
-                                            class="btn btn-sm btn-outline-secondary py-1 px-2" title="Cetak Struk">
+                                            class="btn btn-sm btn-outline-secondary py-1 px-2" title="Cetak Invoice">
                                             <i class="fas fa-print"></i>
                                         </a>
 
