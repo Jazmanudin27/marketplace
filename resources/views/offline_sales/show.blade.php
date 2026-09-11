@@ -46,8 +46,11 @@
                         <button type="button" class="btn btn-warning btn-sm px-3 text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalReturnShow">
                             <i class="fas fa-undo me-1"></i> Retur Barang
                         </button>
-                    @endif
-                    @if (in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_COMPLETED, \App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_WAITING_DP, \App\Models\OfflineSale::STATUS_PENDING_SPK]))
+                    @php
+                        $canCancelShow = $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED
+                            && (!$offlineSale->is_po || (float) $offlineSale->paid_amount <= 0);
+                    @endphp
+                    @if ($canCancelShow)
                         <button type="button" class="btn btn-danger btn-sm px-3"
                             data-bs-toggle="modal" data-bs-target="#modalCancelShow"
                             data-status="{{ $offlineSale->status }}">

@@ -749,6 +749,11 @@ class OfflineSaleController extends Controller
             return back()->with('error', 'Transaksi ini sudah dibatalkan sebelumnya.');
         }
 
+        // Pesanan PO yang sudah ada pembayaran DP tidak dapat dibatalkan langsung
+        if ($offlineSale->is_po && (float) $offlineSale->paid_amount > 0) {
+            return back()->with('error', 'Pesanan PO tidak dapat dibatalkan karena pembayaran DP sudah masuk. Silakan hapus riwayat pembayaran DP terlebih dahulu jika ingin membatalkan pesanan.');
+        }
+
         $request->validate([
             'cancellation_reason' => 'required|string|min:5|max:500',
         ], [
@@ -795,6 +800,25 @@ class OfflineSaleController extends Controller
                 ->where('title', 'like', "%#{$offlineSale->sale_number}%")
                 ->delete();
 
+            // Jika ada SPK yang terbit untuk pesanan ini, hapus dari antrean produksi
+            $linkedSpks = \App\Models\Spk::where('tenant_id', $offlineSale->tenant_id)
+                ->where(function ($q) use ($offlineSale) {
+                    $q->where('no_pesanan', $offlineSale->sale_number)
+                      ->orWhere('instansi', 'like', "%#{$offlineSale->sale_number}%")
+                      ->orWhere('instansi', 'like', "%{$offlineSale->sale_number}%");
+                })->get();
+
+            foreach ($linkedSpks as $itemSpk) {
+                foreach ($itemSpk->items as $item) {
+                    \App\Models\SpkItemExtra::where('spk_item_id', $item->id)->delete();
+                    \App\Models\SpkItemProgres::where('spk_item_id', $item->id)->delete();
+                    \App\Models\SpkItemPickup::where('spk_item_id', $item->id)->delete();
+                    $item->delete();
+                }
+                \App\Models\SpkProses::where('spk_id', $itemSpk->id)->delete();
+                $itemSpk->delete();
+            }
+
             $offlineSale->update([
                 'status'              => OfflineSale::STATUS_CANCELLED,
                 'cancellation_reason' => $request->cancellation_reason,
@@ -836,6 +860,7 @@ class OfflineSaleController extends Controller
             $spk = \App\Models\Spk::create([
                 'tenant_id'     => $tenantId,
                 'no_spk'        => $noSpk,
+                'no_pesanan'    => $offlineSale->sale_number,
                 'tanggal'       => now(),
                 'deadline'      => $request->filled('deadline') ? $request->deadline : now()->addDays(7),
                 'pemesan'       => $offlineSale->buyer_name ?: 'Pelanggan PO',

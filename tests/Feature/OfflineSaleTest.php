@@ -696,7 +696,61 @@ class OfflineSaleTest extends TestCase
         $bank->refresh();
         $this->assertEquals(0, (float)$bank->current_balance);
     }
+
+    public function test_po_sale_cannot_be_cancelled_if_dp_paid_and_can_be_cancelled_if_no_dp(): void
+    {
+        // 1. PO sale with DP paid cannot be cancelled
+        $saleWithDp = OfflineSale::create([
+            'tenant_id'       => $this->tenant->id,
+            'user_id'         => $this->user->id,
+            'sale_number'     => 'SL-PO-NO-CANCEL',
+            'status'          => OfflineSale::STATUS_PENDING_SPK,
+            'buyer_name'      => 'Customer PO Ada DP',
+            'payment_method'  => 'transfer',
+            'total_amount'    => 100000,
+            'grand_total'     => 100000,
+            'paid_amount'     => 50000,
+            'sold_at'         => now(),
+            'is_po'           => true,
+        ]);
+
+        $responseWithDp = $this->actingAs($this->user)
+            ->post(route('offline_sales.cancel', $saleWithDp), [
+                'cancellation_reason' => 'Mau dibatalkan padahal ada DP',
+            ]);
+
+        $responseWithDp->assertRedirect();
+        $responseWithDp->assertSessionHas('error');
+        $saleWithDp->refresh();
+        $this->assertEquals(OfflineSale::STATUS_PENDING_SPK, $saleWithDp->status);
+
+        // 2. PO sale with 0 DP (waiting_dp) CAN be cancelled
+        $saleNoDp = OfflineSale::create([
+            'tenant_id'       => $this->tenant->id,
+            'user_id'         => $this->user->id,
+            'sale_number'     => 'SL-PO-CAN-CANCEL',
+            'status'          => OfflineSale::STATUS_WAITING_DP,
+            'buyer_name'      => 'Customer PO Belum DP',
+            'payment_method'  => 'piutang',
+            'total_amount'    => 100000,
+            'grand_total'     => 100000,
+            'paid_amount'     => 0,
+            'sold_at'         => now(),
+            'is_po'           => true,
+        ]);
+
+        $responseNoDp = $this->actingAs($this->user)
+            ->post(route('offline_sales.cancel', $saleNoDp), [
+                'cancellation_reason' => 'Batal sebelum bayar DP',
+            ]);
+
+        $responseNoDp->assertRedirect();
+        $responseNoDp->assertSessionHas('success');
+        $saleNoDp->refresh();
+        $this->assertEquals(OfflineSale::STATUS_CANCELLED, $saleNoDp->status);
+    }
 }
+
 
 
 

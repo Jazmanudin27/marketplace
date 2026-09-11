@@ -304,7 +304,11 @@
                                                 <i class="fas fa-money-bill-wave"></i>
                                             </button>
                                         @endif
-                                        @if ($sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED)
+                                        @php
+                                            $canCancel = $sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED
+                                                && (!$sale->is_po || (float) $sale->paid_amount <= 0);
+                                        @endphp
+                                        @if ($canCancel)
                                             <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2"
                                                 title="Batalkan Transaksi" data-bs-toggle="modal"
                                                 data-bs-target="#modalCancel" data-id="{{ $sale->id }}"
