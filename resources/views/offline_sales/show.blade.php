@@ -688,7 +688,7 @@
 {{-- Modal Terbitkan SPK Produksi --}}
 @if($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK || ($offlineSale->is_po && $offlineSale->spks->isEmpty() && (float) $offlineSale->paid_amount > 0 && $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED))
 <div class="modal fade" id="modalCreateSpkShow" tabindex="-1" aria-labelledby="modalCreateSpkShowLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-warning bg-opacity-10 border-bottom">
                 <h6 class="modal-title fw-bold text-dark" id="modalCreateSpkShowLabel">
@@ -745,43 +745,76 @@
                         <div class="form-text text-muted" style="font-size: 0.75rem;">Target tanggal selesai pengerjaan oleh tim produksi.</div>
                     </div>
 
-                    {{-- Rincian SPK yang akan dibuat --}}
+                    {{-- Rincian SPK & Pembagian Kelompok SPK --}}
                     <div class="border rounded p-3 bg-light">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="form-label fw-bold small text-dark mb-0">
-                                <i class="fas fa-boxes me-1 text-primary"></i>Rincian SPK yang Akan Diterbitkan:
-                            </label>
-                            <span class="badge bg-secondary small">{{ $offlineSale->items->count() }} SPK Produk</span>
+                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                            <div>
+                                <label class="form-label fw-bold small text-dark mb-0">
+                                    <i class="fas fa-layer-group me-1 text-primary"></i>Tentukan Pembagian SPK:
+                                </label>
+                                <div class="small text-muted" style="font-size: 0.72rem;">
+                                    Pilih SPK tujuan untuk masing-masing item (contoh: Item A &amp; B masuk SPK 1, Item C masuk SPK 2).
+                                </div>
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2 fw-semibold" id="btn-quick-combine-show" title="Semua item dijadikan 1 SPK">
+                                    <i class="fas fa-link me-1"></i>Gabung Semua (1 SPK)
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2 fw-semibold" id="btn-quick-split-show" title="Pisahkan tiap item menjadi SPK sendiri-sendiri">
+                                    <i class="fas fa-cut me-1"></i>Pisah Masing-masing
+                                </button>
+                            </div>
                         </div>
-                        <div class="small text-muted mb-2" style="font-size: 0.75rem;">
-                            Setiap jenis produk di bawah ini akan otomatis dibuatkan <strong>1 SPK tersendiri</strong> di bawah Kode Produksi yang sama:
-                        </div>
-                        <div class="table-responsive bg-white rounded border">
-                            <table class="table table-sm table-hover mb-0" style="font-size: 0.8rem;">
-                                <thead class="table-light">
+
+                        <div class="table-responsive bg-white rounded border mb-3" style="max-height: 220px; overflow-y: auto;">
+                            <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                                <thead class="table-light sticky-top">
                                     <tr>
-                                        <th>#</th>
-                                        <th>PRODUK / SPK</th>
-                                        <th class="text-center">QTY</th>
-                                        <th>STATUS AWAL</th>
+                                        <th style="width: 35px;" class="text-center">#</th>
+                                        <th>PRODUK / ITEM PESANAN</th>
+                                        <th class="text-center" style="width: 70px;">QTY</th>
+                                        <th style="width: 170px;">PILIH SPK TUJUAN</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($offlineSale->items as $idx => $item)
                                         <tr>
-                                            <td class="text-muted">{{ $idx + 1 }}</td>
-                                            <td class="fw-semibold text-dark">
-                                                <i class="fas fa-clipboard-check text-primary me-1"></i> SPK: {{ $item->product_name }}
+                                            <td class="text-center text-muted">{{ $idx + 1 }}</td>
+                                            <td>
+                                                <div class="fw-semibold text-dark">{{ $item->product_name }}</div>
                                                 @if($item->sku)
-                                                    <span class="text-muted font-monospace small">({{ $item->sku }})</span>
+                                                    <small class="text-muted font-monospace">{{ $item->sku }}</small>
                                                 @endif
                                             </td>
                                             <td class="text-center fw-bold font-monospace">{{ $item->quantity }} Pcs</td>
-                                            <td><span class="badge bg-primary bg-opacity-10 text-primary">Antrian & Sampling</span></td>
+                                            <td>
+                                                <select name="spk_group[{{ $item->id }}]" class="form-select form-select-sm fw-bold spk-group-select-show"
+                                                    data-item-id="{{ $item->id }}" data-item-name="{{ $item->product_name }}" data-item-qty="{{ $item->quantity }}">
+                                                    <option value="1" selected>📦 Masuk ke SPK 1</option>
+                                                    <option value="2">📦 Masuk ke SPK 2</option>
+                                                    <option value="3">📦 Masuk ke SPK 3</option>
+                                                    <option value="4">📦 Masuk ke SPK 4</option>
+                                                    <option value="5">📦 Masuk ke SPK 5</option>
+                                                    <option value="6">📦 Masuk ke SPK 6</option>
+                                                    <option value="7">📦 Masuk ke SPK 7</option>
+                                                    <option value="8">📦 Masuk ke SPK 8</option>
+                                                    <option value="0">❌ Lewati (Jangan Buat SPK)</option>
+                                                </select>
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
                             </table>
+                        </div>
+
+                        {{-- Ringkasan Hasil SPK yang Akan Diterbitkan --}}
+                        <div class="p-3 bg-white rounded border shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong class="text-dark small"><i class="fas fa-clipboard-list me-1 text-primary"></i>Ringkasan SPK yang Akan Diterbitkan:</strong>
+                                <span class="badge bg-primary px-2 py-1" id="modal-spk-summary-badge-show">0 SPK</span>
+                            </div>
+                            <div id="modal-spk-summary-list-show" class="d-flex flex-column gap-2" style="font-size: 0.78rem;">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1021,6 +1054,104 @@ document.addEventListener('DOMContentLoaded', function () {
                 pmtRaw.value = half;
             });
         }
+    }
+
+    // SPK Grouping logic in show view
+    const modalCreateSpkShow = document.getElementById('modalCreateSpkShow');
+    if (modalCreateSpkShow) {
+        function renderSpkSummaryShow() {
+            const summaryList = document.getElementById('modal-spk-summary-list-show');
+            const summaryBadge = document.getElementById('modal-spk-summary-badge-show');
+            const noProdInput = document.getElementById('show_spk_no_produksi');
+            const currentNoProduksi = noProdInput ? (noProdInput.value || '-') : '-';
+            if (!summaryList) return;
+
+            const selects = modalCreateSpkShow.querySelectorAll('.spk-group-select-show');
+            const groups = {};
+
+            selects.forEach(sel => {
+                const grpVal = sel.value;
+                if (grpVal === '0') return; // lewati
+                const itemName = sel.getAttribute('data-item-name');
+                const itemQty = parseInt(sel.getAttribute('data-item-qty'), 10) || 0;
+
+                if (!groups[grpVal]) {
+                    groups[grpVal] = {
+                        groupNumber: grpVal,
+                        items: [],
+                        totalQty: 0
+                    };
+                }
+                groups[grpVal].items.push({ name: itemName, qty: itemQty });
+                groups[grpVal].totalQty += itemQty;
+            });
+
+            const groupKeys = Object.keys(groups).sort((a, b) => parseInt(a) - parseInt(b));
+            if (summaryBadge) summaryBadge.textContent = groupKeys.length + ' SPK Akan Diterbitkan';
+
+            if (groupKeys.length === 0) {
+                summaryList.innerHTML = '<div class="text-danger py-1"><i class="fas fa-exclamation-triangle me-1"></i>Pilih minimal 1 SPK tujuan untuk item pesanan.</div>';
+                return;
+            }
+
+            const badgeColors = ['primary', 'success', 'warning text-dark', 'info', 'danger', 'secondary'];
+            let html = '';
+            groupKeys.forEach((key, kIdx) => {
+                const grp = groups[key];
+                const colorClass = badgeColors[kIdx % badgeColors.length];
+                const firstItemName = grp.items[0]?.name || 'Produk';
+                const itemsDetail = grp.items.map(it => `&bull; ${it.name} <strong>(${it.qty} pcs)</strong>`).join('<br>');
+
+                html += `
+                    <div class="p-2.5 rounded bg-light border">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div>
+                                <span class="badge bg-${colorClass} me-1 fw-bold">SPK ${grp.groupNumber}</span>
+                                <strong class="text-dark">${firstItemName}</strong>
+                                <span class="badge bg-white text-secondary border font-monospace ms-1">${grp.totalQty} Pcs total</span>
+                            </div>
+                            <span class="badge bg-white text-primary border font-monospace small"><i class="fas fa-hashtag me-0.5"></i>${currentNoProduksi}</span>
+                        </div>
+                        <div class="text-muted ps-2 border-start border-2 border-primary-subtle" style="font-size: 0.74rem;">
+                            ${itemsDetail}
+                        </div>
+                    </div>
+                `;
+            });
+            summaryList.innerHTML = html;
+        }
+
+        modalCreateSpkShow.querySelectorAll('.spk-group-select-show').forEach(sel => {
+            sel.addEventListener('change', renderSpkSummaryShow);
+        });
+
+        const btnCombineShow = document.getElementById('btn-quick-combine-show');
+        if (btnCombineShow) {
+            btnCombineShow.addEventListener('click', function() {
+                modalCreateSpkShow.querySelectorAll('.spk-group-select-show').forEach(sel => {
+                    sel.value = '1';
+                });
+                renderSpkSummaryShow();
+            });
+        }
+
+        const btnSplitShow = document.getElementById('btn-quick-split-show');
+        if (btnSplitShow) {
+            btnSplitShow.addEventListener('click', function() {
+                modalCreateSpkShow.querySelectorAll('.spk-group-select-show').forEach((sel, idx) => {
+                    sel.value = String(idx + 1);
+                });
+                renderSpkSummaryShow();
+            });
+        }
+
+        const noProdInputShow = document.getElementById('show_spk_no_produksi');
+        if (noProdInputShow) {
+            noProdInputShow.addEventListener('input', renderSpkSummaryShow);
+        }
+
+        modalCreateSpkShow.addEventListener('shown.bs.modal', renderSpkSummaryShow);
+        renderSpkSummaryShow();
     }
 });
 </script>

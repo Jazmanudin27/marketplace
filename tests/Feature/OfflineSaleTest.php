@@ -895,6 +895,94 @@ class OfflineSaleTest extends TestCase
         $showResponse->assertStatus(200);
         $showResponse->assertSee('Buat SPK Sekarang');
     }
+    public function test_po_offline_sale_creates_spks_with_custom_user_grouping(): void
+    {
+        $sale = OfflineSale::create([
+            'tenant_id'       => $this->tenant->id,
+            'user_id'         => $this->user->id,
+            'sale_number'     => 'SL-PO-CUSTOM-GROUP',
+            'status'          => OfflineSale::STATUS_PENDING_SPK,
+            'buyer_name'      => 'SD Harapan Bangsa',
+            'payment_method'  => 'transfer',
+            'total_amount'    => 3500000,
+            'grand_total'     => 3500000,
+            'paid_amount'     => 1000000,
+            'sold_at'         => now(),
+            'is_po'           => true,
+        ]);
+
+        $item1 = $sale->items()->create([
+            'master_product_id' => null,
+            'product_name'      => 'Batik Siswa SD ( L )',
+            'sku'               => 'BTK-SD-L',
+            'quantity'          => 50,
+            'unit_price'        => 30000,
+            'subtotal'          => 1500000,
+        ]);
+
+        $item2 = $sale->items()->create([
+            'master_product_id' => null,
+            'product_name'      => 'Batik Siswa SD ( M )',
+            'sku'               => 'BTK-SD-M',
+            'quantity'          => 50,
+            'unit_price'        => 30000,
+            'subtotal'          => 1500000,
+        ]);
+
+        $item3 = $sale->items()->create([
+            'master_product_id' => null,
+            'product_name'      => 'Topi Pramuka',
+            'sku'               => 'TP-PRM-01',
+            'quantity'          => 50,
+            'unit_price'        => 10000,
+            'subtotal'          => 500000,
+        ]);
+
+        // Kirim permintaan Buat SPK dengan pengelompokan manual:
+        // Item 1 dan Item 2 masuk ke SPK 1 (Batik digabung)
+        // Item 3 masuk ke SPK 2 (Topi dipisah)
+        $response = $this->actingAs($this->user)
+            ->post(route('offline_sales.create_spk', $sale), [
+                'no_produksi'    => 'JN2609888',
+                'tahap_saat_ini' => 'Antrian & Sampling',
+                'spk_group'      => [
+                    $item1->id => 1,
+                    $item2->id => 1,
+                    $item3->id => 2,
+                ],
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        // Verifikasi terbuat tepat 2 SPK di bawah no_produksi yang sama
+        $spks = \App\Models\Spk::where('tenant_id', $this->tenant->id)
+            ->where('no_pesanan', 'SL-PO-CUSTOM-GROUP')
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(2, $spks);
+
+        $spk1 = $spks[0];
+        $spk2 = $spks[1];
+
+        $this->assertEquals('JN2609888', $spk1->no_produksi);
+        $this->assertEquals('JN2609888', $spk2->no_produksi);
+
+        // SPK 1 harus berisi 2 item (Batik L dan M)
+        $this->assertCount(2, $spk1->items);
+        $spk1ProductNames = $spk1->items->pluck('nama_produk')->toArray();
+        $this->assertContains('Batik Siswa SD ( L )', $spk1ProductNames);
+        $this->assertContains('Batik Siswa SD ( M )', $spk1ProductNames);
+
+        // SPK 2 harus berisi 1 item (Topi)
+        $this->assertCount(1, $spk2->items);
+        $this->assertEquals('Topi Pramuka', $spk2->items->first()->nama_produk);
+
+        // Status penjualan berubah menjadi SPK Sedang Diproses
+        $sale->refresh();
+        $this->assertEquals(OfflineSale::STATUS_SPK_PROCESSING, $sale->status);
+    }
 }
 
 

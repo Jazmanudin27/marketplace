@@ -923,22 +923,35 @@ class OfflineSaleController extends Controller
         }
 
         $deadline = $request->filled('deadline') ? $request->deadline : now()->addDays(7);
+        $spkGroups = $request->input('spk_group', []);
+        $spkTitles = $request->input('spk_title', []);
         $createdSpkSummaries = [];
 
-        DB::transaction(function () use ($offlineSale, $tenantId, $noProduksi, $tahapSaatIni, $deadline, &$createdSpkSummaries) {
+        DB::transaction(function () use ($offlineSale, $tenantId, $noProduksi, $tahapSaatIni, $deadline, $spkGroups, $spkTitles, &$createdSpkSummaries) {
             $today = date('Ymd');
             $countToday = \App\Models\Spk::where('no_spk', 'like', "SPK-{$today}-%")->count();
 
-            // Kelompokkan item pesanan: masing-masing jenis produk dibuatkan 1 SPK di bawah No. Produksi yang sama
-            $groupedItems = $offlineSale->items->groupBy(function ($item) {
-                return $item->master_product_id ?: $item->product_name;
-            });
+            // Kelompokkan item pesanan: Jika ada pilihan custom spk_group, gunakan grouping tersebut
+            if (!empty($spkGroups) && is_array($spkGroups)) {
+                $groupedItems = $offlineSale->items->filter(function ($item) use ($spkGroups) {
+                    $grp = (int) ($spkGroups[$item->id] ?? 1);
+                    return $grp > 0;
+                })->groupBy(function ($item) use ($spkGroups) {
+                    return (int) ($spkGroups[$item->id] ?? 1);
+                });
+            } else {
+                // Fallback default: kelompokkan per jenis produk
+                $groupedItems = $offlineSale->items->groupBy(function ($item) {
+                    return $item->master_product_id ?: $item->product_name;
+                });
+            }
 
             $spkCounter = 0;
-            foreach ($groupedItems as $group) {
+            foreach ($groupedItems as $groupKey => $group) {
                 $spkCounter++;
                 $firstItem = $group->first();
-                $kategori = $firstItem->product_name ?: 'Produk SPK';
+                $customTitle = !empty($spkTitles[$groupKey]) ? trim((string) $spkTitles[$groupKey]) : null;
+                $kategori = $customTitle ?: ($firstItem->product_name ?: 'Produk SPK');
 
                 $noSpk = 'SPK-' . $today . '-' . sprintf('%04d', $countToday + $spkCounter);
 
@@ -960,11 +973,17 @@ class OfflineSaleController extends Controller
                 ]);
 
                 foreach ($group as $itemData) {
+                    $ukuran = null;
+                    if (preg_match('/\b(XS|S|M|L|XL|XXL|XXXL|2XL|3XL|4XL|5XL)\b/i', $itemData->product_name, $m)) {
+                        $ukuran = strtoupper($m[1]);
+                    }
+
                     \App\Models\SpkItem::create([
                         'spk_id'            => $spk->id,
                         'master_product_id' => $itemData->master_product_id,
                         'nama_produk'       => $itemData->product_name,
                         'sku'               => $itemData->sku,
+                        'ukuran'            => $ukuran,
                         'quantity'          => $itemData->quantity,
                         'hpp'               => $itemData->unit_price,
                         'status'            => 'Pending',
