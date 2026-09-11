@@ -104,7 +104,7 @@ class OfflineSale extends Model
             self::STATUS_WAITING_DP       => 'info',
             self::STATUS_PENDING_SPK      => 'warning',
             self::STATUS_SPK_PROCESSING   => 'primary',
-            self::STATUS_PENDING_APPROVAL => $this->is_po ? 'primary' : 'secondary',
+            self::STATUS_PENDING_APPROVAL => $this->is_po ? 'primary' : 'success',
             default                       => 'secondary',
         };
     }
@@ -117,7 +117,7 @@ class OfflineSale extends Model
             self::STATUS_WAITING_DP       => 'Menunggu DP Masuk',
             self::STATUS_PENDING_SPK      => 'Belum dibuat SPK',
             self::STATUS_SPK_PROCESSING   => 'SPK Sedang Diproses',
-            self::STATUS_PENDING_APPROVAL => $this->is_po ? 'SPK Sedang Diproses' : 'Menunggu Approval',
+            self::STATUS_PENDING_APPROVAL => $this->is_po ? 'SPK Sedang Diproses' : 'Selesai',
             default                       => ucfirst($this->status),
         };
     }

@@ -272,19 +272,7 @@
                                             class="btn btn-sm btn-outline-secondary py-1 px-2" title="Cetak Struk">
                                             <i class="fas fa-print"></i>
                                         </a>
-                                        @if (
-                                            in_array($sale->status, [\App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_SPK_PROCESSING]) &&
-                                                (auth()->user()->canDo('offline-sales.approve') ||
-                                                    auth()->user()->isAdmin() ||
-                                                    auth()->user()->isOwner() ||
-                                                    in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang'])))
-                                            <button type="button" class="btn btn-sm btn-success py-1 px-2"
-                                                title="Approve Transaksi" data-bs-toggle="modal"
-                                                data-bs-target="#modalApprove" data-id="{{ $sale->id }}"
-                                                data-sale-number="{{ $sale->sale_number }}">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        @endif
+
                                         @if ($sale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK)
                                             <button type="button" class="btn btn-sm btn-warning text-dark py-1 px-2 fw-bold"
                                                 title="Buat SPK Produksi" data-bs-toggle="modal"
@@ -364,72 +352,7 @@
 
 @endsection
 
-{{-- Modal Konfirmasi Approve --}}
 @push('modals')
-    @if (auth()->user()->canDo('offline-sales.approve') ||
-            auth()->user()->isAdmin() ||
-            auth()->user()->isOwner() ||
-            in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang']))
-        <div class="modal fade" id="modalApprove" tabindex="-1" aria-labelledby="modalApproveLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-header bg-success bg-opacity-10 border-bottom">
-                        <h6 class="modal-title fw-bold text-success" id="modalApproveLabel">
-                            <i class="fas fa-check-circle me-2"></i>Konfirmasi Persetujuan Transaksi
-                        </h6>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <form id="form-approve" method="POST" class="m-0">
-                        @csrf
-                        <div class="modal-body">
-                            <p class="mb-1 text-dark">Yakin ingin menyetujui (approve) transaksi:</p>
-                            <p class="fw-bold font-monospace text-success mb-3" id="modal-approve-sale-number"></p>
-
-                            <div class="mb-3">
-                                <label for="approve_payment_destination"
-                                    class="form-label fw-semibold small text-dark mb-1">
-                                    <i class="fas fa-university me-1 text-primary"></i> Kas / Bank Tujuan Pemasukan <span
-                                        class="text-danger">*</span>
-                                </label>
-                                <select name="payment_destination" id="approve_payment_destination"
-                                    class="form-select form-select-sm" required>
-                                    @if (isset($bankAccounts) && $bankAccounts->isNotEmpty())
-                                        @foreach ($bankAccounts as $bank)
-                                            <option value="{{ $bank->bank_name }}">
-                                                {{ $bank->bank_name }}
-                                                {{ $bank->account_number ? '(' . $bank->account_number . ')' : '' }} —
-                                                Saldo:
-                                                Rp {{ number_format($bank->current_balance, 0, ',', '.') }}
-                                            </option>
-                                        @endforeach
-                                    @else
-                                        <option value="kas_besar">Kas Besar (Utama)</option>
-                                        <option value="kas_kecil">Kas Kecil (Operasional)</option>
-                                    @endif
-                                </select>
-                                <div class="form-text text-muted">Uang pembayaran akan masuk ke akun kas/bank yang dipilih.
-                                </div>
-                            </div>
-
-                            <div class="alert alert-success py-2 mb-0 small">
-                                <i class="fas fa-boxes me-1"></i> Stok produk akan <strong>dikurangi</strong> & pemasukan
-                                dicatat ke Kas/Bank.
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary btn-sm"
-                                data-bs-dismiss="modal">Tutup</button>
-                            <button type="submit" class="btn btn-success btn-sm px-4">
-                                <i class="fas fa-check me-1"></i> Ya, Setujui & Catat Pemasukan
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    @endif
-
     {{-- Modal Konfirmasi Pembatalan --}}
     <div class="modal fade" id="modalCancel" tabindex="-1" aria-labelledby="modalCancelLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -679,17 +602,7 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Modal Approve
-            const modalApproveEl = document.getElementById('modalApprove');
-            if (modalApproveEl) {
-                modalApproveEl.addEventListener('show.bs.modal', function(event) {
-                    const btn = event.relatedTarget;
-                    document.getElementById('modal-approve-sale-number').textContent = btn.getAttribute(
-                        'data-sale-number');
-                    document.getElementById('form-approve').action = '/offline-sales/' + btn.getAttribute(
-                        'data-id') + '/approve';
-                });
-            }
+
 
             // Modal Batal
             const modalCancel = document.getElementById('modalCancel');
@@ -809,7 +722,7 @@
             }
 
             // Loading state saat submit
-            ['form-approve', 'form-cancel', 'form-mark-paid', 'form-create-spk'].forEach(function(formId) {
+            ['form-cancel', 'form-mark-paid', 'form-create-spk'].forEach(function(formId) {
                 const form = document.getElementById(formId);
                 if (form) {
                     form.addEventListener('submit', function() {

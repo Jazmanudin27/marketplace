@@ -271,7 +271,7 @@ class OfflineSaleController extends Controller
             }
 
             $isPo = $request->boolean('is_po');
-            $initialStatus = $isPo ? OfflineSale::STATUS_WAITING_DP : OfflineSale::STATUS_PENDING_APPROVAL;
+            $initialStatus = $isPo ? OfflineSale::STATUS_WAITING_DP : OfflineSale::STATUS_COMPLETED;
             $followUpDate = $isPo ? ($request->follow_up_date ?: now()->addDays(3)->toDateString()) : null;
 
             $sale = OfflineSale::create([
@@ -312,11 +312,28 @@ class OfflineSaleController extends Controller
             foreach ($itemsData as $itemData) {
                 $sale->items()->create($itemData);
             }
+
+            // Langsung kurangi stok produk jika non-PO (karena tidak ada approval gudang)
+            if (!$isPo) {
+                foreach ($itemsData as $itemData) {
+                    if (!empty($itemData['master_product_id'])) {
+                        $product = MasterProduct::find($itemData['master_product_id']);
+                        if ($product) {
+                            $product->recordStockMovement(
+                                $itemData['quantity'],
+                                'out',
+                                'Penjualan Offline POS: ' . $sale->sale_number,
+                                Auth::id()
+                            );
+                        }
+                    }
+                }
+            }
         });
 
         $successMsg = $request->boolean('is_po')
             ? '✅ Pesanan PO berhasil dibuat dan berstatus Menunggu DP Masuk.'
-            : '✅ Transaksi berhasil dibuat dan menunggu approval Gudang.';
+            : '✅ Transaksi penjualan offline berhasil dibuat.';
 
         return redirect()->route('offline_sales.index')
             ->with('success', $successMsg);

@@ -114,7 +114,7 @@ class OfflineSaleTest extends TestCase
         $response->assertRedirect(route('offline_sales.index'));
         $response->assertSessionHas('success');
 
-        // Check if OfflineSale record was created
+        // Check if OfflineSale record was created directly as COMPLETED
         $this->assertDatabaseHas('offline_sales', [
             'tenant_id'      => $this->tenant->id,
             'buyer_name'     => 'Budi',
@@ -122,13 +122,7 @@ class OfflineSaleTest extends TestCase
             'total_amount'   => 30000,
             'grand_total'    => 30000,
             'paid_amount'    => 30000,
-            'status'         => OfflineSale::STATUS_PENDING_APPROVAL,
-        ]);
-
-        $sale = OfflineSale::where('tenant_id', $this->tenant->id)->first();
-        // Approve sale to reduce stock
-        $this->actingAs($this->user)->post(route('offline_sales.approve', $sale), [
-            'payment_destination' => 'kas_besar',
+            'status'         => OfflineSale::STATUS_COMPLETED,
         ]);
 
         // Check if OfflineSaleItem was created
@@ -139,7 +133,7 @@ class OfflineSaleTest extends TestCase
             'subtotal'          => 30000,
         ]);
 
-        // Check if stock was reduced
+        // Check if stock was reduced directly without needing approval
         $this->masterProduct->refresh();
         $this->assertEquals(7, $this->masterProduct->stock);
     }

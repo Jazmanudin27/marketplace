@@ -27,11 +27,6 @@
                         class="btn btn-primary btn-sm px-3 text-white">
                         <i class="fas fa-print me-1"></i> Cetak Struk
                     </a>
-                    @if (in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_SPK_PROCESSING]) && (auth()->user()->canDo('offline-sales.approve') || auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang'])))
-                        <button type="button" class="btn btn-success btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalApproveShow">
-                            <i class="fas fa-check-circle me-1"></i> Setujui (Approve)
-                        </button>
-                    @endif
                     @if ($offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && !$offlineSale->is_paid)
                         <button type="button" class="btn btn-outline-success btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalMarkPaidShow">
                             <i class="fas fa-money-bill-wave me-1"></i> Catat Pembayaran / Cicilan
@@ -46,6 +41,7 @@
                         <button type="button" class="btn btn-warning btn-sm px-3 text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalReturnShow">
                             <i class="fas fa-undo me-1"></i> Retur Barang
                         </button>
+                    @endif
                     @php
                         $canCancelShow = $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED
                             && (!$offlineSale->is_po || (float) $offlineSale->paid_amount <= 0);
@@ -125,7 +121,7 @@
                                     {{ $offlineSale->spks->count() }} SPK Diterbitkan
                                 </span>
                             </div>
-                            <small class="d-block mt-1">Pesanan PO ini memiliki <strong>{{ $offlineSale->spks->count() }} SPK Produksi</strong> di bawah Kode Produksi <strong>{{ $firstSpk?->no_produksi ?: '-' }}</strong> dan sedang dalam proses pengerjaan oleh Tim Produksi. Bagian Gudang dapat melakukan Approval Pengeluaran Barang setelah Tim Produksi menyelesaikan setoran SPK ke gudang.</small>
+                            <small class="d-block mt-1">Pesanan PO ini memiliki <strong>{{ $offlineSale->spks->count() }} SPK Produksi</strong> di bawah Kode Produksi <strong>{{ $firstSpk?->no_produksi ?: '-' }}</strong> dan sedang dalam proses pengerjaan oleh Tim Produksi.</small>
                         </div>
                     </div>
                     @if($offlineSale->spks && $offlineSale->spks->count() > 0)
@@ -140,16 +136,7 @@
                 </div>
             @endif
 
-            {{-- Banner Menunggu Approval (Khusus Non-PO) --}}
-            @if (!$offlineSale->is_po && $offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL)
-                <div class="alert alert-warning d-flex align-items-center gap-3 mb-4 py-3">
-                    <i class="fas fa-hourglass-half fa-lg text-warning"></i>
-                    <div>
-                        <strong>Menunggu Persetujuan Gudang</strong><br>
-                        <small class="text-muted">Transaksi ini belum disetujui. Stok belum dikurangi. Hubungi bagian Gudang untuk melakukan approval.</small>
-                    </div>
-                </div>
-            @endif
+
             <div class="row g-3">
                 {{-- LEFT: Item detail --}}
                 <div class="col-lg-8">
@@ -579,58 +566,7 @@
             @endif
 @endsection
 
-{{-- Modal Konfirmasi Approve --}}
-@push('modals')
-@if(in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_SPK_PROCESSING]) && (auth()->user()->canDo('offline-sales.approve') || auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang'])))
-<div class="modal fade" id="modalApproveShow" tabindex="-1" aria-labelledby="modalApproveShowLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-success bg-opacity-10 border-bottom">
-                <h6 class="modal-title fw-bold text-success" id="modalApproveShowLabel">
-                    <i class="fas fa-check-circle me-2"></i>Konfirmasi Persetujuan Transaksi
-                </h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ route('offline_sales.approve', $offlineSale->id) }}" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <p class="mb-1 text-dark">Yakin ingin menyetujui (approve) transaksi:</p>
-                    <p class="fw-bold font-monospace text-success mb-3">{{ $offlineSale->sale_number }}</p>
 
-                    <div class="mb-3">
-                        <label for="approve_payment_destination_show" class="form-label fw-semibold small text-dark mb-1">
-                            <i class="fas fa-university me-1 text-primary"></i> Kas / Bank Tujuan Pemasukan <span class="text-danger">*</span>
-                        </label>
-                        <select name="payment_destination" id="approve_payment_destination_show" class="form-select form-select-sm" required>
-                            @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
-                                @foreach($bankAccounts as $bank)
-                                    <option value="{{ $bank->bank_name }}">
-                                        {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }} — Saldo: Rp {{ number_format($bank->current_balance, 0, ',', '.') }}
-                                    </option>
-                                @endforeach
-                            @else
-                                <option value="kas_besar">Kas Besar (Utama)</option>
-                                <option value="kas_kecil">Kas Kecil (Operasional)</option>
-                            @endif
-                        </select>
-                        <div class="form-text text-muted">Uang pembayaran akan masuk ke akun kas/bank yang dipilih.</div>
-                    </div>
-
-                    <div class="alert alert-success py-2 mb-0 small">
-                        <i class="fas fa-boxes me-1"></i> Stok produk akan <strong>dikurangi</strong> & pemasukan dicatat ke Kas/Bank.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-success btn-sm px-4">
-                        <i class="fas fa-check me-1"></i> Ya, Setujui & Catat Pemasukan
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endif
 
 {{-- Modal Catat Pembayaran / Cicilan --}}
 @push('modals')
@@ -1028,7 +964,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Loading state saat submit
-    document.querySelectorAll('#modalApproveShow form, #modalCancelShow form, #modalMarkPaidShow form, #modalReturnShow form').forEach(function (form) {
+    document.querySelectorAll('#modalCancelShow form, #modalMarkPaidShow form, #modalReturnShow form').forEach(function (form) {
         form.addEventListener('submit', function () {
             const btn = form.querySelector('button[type="submit"]');
             if (btn) {
