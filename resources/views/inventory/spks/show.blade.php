@@ -1014,7 +1014,7 @@
                                         <i class="fas fa-calculator text-warning"></i> BIAYA PRODUKSI &amp; ESTIMASI HPP (LEVEL SPK)
                                     </h6>
                                     <small class="text-white-50" style="font-size: 11px;">
-                                        Input bahan baku (BB-TH), biaya pengerjaan, dan biaya tambahan dihitung terpusat untuk SPK ini.
+                                        Input bahan baku, biaya pengerjaan, dan biaya tambahan dihitung terpusat untuk SPK ini.
                                     </small>
                                 </div>
                                 <span class="badge bg-warning text-dark fw-bold px-2.5 py-1.5 rounded-pill" style="font-size: 11px;">
@@ -1023,12 +1023,12 @@
                             </div>
                             <div class="card-body p-4" style="background: #f8fafc;">
                                 
-                                {{-- BAGIAN 1: PAKAI BAHAN SPK (BB-TH / BAHAN BAKU) --}}
+                                {{-- BAGIAN 1: PAKAI BAHAN SPK (BAHAN BAKU) --}}
                                 <div class="bg-white p-3 rounded-3 border mb-3 shadow-2xs">
                                     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                                         <div>
                                             <span class="fw-bold text-dark text-uppercase d-flex align-items-center gap-1.5" style="font-size: 12px;">
-                                                <i class="fas fa-layer-group text-primary"></i> 1. Pakai Bahan SPK (BB-TH / Bahan Baku)
+                                                <i class="fas fa-layer-group text-primary"></i> 1. Pakai Bahan SPK (Bahan Baku)
                                             </span>
                                             <small class="text-muted d-block" style="font-size: 10.5px;">Bahan yang dialokasikan khusus untuk pengerjaan SPK ini</small>
                                         </div>
@@ -1056,8 +1056,8 @@
                                                             <input type="text" name="spk_bahan[{{ $bIdx }}][nama_bahan]" 
                                                                    class="form-control form-control-sm fw-bold spk-bahan-nama" 
                                                                    list="inventory_items_datalist" autocomplete="off"
-                                                                   placeholder="Contoh: BB-TH / Cotton Combed 30s..."
-                                                                   value="{{ $bItem['nama_bahan'] ?? 'BB-TH' }}">
+                                                                   placeholder="Contoh: Cotton Combed 30s..."
+                                                                   value="{{ $bItem['nama_bahan'] ?? '' }}">
                                                         </td>
                                                         <td>
                                                             <input type="text" name="spk_bahan[{{ $bIdx }}][qty_bahan]" 
@@ -1100,8 +1100,8 @@
                                                             <input type="text" name="spk_bahan[0][nama_bahan]" 
                                                                    class="form-control form-control-sm fw-bold spk-bahan-nama" 
                                                                    list="inventory_items_datalist" autocomplete="off"
-                                                                   placeholder="Contoh: BB-TH..."
-                                                                   value="BB-TH">
+                                                                   placeholder="Contoh: Cotton Combed 30s..."
+                                                                   value="">
                                                         </td>
                                                         <td>
                                                             <input type="text" name="spk_bahan[0][qty_bahan]" 
@@ -2307,8 +2307,8 @@
                     <input type="text" name="spk_bahan[${bIdx}][nama_bahan]" 
                            class="form-control form-control-sm fw-bold spk-bahan-nama" 
                            list="inventory_items_datalist" autocomplete="off"
-                           placeholder="Contoh: BB-TH / Cotton Combed 30s..."
-                           value="BB-TH">
+                           placeholder="Contoh: Cotton Combed 30s..."
+                           value="">
                 </td>
                 <td>
                     <input type="text" name="spk_bahan[${bIdx}][qty_bahan]" 
@@ -3298,7 +3298,7 @@
                         } else if (tr) {
                             // Reset to default
                             const nInp = tr.querySelector('.spk-bahan-nama');
-                            if (nInp) nInp.value = 'BB-TH';
+                            if (nInp) nInp.value = '';
                             const qInp = tr.querySelector('.spk-bahan-qty');
                             if (qInp) qInp.value = '1';
                             const sInp = tr.querySelector('.spk-bahan-satuan');
