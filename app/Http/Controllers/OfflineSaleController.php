@@ -925,6 +925,20 @@ class OfflineSaleController extends Controller
         $deadline = $request->filled('deadline') ? $request->deadline : now()->addDays(7);
         $spkGroups = $request->input('spk_group', []);
         $spkKategori = $request->input('spk_kategori', $request->input('spk_title', []));
+
+        if (!empty($spkGroups) && is_array($spkGroups)) {
+            $hasActive = false;
+            foreach ($spkGroups as $grp) {
+                if ((int) $grp > 0) {
+                    $hasActive = true;
+                    break;
+                }
+            }
+            if (!$hasActive) {
+                return back()->with('error', 'Pilih minimal 1 SPK tujuan untuk item pesanan.');
+            }
+        }
+
         $createdSpkSummaries = [];
 
         DB::transaction(function () use ($offlineSale, $tenantId, $noProduksi, $tahapSaatIni, $deadline, $spkGroups, $spkKategori, &$createdSpkSummaries) {

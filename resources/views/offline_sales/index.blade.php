@@ -282,6 +282,7 @@
                                                 title="Buat SPK Produksi" data-bs-toggle="modal"
                                                 data-bs-target="#modalCreateSpk" data-id="{{ $sale->id }}"
                                                 data-sale-number="{{ $sale->sale_number }}"
+                                                data-buyer-name="{{ $sale->buyer_name ?: 'Pelanggan' }}"
                                                 data-default-no-produksi="{{ \App\Models\Spk::generateNoProduksi() }}"
                                                 data-items="{{ json_encode($sale->items->map(fn($i) => ['id' => $i->id, 'name' => $i->product_name, 'qty' => $i->quantity, 'sku' => $i->sku])) }}">
                                                 <i class="fas fa-hammer"></i>
@@ -509,8 +510,9 @@
     {{-- Modal Terbitkan SPK Produksi (Full Screen) --}}
     <div class="modal fade" id="modalCreateSpk" tabindex="-1" aria-labelledby="modalCreateSpkLabel" aria-hidden="true">
         <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
-            <div class="modal-content border-0">
-                <div class="modal-header bg-warning bg-opacity-10 border-bottom px-4 py-3">
+            <form id="form-create-spk" method="POST" class="modal-content border-0" style="display: flex; flex-direction: column; height: 100%; max-height: 100vh; overflow: hidden;">
+                @csrf
+                <div class="modal-header bg-warning bg-opacity-10 border-bottom px-4 py-3" style="flex-shrink: 0;">
                     <div class="d-flex align-items-center gap-2">
                         <div class="rounded-circle bg-warning bg-opacity-25 p-2 text-warning d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
                             <i class="fas fa-hammer fs-6 text-dark"></i>
@@ -524,131 +526,129 @@
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                 </div>
-                <form id="form-create-spk" method="POST" class="m-0 d-flex flex-column flex-grow-1">
-                    @csrf
-                    <div class="modal-body p-4 flex-grow-1">
-                        <div class="container-fluid px-lg-3 py-1">
-                            {{-- Info Banner PO --}}
-                            <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded border flex-wrap gap-2">
-                                <div>
-                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.7rem;">Transaksi PO</small>
-                                    <span class="fw-bold font-monospace text-primary fs-5" id="modal-spk-sale-number"></span>
+                <div class="modal-body p-4" style="flex: 1 1 auto; overflow-y: auto !important; min-height: 0;">
+                    <div class="container-fluid px-lg-3 py-1">
+                        {{-- Info Banner PO --}}
+                        <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded border flex-wrap gap-2">
+                            <div>
+                                <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.7rem;">Transaksi PO</small>
+                                <span class="fw-bold font-monospace text-primary fs-5" id="modal-spk-sale-number"></span>
+                                <span class="text-muted ms-2">&bull; Pembeli: <strong id="modal-spk-buyer-name">Pelanggan</strong></span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle py-2 px-3 fs-7">
+                                    <i class="fas fa-layer-group me-1"></i> 1 No. Produksi = Multi SPK Produk
+                                </span>
+                            </div>
+                        </div>
+
+                        {{-- Parameter Utama SPK: 3 Kolom Sejajar --}}
+                        <div class="row g-3 mb-4">
+                            <div class="col-lg-4 col-md-6">
+                                <label for="spk_no_produksi" class="form-label fw-semibold small text-dark mb-1">
+                                    <i class="fas fa-hashtag text-primary me-1"></i>Nomor / Kode Produksi <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" name="no_produksi" id="spk_no_produksi" class="form-control form-control-sm font-monospace fw-bold" required>
+                                <div class="form-text text-muted" style="font-size: 0.75rem;">
+                                    Satu kode produksi ini akan menaungi seluruh SPK pesanan ini.
                                 </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle py-2 px-3 fs-7">
-                                        <i class="fas fa-layer-group me-1"></i> 1 No. Produksi = Multi SPK Produk
-                                    </span>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <label for="spk_tahap_saat_ini" class="form-label fw-semibold small text-dark mb-1">
+                                    <i class="fas fa-tasks text-primary me-1"></i>Tahap Awal Produksi <span class="text-danger">*</span>
+                                </label>
+                                <select name="tahap_saat_ini" id="spk_tahap_saat_ini" class="form-select form-select-sm fw-semibold" required>
+                                    <option value="Antrian &amp; Sampling" selected>⏳ Antrian &amp; Sampling (Langsung Antrian)</option>
+                                    <option value="Perencanaan">📋 Perencanaan / Pesanan Baru</option>
+                                    <option value="Tahap Pemotongan">✂️ Tahap Pemotongan</option>
+                                    <option value="Tahap Jahit">🪡 Tahap Jahit</option>
+                                </select>
+                                <div class="form-text text-success" style="font-size: 0.75rem;">
+                                    <i class="fas fa-check-circle me-1"></i>SPK langsung masuk antrian aktif (bukan Draft).
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-12">
+                                <label for="spk_deadline" class="form-label fw-semibold small text-dark mb-1">
+                                    <i class="fas fa-calendar-alt text-primary me-1"></i>Target Deadline SPK Produksi <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" name="deadline" id="spk_deadline" class="form-control form-control-sm" value="{{ now()->addDays(7)->format('Y-m-d') }}" required>
+                                <div class="form-text text-muted" style="font-size: 0.75rem;">Target tanggal selesai pengerjaan oleh tim produksi.</div>
+                            </div>
+                        </div>
+
+                        {{-- Layout 2 Kolom: Kiri (Tabel Pembagian Item) | Kanan (Ringkasan Real-Time) --}}
+                        <div class="row g-4">
+                            {{-- Kolom Kiri: Tabel Pembagian SPK --}}
+                            <div class="col-lg-7">
+                                <div class="border rounded p-3 bg-light shadow-sm">
+                                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                        <div>
+                                            <label class="form-label fw-bold text-dark mb-0 fs-6">
+                                                <i class="fas fa-layer-group me-1 text-primary"></i>Tentukan Pembagian SPK (SPK 1 - SPK 5)
+                                            </label>
+                                            <div class="text-muted small" style="font-size: 0.75rem;">
+                                                Pilih SPK tujuan untuk masing-masing item (contoh: Item A &amp; B masuk SPK 1, Item C masuk SPK 2).
+                                            </div>
+                                        </div>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2.5 fw-semibold" id="btn-quick-combine" title="Semua item dijadikan 1 SPK">
+                                                <i class="fas fa-link me-1"></i>Gabung Semua (1 SPK)
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2.5 fw-semibold" id="btn-quick-split" title="Pisahkan tiap item menjadi SPK sendiri-sendiri">
+                                                <i class="fas fa-cut me-1"></i>Pisah Masing-masing
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="table-responsive bg-white rounded border mb-0">
+                                        <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                                            <thead class="table-light sticky-top">
+                                                <tr>
+                                                    <th style="width: 40px;" class="text-center">#</th>
+                                                    <th>PRODUK / ITEM PESANAN</th>
+                                                    <th class="text-center" style="width: 80px;">QTY</th>
+                                                    <th style="width: 210px;">PILIH SPK TUJUAN</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="modal-spk-items-table">
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
 
-                            {{-- Parameter Utama SPK: 3 Kolom Sejajar --}}
-                            <div class="row g-3 mb-4">
-                                <div class="col-lg-4 col-md-6">
-                                    <label for="spk_no_produksi" class="form-label fw-semibold small text-dark mb-1">
-                                        <i class="fas fa-hashtag text-primary me-1"></i>Nomor / Kode Produksi <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="text" name="no_produksi" id="spk_no_produksi" class="form-control form-control-sm font-monospace fw-bold" required>
-                                    <div class="form-text text-muted" style="font-size: 0.75rem;">
-                                        Satu kode produksi ini akan menaungi seluruh SPK pesanan ini.
+                            {{-- Kolom Kanan: Pratinjau Real-Time SPK yang Akan Dibuat --}}
+                            <div class="col-lg-5">
+                                <div class="p-3 bg-white rounded border shadow-sm d-flex flex-column">
+                                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                        <div>
+                                            <h6 class="fw-bold text-dark mb-0">
+                                                <i class="fas fa-clipboard-list me-1 text-primary"></i>Ringkasan SPK yang Terbit
+                                            </h6>
+                                            <small class="text-muted" style="font-size: 0.72rem;">Pratinjau otomatis SPK yang akan dibentuk</small>
+                                        </div>
+                                        <span class="badge bg-primary px-2.5 py-1.5 fs-7" id="modal-spk-summary-badge">0 SPK</span>
                                     </div>
-                                </div>
-                                <div class="col-lg-4 col-md-6">
-                                    <label for="spk_tahap_saat_ini" class="form-label fw-semibold small text-dark mb-1">
-                                        <i class="fas fa-tasks text-primary me-1"></i>Tahap Awal Produksi <span class="text-danger">*</span>
-                                    </label>
-                                    <select name="tahap_saat_ini" id="spk_tahap_saat_ini" class="form-select form-select-sm fw-semibold" required>
-                                        <option value="Antrian &amp; Sampling" selected>⏳ Antrian &amp; Sampling (Langsung Antrian)</option>
-                                        <option value="Perencanaan">📋 Perencanaan / Pesanan Baru</option>
-                                        <option value="Tahap Pemotongan">✂️ Tahap Pemotongan</option>
-                                        <option value="Tahap Jahit">🪡 Tahap Jahit</option>
-                                    </select>
-                                    <div class="form-text text-success" style="font-size: 0.75rem;">
-                                        <i class="fas fa-check-circle me-1"></i>SPK langsung masuk antrian aktif (bukan Draft).
+                                    <div id="modal-spk-summary-list" class="d-flex flex-column gap-2" style="font-size: 0.82rem;">
                                     </div>
-                                </div>
-                                <div class="col-lg-4 col-md-12">
-                                    <label for="spk_deadline" class="form-label fw-semibold small text-dark mb-1">
-                                        <i class="fas fa-calendar-alt text-primary me-1"></i>Target Deadline SPK Produksi <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="date" name="deadline" id="spk_deadline" class="form-control form-control-sm" value="{{ now()->addDays(7)->format('Y-m-d') }}" required>
-                                    <div class="form-text text-muted" style="font-size: 0.75rem;">Target tanggal selesai pengerjaan oleh tim produksi.</div>
-                                </div>
-                            </div>
-
-                            {{-- Layout 2 Kolom: Kiri (Tabel Pembagian Item) | Kanan (Ringkasan Real-Time) --}}
-                            <div class="row g-4">
-                                {{-- Kolom Kiri: Tabel Pembagian SPK --}}
-                                <div class="col-lg-7">
-                                    <div class="border rounded p-3 bg-light shadow-sm h-100">
-                                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                                            <div>
-                                                <label class="form-label fw-bold text-dark mb-0 fs-6">
-                                                    <i class="fas fa-layer-group me-1 text-primary"></i>Tentukan Pembagian SPK (SPK 1 - SPK 5)
-                                                </label>
-                                                <div class="text-muted small" style="font-size: 0.75rem;">
-                                                    Pilih SPK tujuan untuk masing-masing item (contoh: Item A &amp; B masuk SPK 1, Item C masuk SPK 2).
-                                                </div>
-                                            </div>
-                                            <div class="btn-group btn-group-sm">
-                                                <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2.5 fw-semibold" id="btn-quick-combine" title="Semua item dijadikan 1 SPK">
-                                                    <i class="fas fa-link me-1"></i>Gabung Semua (1 SPK)
-                                                </button>
-                                                <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2.5 fw-semibold" id="btn-quick-split" title="Pisahkan tiap item menjadi SPK sendiri-sendiri">
-                                                    <i class="fas fa-cut me-1"></i>Pisah Masing-masing
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div class="table-responsive bg-white rounded border mb-0" style="max-height: 480px; overflow-y: auto;">
-                                            <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                                                <thead class="table-light sticky-top">
-                                                    <tr>
-                                                        <th style="width: 40px;" class="text-center">#</th>
-                                                        <th>PRODUK / ITEM PESANAN</th>
-                                                        <th class="text-center" style="width: 80px;">QTY</th>
-                                                        <th style="width: 210px;">PILIH SPK TUJUAN</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody id="modal-spk-items-table">
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {{-- Kolom Kanan: Pratinjau Real-Time SPK yang Akan Dibuat --}}
-                                <div class="col-lg-5">
-                                    <div class="p-3 bg-white rounded border shadow-sm h-100 d-flex flex-column" style="position: sticky; top: 1rem;">
-                                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                                            <div>
-                                                <h6 class="fw-bold text-dark mb-0">
-                                                    <i class="fas fa-clipboard-list me-1 text-primary"></i>Ringkasan SPK yang Terbit
-                                                </h6>
-                                                <small class="text-muted" style="font-size: 0.72rem;">Pratinjau otomatis SPK yang akan dibentuk</small>
-                                            </div>
-                                            <span class="badge bg-primary px-2.5 py-1.5 fs-7" id="modal-spk-summary-badge">0 SPK</span>
-                                        </div>
-                                        <div id="modal-spk-summary-list" class="d-flex flex-column gap-2 flex-grow-1" style="font-size: 0.82rem; max-height: 440px; overflow-y: auto;">
-                                        </div>
-                                        <div class="mt-3 pt-2 border-top text-muted small" style="font-size: 0.75rem;">
-                                            <i class="fas fa-info-circle text-primary me-1"></i>
-                                            Setiap SPK akan memiliki nomor unik di modul SPK (misal <code>SPK-...-0001</code>, <code>SPK-...-0002</code>) di bawah No. Produksi yang sama.
-                                        </div>
+                                    <div class="mt-3 pt-2 border-top text-muted small" style="font-size: 0.75rem;">
+                                        <i class="fas fa-info-circle text-primary me-1"></i>
+                                        Setiap SPK akan memiliki nomor unik di modul SPK (misal <code>SPK-...-0001</code>, <code>SPK-...-0002</code>) di bawah No. Produksi yang sama.
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer px-4 py-3 bg-light border-top">
-                        <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i> Tutup
-                        </button>
-                        <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold shadow-sm">
-                            <i class="fas fa-hammer me-1"></i> Terbitkan SPK Sekarang
-                        </button>
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer px-4 py-3 bg-light border-top" style="flex-shrink: 0;">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Tutup
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold shadow-sm">
+                        <i class="fas fa-hammer me-1"></i> Terbitkan SPK Sekarang
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -805,10 +805,13 @@
                     const groupKeys = Object.keys(groups).sort((a, b) => parseInt(a) - parseInt(b));
                     summaryBadge.textContent = groupKeys.length + ' SPK Akan Diterbitkan';
 
+                    const submitBtn = modalCreateSpk.querySelector('button[type="submit"]');
                     if (groupKeys.length === 0) {
-                        summaryList.innerHTML = '<div class="text-danger py-1"><i class="fas fa-exclamation-triangle me-1"></i>Pilih minimal 1 SPK tujuan untuk item pesanan.</div>';
+                        summaryList.innerHTML = '<div class="alert alert-danger py-2 mb-0 small"><i class="fas fa-exclamation-triangle me-1"></i>Pilih minimal 1 SPK tujuan untuk item pesanan.</div>';
+                        if (submitBtn) submitBtn.disabled = true;
                         return;
                     }
+                    if (submitBtn) submitBtn.disabled = false;
 
                     const badgeColors = ['primary', 'success', 'warning text-dark', 'info', 'danger', 'secondary'];
 
@@ -886,10 +889,13 @@
                     userCategories = {}; // Reset state input kategori untuk transaksi baru
                     const btn = event.relatedTarget;
                     const saleNumber = btn.getAttribute('data-sale-number');
+                    const buyerName = btn.getAttribute('data-buyer-name') || 'Pelanggan';
                     currentNoProduksi = btn.getAttribute('data-default-no-produksi') || '';
                     const itemsJson = btn.getAttribute('data-items');
 
                     document.getElementById('modal-spk-sale-number').textContent = saleNumber;
+                    const buyerNameEl = document.getElementById('modal-spk-buyer-name');
+                    if (buyerNameEl) buyerNameEl.textContent = buyerName;
                     document.getElementById('spk_no_produksi').value = currentNoProduksi;
                     document.getElementById('form-create-spk').action = '/offline-sales/' + btn.getAttribute('data-id') + '/create-spk';
 
