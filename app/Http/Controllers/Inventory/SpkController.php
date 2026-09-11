@@ -1267,6 +1267,8 @@ class SpkController extends Controller
                 $spkList = collect([$spk]);
             }
 
+            $affectedNoPesanans = $spkList->pluck('no_pesanan')->filter()->unique();
+
             foreach ($spkList as $itemSpk) {
                 foreach ($itemSpk->items as $item) {
                     SpkItemExtra::where('spk_item_id', $item->id)->delete();
@@ -1276,6 +1278,29 @@ class SpkController extends Controller
                 }
                 SpkProses::where('spk_id', $itemSpk->id)->delete();
                 $itemSpk->delete();
+            }
+
+            // Sync kembali status Penjualan Offline jika seluruh SPK terkait telah dihapus
+            foreach ($affectedNoPesanans as $noPesanan) {
+                $remainingSpkCount = Spk::where('tenant_id', $tenantId)
+                    ->where('no_pesanan', $noPesanan)
+                    ->count();
+
+                if ($remainingSpkCount === 0) {
+                    $offlineSale = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+                        ->where('sale_number', $noPesanan)
+                        ->first();
+
+                    if ($offlineSale && $offlineSale->is_po && in_array($offlineSale->status, [
+                        \App\Models\OfflineSale::STATUS_SPK_PROCESSING,
+                        \App\Models\OfflineSale::STATUS_PENDING_APPROVAL,
+                    ])) {
+                        $revertedStatus = ((float) $offlineSale->paid_amount > 0)
+                            ? \App\Models\OfflineSale::STATUS_PENDING_SPK
+                            : \App\Models\OfflineSale::STATUS_WAITING_DP;
+                        $offlineSale->update(['status' => $revertedStatus]);
+                    }
+                }
             }
         });
 

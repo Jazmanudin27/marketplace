@@ -32,7 +32,11 @@
                             <i class="fas fa-money-bill-wave me-1"></i> Catat Pembayaran / Cicilan
                         </button>
                     @endif
-                    @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK)
+                    @php
+                        $showCreateSpkShowBtn = $offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK
+                            || ($offlineSale->is_po && $offlineSale->spks->isEmpty() && (float) $offlineSale->paid_amount > 0 && $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED);
+                    @endphp
+                    @if ($showCreateSpkShowBtn)
                         <button type="button" class="btn btn-warning btn-sm px-3 text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalCreateSpkShow">
                             <i class="fas fa-hammer me-1"></i> Buat SPK Produksi
                         </button>
@@ -86,7 +90,7 @@
             @endif
 
             {{-- Banner Belum Dibuat SPK --}}
-            @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK)
+            @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK || ($offlineSale->is_po && $offlineSale->spks->isEmpty() && (float) $offlineSale->paid_amount > 0 && $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED))
                 <div class="alert alert-warning d-flex align-items-center justify-content-between gap-3 mb-3 py-3" style="background-color: #fef3c7; border-color: #fcd34d; color: #92400e;">
                     <div class="d-flex align-items-center gap-3">
                         <i class="fas fa-hammer fa-2x text-warning"></i>
@@ -102,7 +106,7 @@
             @endif
 
             {{-- Banner Pesanan PO Produksi (SPK Sedang Diproses) --}}
-            @if ($offlineSale->is_po && in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_SPK_PROCESSING]))
+            @if ($offlineSale->is_po && in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_SPK_PROCESSING]) && $offlineSale->spks->isNotEmpty())
                 @php
                     $firstSpk = $offlineSale->spks->first();
                 @endphp
@@ -682,8 +686,7 @@
 @endif
 
 {{-- Modal Terbitkan SPK Produksi --}}
-@push('modals')
-@if($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK)
+@if($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK || ($offlineSale->is_po && $offlineSale->spks->isEmpty() && (float) $offlineSale->paid_amount > 0 && $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED))
 <div class="modal fade" id="modalCreateSpkShow" tabindex="-1" aria-labelledby="modalCreateSpkShowLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow">

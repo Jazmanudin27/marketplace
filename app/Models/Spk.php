@@ -335,4 +335,31 @@ class Spk extends Model
 
         return $prefix . sprintf('%03d', $next);
     }
+
+    protected static function booted(): void
+    {
+        static::deleted(function (Spk $spk) {
+            if (!empty($spk->no_pesanan)) {
+                $remainingSpks = static::where('tenant_id', $spk->tenant_id)
+                    ->where('no_pesanan', $spk->no_pesanan)
+                    ->count();
+
+                if ($remainingSpks === 0) {
+                    $offlineSale = OfflineSale::where('tenant_id', $spk->tenant_id)
+                        ->where('sale_number', $spk->no_pesanan)
+                        ->first();
+
+                    if ($offlineSale && $offlineSale->is_po && in_array($offlineSale->status, [
+                        OfflineSale::STATUS_SPK_PROCESSING,
+                        OfflineSale::STATUS_PENDING_APPROVAL,
+                    ])) {
+                        $revertedStatus = ((float) $offlineSale->paid_amount > 0)
+                            ? OfflineSale::STATUS_PENDING_SPK
+                            : OfflineSale::STATUS_WAITING_DP;
+                        $offlineSale->update(['status' => $revertedStatus]);
+                    }
+                }
+            }
+        });
+    }
 }

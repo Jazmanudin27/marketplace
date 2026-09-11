@@ -15,7 +15,24 @@ class OfflineSaleController extends Controller
     public function index(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
-        $query    = OfflineSale::with('user')
+
+        // Auto-heal: Jika ada pesanan PO berstatus spk_diproses atau pending_approval,
+        // tetapi SPK-nya telah dihapus dari antrean produksi (count = 0), kembalikan statusnya
+        // agar tombol "Buat SPK" muncul kembali.
+        $orphanedSales = OfflineSale::where('tenant_id', $tenantId)
+            ->where('is_po', true)
+            ->whereIn('status', [OfflineSale::STATUS_SPK_PROCESSING, OfflineSale::STATUS_PENDING_APPROVAL])
+            ->whereDoesntHave('spks')
+            ->get();
+
+        foreach ($orphanedSales as $orphanedSale) {
+            $reverted = ((float) $orphanedSale->paid_amount > 0)
+                ? OfflineSale::STATUS_PENDING_SPK
+                : OfflineSale::STATUS_WAITING_DP;
+            $orphanedSale->update(['status' => $reverted]);
+        }
+
+        $query    = OfflineSale::with(['user', 'items', 'spks'])
             ->where('tenant_id', $tenantId)
             ->orderByDesc('created_at');
 
@@ -342,7 +359,19 @@ class OfflineSaleController extends Controller
     public function show(OfflineSale $offlineSale)
     {
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
-        $offlineSale->load('items.masterProduct', 'user', 'customer', 'payments.user');
+        $offlineSale->load('items.masterProduct', 'user', 'customer', 'payments.user', 'spks');
+
+        // Auto-heal: jika pesanan PO berstatus SPK sedang diproses tetapi seluruh SPK-nya sudah dihapus
+        if ($offlineSale->is_po && in_array($offlineSale->status, [OfflineSale::STATUS_SPK_PROCESSING, OfflineSale::STATUS_PENDING_APPROVAL])) {
+            if ($offlineSale->spks->isEmpty()) {
+                $reverted = ((float) $offlineSale->paid_amount > 0)
+                    ? OfflineSale::STATUS_PENDING_SPK
+                    : OfflineSale::STATUS_WAITING_DP;
+                $offlineSale->update(['status' => $reverted]);
+                $offlineSale->status = $reverted;
+            }
+        }
+
         $bankAccounts = \App\Models\BankAccount::where('tenant_id', Auth::user()->tenant_id)
             ->where('is_active', true)
             ->orderBy('bank_name')

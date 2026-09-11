@@ -273,7 +273,11 @@
                                             <i class="fas fa-print"></i>
                                         </a>
 
-                                        @if ($sale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK)
+                                        @php
+                                            $showCreateSpkBtn = $sale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK
+                                                || ($sale->is_po && $sale->spks->isEmpty() && (float) $sale->paid_amount > 0 && $sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED);
+                                        @endphp
+                                        @if ($showCreateSpkBtn)
                                             <button type="button" class="btn btn-sm btn-warning text-dark py-1 px-2 fw-bold"
                                                 title="Buat SPK Produksi" data-bs-toggle="modal"
                                                 data-bs-target="#modalCreateSpk" data-id="{{ $sale->id }}"

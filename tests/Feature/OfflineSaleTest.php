@@ -836,6 +836,65 @@ class OfflineSaleTest extends TestCase
         $this->assertEquals(OfflineSale::STATUS_SPK_PROCESSING, $sale->status);
         $this->assertEquals('SPK Sedang Diproses', $sale->status_label);
     }
+
+    public function test_offline_sale_status_reverts_to_pending_spk_when_spks_deleted(): void
+    {
+        $sale = OfflineSale::create([
+            'tenant_id'       => $this->tenant->id,
+            'user_id'         => $this->user->id,
+            'sale_number'     => 'SL-PO-SPK-DEL',
+            'status'          => OfflineSale::STATUS_PENDING_SPK,
+            'is_po'           => true,
+            'payment_method'  => 'piutang',
+            'total_amount'    => 500000,
+            'grand_total'     => 500000,
+            'paid_amount'     => 200000,
+            'change_amount'   => 0,
+            'sold_at'         => now(),
+        ]);
+
+        $sale->items()->create([
+            'master_product_id' => $this->masterProduct->id,
+            'product_name'      => 'Kemeja Batik',
+            'sku'               => 'BATIK-01',
+            'quantity'          => 10,
+            'unit_price'        => 50000,
+            'subtotal'          => 500000,
+        ]);
+
+        // 1. Create SPK
+        $this->actingAs($this->user)->post(route('offline_sales.create_spk', $sale), [
+            'no_produksi'    => 'JN2609777',
+            'tahap_saat_ini' => 'Antrian & Sampling',
+        ]);
+
+        $sale->refresh();
+        $this->assertEquals(OfflineSale::STATUS_SPK_PROCESSING, $sale->status);
+        $this->assertEquals(1, $sale->spks()->count());
+
+        $spk = $sale->spks()->first();
+
+        // 2. Delete SPK via SpkController::destroy
+        $response = $this->actingAs($this->user)->delete(route('spks.destroy', $spk));
+        $response->assertRedirect(route('spks.index'));
+
+        // 3. Verify OfflineSale status reverted to STATUS_PENDING_SPK ("Belum dibuat SPK")
+        $sale->refresh();
+        $this->assertEquals(OfflineSale::STATUS_PENDING_SPK, $sale->status);
+        $this->assertEquals('Belum dibuat SPK', $sale->status_label);
+        $this->assertEquals(0, $sale->spks()->count());
+
+        // 4. Verify index page shows "Buat SPK Produksi" button
+        $indexResponse = $this->actingAs($this->user)->get(route('offline_sales.index'));
+        $indexResponse->assertStatus(200);
+        $indexResponse->assertSee('modalCreateSpk');
+        $indexResponse->assertSee('SL-PO-SPK-DEL');
+
+        // 5. Verify show page shows "Buat SPK Sekarang"
+        $showResponse = $this->actingAs($this->user)->get(route('offline_sales.show', $sale));
+        $showResponse->assertStatus(200);
+        $showResponse->assertSee('Buat SPK Sekarang');
+    }
 }
 
 
