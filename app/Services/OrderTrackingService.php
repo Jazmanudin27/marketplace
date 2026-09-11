@@ -288,9 +288,9 @@ class OrderTrackingService
             $trackingNo = trim((string) $trackingNo);
             if ($trackingNo !== '' && $trackingNo !== '-') {
                 $order->tracking_number = $trackingNo;
-                if (!in_array($order->order_status, [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED, Order::STATUS_COMPLETED, Order::STATUS_CANCELLED])) {
-                    $order->order_status = Order::STATUS_SHIPPED;
-                }
+                // JANGAN ubah order_status ke SHIPPED di sini!
+                // Saat cetak/tarik resi, paket baru selesai dikemas di gudang dan status resminya di marketplace masih READY_TO_SHIP.
+                // Status akan diperbarui ke SHIPPED secara otomatis saat kurir sudah melakukan scan fisik paket (via sync status API).
                 $order->save();
                 return $trackingNo;
             }

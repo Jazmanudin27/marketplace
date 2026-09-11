@@ -245,13 +245,19 @@ class TiktokService
      */
     public function getOrderDetail(string $accessToken, string $shopCipher, array $orderIdList)
     {
+        $cleanIds = array_values(array_filter(array_map('trim', $orderIdList), fn($id) => $id !== '' && $id !== null));
+
+        if (empty($cleanIds)) {
+            return ['order_list' => [], 'orders' => []];
+        }
+
         $path = '/order/202309/orders';
         
         $queryParams = [
             'app_key' => $this->appKey,
             'timestamp' => time(),
             'shop_cipher' => $shopCipher,
-            'ids' => implode(',', $orderIdList),
+            'ids' => implode(',', $cleanIds),
         ];
 
         // signature generateSignature untuk GET (body kosong)

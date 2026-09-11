@@ -745,7 +745,7 @@ class SecretRepairDashboardController extends Controller
                 $log[] = "📦 Toko Shopee: {$store->store_name} ({$orders->count()} pesanan)";
                 try {
                     $accessToken = $store->getValidAccessToken();
-                    $orderSns = $orders->pluck('order_marketplace_id')->filter()->unique()->values()->toArray();
+                    $orderSns = $orders->pluck('order_marketplace_id')->map(fn($id) => trim((string)$id))->filter()->unique()->values()->toArray();
 
                     $chunks = array_chunk($orderSns, 50);
                     foreach ($chunks as $chunk) {
@@ -824,17 +824,58 @@ class SecretRepairDashboardController extends Controller
                 $log[] = "🎵 Toko TikTok: {$store->store_name} ({$orders->count()} pesanan)";
                 try {
                     $accessToken = $store->getValidAccessToken();
-                    $orderIds = $orders->pluck('order_marketplace_id')->filter()->unique()->values()->toArray();
+                    $rawIds = $orders->pluck('order_marketplace_id')->filter()->unique()->values();
+
+                    // Filter hanya yang sesuai format ID pesanan TikTok resmi (numerik >= 15 digit)
+                    $orderIds = $rawIds
+                        ->map(fn($id) => trim((string)$id))
+                        ->filter(fn($id) => is_numeric($id) && strlen($id) >= 15)
+                        ->values()
+                        ->toArray();
+
+                    $invalidIds = $rawIds
+                        ->map(fn($id) => trim((string)$id))
+                        ->filter(fn($id) => !empty($id) && (!is_numeric($id) || strlen($id) < 15))
+                        ->values()
+                        ->toArray();
+
+                    if (!empty($invalidIds)) {
+                        $log[] = "   ⚠️ " . count($invalidIds) . " pesanan dilewati karena bukan format Order ID TikTok (numerik >= 15 digit): " . implode(', ', $invalidIds);
+                    }
+
+                    if (empty($orderIds)) {
+                        $log[] = "   ℹ️ Tidak ada pesanan TikTok berformat numerik valid untuk ditarik resi.";
+                        continue;
+                    }
 
                     $chunks = array_chunk($orderIds, 50);
                     foreach ($chunks as $chunk) {
-                        $detailRes = $tiktokService->getOrderDetail(
-                            $accessToken,
-                            $store->shop_cipher,
-                            $chunk
-                        );
+                        $ordersList = [];
+                        try {
+                            $detailRes = $tiktokService->getOrderDetail(
+                                $accessToken,
+                                $store->shop_cipher,
+                                $chunk
+                            );
+                            $ordersList = $detailRes['order_list'] ?? $detailRes['orders'] ?? [];
+                        } catch (\Throwable $chunkEx) {
+                            // Fallback jika salah satu order_id bermasalah (cannot be parsed), coba satu per satu
+                            $log[] = "   ⚠️ Penarikan serentak gagal (" . $chunkEx->getMessage() . "), mencoba satu per satu...";
+                            foreach ($chunk as $singleId) {
+                                try {
+                                    $singleRes = $tiktokService->getOrderDetail(
+                                        $accessToken,
+                                        $store->shop_cipher,
+                                        [$singleId]
+                                    );
+                                    $singleOrders = $singleRes['order_list'] ?? $singleRes['orders'] ?? [];
+                                    $ordersList = array_merge($ordersList, $singleOrders);
+                                } catch (\Throwable $singleEx) {
+                                    $log[] = "   ❌ Order #{$singleId} dilewati: " . $singleEx->getMessage();
+                                }
+                            }
+                        }
 
-                        $ordersList = $detailRes['order_list'] ?? [];
                         foreach ($ordersList as $ttOrder) {
                             $oid = (string)($ttOrder['id'] ?? $ttOrder['order_id'] ?? '');
                             if (!$oid) continue;
