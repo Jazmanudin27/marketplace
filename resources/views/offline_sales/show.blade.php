@@ -148,294 +148,407 @@
 
 
             <div class="row g-3">
-                {{-- LEFT: Item detail --}}
+                {{-- LEFT COLUMN: Item Pesanan, Riwayat Pembayaran, Riwayat Retur --}}
                 <div class="col-lg-8">
+                    {{-- Card: Item Pesanan --}}
                     <div class="card border-0 shadow-sm mb-3">
-                        <div
-                            class="card-header bg-light py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                        <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
                             <h6 class="fw-bold mb-0 text-dark">
-                                <i class="fas fa-info-circle me-2 text-primary"></i>Informasi Transaksi
+                                <i class="fas fa-boxes-stacked me-2 text-primary"></i>Item Pesanan
                             </h6>
-                            <span
-                                class="badge bg-{{ $offlineSale->status_badge }} bg-opacity-10 text-{{ $offlineSale->status_badge }} border border-{{ $offlineSale->status_badge }} border-opacity-10 small text-uppercase">
+                            <span class="badge bg-light text-secondary border small px-2.5 py-1 rounded-pill">
+                                {{ $offlineSale->items->count() }} Produk &bull; {{ $offlineSale->items->sum('quantity') }} Pcs
+                            </span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="table-light text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                    <tr>
+                                        <th class="ps-3 py-2.5">PRODUK</th>
+                                        <th class="py-2.5">SKU</th>
+                                        <th class="text-center py-2.5">QTY</th>
+                                        <th class="text-end py-2.5">HARGA SATUAN</th>
+                                        <th class="text-end py-2.5">DISKON</th>
+                                        <th class="text-end pe-3 py-2.5">SUBTOTAL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($offlineSale->items as $item)
+                                        <tr>
+                                            <td class="ps-3 py-2.5">
+                                                <span class="fw-bold text-dark d-block" style="font-size: 0.85rem;">{{ $item->product_name }}</span>
+                                                @if($item->returned_quantity > 0)
+                                                    <span class="badge bg-warning text-dark mt-1" style="font-size:0.65rem;">
+                                                        <i class="fas fa-undo me-0.5"></i> Diretur {{ $item->returned_quantity }}x
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="py-2.5">
+                                                <code class="text-primary font-monospace small bg-primary bg-opacity-10 px-1.5 py-0.5 rounded">{{ $item->sku ?? '-' }}</code>
+                                            </td>
+                                            <td class="text-center py-2.5">
+                                                <span class="badge bg-light text-dark border px-2 py-1 font-monospace fw-semibold">{{ $item->quantity }}</span>
+                                            </td>
+                                            <td class="text-end font-monospace small py-2.5">
+                                                Rp {{ number_format($item->unit_price, 0, ',', '.') }}
+                                            </td>
+                                            <td class="text-end font-monospace text-danger small py-2.5">
+                                                @if($item->discount_amount > 0)
+                                                    - Rp {{ number_format($item->discount_amount, 0, ',', '.') }}
+                                                    <div class="text-muted" style="font-size:0.68rem;">
+                                                        ({{ $item->discount_type === 'percentage' ? number_format($item->discount_value, 0).'% / unit' : 'Rp '.number_format($item->discount_value, 0, ',', '.').' / unit' }})
+                                                    </div>
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-end font-monospace text-success fw-bold small pe-3 py-2.5">
+                                                Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="table-light fw-bold" style="font-size: 0.82rem;">
+                                    <tr>
+                                        <td colspan="2" class="ps-3 py-2.5 text-muted text-uppercase" style="font-size: 0.72rem;">Total Kuantitas</td>
+                                        <td class="text-center font-monospace py-2.5">{{ $offlineSale->items->sum('quantity') }} pcs</td>
+                                        <td colspan="2" class="text-end py-2.5 text-muted text-uppercase" style="font-size: 0.72rem;">Subtotal Item:</td>
+                                        <td class="text-end font-monospace text-dark pe-3 py-2.5">Rp {{ number_format($offlineSale->total_amount, 0, ',', '.') }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    {{-- Card: Riwayat Pembayaran Cicilan --}}
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0 text-success">
+                                <i class="fas fa-history me-2"></i>Riwayat Pembayaran &amp; Cicilan
+                            </h6>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2.5 py-1 rounded-pill small font-monospace">
+                                {{ $offlineSale->payments->count() }}x Pembayaran
+                            </span>
+                        </div>
+                        <div class="card-body p-0">
+                            @if($offlineSale->payments->isEmpty())
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-receipt fa-2x mb-2 text-muted opacity-50"></i>
+                                    <p class="mb-0 small">Belum ada catatan pembayaran / cicilan yang masuk.</p>
+                                </div>
+                            @else
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                                        <thead class="table-light text-secondary" style="font-size: 0.75rem;">
+                                            <tr>
+                                                <th class="ps-3 py-2">NO. PEMBAYARAN</th>
+                                                <th class="py-2">TANGGAL</th>
+                                                <th class="text-end py-2">NOMINAL</th>
+                                                <th class="py-2">METODE</th>
+                                                <th class="py-2">KAS / BANK</th>
+                                                <th class="py-2">CATATAN</th>
+                                                <th class="py-2">PETUGAS</th>
+                                                @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner']))
+                                                    <th class="text-center py-2 pe-3" style="width: 50px;">AKSI</th>
+                                                @endif
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($offlineSale->payments as $pmt)
+                                                <tr>
+                                                    <td class="ps-3 font-monospace fw-bold text-dark">{{ $pmt->payment_number }}</td>
+                                                    <td>{{ $pmt->payment_date ? $pmt->payment_date->format('d/m/Y') : '-' }}</td>
+                                                    <td class="text-end font-monospace fw-bold text-success">Rp {{ number_format($pmt->amount, 0, ',', '.') }}</td>
+                                                    <td>
+                                                        <span class="badge bg-light text-dark border">{{ $pmt->payment_method_label }}</span>
+                                                    </td>
+                                                    <td>
+                                                        @if($pmt->payment_destination)
+                                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 fw-normal">
+                                                                {{ $pmt->payment_destination === 'kas_kecil' ? 'Kas Kecil' : ($pmt->payment_destination === 'kas_besar' ? 'Kas Besar' : $pmt->payment_destination) }}
+                                                            </span>
+                                                        @else
+                                                            <span class="text-muted">-</span>
+                                                        @endif
+                                                    </td>
+                                                    <td><small class="text-muted">{{ $pmt->notes ?: '-' }}</small></td>
+                                                    <td><small class="text-dark">{{ $pmt->user->name ?? '-' }}</small></td>
+                                                    @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner']))
+                                                        <td class="text-center pe-3">
+                                                            <form action="{{ route('offline_sales.payments.destroy', [$offlineSale->id, $pmt->id]) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus riwayat pembayaran ini? Saldo bank & pemasukan keuangan akan disesuaikan kembali.');" class="d-inline">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Hapus Riwayat Pembayaran">
+                                                                    <i class="fas fa-trash-alt"></i>
+                                                                </button>
+                                                            </form>
+                                                        </td>
+                                                    @endif
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Card: Riwayat Retur Penjualan --}}
+                    @if($offlineSale->returns->isNotEmpty())
+                        <div class="card border-0 shadow-sm mb-3">
+                            <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                <h6 class="fw-bold mb-0 text-warning-emphasis">
+                                    <i class="fas fa-undo me-2 text-warning"></i>Riwayat Retur Penjualan
+                                </h6>
+                                <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning border-opacity-25 px-2.5 py-1 rounded-pill small">
+                                    {{ $offlineSale->returns->count() }}x Retur
+                                </span>
+                            </div>
+                            <div class="card-body p-3">
+                                @foreach($offlineSale->returns as $ret)
+                                    <div class="p-3 border rounded bg-light mb-2">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div>
+                                                <strong class="font-monospace text-dark">{{ $ret->return_number }}</strong>
+                                                <small class="text-muted ms-2">{{ $ret->returned_at ? $ret->returned_at->format('d M Y, H:i') : '' }}</small>
+                                            </div>
+                                            <span class="badge bg-warning text-dark font-monospace">Total Refund: Rp {{ number_format($ret->total_return_amount, 0, ',', '.') }}</span>
+                                        </div>
+                                        <div class="small text-muted mb-2">
+                                            Metode Refund: <strong>{{ ucfirst($ret->refund_method) }}</strong> &bull; Alasan: <em>"{{ $ret->reason }}"</em> &bull; Petugas: {{ $ret->user->name ?? '-' }}
+                                        </div>
+                                        <div class="table-responsive rounded border bg-white">
+                                            <table class="table table-sm table-borderless align-middle mb-0" style="font-size:0.78rem;">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th class="ps-2">PRODUK</th>
+                                                        <th class="text-center">QTY RETUR</th>
+                                                        <th class="text-end">HARGA SATUAN</th>
+                                                        <th class="text-end pe-2">SUBTOTAL REFUND</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($ret->items as $rItem)
+                                                        <tr>
+                                                            <td class="ps-2">{{ $rItem->offlineSaleItem->product_name ?? 'Produk' }}</td>
+                                                            <td class="text-center fw-bold text-danger">{{ $rItem->quantity }}x</td>
+                                                            <td class="text-end font-monospace">Rp {{ number_format($rItem->unit_price, 0, ',', '.') }}</td>
+                                                            <td class="text-end font-monospace text-danger fw-bold pe-2">Rp {{ number_format($rItem->subtotal, 0, ',', '.') }}</td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- RIGHT COLUMN: Informasi Transaksi (di atas) & Informasi Pembayaran (di bawah) --}}
+                <div class="col-lg-4">
+                    {{-- 1. INFORMASI TRANSAKSI --}}
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0 text-dark">
+                                <i class="fas fa-file-invoice me-2 text-primary"></i>Informasi Transaksi
+                            </h6>
+                            <span class="badge bg-{{ $offlineSale->status_badge }} bg-opacity-10 text-{{ $offlineSale->status_badge }} border border-{{ $offlineSale->status_badge }} border-opacity-25 px-2.5 py-1 rounded-pill small">
                                 {{ $offlineSale->status_label }}
                             </span>
                         </div>
                         <div class="card-body p-3">
-                            {{-- info row --}}
-                            <div class="row g-2 mb-4">
-                                <div class="col-md-6">
-                                    <div class="p-3 border rounded h-100 bg-light">
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
-                                            style="font-size: 0.65rem;">Pembeli</small>
-                                        <span class="fw-bold text-dark small">
-                                            @if ($offlineSale->customer_id)
-                                                <a href="{{ route('customers.show', $offlineSale->customer_id) }}"
-                                                    class="text-decoration-none text-primary fw-bold">
-                                                    {{ $offlineSale->buyer_name ?: '(Umum)' }} <i
-                                                        class="fas fa-external-link-alt ms-1 small"></i>
-                                                </a>
+                            {{-- Key-Value Meta --}}
+                            <table class="table table-sm table-borderless mb-0 align-middle" style="font-size: 0.82rem;">
+                                <tbody>
+                                    <tr>
+                                        <td class="text-muted ps-0 py-1.5" style="width: 120px;">No. Transaksi</td>
+                                        <td class="text-end pe-0 py-1.5 font-monospace fw-bold text-dark">{{ $offlineSale->sale_number }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted ps-0 py-1.5">Waktu</td>
+                                        <td class="text-end pe-0 py-1.5 text-dark">{{ $offlineSale->sold_at?->format('d M Y, H:i') ?? '-' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted ps-0 py-1.5">Kasir</td>
+                                        <td class="text-end pe-0 py-1.5 text-dark fw-semibold">{{ $offlineSale->user->name ?? '-' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted ps-0 py-1.5">Jenis Transaksi</td>
+                                        <td class="text-end pe-0 py-1.5">
+                                            @if ($offlineSale->payment_method === 'piutang')
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">
+                                                    <i class="fas fa-file-invoice-dollar me-1"></i>Kredit (Tempo)
+                                                </span>
                                             @else
-                                                {{ $offlineSale->buyer_name ?: '(Umum)' }}
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+                                                    <i class="fas fa-money-bill-wave me-1"></i>Tunai (Lunas)
+                                                </span>
                                             @endif
-                                        </span>
-                                    </div>
+                                        </td>
+                                    </tr>
+                                    @if ($offlineSale->follow_up_date)
+                                        <tr>
+                                            <td class="text-muted ps-0 py-1.5">Follow Up DP</td>
+                                            <td class="text-end pe-0 py-1.5">
+                                                <span class="fw-semibold {{ $offlineSale->needs_follow_up ? 'text-danger' : 'text-dark' }}">
+                                                    {{ $offlineSale->follow_up_date->format('d M Y') }}
+                                                    @if ($offlineSale->needs_follow_up)
+                                                        <span class="badge bg-danger ms-1">Overdue</span>
+                                                    @endif
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @endif
+                                </tbody>
+                            </table>
+
+                            {{-- Divider --}}
+                            <hr class="my-2.5 text-muted opacity-25">
+
+                            {{-- Pelanggan Section --}}
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                                    <i class="fas fa-user-circle me-1 text-primary"></i>Pelanggan
+                                </span>
+                                @if ($offlineSale->customer_id)
+                                    <a href="{{ route('customers.show', $offlineSale->customer_id) }}" class="text-decoration-none small" style="font-size: 0.72rem;">
+                                        Detail Profil <i class="fas fa-external-link-alt ms-0.5"></i>
+                                    </a>
+                                @endif
+                            </div>
+                            <div class="p-2.5 rounded bg-light border border-light-subtle">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span class="fw-bold text-dark" style="font-size: 0.88rem;">
+                                        {{ $offlineSale->buyer_name ?: '(Pelanggan Umum)' }}
+                                    </span>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="p-3 border rounded h-100 bg-light">
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
-                                            style="font-size: 0.65rem;">No. HP Pembeli</small>
-                                        <span
-                                            class="font-monospace fw-semibold text-dark small">{{ $offlineSale->buyer_phone ?? '-' }}</span>
-                                    </div>
-                                </div>
-                                @if ($offlineSale->institution_name)
-                                    <div class="col-md-12">
-                                        <div class="p-3 border border-info border-opacity-25 rounded bg-info bg-opacity-10">
-                                            <small class="text-info d-block text-uppercase fw-bold mb-1"
-                                                style="font-size: 0.65rem;"><i class="fas fa-building me-1"></i>Instansi / Saluran / Channel</small>
-                                            <span class="fw-bold text-dark fs-6">{{ $offlineSale->institution_name }}</span>
-                                        </div>
+                                @if ($offlineSale->buyer_phone)
+                                    <div class="mt-1 small font-monospace text-secondary d-flex align-items-center">
+                                        <i class="fas fa-phone-alt me-1.5 text-muted" style="font-size: 0.75rem;"></i>
+                                        <span>{{ $offlineSale->buyer_phone }}</span>
+                                        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $offlineSale->buyer_phone) }}" target="_blank" class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 ms-2 text-decoration-none px-1.5 py-0.5" title="Chat via WhatsApp">
+                                            <i class="fab fa-whatsapp me-0.5"></i> WA
+                                        </a>
                                     </div>
                                 @endif
-                                <div class="col-md-4">
-                                    <div class="p-3 border rounded h-100 bg-light">
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
-                                            style="font-size: 0.65rem;">Kasir</small>
-                                        <span class="fw-bold text-dark small">{{ $offlineSale->user->name ?? '-' }}</span>
+                                @if ($offlineSale->institution_name)
+                                    <div class="mt-1.5 pt-1.5 border-top border-light-subtle small text-dark">
+                                        <i class="fas fa-building me-1 text-info"></i>
+                                        <span class="text-muted">Instansi:</span> <strong>{{ $offlineSale->institution_name }}</strong>
                                     </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="p-3 border rounded h-100 bg-light">
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
-                                            style="font-size: 0.65rem;">Jenis Transaksi</small>
-                                        @if ($offlineSale->payment_method === 'piutang')
-                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 small fw-semibold mt-1">
-                                                <i class="fas fa-file-invoice-dollar me-1"></i>Kredit (Tempo)
-                                            </span>
-                                        @else
-                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 small fw-semibold mt-1">
-                                                <i class="fas fa-money-bill-wave me-1"></i>Tunai (Lunas)
-                                            </span>
+                                @endif
+                                @if ($offlineSale->customer && $offlineSale->customer->address)
+                                    <div class="mt-1.5 pt-1.5 border-top border-light-subtle small text-muted" style="line-height: 1.4;">
+                                        <i class="fas fa-map-marker-alt me-1 text-danger"></i>{{ $offlineSale->customer->address }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            {{-- Dropship Info (if applicable) --}}
+                            @if ($offlineSale->is_dropship)
+                                <div class="p-2.5 rounded bg-warning bg-opacity-10 border border-warning border-opacity-25 mt-2.5 small">
+                                    <div class="text-warning-emphasis fw-bold mb-1 d-flex align-items-center" style="font-size: 0.72rem; text-transform: uppercase;">
+                                        <i class="fas fa-shipping-fast me-1"></i> Dropshipper &amp; Resi
+                                    </div>
+                                    <div class="text-dark">
+                                        <span class="text-muted">Pengirim:</span> <strong>{{ $offlineSale->dropshipper_name ?? '-' }}</strong>
+                                        @if($offlineSale->dropshipper_phone)
+                                            <span class="text-muted">({{ $offlineSale->dropshipper_phone }})</span>
                                         @endif
                                     </div>
+                                    @if ($offlineSale->resi_number)
+                                        <div class="mt-1 text-dark">
+                                            <span class="text-muted">No. Resi / Jasa:</span>
+                                            <span class="font-monospace fw-bold text-primary">{{ $offlineSale->resi_number }}</span>
+                                        </div>
+                                    @endif
+                                    @if ($offlineSale->resi_file)
+                                        <div class="mt-1.5">
+                                            <a href="{{ Storage::url($offlineSale->resi_file) }}" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" style="font-size:0.72rem;">
+                                                <i class="fas fa-file-download me-1"></i> Unduh Label Resi
+                                            </a>
+                                        </div>
+                                    @endif
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="p-3 border rounded h-100 bg-light">
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
-                                            style="font-size: 0.65rem;">Status Pembayaran</small>
-                                        <div>
-                                            <span
-                                                class="badge bg-{{ $offlineSale->payment_status_badge }} bg-opacity-10 text-{{ $offlineSale->payment_status_badge }} border border-{{ $offlineSale->payment_status_badge }} border-opacity-10 small fw-semibold mt-1">
-                                                <i class="fas fa-{{ $offlineSale->is_paid ? 'check-circle' : 'exclamation-circle' }} me-1"></i>
-                                                {{ $offlineSale->payment_status_label }}
-                                            </span>
-                                            @if (!$offlineSale->is_paid && $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED)
-                                                <div class="small font-monospace text-danger fw-semibold mt-1" style="font-size: 0.75rem;">
-                                                    Sisa: Rp {{ number_format($offlineSale->remaining_amount, 0, ',', '.') }}
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                                @if ($offlineSale->payment_destination)
-                                    <div class="col-md-4">
-                                        <div class="p-3 border rounded h-100 bg-light">
-                                            <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
-                                                style="font-size: 0.65rem;">Kas / Bank Tujuan</small>
-                                            <span
-                                                class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 small fw-medium mt-1">
-                                                {{ $offlineSale->payment_destination === 'kas_kecil' ? 'Kas Kecil (Operasional)' : ($offlineSale->payment_destination === 'kas_besar' ? 'Kas Besar (Utama)' : $offlineSale->payment_destination) }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                @endif
-                                @if ($offlineSale->follow_up_date)
-                                    <div class="col-md-4">
-                                        <div class="p-3 border rounded h-100 {{ $offlineSale->needs_follow_up ? 'bg-danger bg-opacity-10 border-danger' : 'bg-light' }}">
-                                            <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
-                                                style="font-size: 0.65rem;">Tanggal Follow Up DP</small>
-                                            <div class="fw-bold {{ $offlineSale->needs_follow_up ? 'text-danger' : 'text-dark' }} small">
-                                                <i class="far fa-calendar-alt me-1"></i>{{ $offlineSale->follow_up_date->format('d M Y') }}
-                                                @if ($offlineSale->needs_follow_up)
-                                                    <span class="badge bg-danger ms-1">Overdue</span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-                                <div class="col-md-4">
-                                    <div class="p-3 border rounded h-100 bg-light">
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
-                                            style="font-size: 0.65rem;">Waktu Transaksi</small>
-                                        <span
-                                            class="fw-semibold text-dark small">{{ $offlineSale->sold_at?->format('d M Y, H:i') ?? '-' }}</span>
-                                    </div>
-                                </div>
-                                @if ($offlineSale->customer && $offlineSale->customer->address)
-                                    <div class="col-md-12">
-                                        <div class="p-3 border rounded h-100 bg-light">
-                                            <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
-                                                style="font-size: 0.65rem;">Alamat Pembeli</small>
-                                            <span
-                                                class="text-secondary text-wrap small">{{ $offlineSale->customer->address }}</span>
-                                        </div>
-                                    </div>
-                                @endif
-                                @if ($offlineSale->is_dropship)
-                                     <div class="col-md-12">
-                                         <div class="p-3 border border-warning rounded h-100 bg-warning bg-opacity-10">
-                                             <small class="text-warning-emphasis d-block text-uppercase fw-bold mb-2"
-                                                 style="font-size: 0.65rem;">
-                                                 <i class="fas fa-shipping-fast me-1"></i> Informasi Dropshipper &amp; Resi Pengiriman
-                                             </small>
-                                             <div class="row g-2">
-                                                 <div class="col-md-6 text-dark small">
-                                                     <span class="text-muted">Nama Pengirim:</span>
-                                                     <strong>{{ $offlineSale->dropshipper_name ?? '-' }}</strong>
-                                                 </div>
-                                                 <div class="col-md-6 text-dark small">
-                                                     <span class="text-muted">No. Telepon:</span> <strong
-                                                         class="font-monospace text-dark">{{ $offlineSale->dropshipper_phone ?? '-' }}</strong>
-                                                 </div>
-                                                 @if ($offlineSale->resi_number)
-                                                     <div class="col-md-6 text-dark small mt-2">
-                                                         <span class="text-muted">Jasa Kirim / Ekspedisi:</span>
-                                                         <strong class="fw-bold text-primary bg-white px-2 py-0.5 rounded border border-primary border-opacity-25">{{ $offlineSale->resi_number }}</strong>
-                                                     </div>
-                                                 @endif
-                                                 @if ($offlineSale->resi_file)
-                                                     <div class="col-md-6 text-dark small mt-2">
-                                                         <span class="text-muted">Dokumen Resi / Label:</span>
-                                                         <a href="{{ Storage::url($offlineSale->resi_file) }}" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2.5 fw-bold ms-1" style="font-size:0.75rem;">
-                                                             <i class="fas fa-file-download me-1"></i>Buka / Download Label Resi
-                                                         </a>
-                                                     </div>
-                                                 @endif
-                                             </div>
-                                         </div>
-                                     </div>
-                                 @endif
-                                @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_CANCELLED && $offlineSale->cancellation_reason)
-                                    <div class="col-md-12">
-                                        <div class="p-3 border border-danger rounded h-100 bg-danger bg-opacity-10">
-                                            <small class="text-danger d-block text-uppercase fw-bold mb-1"
-                                                style="font-size: 0.65rem;">
-                                                <i class="fas fa-times-circle me-1"></i> Alasan Pembatalan
-                                            </small>
-                                            <span class="text-dark small">{{ $offlineSale->cancellation_reason }}</span>
-                                        </div>
-                                    </div>
-                                @endif
-                                @if ($offlineSale->notes)
-                                    <div class="col-md-12">
-                                        <div class="p-3 border rounded h-100 bg-light">
-                                            <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
-                                                style="font-size: 0.65rem;">Catatan</small>
-                                            <span class="text-secondary text-wrap small">{{ $offlineSale->notes }}</span>
-                                        </div>
-                                    </div>
-                                @endif
-                            </div>
+                            @endif
 
-                            {{-- Table Item --}}
-                            <div class="d-flex align-items-center mb-3">
-                                <h6 class="fw-bold mb-0 text-dark" style="font-size:0.9rem;"><i
-                                        class="fas fa-box me-2 text-primary"></i>Item Yang Dijual</h6>
-                            </div>
-                            <div class="table-responsive rounded border">
-                                <table class="table table-sm table-bordered table-striped align-middle mb-0 text-dark">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th class="ps-3">PRODUK</th>
-                                            <th>SKU</th>
-                                            <th class="text-center">QTY</th>
-                                            <th class="text-end">HARGA SATUAN</th>
-                                            <th class="text-end">DISKON ITEM</th>
-                                            <th class="text-end">SUBTOTAL</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($offlineSale->items as $item)
-                                            <tr>
-                                                <td class="ps-3">
-                                                    <strong class="text-dark small">{{ $item->product_name }}</strong>
-                                                    @if($item->returned_quantity > 0)
-                                                        <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Diretur {{ $item->returned_quantity }}x</span>
-                                                    @endif
-                                                </td>
-                                                <td><code
-                                                        class="text-primary font-monospace small">{{ $item->sku ?? '-' }}</code>
-                                                </td>
-                                                <td class="text-center small">{{ $item->quantity }}</td>
-                                                <td class="text-end font-monospace small">Rp
-                                                    {{ number_format($item->unit_price, 0, ',', '.') }}</td>
-                                                <td class="text-end font-monospace text-danger small">
-                                                    @if($item->discount_amount > 0)
-                                                        - Rp {{ number_format($item->discount_amount, 0, ',', '.') }}
-                                                        <span class="text-muted d-block" style="font-size:0.65rem;">
-                                                            ({{ $item->discount_type === 'percentage' ? number_format($item->discount_value, 0).'% / unit' : 'Rp '.number_format($item->discount_value, 0, ',', '.').' / unit' }})
-                                                        </span>
-                                                    @else
-                                                        -
-                                                    @endif
-                                                </td>
-                                                <td class="text-end font-monospace text-success fw-bold small">Rp
-                                                    {{ number_format($item->subtotal, 0, ',', '.') }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
+                            {{-- Catatan (if any) --}}
+                            @if ($offlineSale->notes)
+                                <div class="p-2.5 rounded bg-light border mt-2.5 small text-secondary">
+                                    <div class="text-muted fw-bold mb-0.5" style="font-size: 0.7rem; text-transform: uppercase;">
+                                        <i class="far fa-comment-dots me-1 text-primary"></i>Catatan Transaksi
+                                    </div>
+                                    <div class="text-dark">{{ $offlineSale->notes }}</div>
+                                </div>
+                            @endif
+
+                            {{-- Alasan Pembatalan (if cancelled) --}}
+                            @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_CANCELLED && $offlineSale->cancellation_reason)
+                                <div class="p-2.5 rounded bg-danger bg-opacity-10 border border-danger border-opacity-25 mt-2.5 small text-danger">
+                                    <strong class="d-block mb-0.5"><i class="fas fa-times-circle me-1"></i>Alasan Pembatalan:</strong>
+                                    <span>{{ $offlineSale->cancellation_reason }}</span>
+                                </div>
+                            @endif
                         </div>
                     </div>
-                </div>
 
-                {{-- RIGHT: Ringkasan Pembayaran & Cicilan --}}
-                <div class="col-lg-4">
+                    {{-- 2. INFORMASI PEMBAYARAN --}}
                     <div class="card border-0 shadow-sm mb-3">
-                        <div class="card-header bg-light py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
-                            <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-wallet me-2 text-success"></i>Ringkasan Pembayaran</h6>
-                            <span class="badge bg-{{ $offlineSale->payment_status_badge }} bg-opacity-10 text-{{ $offlineSale->payment_status_badge }} border border-{{ $offlineSale->payment_status_badge }} border-opacity-10 small fw-bold">
+                        <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0 text-dark">
+                                <i class="fas fa-wallet me-2 text-success"></i>Informasi Pembayaran
+                            </h6>
+                            <span class="badge bg-{{ $offlineSale->payment_status_badge }} bg-opacity-10 text-{{ $offlineSale->payment_status_badge }} border border-{{ $offlineSale->payment_status_badge }} border-opacity-25 px-2.5 py-1 rounded-pill small">
                                 {{ $offlineSale->payment_status_label }}
                             </span>
                         </div>
                         <div class="card-body p-3">
-                            <div class="p-3 border rounded bg-light mb-3">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted small">Subtotal</span>
-                                    <span class="font-monospace text-dark small">Rp
-                                        {{ number_format($offlineSale->total_amount, 0, ',', '.') }}</span>
-                                </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted small">Subtotal Item</span>
+                                <span class="font-monospace text-dark fw-semibold small">Rp {{ number_format($offlineSale->total_amount, 0, ',', '.') }}</span>
+                            </div>
+                            @if ($offlineSale->discount_amount > 0)
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="text-muted small">Diskon Transaksi</span>
-                                    <span class="font-monospace text-danger small">- Rp
-                                        {{ number_format($offlineSale->discount_amount, 0, ',', '.') }}
+                                    <span class="font-monospace text-danger fw-semibold small">- Rp {{ number_format($offlineSale->discount_amount, 0, ',', '.') }}
                                         @if($offlineSale->discount_type === 'percentage' && $offlineSale->discount_value > 0)
                                             ({{ number_format($offlineSale->discount_value, 0) }}%)
                                         @endif
                                     </span>
                                 </div>
-                                <hr class="my-2">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="text-dark fw-bold small">Grand Total</span>
-                                    <span class="font-monospace text-success fw-bold fs-5">Rp
-                                        {{ number_format($offlineSale->grand_total, 0, ',', '.') }}</span>
+                            @endif
+                            @if ($offlineSale->payment_destination)
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted small">Kas / Bank Tujuan</span>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 small fw-normal">
+                                        {{ $offlineSale->payment_destination === 'kas_kecil' ? 'Kas Kecil (Operasional)' : ($offlineSale->payment_destination === 'kas_besar' ? 'Kas Besar (Utama)' : $offlineSale->payment_destination) }}
+                                    </span>
                                 </div>
+                            @endif
+
+                            <hr class="my-2.5 text-muted opacity-25">
+
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-dark fw-bold">Grand Total</span>
+                                <span class="font-monospace text-success fw-bold fs-5">Rp {{ number_format($offlineSale->grand_total, 0, ',', '.') }}</span>
                             </div>
 
-                            {{-- Payment Progress & Status --}}
-                            <div class="p-3 border rounded bg-light mb-3">
-                                <div class="d-flex justify-content-between mb-1 small">
+                            {{-- Payment Progress Box --}}
+                            <div class="p-3 rounded bg-light border border-light-subtle mb-3">
+                                <div class="d-flex justify-content-between mb-1.5 small">
                                     <span class="text-muted">Sudah Dibayar</span>
                                     <span class="font-monospace text-success fw-bold">Rp {{ number_format($offlineSale->paid_amount, 0, ',', '.') }}</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-2 small">
                                     <span class="text-muted">Sisa Kekurangan</span>
-                                    <span class="font-monospace text-danger fw-bold fs-6">Rp {{ number_format($offlineSale->remaining_amount, 0, ',', '.') }}</span>
+                                    <span class="font-monospace {{ $offlineSale->remaining_amount > 0 ? 'text-danger fw-bold fs-6' : 'text-muted' }}">
+                                        Rp {{ number_format($offlineSale->remaining_amount, 0, ',', '.') }}
+                                    </span>
                                 </div>
                                 
-                                <div class="progress mb-2" style="height: 10px;">
+                                <div class="progress rounded-pill mb-1.5" style="height: 8px;">
                                     <div class="progress-bar {{ $offlineSale->is_paid ? 'bg-success' : 'bg-warning' }}" 
                                          role="progressbar" 
                                          style="width: {{ $offlineSale->payment_percentage }}%;" 
@@ -444,15 +557,15 @@
                                          aria-valuemax="100">
                                     </div>
                                 </div>
-                                <div class="d-flex justify-content-between text-muted" style="font-size: 0.7rem;">
+                                <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem;">
                                     <span>Terbayar {{ $offlineSale->payment_percentage }}%</span>
-                                    <span>{{ $offlineSale->is_paid ? 'Lunas 100%' : 'Belum Lunas' }}</span>
+                                    <span class="fw-semibold {{ $offlineSale->is_paid ? 'text-success' : 'text-warning-emphasis' }}">{{ $offlineSale->is_paid ? 'Lunas 100%' : 'Belum Lunas' }}</span>
                                 </div>
                             </div>
 
                             @if ($offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && !$offlineSale->is_paid)
                                 <div class="d-grid">
-                                    <button type="button" class="btn btn-success btn-sm py-2 fw-bold" data-bs-toggle="modal" data-bs-target="#modalMarkPaidShow">
+                                    <button type="button" class="btn btn-success btn-sm py-2 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalMarkPaidShow">
                                         <i class="fas fa-plus-circle me-1"></i> Catat Pembayaran / Cicilan
                                     </button>
                                 </div>
@@ -461,119 +574,6 @@
                     </div>
                 </div>
             </div>
-
-            {{-- Riwayat Pembayaran Cicilan --}}
-            <div class="card border-0 shadow-sm mt-3">
-                <div class="card-header bg-success bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
-                    <h6 class="fw-bold mb-0 text-success">
-                        <i class="fas fa-history me-2"></i>Riwayat Pembayaran Cicilan
-                    </h6>
-                    <span class="badge bg-success font-monospace">{{ $offlineSale->payments->count() }}x Pembayaran Masuk</span>
-                </div>
-                <div class="card-body p-3">
-                    @if($offlineSale->payments->isEmpty())
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-receipt fa-2x mb-2 text-muted opacity-50"></i>
-                            <p class="mb-0 small">Belum ada catatan cicilan / pembayaran yang masuk.</p>
-                        </div>
-                    @else
-                        <div class="table-responsive rounded border">
-                            <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="ps-3">NO. PEMBAYARAN</th>
-                                        <th>TANGGAL</th>
-                                        <th class="text-end">NOMINAL</th>
-                                        <th>METODE</th>
-                                        <th>KAS / BANK TUJUAN</th>
-                                        <th>CATATAN</th>
-                                        <th>PETUGAS</th>
-                                        @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner']))
-                                            <th class="text-center" style="width: 50px;">AKSI</th>
-                                        @endif
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($offlineSale->payments as $pmt)
-                                        <tr>
-                                            <td class="ps-3 font-monospace fw-bold text-dark">{{ $pmt->payment_number }}</td>
-                                            <td>{{ $pmt->payment_date ? $pmt->payment_date->format('d/m/Y') : '-' }}</td>
-                                            <td class="text-end font-monospace fw-bold text-success">Rp {{ number_format($pmt->amount, 0, ',', '.') }}</td>
-                                            <td>
-                                                <span class="badge bg-light text-dark border">{{ $pmt->payment_method_label }}</span>
-                                            </td>
-                                            <td>{{ $pmt->payment_destination ?: '-' }}</td>
-                                            <td><small class="text-muted">{{ $pmt->notes ?: '-' }}</small></td>
-                                            <td><small class="text-dark">{{ $pmt->user->name ?? '-' }}</small></td>
-                                            @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner']))
-                                                <td class="text-center">
-                                                    <form action="{{ route('offline_sales.payments.destroy', [$offlineSale->id, $pmt->id]) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus riwayat pembayaran ini? Saldo bank & pemasukan keuangan akan disesuaikan kembali.');" class="d-inline">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Hapus Riwayat Pembayaran">
-                                                            <i class="fas fa-trash-alt"></i>
-                                                        </button>
-                                                    </form>
-                                                </td>
-                                            @endif
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            {{-- Riwayat Retur Penjualan --}}
-            @if($offlineSale->returns->isNotEmpty())
-                <div class="card border-0 shadow-sm mt-3">
-                    <div class="card-header bg-warning bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
-                        <h6 class="fw-bold mb-0 text-warning-emphasis">
-                            <i class="fas fa-undo me-2"></i>Riwayat Retur Penjualan
-                        </h6>
-                        <span class="badge bg-warning text-dark">{{ $offlineSale->returns->count() }}x Retur</span>
-                    </div>
-                    <div class="card-body p-3">
-                        @foreach($offlineSale->returns as $ret)
-                            <div class="p-3 border rounded mb-3 bg-light">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <div>
-                                        <strong class="font-monospace text-dark">{{ $ret->return_number }}</strong>
-                                        <small class="text-muted ms-2">{{ $ret->returned_at ? $ret->returned_at->format('d M Y, H:i') : '' }}</small>
-                                    </div>
-                                    <span class="badge bg-warning text-dark font-monospace">Total Refund: Rp {{ number_format($ret->total_return_amount, 0, ',', '.') }}</span>
-                                </div>
-                                <div class="small text-muted mb-2">
-                                    Metode Refund: <strong>{{ ucfirst($ret->refund_method) }}</strong> &bull; Alasan: <em>"{{ $ret->reason }}"</em> &bull; Petugas: {{ $ret->user->name ?? '-' }}
-                                </div>
-                                <div class="table-responsive rounded border">
-                                    <table class="table table-sm table-bordered bg-white mb-0" style="font-size:0.78rem;">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>PRODUK</th>
-                                                <th class="text-center">QTY RETUR</th>
-                                                <th class="text-end">HARGA SATUAN</th>
-                                                <th class="text-end">SUBTOTAL REFUND</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach($ret->items as $rItem)
-                                                <tr>
-                                                    <td>{{ $rItem->offlineSaleItem->product_name ?? 'Produk' }}</td>
-                                                    <td class="text-center fw-bold text-danger">{{ $rItem->quantity }}x</td>
-                                                    <td class="text-end font-monospace">Rp {{ number_format($rItem->unit_price, 0, ',', '.') }}</td>
-                                                    <td class="text-end font-monospace text-danger fw-bold">Rp {{ number_format($rItem->subtotal, 0, ',', '.') }}</td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
 @endsection
 
 
