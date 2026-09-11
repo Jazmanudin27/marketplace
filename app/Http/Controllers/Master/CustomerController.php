@@ -37,7 +37,7 @@ class CustomerController extends Controller
             }
         }
 
-        // Filter category
+        // Filter category & eksklusi data pelanggan marketplace secara default
         if ($category) {
             if ($category === 'marketplace') {
                 $query->where(function ($q) {
@@ -50,6 +50,9 @@ class CustomerController extends Controller
             } else {
                 $query->where('category', $category);
             }
+        } else {
+            // Data Pelanggan murni untuk pelanggan offline / umum / reseller / dropship
+            $query->offline();
         }
 
         // Search name, username, or phone

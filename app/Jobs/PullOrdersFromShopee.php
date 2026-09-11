@@ -204,30 +204,10 @@ class PullOrdersFromShopee implements ShouldQueue
         }
     }
 
-    private static array $customerCache = [];
-
     private function saveOrder(array $shopeeOrder)
     {
         $buyerPhone = $shopeeOrder['recipient_address']['phone'] ?? null;
         $buyerName = $shopeeOrder['buyer_username'] ?? 'Buyer';
-
-        $cacheKey = $this->store->tenant_id . '_' . ($buyerPhone ?: $buyerName);
-        if (isset(self::$customerCache[$cacheKey])) {
-            $customer = self::$customerCache[$cacheKey];
-        } else {
-            $customer = Customer::firstOrCreate(
-                [
-                    'tenant_id' => $this->store->tenant_id,
-                    'phone' => $buyerPhone ?: '0000000000',
-                ],
-                [
-                    'name'     => $buyerName,
-                    'category' => 'marketplace',
-                    'address'  => $shopeeOrder['recipient_address']['full_address'] ?? null,
-                ]
-            );
-            self::$customerCache[$cacheKey] = $customer;
-        }
 
         // STANDARISASI STATUS RESMI SHOPEE
         $statusRaw = strtoupper((string)($shopeeOrder['order_status'] ?? 'UNPAID'));
@@ -354,7 +334,7 @@ class PullOrdersFromShopee implements ShouldQueue
 
         $updateData = [
             'store_id' => $this->store->id,
-            'customer_id' => $customer->id,
+            'customer_id' => null,
             'order_status' => $erpStatus,
             'buyer_name' => $shopeeOrder['buyer_username'] ?? 'Buyer',
             'buyer_phone' => $shopeeOrder['recipient_address']['phone'] ?? null,

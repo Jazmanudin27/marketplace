@@ -42,7 +42,6 @@
                                 <option value="umum" {{ request('category') === 'umum' ? 'selected' : '' }}>Pelanggan Umum</option>
                                 <option value="biasa" {{ request('category') === 'biasa' ? 'selected' : '' }}>Pelanggan Biasa</option>
                                 <option value="dropship" {{ request('category') === 'dropship' ? 'selected' : '' }}>Pelanggan Dropship</option>
-                                <option value="marketplace" {{ request('category') === 'marketplace' ? 'selected' : '' }}>Pelanggan Marketplace</option>
                             </select>
                         </div>
 
@@ -325,7 +324,6 @@
                                                                         <option value="umum" {{ $c->category === 'umum' || empty($c->category) ? 'selected' : '' }}>Pelanggan Umum</option>
                                                                         <option value="biasa" {{ $c->category === 'biasa' ? 'selected' : '' }}>Pelanggan Biasa</option>
                                                                         <option value="dropship" {{ $c->category === 'dropship' ? 'selected' : '' }}>Pelanggan Dropship</option>
-                                                                        <option value="marketplace" {{ $c->category === 'marketplace' ? 'selected' : '' }}>Pelanggan Marketplace</option>
                                                                     </select>
                                                                 </div>
                                                                 <div class="mb-3">
@@ -402,7 +400,6 @@
                                 <option value="umum">Pelanggan Umum</option>
                                 <option value="biasa">Pelanggan Biasa</option>
                                 <option value="dropship">Pelanggan Dropship</option>
-                                <option value="marketplace">Pelanggan Marketplace</option>
                             </select>
                         </div>
                         <div class="mb-3">

@@ -224,7 +224,7 @@ class WebhookController extends Controller
             ],
             [
                 'name'     => $name,
-                'category' => 'marketplace',
+                'category' => 'umum',
                 'tags'     => 'tiktok_lead',
                 'address'  => implode(', ', $notes) ?: 'Berasal dari TikTok Lead Ad',
             ]

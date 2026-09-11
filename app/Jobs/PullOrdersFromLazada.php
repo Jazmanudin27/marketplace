@@ -90,19 +90,6 @@ class PullOrdersFromLazada implements ShouldQueue
         $buyerName = $orderData['buyer_name'];
         $buyerAddress = $orderData['shipping_address'];
 
-        // Create or find customer
-        $customer = Customer::firstOrCreate(
-            [
-                'tenant_id' => $store->tenant_id,
-                'phone' => $buyerPhone ?: '000000000',
-            ],
-            [
-                'name'     => $buyerName,
-                'category' => 'marketplace',
-                'email'    => null,
-                'address'  => $buyerAddress,
-            ]
-        );
 
         $totalAmount = $orderData['total_amount'];
         $shippingFee = $orderData['shipping_fee'];
@@ -132,7 +119,7 @@ class PullOrdersFromLazada implements ShouldQueue
                 'order_marketplace_id' => $orderMarketplaceId,
             ],
             [
-                'customer_id' => $customer->id,
+                'customer_id' => null,
                 'order_status' => $orderData['order_status'],
                 'buyer_name' => $buyerName,
                 'buyer_phone' => $buyerPhone,

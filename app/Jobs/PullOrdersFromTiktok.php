@@ -190,17 +190,6 @@ class PullOrdersFromTiktok implements ShouldQueue
             ?? $tiktokOrder['recipient_address']['address_detail'] 
             ?? ($tiktokOrder['recipient_address']['address_line1'] ?? '');
 
-        $customer = Customer::firstOrCreate(
-            [
-                'tenant_id' => $this->store->tenant_id,
-                'phone' => $buyerPhone ?: '0000000000',
-            ],
-            [
-                'name'     => $buyerName,
-                'category' => 'marketplace',
-                'address'  => $buyerAddress,
-            ]
-        );
 
         $createTsSec = (function() use ($tiktokOrder) {
             $ts = $tiktokOrder['create_time'] ?? $tiktokOrder['create_time_ge'] ?? time();
@@ -395,7 +384,7 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         $updateData = [
             'store_id' => $this->store->id,
-            'customer_id' => $customer->id,
+            'customer_id' => null,
             'order_status' => $erpStatus,
             'order_date' => $orderDateTime,
             'buyer_name' => $buyerName,
