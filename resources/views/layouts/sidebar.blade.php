@@ -498,10 +498,6 @@
                         @can('spks.index')
                             <a href="{{ route('spks.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('spks.index') || request()->routeIs('spks.create') || request()->routeIs('spks.show') ? 'active text-white' : 'text-secondary' }}">Surat Perintah Kerja (SPK)</a>
-                            <a href="{{ route('spks.scan_karung') }}"
-                                class="nav-link py-1 {{ request()->routeIs('spks.scan_karung') ? 'active text-white' : 'text-secondary' }}">
-                                <i class="bi bi-qr-code-scan me-1 text-success"></i>Scan Karung Multi-SPK
-                            </a>
                             <a href="{{ route('spks.payments.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('spks.payments.*') ? 'active text-white' : 'text-secondary' }}">
                                 <i class="bi bi-cash-coin me-1"></i>Pembayaran Produksi

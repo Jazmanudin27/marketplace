@@ -365,16 +365,33 @@
                                             </div>
                                         @endif
 
-                                        {{-- Total Volume Pcs Pill --}}
-                                        <div class="fw-bold text-dark d-flex align-items-center gap-1 flex-wrap">
+                                        @php
+                                            $groupTargetPcs = (int) $spkGroup->sum(fn($s) => $s->items->sum('quantity'));
+                                            $groupDiambilPcs = (int) $spkGroup->sum(fn($s) => $s->items->sum(fn($it) => $it->qty_diambil));
+                                            $groupSisaPcs = max(0, $groupTargetPcs - $groupDiambilPcs);
+                                        @endphp
+                                        {{-- Total Volume Pcs Pill & Receiving Summary Badges --}}
+                                        <div class="fw-bold text-dark d-flex align-items-center gap-1 flex-wrap mt-1">
                                             <span
                                                 class="badge rounded-pill px-2.5 py-1 text-white fw-extrabold d-inline-flex align-items-center gap-1 shadow-2xs"
                                                 style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); font-size: 11px;">
                                                 <i class="fas fa-tshirt" style="font-size: 9.5px;"></i>
                                                 <span>{{ number_format($totalPcsGroup) }} Pcs</span>
                                             </span>
-                                            <span class="text-muted fw-semibold"
-                                                style="font-size: 10.5px;">({{ $spkCount }} Jenis SPK)</span>
+                                            <span class="badge rounded-pill px-2 py-0.5 fw-bold"
+                                                style="font-size: 9.5px; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;" title="Total Sudah Diterima">
+                                                <i class="fas fa-check-circle me-0.5"></i>Terima: {{ number_format($groupDiambilPcs) }}
+                                            </span>
+                                            @if($groupSisaPcs > 0)
+                                                <span class="badge rounded-pill px-2 py-0.5 fw-bold"
+                                                    style="font-size: 9.5px; background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;" title="Sisa Belum Diterima">
+                                                    <i class="fas fa-clock me-0.5"></i>Belum: {{ number_format($groupSisaPcs) }}
+                                                </span>
+                                            @else
+                                                <span class="badge rounded-pill bg-success text-white px-2 py-0.5 fw-bold" style="font-size: 9.5px;">
+                                                    <i class="fas fa-check-double me-0.5"></i>Lengkap
+                                                </span>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -419,6 +436,10 @@
                                                 $badgeFg = '#b45309';
                                                 $badgeBorder = '#fde68a';
                                             }
+
+                                            $subTargetPcs = (int) $subSpk->items->sum('quantity');
+                                            $subDiambilPcs = (int) $subSpk->items->sum(fn($it) => $it->qty_diambil);
+                                            $subSisaPcs = max(0, $subTargetPcs - $subDiambilPcs);
                                         @endphp
                                         <div class="bg-white rounded-3 p-2 mb-1.5 border border-light-subtle shadow-2xs">
                                             {{-- Line 1: Full Kategori badge (NO TRUNCATION) & Stage Badge --}}
@@ -433,14 +454,30 @@
                                                     {{ $stageDisplayName }}
                                                 </span>
                                             </div>
-                                            {{-- Line 2: Qty & Varian --}}
-                                            <div class="d-flex justify-content-between align-items-center"
+                                            {{-- Line 2: Qty Target, Diterima & Belum Diterima --}}
+                                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-1 mt-1 pt-1 border-top border-light-subtle"
                                                 style="font-size: 10.5px;">
-                                                <span class="fw-extrabold text-primary">
-                                                    {{ number_format($subSpk->total_pcs) }} Pcs
-                                                </span>
-                                                <span class="text-muted fw-semibold text-truncate ms-1"
-                                                    style="font-size: 10px;" title="{{ $subSpk->variant_summary }}">
+                                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                    <span class="fw-extrabold text-primary" title="Target SPK Ini">
+                                                        {{ number_format($subTargetPcs) }} Pcs
+                                                    </span>
+                                                    <span class="badge rounded-2 px-1.5 py-0.5 fw-bold"
+                                                        style="font-size: 9px; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;" title="Sudah Diterima">
+                                                        ✓ Terima: {{ number_format($subDiambilPcs) }}
+                                                    </span>
+                                                    @if($subSisaPcs > 0)
+                                                        <span class="badge rounded-2 px-1.5 py-0.5 fw-bold"
+                                                            style="font-size: 9px; background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;" title="Sisa Belum Diterima">
+                                                            ⏳ Belum: {{ number_format($subSisaPcs) }}
+                                                        </span>
+                                                    @else
+                                                        <span class="badge rounded-2 bg-success text-white px-1.5 py-0.5 fw-bold" style="font-size: 9px;">
+                                                            ✓ Lengkap
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                                <span class="text-muted fw-semibold text-truncate ms-auto"
+                                                    style="font-size: 9.5px;" title="{{ $subSpk->variant_summary }}">
                                                     {{ $subSpk->variant_summary }}
                                                 </span>
                                             </div>

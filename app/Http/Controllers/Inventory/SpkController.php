@@ -84,7 +84,7 @@ class SpkController extends Controller
 
         $groupedMaxIds = $subQuery->pluck('max_id');
 
-        $allGroupedSpks = Spk::with(['penginput', 'items.masterProduct', 'items.progres', 'proses'])
+        $allGroupedSpks = Spk::with(['penginput', 'items.masterProduct', 'items.progres', 'items.pickups', 'proses'])
             ->whereIn('id', $groupedMaxIds)
             ->orderByDesc('id')
             ->get();
@@ -93,7 +93,7 @@ class SpkController extends Controller
         $noProduksiList = $allGroupedSpks->pluck('no_produksi')->filter()->unique()->toArray();
         $siblingSpksMap = [];
         if (!empty($noProduksiList)) {
-            $allSiblings = Spk::with(['items.masterProduct', 'items.progres', 'proses'])
+            $allSiblings = Spk::with(['items.masterProduct', 'items.progres', 'items.pickups', 'proses'])
                 ->where('tenant_id', $tenantId)
                 ->whereIn('no_produksi', $noProduksiList)
                 ->orderBy('id')
@@ -105,7 +105,7 @@ class SpkController extends Controller
             if (!empty($spkItem->no_produksi) && isset($siblingSpksMap[$spkItem->no_produksi])) {
                 $spkItem->sub_spks = $siblingSpksMap[$spkItem->no_produksi];
             } else {
-                $siblings = Spk::with(['items.masterProduct', 'items.progres', 'proses'])
+                $siblings = Spk::with(['items.masterProduct', 'items.progres', 'items.pickups', 'proses'])
                     ->where('tenant_id', $tenantId)
                     ->where('created_at', $spkItem->created_at)
                     ->orderBy('id')
