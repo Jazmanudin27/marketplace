@@ -632,6 +632,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/offline-sales/create', [OfflineSaleController::class, 'create'])->name('offline_sales.create');
         Route::post('/offline-sales', [OfflineSaleController::class, 'store'])->name('offline_sales.store');
         Route::get('/offline-sales/{offlineSale}', [OfflineSaleController::class, 'show'])->name('offline_sales.show');
+        Route::get('/offline-sales/{offlineSale}/edit', [OfflineSaleController::class, 'edit'])->name('offline_sales.edit');
+        Route::put('/offline-sales/{offlineSale}', [OfflineSaleController::class, 'update'])->name('offline_sales.update');
         Route::post('/offline-sales/{offlineSale}/approve', [OfflineSaleController::class, 'approve'])->name('offline_sales.approve');
         Route::post('/offline-sales/{offlineSale}/payments', [OfflineSaleController::class, 'recordPayment'])->name('offline_sales.payments.store');
         Route::delete('/offline-sales/{offlineSale}/payments/{payment}', [OfflineSaleController::class, 'destroyPayment'])->name('offline_sales.payments.destroy');

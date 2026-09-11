@@ -376,6 +376,285 @@ class OfflineSaleController extends Controller
         return view('offline_sales.show', compact('offlineSale', 'bankAccounts'));
     }
 
+    public function edit(OfflineSale $offlineSale)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($offlineSale->tenant_id === $tenantId, 403);
+
+        if ($offlineSale->status === OfflineSale::STATUS_CANCELLED) {
+            return redirect()->route('offline_sales.show', $offlineSale->id)
+                ->with('error', 'Transaksi yang telah dibatalkan tidak dapat diedit.');
+        }
+
+        $offlineSale->load(['items.masterProduct', 'customer', 'spks']);
+
+        $products = MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->nonBundle()
+            ->orderBy('name')
+            ->get();
+
+        $customers = \App\Models\Customer::where('tenant_id', $tenantId)
+            ->offline()
+            ->orderBy('name')
+            ->get();
+
+        return view('offline_sales.edit', compact('offlineSale', 'products', 'customers'));
+    }
+
+    public function update(Request $request, OfflineSale $offlineSale)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($offlineSale->tenant_id === $tenantId, 403);
+
+        if ($offlineSale->status === OfflineSale::STATUS_CANCELLED) {
+            return redirect()->route('offline_sales.show', $offlineSale->id)
+                ->with('error', 'Transaksi yang telah dibatalkan tidak dapat diedit.');
+        }
+
+        $rules = [
+            'customer_id'               => 'nullable|exists:customers,id',
+            'items'                     => 'required|array|min:1',
+            'items.*.master_product_id' => 'required|exists:master_products,id',
+            'items.*.quantity'          => 'required|integer|min:1',
+            'items.*.unit_price'        => 'required|numeric|min:0',
+            'payment_method'            => 'nullable|string|in:tunai,transfer,qris,piutang,reseller_balance',
+            'paid_amount'               => 'nullable|numeric|min:0',
+            'discount_amount'           => 'nullable|numeric|min:0',
+            'buyer_name'                => 'nullable|string|max:100',
+            'buyer_phone'               => 'nullable|string|max:20',
+            'buyer_address'             => 'nullable|string|max:500',
+            'institution_name'          => 'nullable|string|max:150',
+            'notes'                     => 'nullable|string|max:500',
+            'is_dropship'               => 'nullable|boolean',
+            'dropshipper_name'          => 'nullable|required_if:is_dropship,1|string|max:100',
+            'dropshipper_phone'         => 'nullable|required_if:is_dropship,1|string|max:20',
+            'resi_number'               => 'nullable|string|max:100',
+            'resi_file'                 => 'nullable|file|mimes:jpeg,jpg,png,pdf,webp|max:5120',
+            'follow_up_date'            => 'nullable|date',
+            'sold_at'                   => 'nullable|date',
+        ];
+
+        $paymentMethod = $request->payment_method ?: $offlineSale->payment_method ?: 'piutang';
+        if (!$request->boolean('is_po') && !$request->filled('customer_id')) {
+            if ($paymentMethod === 'piutang') {
+                $rules['buyer_name']  = 'required|string|max:100';
+                $rules['buyer_phone'] = 'required|string|max:20';
+            } elseif ($request->filled('buyer_name')) {
+                $rules['buyer_phone'] = 'required|string|max:20';
+            }
+        }
+
+        $request->validate($rules);
+
+        $resiFilePath = $offlineSale->resi_file;
+        if ($request->hasFile('resi_file') && $request->file('resi_file')->isValid()) {
+            $resiFilePath = $request->file('resi_file')->store('dropship_resi', 'public');
+        }
+
+        if ($request->filled('customer_id')) {
+            $customerExists = \App\Models\Customer::where('tenant_id', $tenantId)->where('id', $request->customer_id)->exists();
+            if (!$customerExists) {
+                return back()->withErrors(['customer_id' => 'Pelanggan tidak valid untuk perusahaan Anda.']);
+            }
+        }
+
+        DB::transaction(function () use ($request, $offlineSale, $tenantId, $resiFilePath) {
+            $offlineSale->load('items');
+
+            // 1. Reversi stok barang lama jika transaksi ini sebelumnya non-PO (stok sudah pernah dipotong)
+            if (!$offlineSale->is_po && $offlineSale->status !== OfflineSale::STATUS_CANCELLED) {
+                foreach ($offlineSale->items as $oldItem) {
+                    if ($oldItem->master_product_id) {
+                        $oldProduct = MasterProduct::find($oldItem->master_product_id);
+                        if ($oldProduct) {
+                            $oldProduct->recordStockMovement(
+                                $oldItem->quantity,
+                                'in',
+                                'Koreksi Edit Transaksi: Reversi Stok Lama #' . $offlineSale->sale_number,
+                                Auth::id()
+                            );
+                        }
+                    }
+                }
+            }
+
+            // 2. Olah daftar item baru
+            $totalAmount    = 0;
+            $globalDiscType = $request->discount_type ?? $offlineSale->discount_type ?? 'fixed';
+            $globalDiscVal  = (float) ($request->discount_value ?? $request->discount_amount ?? 0);
+            $itemsData      = [];
+            $isPo           = $request->boolean('is_po');
+
+            foreach ($request->items as $item) {
+                $product = MasterProduct::where('tenant_id', $tenantId)
+                    ->findOrFail($item['master_product_id']);
+
+                $qty       = (int) $item['quantity'];
+                $unitPrice = (float) $item['unit_price'];
+
+                $itemDiscType = $item['discount_type'] ?? 'fixed';
+                $itemDiscVal  = (float) ($item['discount_value'] ?? 0);
+
+                if ($itemDiscType === 'percentage') {
+                    $itemDiscPerUnit = ($unitPrice * min(100, max(0, $itemDiscVal))) / 100;
+                } else {
+                    $itemDiscPerUnit = min($unitPrice, max(0, $itemDiscVal));
+                }
+
+                $itemDiscTotal  = $itemDiscPerUnit * $qty;
+                $effectivePrice = max(0, $unitPrice - $itemDiscPerUnit);
+                $subtotal       = $qty * $effectivePrice;
+
+                // Pastikan stok cukup jika bukan pesanan Pre-Order / PO Produksi
+                if (!$isPo && !$product->is_preorder && $product->stock < $qty) {
+                    abort(422, "Stok {$product->name} tidak mencukupi untuk perubahan transaksi. Stok tersedia: {$product->stock}");
+                }
+
+                $totalAmount += $subtotal;
+
+                $itemsData[] = [
+                    'master_product_id' => $product->id,
+                    'product_name'      => $product->name,
+                    'sku'               => $product->sku,
+                    'quantity'          => $qty,
+                    'unit_price'        => $unitPrice,
+                    'discount_type'     => $itemDiscType,
+                    'discount_value'    => $itemDiscVal,
+                    'discount_amount'   => $itemDiscTotal,
+                    'subtotal'          => $subtotal,
+                ];
+            }
+
+            // 3. Kalkulasi diskon & grand total
+            if ($globalDiscType === 'percentage') {
+                $discountAmount = ($totalAmount * min(100, max(0, $globalDiscVal))) / 100;
+            } else {
+                $discountAmount = min($totalAmount, max(0, $globalDiscVal));
+            }
+
+            $grandTotal    = max(0, $totalAmount - $discountAmount);
+            $paymentMethod = $request->payment_method ?: ($offlineSale->payment_method ?: 'piutang');
+
+            // Kalkulasi nominal pembayaran
+            $hasPayments = $offlineSale->payments()->exists();
+            if ($hasPayments) {
+                $paidAmount = (float) $offlineSale->payments()->sum('amount');
+            } else {
+                $paidAmount = $request->filled('paid_amount') ? (float) $request->paid_amount : (float) $offlineSale->paid_amount;
+            }
+            $changeAmount = max(0, $paidAmount - $grandTotal);
+
+            // Handle customer
+            $customerId = $request->customer_id;
+            if (!$customerId && $request->filled('buyer_name')) {
+                $customerQuery = \App\Models\Customer::where('tenant_id', $tenantId);
+                if ($request->filled('buyer_phone')) {
+                    $customerQuery->where('phone', $request->buyer_phone);
+                } else {
+                    $customerQuery->where('name', $request->buyer_name)
+                                  ->where(function($q) {
+                                      $q->whereNull('marketplace_username')
+                                        ->orWhere('marketplace_username', '');
+                                  });
+                }
+                
+                $customer = $customerQuery->first();
+                if (!$customer) {
+                    $customer = \App\Models\Customer::create([
+                        'tenant_id' => $tenantId,
+                        'name'      => $request->buyer_name,
+                        'category'  => 'umum',
+                        'phone'     => $request->buyer_phone,
+                        'address'   => $request->buyer_address,
+                    ]);
+                } else {
+                    if (empty($customer->address) && $request->filled('buyer_address')) {
+                        $customer->update(['address' => $request->buyer_address]);
+                    }
+                }
+                $customerId = $customer->id;
+            } elseif ($customerId && $request->filled('buyer_address')) {
+                $customer = \App\Models\Customer::where('tenant_id', $tenantId)->find($customerId);
+                if ($customer && empty($customer->address)) {
+                    $customer->update(['address' => $request->buyer_address]);
+                }
+            }
+
+            // 4. Perbarui item transaksi (hapus lama, buat baru)
+            $offlineSale->items()->delete();
+            foreach ($itemsData as $itemData) {
+                $offlineSale->items()->create($itemData);
+            }
+
+            // 5. Potong stok baru jika non-PO
+            if (!$isPo) {
+                foreach ($itemsData as $itemData) {
+                    if (!empty($itemData['master_product_id'])) {
+                        $product = MasterProduct::find($itemData['master_product_id']);
+                        if ($product) {
+                            $product->recordStockMovement(
+                                $itemData['quantity'],
+                                'out',
+                                'Penjualan Offline POS (Koreksi): ' . $offlineSale->sale_number,
+                                Auth::id()
+                            );
+                        }
+                    }
+                }
+            }
+
+            // 6. Tentukan status baru jika terjadi perubahan PO / pembayaran
+            if ($offlineSale->status === OfflineSale::STATUS_SPK_PROCESSING) {
+                $newStatus = OfflineSale::STATUS_SPK_PROCESSING;
+            } elseif ($isPo) {
+                if ($offlineSale->spks()->exists()) {
+                    $newStatus = OfflineSale::STATUS_SPK_PROCESSING;
+                } elseif ($paidAmount > 0) {
+                    $newStatus = OfflineSale::STATUS_PENDING_SPK;
+                } else {
+                    $newStatus = OfflineSale::STATUS_WAITING_DP;
+                }
+            } else {
+                $newStatus = OfflineSale::STATUS_COMPLETED;
+            }
+
+            $updateFields = [
+                'customer_id'       => $customerId,
+                'buyer_name'        => $request->buyer_name,
+                'buyer_phone'       => $request->buyer_phone,
+                'buyer_address'     => $request->buyer_address,
+                'institution_name'  => $request->institution_name,
+                'payment_method'    => $paymentMethod,
+                'total_amount'      => $totalAmount,
+                'discount_amount'   => $discountAmount,
+                'discount_type'     => $globalDiscType,
+                'discount_value'    => $globalDiscVal,
+                'grand_total'       => $grandTotal,
+                'paid_amount'       => $paidAmount,
+                'change_amount'     => $changeAmount,
+                'notes'             => $request->notes,
+                'is_dropship'       => (bool) $request->is_dropship,
+                'dropshipper_name'  => $request->is_dropship ? $request->dropshipper_name : null,
+                'dropshipper_phone' => $request->is_dropship ? $request->dropshipper_phone : null,
+                'resi_number'       => $request->is_dropship ? $request->resi_number : null,
+                'resi_file'         => $resiFilePath,
+                'is_po'             => $isPo,
+                'follow_up_date'    => $isPo ? ($request->follow_up_date ?: $offlineSale->follow_up_date) : null,
+                'status'            => $newStatus,
+            ];
+
+            if ($request->filled('sold_at')) {
+                $updateFields['sold_at'] = $request->sold_at;
+            }
+
+            $offlineSale->update($updateFields);
+        });
+
+        return redirect()->route('offline_sales.show', $offlineSale->id)
+            ->with('success', "✅ Transaksi #{$offlineSale->sale_number} berhasil diperbarui.");
+    }
+
     public function approve(Request $request, OfflineSale $offlineSale)
     {
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);

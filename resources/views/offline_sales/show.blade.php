@@ -27,6 +27,12 @@
                         class="btn btn-primary btn-sm px-3 text-white">
                         <i class="fas fa-print me-1"></i> Cetak Invoice
                     </a>
+                    @if ($offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED)
+                        <a href="{{ route('offline_sales.edit', $offlineSale->id) }}"
+                            class="btn btn-warning btn-sm px-3 text-dark fw-bold">
+                            <i class="fas fa-edit me-1"></i> Edit Transaksi
+                        </a>
+                    @endif
                     @if ($offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && !$offlineSale->is_paid)
                         <button type="button" class="btn btn-outline-success btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalMarkPaidShow">
                             <i class="fas fa-money-bill-wave me-1"></i> Catat Pembayaran / Cicilan

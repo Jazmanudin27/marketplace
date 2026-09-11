@@ -241,6 +241,13 @@
                                             <i class="fas fa-print"></i>
                                         </a>
 
+                                        @if ($sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED)
+                                            <a href="{{ route('offline_sales.edit', $sale->id) }}"
+                                                class="btn btn-sm btn-outline-warning text-dark py-1 px-2" title="Edit Transaksi">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        @endif
+
                                         @php
                                             $showCreateSpkBtn = $sale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK
                                                 || ($sale->is_po && $sale->spks->isEmpty() && (float) $sale->paid_amount > 0 && $sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED);
