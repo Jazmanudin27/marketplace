@@ -1172,6 +1172,9 @@ class OfflineSaleController extends Controller
         $tenant = $offlineSale->tenant;
         $bankAccounts = \App\Models\BankAccount::where('tenant_id', $offlineSale->tenant_id)
             ->where('is_active', true)
+            ->whereRaw('LOWER(bank_name) NOT LIKE ?', ['%kas%'])
+            ->whereNotNull('account_number')
+            ->where('account_number', '!=', '')
             ->orderBy('bank_name')
             ->get();
 

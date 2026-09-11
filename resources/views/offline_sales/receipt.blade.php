@@ -529,9 +529,10 @@
             $displayFinalTotal = $grandTotal;
         }
 
-        // Fill empty lined rows (total 10 rows standard)
-        $itemsCount = $offlineSale->items->count();
-        $emptyRowsNeeded = max(3, 11 - $itemsCount);
+        // Filter valid bank transfer accounts (exclude internal petty cash / kas accounts)
+        $printableBankAccounts = collect($bankAccounts ?? [])->filter(function($b) {
+            return stripos($b->bank_name, 'kas') === false && !empty(trim($b->account_number ?? ''));
+        });
     @endphp
 
     @if (($format ?? 'invoice') !== 'thermal')
@@ -570,14 +571,13 @@
 
                 <div class="payment-details">
                     <div class="payment-title">Payment Details:</div>
-                    @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
-                        @foreach($bankAccounts as $bank)
+                    @if($printableBankAccounts->isNotEmpty())
+                        @foreach($printableBankAccounts as $bank)
                             <div class="bank-item">
                                 <strong>{{ $bank->bank_name }} :</strong> {{ $bank->account_number }} a. n {{ $bank->account_name }}
                             </div>
                         @endforeach
                     @else
-                        <div class="bank-item"><strong>Bank BCA</strong></div>
                         <div class="bank-item"><strong>BCA :</strong> 3210740332 a. n Yuda Yudistira</div>
                         <div class="bank-item"><strong>BRI :</strong> 4444 01011211 509 a. n Yuda Yudistira</div>
                     @endif
@@ -635,13 +635,6 @@
                             <td class="col-total">Rp{{ number_format($item->subtotal, 0, ',', '.') }}</td>
                         </tr>
                     @endforeach
-
-                    {{-- Classic lined paper rows --}}
-                    @for ($i = 0; $i < $emptyRowsNeeded; $i++)
-                        <tr class="empty-line-row">
-                            <td colspan="4">&nbsp;</td>
-                        </tr>
-                    @endfor
                 </tbody>
             </table>
         </div>
