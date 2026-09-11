@@ -924,10 +924,10 @@ class OfflineSaleController extends Controller
 
         $deadline = $request->filled('deadline') ? $request->deadline : now()->addDays(7);
         $spkGroups = $request->input('spk_group', []);
-        $spkTitles = $request->input('spk_title', []);
+        $spkKategori = $request->input('spk_kategori', $request->input('spk_title', []));
         $createdSpkSummaries = [];
 
-        DB::transaction(function () use ($offlineSale, $tenantId, $noProduksi, $tahapSaatIni, $deadline, $spkGroups, $spkTitles, &$createdSpkSummaries) {
+        DB::transaction(function () use ($offlineSale, $tenantId, $noProduksi, $tahapSaatIni, $deadline, $spkGroups, $spkKategori, &$createdSpkSummaries) {
             $today = date('Ymd');
             $countToday = \App\Models\Spk::where('no_spk', 'like', "SPK-{$today}-%")->count();
 
@@ -950,7 +950,7 @@ class OfflineSaleController extends Controller
             foreach ($groupedItems as $groupKey => $group) {
                 $spkCounter++;
                 $firstItem = $group->first();
-                $customTitle = !empty($spkTitles[$groupKey]) ? trim((string) $spkTitles[$groupKey]) : null;
+                $customTitle = !empty($spkKategori[$groupKey]) ? trim((string) $spkKategori[$groupKey]) : null;
                 $kategori = $customTitle ?: ($firstItem->product_name ?: 'Produk SPK');
 
                 $noSpk = 'SPK-' . $today . '-' . sprintf('%04d', $countToday + $spkCounter);

@@ -938,9 +938,9 @@ class OfflineSaleTest extends TestCase
             'subtotal'          => 500000,
         ]);
 
-        // Kirim permintaan Buat SPK dengan pengelompokan manual:
-        // Item 1 dan Item 2 masuk ke SPK 1 (Batik digabung)
-        // Item 3 masuk ke SPK 2 (Topi dipisah)
+        // Kirim permintaan Buat SPK dengan pengelompokan manual dan input kategori:
+        // Item 1 dan Item 2 masuk ke SPK 1 (Kategori: Batik)
+        // Item 3 masuk ke SPK 2 (Kategori: Topi & Aksesoris)
         $response = $this->actingAs($this->user)
             ->post(route('offline_sales.create_spk', $sale), [
                 'no_produksi'    => 'JN2609888',
@@ -949,6 +949,10 @@ class OfflineSaleTest extends TestCase
                     $item1->id => 1,
                     $item2->id => 1,
                     $item3->id => 2,
+                ],
+                'spk_kategori'   => [
+                    1 => 'Batik',
+                    2 => 'Topi & Aksesoris',
                 ],
             ]);
 
@@ -968,6 +972,10 @@ class OfflineSaleTest extends TestCase
 
         $this->assertEquals('JN2609888', $spk1->no_produksi);
         $this->assertEquals('JN2609888', $spk2->no_produksi);
+
+        // Verifikasi Kategori SPK terisi sesuai input
+        $this->assertEquals('Batik', $spk1->kategori);
+        $this->assertEquals('Topi & Aksesoris', $spk2->kategori);
 
         // SPK 1 harus berisi 2 item (Batik L dan M)
         $this->assertCount(2, $spk1->items);

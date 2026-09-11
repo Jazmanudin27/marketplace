@@ -856,6 +856,22 @@
         </div>
     </div>
 </div>
+    {{-- Datalist Kategori SPK (Sama seperti di Modul SPK) --}}
+    <datalist id="kategori_datalist">
+        <option value="Batik"></option>
+        <option value="Baju Olah Raga"></option>
+        <option value="Seragam Sekolah"></option>
+        <option value="Jaket & Outer"></option>
+        <option value="Kaos / T-Shirt"></option>
+        <option value="Kemeja & PDH"></option>
+        <option value="Almamater & Jas"></option>
+        <option value="Gamis & Busana Muslim"></option>
+        <option value="Jersey Printing"></option>
+        <option value="Topi & Aksesoris"></option>
+        <option value="Celana & Rok"></option>
+        <option value="Rompi & Wearpack"></option>
+        <option value="Tas & Merchandise"></option>
+    </datalist>
 @endif
 @endpush
 
@@ -1087,6 +1103,32 @@ document.addEventListener('DOMContentLoaded', function () {
     // SPK Grouping logic in show view
     const modalCreateSpkShow = document.getElementById('modalCreateSpkShow');
     if (modalCreateSpkShow) {
+        let userCategoriesShow = {};
+
+        function detectCategoryShow(items) {
+            if (!items || items.length === 0) return 'Produk SPK';
+            const allNames = items.map(it => it.name).join(' ');
+
+            if (/batik/i.test(allNames)) return 'Batik';
+            if (/olah\s*raga|olahraga|training/i.test(allNames)) return 'Baju Olah Raga';
+            if (/topi/i.test(allNames)) return 'Topi & Aksesoris';
+            if (/jaket|hoodie|sweater/i.test(allNames)) return 'Jaket & Outer';
+            if (/kaos|t-shirt|tshirt/i.test(allNames)) return 'Kaos / T-Shirt';
+            if (/kemeja|pdh|pdl/i.test(allNames)) return 'Kemeja & PDH';
+            if (/jas|almamater|blazer/i.test(allNames)) return 'Almamater & Jas';
+            if (/jersey/i.test(allNames)) return 'Jersey Printing';
+            if (/gamis|busana muslim|koko/i.test(allNames)) return 'Gamis & Busana Muslim';
+            if (/seragam/i.test(allNames)) return 'Seragam Sekolah';
+            if (/celana|rok/i.test(allNames)) return 'Celana & Rok';
+            if (/rompi|wearpack/i.test(allNames)) return 'Rompi & Wearpack';
+
+            let clean = (items[0]?.name || '').replace(/\s*-\s*[A-Z0-9\s()]+$/i, '').trim();
+            if (clean.length > 30) {
+                clean = clean.substring(0, 30) + '...';
+            }
+            return clean || 'Produk SPK';
+        }
+
         function renderSpkSummaryShow() {
             const summaryList = document.getElementById('modal-spk-summary-list-show');
             const summaryBadge = document.getElementById('modal-spk-summary-badge-show');
@@ -1127,26 +1169,69 @@ document.addEventListener('DOMContentLoaded', function () {
             groupKeys.forEach((key, kIdx) => {
                 const grp = groups[key];
                 const colorClass = badgeColors[kIdx % badgeColors.length];
-                const firstItemName = grp.items[0]?.name || 'Produk';
+
+                // Gunakan kategori yang pernah diedit manual, atau auto-detect jika baru
+                if (!userCategoriesShow[key] || userCategoriesShow[key].trim() === '') {
+                    userCategoriesShow[key] = detectCategoryShow(grp.items);
+                }
+                const currentCat = userCategoriesShow[key];
+
                 const itemsDetail = grp.items.map(it => `&bull; ${it.name} <strong>(${it.qty} pcs)</strong>`).join('<br>');
 
                 html += `
-                    <div class="p-2.5 rounded bg-light border">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <div>
-                                <span class="badge bg-${colorClass} me-1 fw-bold">SPK ${grp.groupNumber}</span>
-                                <strong class="text-dark">${firstItemName}</strong>
-                                <span class="badge bg-white text-secondary border font-monospace ms-1">${grp.totalQty} Pcs total</span>
+                    <div class="p-3 rounded bg-light border shadow-sm mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                            <div class="d-flex align-items-center gap-1.5">
+                                <span class="badge bg-${colorClass} px-2 py-1 fw-bold fs-7">
+                                    <i class="fas fa-file-invoice me-1"></i>SPK ${grp.groupNumber}
+                                </span>
+                                <span class="badge bg-white text-secondary border font-monospace" style="font-size: 0.72rem;">
+                                    ${grp.totalQty} Pcs total
+                                </span>
                             </div>
                             <span class="badge bg-white text-primary border font-monospace small"><i class="fas fa-hashtag me-0.5"></i>${currentNoProduksi}</span>
                         </div>
-                        <div class="text-muted ps-2 border-start border-2 border-primary-subtle" style="font-size: 0.74rem;">
-                            ${itemsDetail}
+
+                        {{-- Input Kategori Produk Sesuai Show SPK --}}
+                        <div class="mb-2">
+                            <label class="form-label fw-bold mb-1 d-flex justify-content-between align-items-center" style="font-size: 0.75rem; color: #4f46e5;">
+                                <span>🏷️ KATEGORI PRODUK SPK ${grp.groupNumber} <span class="text-danger">*</span></span>
+                                <span class="text-muted fw-normal" style="font-size: 0.68rem;">(Tampil di Tab SPK)</span>
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white text-primary"><i class="fas fa-tags"></i></span>
+                                <input type="text"
+                                       name="spk_kategori[${grp.groupNumber}]"
+                                       class="form-control form-control-sm fw-bold text-dark spk-kategori-input-show"
+                                       list="kategori_datalist"
+                                       value="${currentCat.replace(/"/g, '&quot;')}"
+                                       placeholder="Contoh: Batik, Baju Olah Raga, Jaket..."
+                                       data-group="${grp.groupNumber}"
+                                       autocomplete="off"
+                                       required>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded p-2 border">
+                            <div class="text-muted small mb-1 fw-semibold" style="font-size: 0.7rem;">Item Pesanan (${grp.items.length}):</div>
+                            <div class="text-secondary ps-1" style="font-size: 0.74rem;">
+                                ${itemsDetail}
+                            </div>
                         </div>
                     </div>
                 `;
             });
             summaryList.innerHTML = html;
+
+            // Simpan perubahan kategori yang diinput oleh user
+            summaryList.querySelectorAll('.spk-kategori-input-show').forEach(inp => {
+                inp.addEventListener('input', function() {
+                    userCategoriesShow[this.getAttribute('data-group')] = this.value;
+                });
+                inp.addEventListener('change', function() {
+                    userCategoriesShow[this.getAttribute('data-group')] = this.value;
+                });
+            });
         }
 
         modalCreateSpkShow.querySelectorAll('.spk-group-select-show').forEach(sel => {
@@ -1178,7 +1263,10 @@ document.addEventListener('DOMContentLoaded', function () {
             noProdInputShow.addEventListener('input', renderSpkSummaryShow);
         }
 
-        modalCreateSpkShow.addEventListener('shown.bs.modal', renderSpkSummaryShow);
+        modalCreateSpkShow.addEventListener('shown.bs.modal', function() {
+            userCategoriesShow = {}; // Reset state input kategori saat modal dibuka kembali
+            renderSpkSummaryShow();
+        });
         renderSpkSummaryShow();
     }
 });
