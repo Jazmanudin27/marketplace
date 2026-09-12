@@ -13,8 +13,9 @@ class StoreController extends Controller
     public function index()
     {
         Channel::ensureChannelsExist();
+        $tenantId = Auth::user()->tenant_id ?? 1;
         $stores = Store::with('channel')
-            ->where('tenant_id', Auth::user()->tenant_id)
+            ->where('tenant_id', $tenantId)
             ->get();
 
         return view('marketplace.stores.index', compact('stores'));
@@ -35,12 +36,25 @@ class StoreController extends Controller
             'marketplace_store_id' => 'required|string|max:100',
         ]);
 
-        $data['tenant_id'] = Auth::user()->tenant_id;
-        $data['status']    = 'connected';
+        $tenantId = Auth::user()->tenant_id ?? 1;
+        $marketStoreId = trim($data['marketplace_store_id']);
 
-        Store::create($data);
+        $store = Store::updateOrCreate(
+            [
+                'tenant_id'            => $tenantId,
+                'channel_id'           => $data['channel_id'],
+                'marketplace_store_id' => $marketStoreId,
+            ],
+            [
+                'store_name'       => $data['store_name'],
+                'status'           => 'connected',
+                'access_token'     => 'manual_access_token_' . time(),
+                'refresh_token'    => 'manual_refresh_token_' . time(),
+                'token_expires_at' => now()->addYears(5),
+            ]
+        );
 
-        return redirect()->route('stores.index')->with('success', 'Toko berhasil ditambahkan.');
+        return redirect()->route('stores.index')->with('success', "✅ Toko \"{$store->store_name}\" berhasil disimpan ke ERP!");
     }
 
     public function edit(Store $store)

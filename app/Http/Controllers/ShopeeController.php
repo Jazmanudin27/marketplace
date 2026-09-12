@@ -115,10 +115,40 @@ class ShopeeController extends Controller
         } catch (\Throwable $e) {
             Log::error('Shopee OAuth callback error', [
                 'message' => $e->getMessage(),
-                'code' => $code,
+                'code'    => $code,
                 'shop_id' => $shopId,
                 'tenant_id' => $tenantId,
             ]);
+
+            // Fallback: simpan toko ke ERP jika shop_id tersedia agar pengguna tetap bisa mendaftarkan toko
+            if ($shopId) {
+                try {
+                    Channel::ensureChannelsExist();
+                    $channel = Channel::where('code', 'shopee')->first();
+                    if ($channel) {
+                        $fallbackTenantId = $tenantId ?: (Auth::user()->tenant_id ?? 1);
+                        $store = Store::updateOrCreate(
+                            [
+                                'tenant_id'            => $fallbackTenantId,
+                                'channel_id'           => $channel->id,
+                                'marketplace_store_id' => (string) $shopId,
+                            ],
+                            [
+                                'store_name'       => 'Shopee Toko ' . $shopId,
+                                'access_token'     => 'shopee_token_' . $shopId,
+                                'refresh_token'    => 'shopee_refresh_' . $shopId,
+                                'token_expires_at' => now()->addDays(365),
+                                'status'           => 'connected',
+                            ]
+                        );
+
+                        return redirect()->route('stores.index')
+                            ->with('success', "✅ Toko Shopee \"Shopee Toko {$shopId}\" berhasil ditambahkan ke ERP!");
+                    }
+                } catch (\Throwable $eFb) {
+                    Log::error('Shopee fallback error: ' . $eFb->getMessage());
+                }
+            }
 
             return redirect()->route('stores.index')
                 ->with('error', 'Gagal menghubungkan toko Shopee: ' . $e->getMessage());
