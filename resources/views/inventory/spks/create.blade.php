@@ -837,6 +837,7 @@
                 'name' => $p->name,
                 'sku' => $p->sku,
                 'ukuran' => $p->ukuran ?? '',
+                'est_kain' => (float)($p->est_kain ?? 0),
             ];
         @endphp
         @if(!empty($p->sku))
@@ -1262,6 +1263,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (nameInput && !nameInput.value) nameInput.value = masterProd.name;
             if (skuInput && !skuInput.value && masterProd.sku) skuInput.value = masterProd.sku;
             if (ukInput && masterProd.ukuran) ukInput.value = masterProd.ukuran;
+
+            const estKainInput = tr.querySelector('.row-est-kain, .input-est-kain');
+            if (estKainInput && masterProd.est_kain > 0) {
+                const qty = parseInt(tr.querySelector('.row-qty-produksi')?.value || 1) || 1;
+                estKainInput.value = (parseFloat(masterProd.est_kain) * qty);
+            }
         }
 
         applyRecipeToProductRow(tr);

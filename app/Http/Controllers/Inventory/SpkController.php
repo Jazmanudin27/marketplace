@@ -332,6 +332,7 @@ class SpkController extends Controller
                 'sku_induk' => $p->sku_induk,
                 'name'      => $p->name,
                 'ukuran'    => $p->ukuran ?? '',
+                'est_kain'  => (float) ($p->est_kain ?? 0),
             ];
         });
 
@@ -456,14 +457,25 @@ class SpkController extends Controller
                         $ukuran      = $pRow['ukuran'] ?? null;
                         $bahanList   = $pRow['bahan'] ?? ($rBlock['bahan'] ?? []);
 
+                        $prod = null;
+                        if (!empty($skuProduk)) {
+                            $prod = MasterProduct::where('tenant_id', $tenantId)->where('sku', trim($skuProduk))->first();
+                        }
+                        if (!$prod && !empty($namaProduk)) {
+                            $prod = MasterProduct::where('tenant_id', $tenantId)->where('name', trim($namaProduk))->first();
+                        }
+                        $estKainVal = !empty($pRow['est_kain']) ? (float)$pRow['est_kain'] : (($prod && $prod->est_kain > 0) ? (float)$prod->est_kain * $qtyProduksi : 0);
+
                         $spkItem = SpkItem::create([
                             'spk_id'            => $spkRecord->id,
+                            'master_product_id' => $prod ? $prod->id : null,
                             'nama_produk'       => $namaProduk,
                             'sku'               => $skuProduk,
                             'sku_kain'          => $rBlock['sku_kain'] ?? ($bahanList[0]['nama_bahan'] ?? null),
                             'ukuran'            => $ukuran,
                             'catatan'           => $rBlock['catatan'] ?? null,
                             'quantity'          => $qtyProduksi,
+                            'est_kain'          => $estKainVal,
                             'pemotong'          => $pRow['pemotong'] ?? null,
                             'penjahit'          => $pRow['penjahit'] ?? null,
                             'vendor_kancing'    => $pRow['vendor_kancing'] ?? null,
@@ -680,6 +692,12 @@ class SpkController extends Controller
                 $skuProduk = $row['sku_produk'] ?? ($row['sku'] ?? null);
                 $namaProduk = $row['name'] ?? $skuProduk ?? 'Produk SPK';
 
+                $qtyVal = (int) ($row['qty'] ?? 1);
+                $estKainVal = (float) ($row['est_kain'] ?? 0);
+                if ($estKainVal <= 0 && $prod && $prod->est_kain > 0) {
+                    $estKainVal = (float) $prod->est_kain * $qtyVal;
+                }
+
                 $item = SpkItem::create([
                     'spk_id'            => $spk->id,
                     'master_product_id' => $prodId,
@@ -689,8 +707,8 @@ class SpkController extends Controller
                     'sku_induk'         => $row['sku_induk'] ?? null,
                     'ukuran'            => $row['size'] ?? null,
                     'catatan'           => $row['catatan'] ?? null,
-                    'quantity'          => (int) ($row['qty'] ?? 1),
-                    'est_kain'          => (float) ($row['est_kain'] ?? 0),
+                    'quantity'          => $qtyVal,
+                    'est_kain'          => $estKainVal,
                     'kain_pakai'        => (float) ($row['kain_pakai'] ?? 0),
                     'kain_sisa'         => (float) ($row['kain_sisa'] ?? 0),
                     'penjahit'          => $row['penjahit'] ?? ($row['tailor'] ?? null),
@@ -864,6 +882,7 @@ class SpkController extends Controller
                 'sku_induk' => $p->sku_induk,
                 'name'      => $p->name,
                 'ukuran'    => $p->ukuran ?? '',
+                'est_kain'  => (float) ($p->est_kain ?? 0),
             ];
         });
 
@@ -1068,31 +1087,41 @@ class SpkController extends Controller
 
         $matchedItem = null;
         $matchedSpk = null;
-        $cleanCode = strtoupper($rawCode);
 
-        // A. Format JSON (QR code label lengkap: {"spk_id":12,"no_spk":"SPK-001","item_id":34,"sku":"..."})
-        if (str_starts_with($rawCode, '{') && str_ends_with($rawCode, '}')) {
-            $json = json_decode($rawCode, true);
+        // Extract JSON string if embedded inside rawCode
+        if (preg_match('/\{.*?\}/s', $rawCode, $jsonMatches)) {
+            $jsonCode = $jsonMatches[0];
+            $json = json_decode($jsonCode, true);
             if (is_array($json)) {
                 if (!empty($json['item_id'])) {
                     $matchedItem = \App\Models\SpkItem::whereHas('spk', fn($q) => $q->where('tenant_id', $tenantId))
                         ->with(['spk', 'masterProduct', 'pickups'])
                         ->find((int) $json['item_id']);
+                    if ($matchedItem) {
+                        $matchedSpk = $matchedItem->spk;
+                    }
                 }
-                if (!$matchedItem && (!empty($json['spk_id']) || !empty($json['no_spk'])) && !empty($json['sku'])) {
+                if (!$matchedItem && (!empty($json['spk_id']) || !empty($json['no_spk']) || !empty($json['no_produksi']))) {
                     $querySpk = Spk::where('tenant_id', $tenantId);
                     if (!empty($json['spk_id'])) {
                         $querySpk->where('id', (int) $json['spk_id']);
-                    } else {
+                    } elseif (!empty($json['no_spk'])) {
                         $querySpk->where('no_spk', trim($json['no_spk']));
+                    } else {
+                        $querySpk->where('no_produksi', trim($json['no_produksi']));
                     }
                     $targetSpk = $querySpk->with(['items.masterProduct', 'items.pickups'])->first();
                     if ($targetSpk) {
-                        $targetSku = strtoupper(trim($json['sku']));
-                        $matchedItem = $targetSpk->items->first(function ($it) use ($targetSku) {
-                            return (!empty($it->sku) && strtoupper(trim($it->sku)) === $targetSku) ||
-                                   ($it->masterProduct && strtoupper(trim($it->masterProduct->sku ?? '')) === $targetSku);
-                        });
+                        $targetSku = !empty($json['sku']) ? strtoupper(trim($json['sku'])) : null;
+                        if ($targetSku) {
+                            $matchedItem = $targetSpk->items->first(function ($it) use ($targetSku) {
+                                return (!empty($it->sku) && strtoupper(trim($it->sku)) === $targetSku) ||
+                                       ($it->masterProduct && strtoupper(trim($it->masterProduct->sku ?? '')) === $targetSku);
+                            });
+                        }
+                        if (!$matchedItem) {
+                            $matchedItem = $targetSpk->items->first(fn($it) => $it->sisa_qty > 0) ?: $targetSpk->items->first();
+                        }
                         if ($matchedItem) {
                             $matchedSpk = $targetSpk;
                         }
@@ -1101,7 +1130,9 @@ class SpkController extends Controller
             }
         }
 
-        // B. Format Kombinasi String: SPK-{spk_id}-ITEM-{item_id} atau SPK-ITEM-{item_id}
+        $cleanCode = strtoupper($rawCode);
+
+        // A. Format Kombinasi String: SPK-{spk_id}-ITEM-{item_id} atau ITEM-{item_id}
         if (!$matchedItem) {
             if (preg_match('/(?:SPK-(\d+)-)?ITEM-(\d+)/i', $rawCode, $matches)) {
                 $spkIdFromCode = !empty($matches[1]) ? (int) $matches[1] : null;
@@ -1113,14 +1144,16 @@ class SpkController extends Controller
 
                 if ($matchedItem && $spkIdFromCode && $matchedItem->spk_id != $spkIdFromCode) {
                     $matchedItem = null;
+                } elseif ($matchedItem) {
+                    $matchedSpk = $matchedItem->spk;
                 }
             }
         }
 
-        // C. Format Separator Pipe/Underscore/Slash: SPK-001|BB-TH-L atau SPK-001_BB-TH-L atau SPK-001/BB-TH-L
+        // B. Format Separator Pipe/Underscore/Slash/Colon: SPK-001|SKU atau SPK-001_SKU atau SPK-001/SKU
         if (!$matchedItem) {
-            if (preg_match('/^(SPK-[A-Z0-9\-]+)[\|_:\/](.+)$/i', $rawCode, $matches)) {
-                $noSpkCandidate = trim($matches[1]);
+            if (preg_match('/^([A-Z0-9\-\#]+)[\|_:\/](.+)$/i', $rawCode, $matches)) {
+                $noSpkCandidate = ltrim(trim($matches[1]), '#');
                 $skuCandidate = strtoupper(trim($matches[2]));
 
                 $targetSpk = Spk::where('tenant_id', $tenantId)
@@ -1136,6 +1169,9 @@ class SpkController extends Controller
                         return (!empty($it->sku) && strtoupper(trim($it->sku)) === $skuCandidate) ||
                                ($it->masterProduct && strtoupper(trim($it->masterProduct->sku ?? '')) === $skuCandidate);
                     });
+                    if (!$matchedItem) {
+                        $matchedItem = $targetSpk->items->first(fn($it) => $it->sisa_qty > 0) ?: $targetSpk->items->first();
+                    }
                     if ($matchedItem) {
                         $matchedSpk = $targetSpk;
                     }
@@ -1143,7 +1179,36 @@ class SpkController extends Controller
             }
         }
 
-        // D. Fallback: Cari di Seluruh SPK Aktif / Mengantri di Tenant ini jika hanya SKU / Barcode Produk yang di-scan
+        // C. Direct No SPK / No Produksi Lookup (e.g., SPK-20260912-0001, #SPK-20260912-0001, Label Stiker Kemasan SPK #SPK-20260912-0001)
+        if (!$matchedItem) {
+            $spkNoSearch = $rawCode;
+            if (preg_match('/(SPK-[A-Z0-9\-]+|PROD-[A-Z0-9\-]+)/i', $rawCode, $spkMatches)) {
+                $spkNoSearch = strtoupper(trim($spkMatches[1]));
+            } else {
+                $spkNoSearch = strtoupper(ltrim(trim($rawCode), '#'));
+            }
+
+            $targetSpk = Spk::where('tenant_id', $tenantId)
+                ->where(function ($q) use ($spkNoSearch, $rawCode) {
+                    $q->where('no_spk', $spkNoSearch)
+                      ->orWhere('no_spk', ltrim($rawCode, '#'))
+                      ->orWhere('no_spk', $rawCode)
+                      ->orWhere('no_produksi', $spkNoSearch)
+                      ->orWhere('no_produksi', ltrim($rawCode, '#'))
+                      ->orWhere('no_produksi', $rawCode);
+                })
+                ->with(['items.masterProduct', 'items.pickups'])
+                ->first();
+
+            if ($targetSpk) {
+                $matchedItem = $targetSpk->items->first(fn($it) => $it->sisa_qty > 0) ?: $targetSpk->items->first();
+                if ($matchedItem) {
+                    $matchedSpk = $targetSpk;
+                }
+            }
+        }
+
+        // D. Fallback: Search across all open/active SPKs by SKU or Barcode
         if (!$matchedItem) {
             $openSpks = Spk::where('tenant_id', $tenantId)
                 ->where('tahap_saat_ini', '!=', 'Selesai (Finished Good)')
@@ -1181,16 +1246,18 @@ class SpkController extends Controller
             $szClean = preg_replace('/^(SIZE|UKURAN|SZ|VARIAN)[\s\-_:]*/i', '', $cleanCode);
             $szClean = trim($szClean);
 
-            foreach ($openSpks as $spkCandidate) {
-                $foundInSpk = $spkCandidate->items->first(function ($it) use ($szClean) {
-                    if ($it->sisa_qty <= 0) return false;
-                    return !empty($it->ukuran) && strtoupper(trim($it->ukuran)) === $szClean;
-                });
+            if (!empty($szClean)) {
+                foreach ($openSpks as $spkCandidate) {
+                    $foundInSpk = $spkCandidate->items->first(function ($it) use ($szClean) {
+                        if ($it->sisa_qty <= 0) return false;
+                        return !empty($it->ukuran) && strtoupper(trim($it->ukuran)) === $szClean;
+                    });
 
-                if ($foundInSpk) {
-                    $matchedItem = $foundInSpk;
-                    $matchedSpk = $spkCandidate;
-                    break;
+                    if ($foundInSpk) {
+                        $matchedItem = $foundInSpk;
+                        $matchedSpk = $spkCandidate;
+                        break;
+                    }
                 }
             }
         }
@@ -1454,7 +1521,21 @@ class SpkController extends Controller
                             $ukuran     = trim($pRow['ukuran'] ?? '') ?: 'ALL SIZE';
                             $qtyProd    = max(1, (int) ($pRow['qty_produksi'] ?? 1));
                             $spkItem    = $itemsOrdered->get((int)$pIdx);
-                            $estKain    = isset($pRow['est_kain']) ? (float)$pRow['est_kain'] : ($spkItem->est_kain ?? 0);
+                            $estKain    = isset($pRow['est_kain']) ? (float)$pRow['est_kain'] : 0;
+                            if ($estKain <= 0) {
+                                $prod = null;
+                                if ($skuProduk) {
+                                    $prod = MasterProduct::where('tenant_id', $spk->tenant_id)->where('sku', $skuProduk)->first();
+                                }
+                                if (!$prod && $namaProduk) {
+                                    $prod = MasterProduct::where('tenant_id', $spk->tenant_id)->where('name', $namaProduk)->first();
+                                }
+                                if ($prod && $prod->est_kain > 0) {
+                                    $estKain = (float)$prod->est_kain * $qtyProd;
+                                } else {
+                                    $estKain = $spkItem->est_kain ?? 0;
+                                }
+                            }
 
                             if (!$spkItem) {
                                 $spkItem = SpkItem::create([
