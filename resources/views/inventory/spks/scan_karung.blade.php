@@ -262,6 +262,12 @@
                 barcodeInput.focus();
             }
         });
+        setInterval(function() {
+            const activeEl = document.activeElement;
+            if (!activeEl || (activeEl !== barcodeInput && activeEl.id !== 'qty-scan-input' && activeEl.id !== 'nama-pengambil-input')) {
+                barcodeInput.focus();
+            }
+        }, 2000);
 
         // Toggle Sound
         btnToggleSound.addEventListener('click', function() {
