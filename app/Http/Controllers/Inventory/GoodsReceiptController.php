@@ -43,10 +43,15 @@ class GoodsReceiptController extends Controller
             $query->whereDate('receipt_date', '<=', $request->date_to);
         }
 
+        $totalTransactions = (clone $query)->count();
+        $totalApproved     = (clone $query)->where('status', 'approved')->count();
+        $totalPending      = (clone $query)->where('status', 'pending')->count();
+        $totalValue        = (clone $query)->sum('total_amount');
+
         $receipts  = $query->paginate(20)->withQueryString();
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
 
-        return view('inventory.goods_receipts.index', compact('receipts', 'suppliers'));
+        return view('inventory.goods_receipts.index', compact('receipts', 'suppliers', 'totalTransactions', 'totalApproved', 'totalPending', 'totalValue'));
     }
 
     public function create()

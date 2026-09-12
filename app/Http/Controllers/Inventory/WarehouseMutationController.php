@@ -327,6 +327,9 @@ class WarehouseMutationController extends Controller
                   });
             });
         }
+        if ($request->filled('to_department_id')) {
+            $query->where('to_department_id', $request->to_department_id);
+        }
         if ($request->filled('date_from')) {
             $query->whereDate('mutation_date', '>=', $request->date_from);
         }
@@ -334,8 +337,14 @@ class WarehouseMutationController extends Controller
             $query->whereDate('mutation_date', '<=', $request->date_to);
         }
 
+        $departments       = Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $totalTransactions = (clone $query)->count();
+        $mutationIds       = (clone $query)->pluck('id');
+        $totalItemsCount   = WarehouseMutationItem::whereIn('warehouse_mutation_id', $mutationIds)->sum('quantity');
+        $totalValue        = WarehouseMutationItem::whereIn('warehouse_mutation_id', $mutationIds)->sum(DB::raw('quantity * unit_price'));
+
         $mutations = $query->paginate(20)->withQueryString();
-        return view('inventory.pembelian.goods_issue.index', compact('mutations'));
+        return view('inventory.pembelian.goods_issue.index', compact('mutations', 'departments', 'totalTransactions', 'totalItemsCount', 'totalValue'));
     }
 
     public function goodsIssueCreate()

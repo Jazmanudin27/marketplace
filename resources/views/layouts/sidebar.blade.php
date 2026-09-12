@@ -357,7 +357,7 @@
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
                         @can('goods-receipts.index')
                             <a href="{{ route('goods_receipts.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('goods_receipts.*') ? 'active text-white' : 'text-secondary' }}">Penerimaan
+                                class="nav-link py-1 {{ request()->routeIs('goods_receipts.*') ? 'active text-white' : 'text-secondary' }}">Pemasukan
                                 Barang</a>
                         @endcan
                         @can('goods-issues.index')

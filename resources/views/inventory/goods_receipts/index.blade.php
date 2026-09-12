@@ -1,108 +1,168 @@
 @extends('layouts.app')
-@section('title', 'Penerimaan Barang')
-@section('page-title', 'Penerimaan Barang')
+@section('title', 'Pemasukan Barang - Pembelian')
+@section('page-title', 'Pemasukan Barang (Goods Receipt)')
 
 @section('content')
-<div class="card border-0 shadow-sm rounded-3 bg-white">
-    <div class="card-body p-4">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-            <div class="d-flex align-items-center gap-2">
-                <div class="rounded-circle d-flex align-items-center justify-content-center"
-                    style="width:42px;height:42px;background:linear-gradient(135deg,#10b981,#059669)">
-                    <i class="fas fa-truck text-white"></i>
-                </div>
+<div class="container-fluid px-0">
+
+    {{-- Top Action & Header Banner --}}
+    <div class="card border-0 shadow-sm mb-4 rounded-3 overflow-hidden bg-white">
+        <div class="card-body p-4 border-start border-4 border-success">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                 <div>
-                    <h5 class="fw-bold text-dark mb-0">Penerimaan Barang</h5>
-                    <div class="text-muted small">Daftar penerimaan barang dari supplier (PO &amp; Non-PO)</div>
+                    <h5 class="fw-bold text-dark mb-1">
+                        <i class="fas fa-truck text-success me-2"></i> Pemasukan Barang (Goods Receipt)
+                    </h5>
+                    <p class="text-muted small mb-0">
+                        Pencatatan dan pemantauan barang masuk dari Supplier atau Toko (Bahan Baku, Kemasan, ATK, Inventaris) secara PO maupun Non-PO.
+                    </p>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ route('goods_receipts.create') }}" class="btn btn-success btn-sm px-3 rounded-3 fw-semibold">
+                        <i class="fas fa-plus-circle me-1.5"></i> + Catat Pemasukan Baru
+                    </a>
                 </div>
             </div>
-            <a href="{{ route('goods_receipts.create') }}" class="btn fw-semibold btn-sm px-3 text-white"
-                style="background:linear-gradient(135deg,#10b981,#059669)">
-                <i class="fas fa-plus me-1"></i> Catat Pembelian Langsung (Non-PO)
-            </a>
         </div>
+    </div>
 
-        {{-- Info Banner --}}
-        <div class="alert py-2 px-3 small mb-4 d-flex align-items-center gap-2"
-            style="background:#f0fdf4;border:1px solid #6ee7b7;color:#065f46;border-radius:10px">
-            <i class="fas fa-info-circle"></i>
-            <span>Setiap penerimaan barang (dari PO maupun Langsung) akan masuk sebagai draft <strong>Pending</strong>. Lakukan <strong>Approval</strong> pada detail penerimaan untuk memasukkan barang ke stok <strong>Gudang Bahan / GA</strong>.</span>
+    {{-- Summary Stat Cards --}}
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100 rounded-3">
+                <div class="card-body py-3 px-4 d-flex align-items-center gap-3">
+                    <div class="rounded-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;">
+                        <i class="fas fa-list-alt text-primary fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold fs-4 text-dark">{{ number_format($totalTransactions) }}</div>
+                        <div class="text-muted small">Total Dokumen Pemasukan</div>
+                    </div>
+                </div>
+            </div>
         </div>
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100 rounded-3 border-start border-success border-4">
+                <div class="card-body py-3 px-4 d-flex align-items-center gap-3">
+                    <div class="rounded-3 bg-success bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;">
+                        <i class="fas fa-check-circle text-success fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold fs-4 text-success">{{ number_format($totalApproved) }} <small class="fs-6 fw-normal text-muted">Approved</small></div>
+                        <div class="text-muted small">Disetujui & Masuk Stok ({{ number_format($totalPending) }} Pending)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm h-100 rounded-3 border-start border-info border-4">
+                <div class="card-body py-3 px-4 d-flex align-items-center gap-3">
+                    <div class="rounded-3 bg-info bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;">
+                        <i class="fas fa-coins text-info fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold fs-4 text-dark font-monospace">Rp {{ number_format($totalValue, 0, ',', '.') }}</div>
+                        <div class="text-muted small">Total Nilai Pemasukan</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        {{-- Filter --}}
-        <form method="GET" class="row g-2 mb-4 align-items-end">
-            <div class="col-12 col-md-3">
-                <label class="form-label small fw-semibold text-muted">Cari No. Penerimaan</label>
-                <input type="text" name="search" class="form-control form-control-sm"
-                    value="{{ request('search') }}" placeholder="GR-2026...">
-            </div>
-            <div class="col-12 col-md-2">
-                <label class="form-label small fw-semibold text-muted">Sumber</label>
-                <select name="source" class="form-select form-select-sm">
-                    <option value="">Semua Sumber</option>
-                    <option value="po"         {{ request('source') === 'po' ? 'selected' : '' }}>Penerimaan PO</option>
-                    <option value="direct"     {{ request('source') === 'direct' ? 'selected' : '' }}>Pembelian Langsung</option>
-                    <option value="walk_in"    {{ request('source') === 'walk_in' ? 'selected' : '' }}>Walk-in / Beli di Toko</option>
-                    <option value="emergency"  {{ request('source') === 'emergency' ? 'selected' : '' }}>Pembelian Darurat</option>
-                </select>
-            </div>
-            <div class="col-12 col-md-2">
-                <label class="form-label small fw-semibold text-muted">Status</label>
-                <select name="status" class="form-select form-select-sm">
-                    <option value="">Semua Status</option>
-                    <option value="pending"    {{ request('status') === 'pending' ? 'selected' : '' }}>Menunggu Approval</option>
-                    <option value="approved"   {{ request('status') === 'approved' ? 'selected' : '' }}>Disetujui</option>
-                </select>
-            </div>
-            <div class="col-12 col-md-2">
-                <label class="form-label small fw-semibold text-muted">Dari Tanggal</label>
-                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request('date_from') }}">
-            </div>
-            <div class="col-12 col-md-2">
-                <label class="form-label small fw-semibold text-muted">Sampai</label>
-                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request('date_to') }}">
-            </div>
-            <div class="col-12 col-md-auto d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-sm px-3">
-                    <i class="fas fa-search me-1"></i> Filter
-                </button>
-                @if(request()->anyFilled(['search','source','status','date_from','date_to']))
-                    <a href="{{ route('goods_receipts.index') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
-                @endif
-            </div>
-        </form>
+    {{-- Filter Card --}}
+    <div class="card border-0 shadow-sm mb-4 rounded-3">
+        <div class="card-body p-3">
+            <form method="GET" action="{{ route('goods_receipts.index') }}">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label form-label-sm fw-semibold mb-1">
+                            <i class="fas fa-search me-1 text-muted"></i> No. Pemasukan / Catatan
+                        </label>
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Ketik keyword pencarian..." value="{{ request('search') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label form-label-sm fw-semibold mb-1">
+                            <i class="fas fa-store me-1 text-muted"></i> Supplier / Toko
+                        </label>
+                        <select name="supplier_id" class="form-select form-select-sm">
+                            <option value="">-- Semua Supplier --</option>
+                            @foreach($suppliers as $sup)
+                                <option value="{{ $sup->id }}" {{ request('supplier_id') == $sup->id ? 'selected' : '' }}>{{ $sup->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label form-label-sm fw-semibold mb-1">
+                            <i class="fas fa-filter me-1 text-muted"></i> Status
+                        </label>
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="">-- Semua Status --</option>
+                            <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>🟢 Approved</option>
+                            <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>🟡 Pending</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label form-label-sm fw-semibold mb-1">
+                            <i class="fas fa-calendar me-1 text-muted"></i> Dari Tanggal
+                        </label>
+                        <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request('date_from') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label form-label-sm fw-semibold mb-1">
+                            <i class="fas fa-calendar me-1 text-muted"></i> Sampai Tanggal
+                        </label>
+                        <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request('date_to') }}">
+                    </div>
+                    <div class="col-12 text-end mt-2">
+                        <button type="submit" class="btn btn-success btn-sm px-3">
+                            <i class="fas fa-filter me-1"></i> Terapkan Filter
+                        </button>
+                        @if (request()->anyFilled(['search', 'supplier_id', 'status', 'date_from', 'date_to']))
+                            <a href="{{ route('goods_receipts.index') }}" class="btn btn-secondary btn-sm px-3 ms-1">
+                                <i class="fas fa-times me-1"></i> Reset Filter
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        {{-- Table --}}
+    {{-- Main Table Card --}}
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
         <div class="table-responsive">
-            <table class="table table-hover border align-middle mb-0 rounded-2 overflow-hidden">
-                <thead style="background:#ecfdf5">
-                    <tr class="small text-uppercase text-muted">
-                        <th class="py-2 px-3">No. Penerimaan</th>
-                        <th>Supplier</th>
-                        <th>Departemen</th>
-                        <th>PO Referensi</th>
-                        <th>Tanggal</th>
-                        <th>Status</th>
-                        <th class="text-center">Item</th>
-                        <th class="text-end">Total</th>
-                        <th class="text-center" style="width:120px">Aksi</th>
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light border-bottom">
+                    <tr class="small text-uppercase text-muted fw-bold">
+                        <th class="ps-3" style="width: 130px;">TANGGAL</th>
+                        <th style="width: 170px;">NO. PENERIMAAN</th>
+                        <th>SUPPLIER / TOKO</th>
+                        <th style="width: 130px;">DEPARTEMEN</th>
+                        <th style="width: 140px;">PO REFERENSI</th>
+                        <th style="width: 120px;" class="text-center">STATUS</th>
+                        <th class="text-end" style="width: 140px;">TOTAL NILAI</th>
+                        <th class="text-center pe-3" style="width: 120px;">AKSI</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($receipts as $receipt)
                         <tr>
-                            <td class="font-monospace fw-bold text-dark px-3 py-3" style="font-size:13px">
-                                {{ $receipt->receipt_number }}
+                            <td class="ps-3 text-nowrap">
+                                <div class="fw-semibold text-dark small">{{ $receipt->receipt_date->format('d/m/Y') }}</div>
+                                <div class="text-muted" style="font-size: 0.73rem;">{{ $receipt->source_label }}</div>
+                            </td>
+                            <td>
+                                <code class="font-monospace fw-bold text-success small">{{ $receipt->receipt_number }}</code>
                             </td>
                             <td class="small">
                                 @if($receipt->supplier)
-                                    <div class="fw-semibold text-dark">{{ $receipt->supplier->name }}</div>
+                                    <div class="fw-bold text-dark">{{ $receipt->supplier->name }}</div>
                                 @else
                                     <span class="text-muted">— (Toko Umum)</span>
                                 @endif
                             </td>
                             <td>
-                                <span class="badge rounded-pill" style="background:#f0fdf4;color:#166534;font-size:11px">
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2.5 py-1 rounded-pill fw-bold">
                                     {{ $receipt->department ? $receipt->department->name : 'Umum' }}
                                 </span>
                             </td>
@@ -115,25 +175,31 @@
                                     <span class="text-muted small">— (Non-PO)</span>
                                 @endif
                             </td>
-                            <td class="small text-muted">{{ $receipt->receipt_date->format('d M Y') }}</td>
-                            <td>
-                                <span class="badge bg-{{ $receipt->status_badge }} py-1 px-2 small text-uppercase">
-                                    {{ $receipt->status_label }}
-                                </span>
-                            </td>
                             <td class="text-center">
-                                <span class="badge bg-secondary rounded-pill small">
-                                    {{ $receipt->items->count() }} item
+                                <span class="badge bg-{{ $receipt->status_badge }} bg-opacity-10 text-{{ $receipt->status_badge }} border border-{{ $receipt->status_badge }} border-opacity-25 px-2.5 py-1 rounded-pill fw-bold text-uppercase">
+                                    {{ $receipt->status_label }}
                                 </span>
                             </td>
                             <td class="font-monospace text-end fw-bold text-dark small">
                                 Rp {{ number_format($receipt->total_amount, 0, ',', '.') }}
                             </td>
-                            <td class="text-center">
+                            <td class="text-center pe-3">
                                 <div class="d-flex justify-content-center gap-1">
-                                    <button type="button" class="btn btn-info btn-sm text-white" data-bs-toggle="modal" data-bs-target="#showReceiptModal-{{ $receipt->id }}" title="Detail">
-                                        <i class="fas fa-eye"></i>
+                                    <button type="button" class="btn btn-xs btn-outline-success py-1 px-2.5 fw-semibold rounded-2" data-bs-toggle="modal" data-bs-target="#showReceiptModal-{{ $receipt->id }}" title="Detail">
+                                        <i class="fas fa-eye me-1"></i> Detail
                                     </button>
+                                    @if($receipt->status === 'pending')
+                                        <a href="{{ route('goods_receipts.edit', $receipt) }}" class="btn btn-xs btn-outline-warning text-dark py-1 px-2.5 fw-semibold rounded-2" title="Edit">
+                                            <i class="fas fa-edit me-1"></i> Edit
+                                        </a>
+                                    @endif
+                                    <form action="{{ route('goods_receipts.destroy', $receipt) }}" method="POST"
+                                        onsubmit="return confirm('Apakah Anda yakin ingin membatalkan/menghapus penerimaan barang ini?')" class="d-inline">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-xs btn-outline-danger py-1 px-2.5 rounded-2" title="Hapus">
+                                            <i class="fas fa-trash-alt me-1"></i> Hapus
+                                        </button>
+                                    </form>
 
                                     {{-- Modal Detail Penerimaan Barang --}}
                                     <div class="modal fade text-start" id="showReceiptModal-{{ $receipt->id }}" tabindex="-1" aria-hidden="true">
@@ -273,27 +339,14 @@
                                             </div>
                                         </div>
                                     </div>
-                                    @if($receipt->status === 'pending')
-                                        <a href="{{ route('goods_receipts.edit', $receipt) }}"
-                                            class="btn btn-warning btn-sm text-white" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                    @endif
-                                    <form action="{{ route('goods_receipts.destroy', $receipt) }}" method="POST"
-                                        onsubmit="return confirm('Apakah Anda yakin ingin membatalkan/menghapus penerimaan barang ini?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Hapus">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-5 text-muted">
-                                <i class="fas fa-truck fa-2x mb-3 opacity-25 d-block"></i>
-                                Belum ada penerimaan barang yang tercatat.
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="fas fa-truck d-block mb-2 opacity-25 fs-1"></i>
+                                Belum ada penerimaan barang yang sesuai filter.
                             </td>
                         </tr>
                     @endforelse
@@ -301,7 +354,17 @@
             </table>
         </div>
 
-        <div class="mt-3">{{ $receipts->links() }}</div>
+        @if($receipts->hasPages())
+            <div class="card-footer bg-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        Menampilkan {{ $receipts->firstItem() }} - {{ $receipts->lastItem() }} dari {{ $receipts->total() }} penerimaan
+                    </small>
+                    {{ $receipts->links() }}
+                </div>
+            </div>
+        @endif
     </div>
+
 </div>
 @endsection
