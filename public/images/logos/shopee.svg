@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" width="160" height="40">
+  <g transform="translate(0, 2)">
+    <path d="M 11,11 C 11,5 21,5 21,11" fill="none" stroke="#EE4D2D" stroke-width="3" stroke-linecap="round"/>
+    <rect x="4" y="10" width="24" height="24" rx="4" fill="#EE4D2D"/>
+    <path d="M 19.5,16 C 19.5,14.5 17.8,14 16,14 C 14.2,14 12.5,15 12.5,16.8 C 12.5,20.2 19.5,19 19.5,22.2 C 19.5,24.2 17.5,25 15.5,25 C 13.2,25 12,23.5 12,22" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <text x="36" y="27" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="800" font-size="24" fill="#EE4D2D" letter-spacing="-0.5">Shopee</text>
+</svg>

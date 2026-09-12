@@ -622,16 +622,18 @@
                 <div class="shopee-label-wrapper" style="border: 2px solid #000; padding: 4px; background: #fff;">
                     <!-- Header -->
                     <div class="shopee-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #000; padding-bottom: 4px;">
-                        <div class="shopee-logo" style="display: flex; align-items: center; gap: 6px; font-size: 20px; font-weight: 900; color: #EE4D2D;">
-                            <span style="background: #EE4D2D; color: #fff; width: 26px; height: 26px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900;">S</span>
-                            <span>Shopee</span>
+                        <div class="shopee-logo" style="display: flex; align-items: center;">
+                            <img src="{{ asset('images/logos/shopee.svg') }}" alt="Shopee" style="height: 28px; width: auto; object-fit: contain;">
                         </div>
                         <div class="shopee-service" style="font-size: 34px; font-weight: 900; letter-spacing: 1px; color: #000;">
                             {{ $shopeeService }}
                         </div>
-                        <div class="shopee-courier" style="text-align: right;">
-                            <div style="font-size: 26px; font-weight: 900; color: #EE4D2D; font-style: italic; line-height: 1;">SPX</div>
-                            <div style="font-size: 9px; font-weight: 900; color: #EE4D2D; letter-spacing: 1px;">EXPRESS</div>
+                        <div class="shopee-courier" style="text-align: right; display: flex; justify-content: flex-end; align-items: center;">
+                            @if (stripos($courierName, 'J&T') !== false || stripos($courierName, 'JNT') !== false)
+                                <img src="{{ asset('images/logos/jnt-express.svg') }}" alt="J&T Express" style="height: 28px; width: auto; object-fit: contain;">
+                            @else
+                                <img src="{{ asset('images/logos/spx-express.svg') }}" alt="SPX Express" style="height: 34px; width: auto; object-fit: contain;">
+                            @endif
                         </div>
                     </div>
 
@@ -752,8 +754,14 @@
                     <!-- Header -->
                     <div class="tiktok-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
                         <div>
-                            <div class="tiktok-courier-logo" style="font-size: 22px; font-weight: 900; color: #d0011b; display: flex; align-items: center; gap: 4px;">
-                                <span style="color:#d0011b; font-weight:900; font-style:italic;">J&T</span><span style="color:#000; font-size:14px; font-style:italic; font-weight:900;">EXPRESS</span>
+                            <div class="tiktok-courier-logo" style="display: flex; align-items: center; gap: 4px;">
+                                @if (stripos($courierName, 'J&T') !== false || stripos($courierName, 'JNT') !== false)
+                                    <img src="{{ asset('images/logos/jnt-express.svg') }}" alt="J&T Express" style="height: 28px; width: auto; object-fit: contain;">
+                                @elseif (stripos($courierName, 'SPX') !== false || stripos($courierName, 'SHOPEE') !== false)
+                                    <img src="{{ asset('images/logos/spx-express.svg') }}" alt="SPX Express" style="height: 32px; width: auto; object-fit: contain;">
+                                @else
+                                    <div style="font-size: 22px; font-weight: 900; color: #d0011b; font-style: italic;">{{ $courierName }}</div>
+                                @endif
                             </div>
                             <div style="font-size:10px; color:#d0011b; font-weight:bold; margin-top:1px;">
                                 <i class="fas fa-phone-alt"></i> (021) 80661888

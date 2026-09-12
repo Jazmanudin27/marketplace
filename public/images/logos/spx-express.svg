@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 45" width="160" height="45">
+  <g fill="#EE4D2D">
+    <!-- SPX Bold Italic Text -->
+    <text x="0" y="28" font-family="'Arial Black', 'Arial-BoldMT', sans-serif" font-weight="900" font-style="italic" font-size="32" letter-spacing="-1">SPX</text>
+    <!-- Speed accent banner -->
+    <path d="M 72,8 L 98,8 L 88,15 L 62,15 Z" fill="#EE4D2D"/>
+    <!-- EXPRESS Subtext -->
+    <text x="2" y="41" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="10.5" letter-spacing="3.5">EXPRESS</text>
+  </g>
+</svg>
