@@ -6,7 +6,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 
     <style>
         * {
@@ -62,23 +61,23 @@
             margin: 0 auto;
         }
 
-        /* Individual Sticker Card (Compact Packaging Label) */
+        /* Individual Sticker Card (Compact Packaging Label - QR ONLY) */
         .sticker-card {
             background: #ffffff;
             border: 2px solid #000000;
             border-radius: 8px;
-            padding: 10px 12px;
+            padding: 12px 14px;
             page-break-inside: avoid;
             break-inside: avoid;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
         }
 
         .sticker-header {
             border-bottom: 1px dashed #94a3b8;
-            padding-bottom: 4px;
+            padding-bottom: 6px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -87,12 +86,12 @@
         .spk-num {
             font-family: 'JetBrains Mono', monospace;
             font-weight: 800;
-            font-size: 12px;
+            font-size: 13px;
             color: #000000;
         }
 
         .client-name {
-            font-size: 9.5px;
+            font-size: 10px;
             color: #475569;
             font-weight: 800;
             text-transform: uppercase;
@@ -101,16 +100,16 @@
         .sticker-body {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         .qr-wrapper {
-            width: 90px;
-            height: 90px;
+            width: 105px;
+            height: 105px;
             flex-shrink: 0;
             background: #ffffff;
             padding: 3px;
-            border: 1px solid #000000;
+            border: 1.5px solid #000000;
             border-radius: 6px;
             display: flex;
             align-items: center;
@@ -128,13 +127,13 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            height: 90px;
+            height: 105px;
         }
 
         .product-name {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 800;
-            line-height: 1.2;
+            line-height: 1.25;
             color: #000000;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -144,11 +143,11 @@
 
         .sku-tag {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 9.5px;
+            font-size: 10px;
             color: #1d4ed8;
             font-weight: 800;
             word-break: break-all;
-            margin-top: 2px;
+            margin-top: 3px;
         }
 
         .size-container {
@@ -161,17 +160,17 @@
         .size-badge {
             background: #000000;
             color: #ffffff;
-            padding: 3px 8px;
-            border-radius: 5px;
+            padding: 4px 10px;
+            border-radius: 6px;
             display: inline-flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-width: 52px;
+            min-width: 56px;
         }
 
         .size-label {
-            font-size: 7px;
+            font-size: 7.5px;
             font-weight: 800;
             color: #cbd5e1;
             letter-spacing: 0.5px;
@@ -180,7 +179,7 @@
         }
 
         .size-value {
-            font-size: 19px;
+            font-size: 21px;
             font-weight: 900;
             color: #ffffff;
             line-height: 1;
@@ -188,28 +187,13 @@
         }
 
         .item-count-badge {
-            font-size: 9px;
+            font-size: 9.5px;
             color: #0f172a;
             font-weight: 800;
             background: #f1f5f9;
-            padding: 3px 6px;
+            padding: 3px 7px;
             border-radius: 4px;
             border: 1px solid #94a3b8;
-        }
-
-        /* 1D Laser Barcode Container dengan Margin Quiet Zone */
-        .barcode-1d-container {
-            border-top: 1px dashed #94a3b8;
-            padding-top: 6px;
-            padding-bottom: 2px;
-            text-align: center;
-            background: #ffffff;
-        }
-        .barcode-1d-container svg {
-            max-width: 100%;
-            height: 48px;
-            display: block;
-            margin: 0 auto;
         }
 
         /* Print Media Styling */
@@ -232,7 +216,7 @@
                 border: 2px solid #000000;
                 box-shadow: none;
                 border-radius: 6px;
-                padding: 6px;
+                padding: 10px;
             }
         }
     </style>
@@ -246,7 +230,7 @@
                 🏷️ Label Stiker Kemasan SPK #{{ $spk->no_spk }}
             </h3>
             <p style="font-size: 12px; color: #64748b; margin: 0;">
-                Label dilapisi Dual Barcode (1D Laser CODE128 Tebal + 2D QR Code HD Canvas) dengan Quiet-Zone Margin.
+                Label khusus QR Code HD Canvas untuk pemindaian langsung penerimaan hasil produksi.
             </p>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
@@ -291,10 +275,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="barcode-1d-container">
-                        <svg id="barcode-1d-{{ $item->id }}-{{ $i }}"></svg>
-                    </div>
                 </div>
             @endfor
         @endforeach
@@ -309,30 +289,15 @@
                 @endphp
                 @for($i = 1; $i <= $repeatQty; $i++)
                     try {
-                        // 1. 2D QR Code Canvas
+                        // 2D QR Code Canvas (QRious HD)
                         new QRious({
                             element: document.getElementById("qr-canvas-{{ $item->id }}-{{ $i }}"),
                             value: @json($barcodeVal),
-                            size: 140,
+                            size: 160,
                             level: 'L'
                         });
-
-                        // 2. 1D Barcode CODE128 (Dengan Margin Quiet-Zone & Garis 2px Tebal)
-                        JsBarcode("#barcode-1d-{{ $item->id }}-{{ $i }}", @json($barcodeVal), {
-                            format: "CODE128",
-                            width: 2.0,
-                            height: 38,
-                            displayValue: true,
-                            fontSize: 11,
-                            fontOptions: "bold",
-                            font: "JetBrains Mono",
-                            textMargin: 2,
-                            margin: 10,
-                            background: "#ffffff",
-                            lineColor: "#000000"
-                        });
                     } catch(e) {
-                        console.error("Barcode generation error: ", e);
+                        console.error("QR Code generation error: ", e);
                     }
                 @endfor
             @endforeach
