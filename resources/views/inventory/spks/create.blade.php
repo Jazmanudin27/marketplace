@@ -1246,23 +1246,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const cleanSku  = skuInput ? skuInput.value.trim().toUpperCase() : '';
         const cleanName = nameInput ? nameInput.value.trim().toUpperCase() : '';
+        const cleanUk   = ukInput ? ukInput.value.trim().toUpperCase() : '';
 
         let masterProd = null;
+
+        // 1. Primary match by exact SKU
         if (cleanSku && masterProductsMap[cleanSku]) {
             masterProd = masterProductsMap[cleanSku];
-        } else if (cleanName && masterProductsMap[cleanName]) {
-            masterProd = masterProductsMap[cleanName];
-        } else if (cleanName) {
-            const found = allMasterProductsList.find(p => p.name && p.name.trim().toUpperCase() === cleanName);
-            if (found && found.sku) {
-                masterProd = masterProductsMap[found.sku.toUpperCase()];
+        } else if (cleanSku) {
+            const foundBySku = allMasterProductsList.find(p => p.sku && p.sku.trim().toUpperCase() === cleanSku);
+            if (foundBySku) {
+                masterProd = foundBySku;
+            }
+        }
+
+        // 2. Secondary match by Name + Ukuran (or Name only if single match)
+        if (!masterProd && cleanName) {
+            if (cleanUk) {
+                masterProd = allMasterProductsList.find(p => p.name && p.name.trim().toUpperCase() === cleanName && p.ukuran && p.ukuran.trim().toUpperCase() === cleanUk);
+            }
+            if (!masterProd) {
+                masterProd = allMasterProductsList.find(p => p.name && p.name.trim().toUpperCase() === cleanName);
             }
         }
 
         if (masterProd) {
-            if (nameInput && !nameInput.value) nameInput.value = masterProd.name;
-            if (skuInput && !skuInput.value && masterProd.sku) skuInput.value = masterProd.sku;
-            if (ukInput && masterProd.ukuran) ukInput.value = masterProd.ukuran;
+            if (nameInput) nameInput.value = masterProd.name;
+            if (skuInput && masterProd.sku && !skuInput.value) skuInput.value = masterProd.sku;
+
+            if (ukInput) {
+                if (cleanSku || !ukInput.value.trim()) {
+                    if (masterProd.ukuran) {
+                        ukInput.value = masterProd.ukuran;
+                    }
+                }
+            }
 
             const estKainInput = tr.querySelector('.row-est-kain, .input-est-kain');
             if (estKainInput && masterProd.est_kain > 0) {

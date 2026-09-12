@@ -459,20 +459,38 @@ class SpkController extends Controller
 
                         $prod = null;
                         if (!empty($skuProduk)) {
-                            $prod = MasterProduct::where('tenant_id', $tenantId)->where('sku', trim($skuProduk))->first();
+                            $cleanSku = trim($skuProduk);
+                            $prod = MasterProduct::where('tenant_id', $tenantId)
+                                ->where(function($q) use ($cleanSku) {
+                                    $q->where(DB::raw('LOWER(sku)'), strtolower($cleanSku))
+                                      ->orWhere(DB::raw('LOWER(sku_induk)'), strtolower($cleanSku));
+                                })->first();
                         }
                         if (!$prod && !empty($namaProduk)) {
-                            $prod = MasterProduct::where('tenant_id', $tenantId)->where('name', trim($namaProduk))->first();
+                            $cleanName = trim($namaProduk);
+                            if (!empty($ukuran)) {
+                                $prod = MasterProduct::where('tenant_id', $tenantId)
+                                    ->where('name', $cleanName)
+                                    ->where(DB::raw('LOWER(ukuran)'), strtolower(trim($ukuran)))
+                                    ->first();
+                            }
+                            if (!$prod) {
+                                $prod = MasterProduct::where('tenant_id', $tenantId)
+                                    ->where('name', $cleanName)
+                                    ->first();
+                            }
                         }
-                        $estKainVal = !empty($pRow['est_kain']) ? (float)$pRow['est_kain'] : (($prod && $prod->est_kain > 0) ? (float)$prod->est_kain * $qtyProduksi : 0);
+
+                        $finalUkuran = !empty($ukuran) ? trim($ukuran) : ($prod ? $prod->ukuran : null);
+                        $estKainVal  = !empty($pRow['est_kain']) ? (float)$pRow['est_kain'] : (($prod && $prod->est_kain > 0) ? (float)$prod->est_kain * $qtyProduksi : 0);
 
                         $spkItem = SpkItem::create([
                             'spk_id'            => $spkRecord->id,
                             'master_product_id' => $prod ? $prod->id : null,
                             'nama_produk'       => $namaProduk,
-                            'sku'               => $skuProduk,
+                            'sku'               => $skuProduk ?: ($prod ? $prod->sku : null),
                             'sku_kain'          => $rBlock['sku_kain'] ?? ($bahanList[0]['nama_bahan'] ?? null),
-                            'ukuran'            => $ukuran,
+                            'ukuran'            => $finalUkuran,
                             'catatan'           => $rBlock['catatan'] ?? null,
                             'quantity'          => $qtyProduksi,
                             'est_kain'          => $estKainVal,
@@ -1530,20 +1548,38 @@ class SpkController extends Controller
                         $savedItemIds = [];
 
                         foreach ($prodList as $pIdx => $pRow) {
-                            $namaProduk = trim($pRow['nama_produk'] ?? '') ?: 'PRODUK BARU';
-                            $skuProduk  = trim($pRow['sku_produk'] ?? '');
-                            $ukuran     = trim($pRow['ukuran'] ?? '') ?: 'ALL SIZE';
-                            $qtyProd    = max(1, (int) ($pRow['qty_produksi'] ?? 1));
-                            $spkItem    = $itemsOrdered->get((int)$pIdx);
-                            $estKain    = isset($pRow['est_kain']) ? (float)$pRow['est_kain'] : 0;
+                            $namaProduk  = trim($pRow['nama_produk'] ?? '') ?: 'PRODUK BARU';
+                            $skuProduk   = trim($pRow['sku_produk'] ?? '');
+                            $ukuranInput = trim($pRow['ukuran'] ?? '');
+                            $qtyProd     = max(1, (int) ($pRow['qty_produksi'] ?? 1));
+                            $spkItem     = $itemsOrdered->get((int)$pIdx);
+
+                            $prod = null;
+                            if ($skuProduk) {
+                                $cleanSku = trim($skuProduk);
+                                $prod = MasterProduct::where('tenant_id', $spk->tenant_id)
+                                    ->where(function($q) use ($cleanSku) {
+                                        $q->where(DB::raw('LOWER(sku)'), strtolower($cleanSku))
+                                          ->orWhere(DB::raw('LOWER(sku_induk)'), strtolower($cleanSku));
+                                    })->first();
+                            }
+                            if (!$prod && $namaProduk) {
+                                $cleanName = trim($namaProduk);
+                                if (!empty($ukuranInput)) {
+                                    $prod = MasterProduct::where('tenant_id', $spk->tenant_id)
+                                        ->where('name', $cleanName)
+                                        ->where(DB::raw('LOWER(ukuran)'), strtolower(trim($ukuranInput)))
+                                        ->first();
+                                }
+                                if (!$prod) {
+                                    $prod = MasterProduct::where('tenant_id', $spk->tenant_id)
+                                        ->where('name', $cleanName)->first();
+                                }
+                            }
+
+                            $finalUkuran = !empty($ukuranInput) ? $ukuranInput : ($prod && !empty($prod->ukuran) ? $prod->ukuran : 'ALL SIZE');
+                            $estKain     = isset($pRow['est_kain']) ? (float)$pRow['est_kain'] : 0;
                             if ($estKain <= 0) {
-                                $prod = null;
-                                if ($skuProduk) {
-                                    $prod = MasterProduct::where('tenant_id', $spk->tenant_id)->where('sku', $skuProduk)->first();
-                                }
-                                if (!$prod && $namaProduk) {
-                                    $prod = MasterProduct::where('tenant_id', $spk->tenant_id)->where('name', $namaProduk)->first();
-                                }
                                 if ($prod && $prod->est_kain > 0) {
                                     $estKain = (float)$prod->est_kain * $qtyProd;
                                 } else {
@@ -1551,23 +1587,20 @@ class SpkController extends Controller
                                 }
                             }
 
+                            $itemPayload = [
+                                'master_product_id' => $prod ? $prod->id : ($spkItem->master_product_id ?? null),
+                                'nama_produk'       => $namaProduk,
+                                'sku'               => $skuProduk ?: ($prod ? $prod->sku : null),
+                                'ukuran'            => $finalUkuran,
+                                'quantity'          => $qtyProd,
+                                'est_kain'          => $estKain,
+                            ];
+
                             if (!$spkItem) {
-                                $spkItem = SpkItem::create([
-                                    'spk_id'      => $spk->id,
-                                    'nama_produk' => $namaProduk,
-                                    'sku'         => $skuProduk,
-                                    'ukuran'      => $ukuran,
-                                    'quantity'    => $qtyProd,
-                                    'est_kain'    => $estKain,
-                                ]);
+                                $itemPayload['spk_id'] = $spk->id;
+                                $spkItem = SpkItem::create($itemPayload);
                             } else {
-                                $spkItem->update([
-                                    'nama_produk' => $namaProduk,
-                                    'sku'         => $skuProduk,
-                                    'ukuran'      => $ukuran,
-                                    'quantity'    => $qtyProd,
-                                    'est_kain'    => $estKain,
-                                ]);
+                                $spkItem->update($itemPayload);
                             }
                             $savedItemIds[] = $spkItem->id;
                         }
