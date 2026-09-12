@@ -451,7 +451,7 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <label for="length" class="form-label form-label-sm fw-semibold">Panjang (cm)</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><i class="fas fa-arrows-alt-h"></i></span>
@@ -460,7 +460,7 @@
                                         value="{{ old('length', $product->length ?? '') }}" placeholder="0">
                                 </div>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <label for="width" class="form-label form-label-sm fw-semibold">Lebar (cm)</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><i class="fas fa-arrows-alt-v"></i></span>
@@ -469,7 +469,7 @@
                                         value="{{ old('width', $product->width ?? '') }}" placeholder="0">
                                 </div>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <label for="height" class="form-label form-label-sm fw-semibold">Tinggi (cm)</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><i class="fas fa-arrows-alt-v"></i></span>
@@ -477,6 +477,18 @@
                                         class="form-control form-control-sm"
                                         value="{{ old('height', $product->height ?? '') }}" placeholder="0">
                                 </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="est_kain" class="form-label form-label-sm fw-semibold text-primary">Estimasi Kain (CM/Pcs)</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="fas fa-scroll text-primary"></i></span>
+                                    <input type="number" step="0.01" id="est_kain" name="est_kain"
+                                        class="form-control form-control-sm"
+                                        value="{{ old('est_kain', $product->est_kain ?? '') }}" placeholder="Contoh: 150">
+                                </div>
+                                @error('est_kain')
+                                    <div class="text-danger mt-1 small">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
 

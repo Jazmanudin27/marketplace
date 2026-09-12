@@ -865,41 +865,6 @@
                             </div>
                         </div>
 
-                        {{-- Upload Foto Referensi & Mockup Final --}}
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <div class="section-label">REFERENSI KLIEN (FOTO / SKETSA)</div>
-                                <div class="upload-zone {{ $spk->referensi_klien_url ? 'has-file' : '' }}"
-                                    id="ref-drop-zone">
-                                    <input type="file" name="referensi_klien" id="input-referensi-klien"
-                                        class="input-referensi" accept="image/*">
-                                    <img id="ref-preview-img" src="{{ $spk->referensi_klien_url ?: '' }}"
-                                        alt="Referensi Klien" class="{{ $spk->referensi_klien_url ? '' : 'd-none' }}"
-                                        style="max-height:200px; width:100%; border-radius:8px; object-fit:contain;">
-                                    <div id="ref-placeholder-content"
-                                        class="{{ $spk->referensi_klien_url ? 'd-none' : '' }}">
-                                        <div class="uz-icon">🖼️</div>
-                                        <div class="uz-label">Upload foto referensi / sketsa pakaian</div>
-                                        <small class="text-muted" style="font-size:10px;">Format JPG/PNG maks 8MB</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="section-label">MOCKUP FINAL (ACC KLIEN)</div>
-                                <div class="upload-zone {{ $spk->mockup_url ? 'has-file' : '' }}" id="mockup-drop-zone">
-                                    <input type="file" name="mockup_final" id="input-mockup-final"
-                                        class="input-mockup" accept="image/*">
-                                    <img id="mockup-preview-img" src="{{ $spk->mockup_url ?: '' }}" alt="Mockup Final"
-                                        class="{{ $spk->mockup_url ? '' : 'd-none' }}"
-                                        style="max-height:200px; width:100%; border-radius:8px; object-fit:contain;">
-                                    <div id="mockup-placeholder-content" class="{{ $spk->mockup_url ? 'd-none' : '' }}">
-                                        <div class="uz-icon">✨</div>
-                                        <div class="uz-label">Upload gambar mockup hasil desain final</div>
-                                        <small class="text-muted" style="font-size:10px;">Format JPG/PNG maks 8MB</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
                         @php
                             $initGrandQty = (int) $spk->items->sum('quantity');

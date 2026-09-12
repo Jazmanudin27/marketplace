@@ -283,6 +283,12 @@
                                         <span class="text-muted">Wrn:</span> <strong
                                             class="text-secondary">{{ $product->warna ?? '—' }}</strong>
                                     </div>
+                                    @if(!empty($product->est_kain) && $product->est_kain > 0)
+                                        <div class="mt-1">
+                                            <span class="text-muted">Est. Kain:</span> <strong
+                                                class="text-primary font-monospace">{{ number_format($product->est_kain, 0) }} cm</strong>
+                                        </div>
+                                    @endif
                                 </div>
                             </td>
                             <td class="text-end">

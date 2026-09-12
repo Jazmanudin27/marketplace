@@ -1024,37 +1024,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     {{-- Left: Upload Areas + G-Drive Link --}}
                     <div class="col-xl-3 col-lg-4">
 
-                        {{-- 1. Referensi Klien --}}
-                        <div class="mb-3">
-                            <div class="section-label mb-1" style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#6b7280;">
-                                1. REFERENSI KLIEN (MARKETING)
-                            </div>
-                            <div class="upload-zone ref-zone-${rIdx}">
-                                <input type="file" name="rincian[${rIdx}][referensi_klien]" class="input-ref-${rIdx}" accept="image/*">
-                                <div class="ref-placeholder-${rIdx}">
-                                    <div class="uz-icon">📸</div>
-                                    <div class="uz-label">UPLOAD REFERENSI</div>
-                                    <div class="uz-hint">Foto contoh dari klien</div>
-                                </div>
-                                <img class="ref-preview-${rIdx} d-none img-fluid rounded" style="max-height:200px; width:100%; object-fit:contain;" alt="Referensi">
-                            </div>
-                        </div>
 
-                        {{-- 2. Mockup Final --}}
-                        <div class="mb-3">
-                            <div class="section-label mb-1" style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#6b7280;">
-                                2. MOCKUP FINAL (DESAIN)
-                            </div>
-                            <div class="upload-zone mockup-zone-${rIdx}" style="opacity:.8;">
-                                <input type="file" name="rincian[${rIdx}][mockup_final]" class="input-mockup-${rIdx}" accept="image/*">
-                                <div class="mockup-placeholder-${rIdx}">
-                                    <div class="uz-icon">🎨</div>
-                                    <div class="uz-label" style="color:#9ca3af;">MENUNGGU DESAINER</div>
-                                    <div class="uz-hint">Upload setelah desain selesai</div>
-                                </div>
-                                <img class="mockup-preview-${rIdx} d-none img-fluid rounded" style="max-height:200px; width:100%; object-fit:contain;" alt="Mockup">
-                            </div>
-                        </div>
 
                         {{-- 3. Link File Mentah --}}
                         <div class="mb-3">
