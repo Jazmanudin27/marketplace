@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('master_products', function (Blueprint $table) {
             if (!Schema::hasColumn('master_products', 'est_kain')) {
-                $table->decimal('est_kain', 10, 2)->nullable()->after('safety_stock');
+                $table->decimal('est_kain', 10, 2)->nullable();
             }
         });
     }
