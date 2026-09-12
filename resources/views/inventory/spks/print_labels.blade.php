@@ -18,20 +18,20 @@
             font-family: 'Inter', system-ui, sans-serif;
             background: #f8fafc;
             color: #0f172a;
-            padding: 15px;
+            padding: 12px;
         }
 
         /* Non-printable Control Bar */
         .no-print-bar {
             background: #ffffff;
             border-radius: 12px;
-            padding: 14px 20px;
+            padding: 12px 18px;
             box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 1100px;
-            margin: 0 auto 20px auto;
+            max-width: 1200px;
+            margin: 0 auto 16px auto;
         }
 
         .btn-print {
@@ -39,51 +39,51 @@
             color: #fff;
             border: none;
             border-radius: 8px;
-            padding: 10px 20px;
+            padding: 9px 18px;
             font-weight: 700;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
         }
         .btn-print:hover {
             background: #1d4ed8;
         }
 
-        /* Stickers Grid Container - 4 Columns Grid */
+        /* Stickers Grid Container - 6 Columns Grid */
         .labels-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            max-width: 1100px;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
-        /* Compact Sticker Card: Barcode (QR), SKU, Size */
+        /* Micro Compact Sticker Card: Barcode (QR), SKU, Size */
         .sticker-card {
             background: #ffffff;
-            border: 2px solid #000000;
-            border-radius: 8px;
-            padding: 10px 8px;
+            border: 1.5px solid #000000;
+            border-radius: 6px;
+            padding: 8px 4px;
             page-break-inside: avoid;
             break-inside: avoid;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 4px;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         }
 
         .qr-wrapper {
-            width: 90px;
-            height: 90px;
+            width: 72px;
+            height: 72px;
             flex-shrink: 0;
             background: #ffffff;
-            padding: 2px;
+            padding: 1px;
             border: 1px solid #000000;
             border-radius: 4px;
             display: flex;
@@ -98,43 +98,44 @@
 
         .sku-tag {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
+            font-size: 8.5px;
             color: #000000;
             font-weight: 800;
             word-break: break-all;
-            line-height: 1.2;
+            line-height: 1.15;
             max-width: 100%;
+            padding: 0 2px;
         }
 
         .size-badge {
             background: #000000;
             color: #ffffff;
-            padding: 3px 12px;
-            border-radius: 5px;
+            padding: 2px 8px;
+            border-radius: 4px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 5px;
-            min-width: 60px;
+            gap: 4px;
+            min-width: 46px;
         }
 
         .size-label {
-            font-size: 8px;
+            font-size: 7px;
             font-weight: 800;
             color: #cbd5e1;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
             text-transform: uppercase;
         }
 
         .size-value {
-            font-size: 16px;
+            font-size: 13px;
             font-weight: 900;
             color: #ffffff;
             line-height: 1;
             font-family: 'Inter', system-ui, sans-serif;
         }
 
-        /* Print Media Styling - 4 Columns */
+        /* Print Media Styling - 6 Columns */
         @media print {
             body {
                 background: #ffffff;
@@ -145,16 +146,16 @@
             }
             .labels-grid {
                 display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 6px;
+                grid-template-columns: repeat(6, 1fr);
+                gap: 4px;
                 max-width: 100%;
                 margin: 0;
             }
             .sticker-card {
-                border: 1.5px solid #000000;
+                border: 1px solid #000000;
                 box-shadow: none;
-                border-radius: 6px;
-                padding: 8px 6px;
+                border-radius: 4px;
+                padding: 6px 3px;
             }
         }
     </style>
@@ -164,11 +165,11 @@
     <!-- Top Non-Print Control Toolbar -->
     <div class="no-print-bar">
         <div>
-            <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">
-                🏷️ Label Stiker Kemasan (4 Per Baris) - SPK #{{ $spk->no_spk }}
+            <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">
+                🏷️ Label Stiker Kemasan (6 Per Baris) - SPK #{{ $spk->no_spk }}
             </h3>
-            <p style="font-size: 12px; color: #64748b; margin: 0;">
-                Hanya menampilkan Barcode/QR Code, SKU, dan Ukuran (Size).
+            <p style="font-size: 11px; color: #64748b; margin: 0;">
+                Tampilan micro-compact: 6 stiker per baris dengan QR Code, SKU kecil, dan Ukuran.
             </p>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
@@ -178,7 +179,7 @@
         </div>
     </div>
 
-    <!-- Sticker Labels Grid (4 Columns) -->
+    <!-- Sticker Labels Grid (6 Columns) -->
     <div class="labels-grid">
         @foreach($spk->items as $item)
             @php
@@ -216,7 +217,7 @@
                         new QRious({
                             element: document.getElementById("qr-canvas-{{ $item->id }}-{{ $i }}"),
                             value: @json($barcodeVal),
-                            size: 160,
+                            size: 140,
                             level: 'L'
                         });
                     } catch(e) {
