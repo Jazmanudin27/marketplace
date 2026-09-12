@@ -943,16 +943,31 @@ class SpkController extends Controller
                     $bName = trim(str_replace('Bahan:', '', $ket));
                     $bQty = 1;
                     $bSatuan = '';
+                    $bHarga = 0;
+
                     if (preg_match('/^(.*?)\s*\(Qty:\s*([\d\.,]+)\s*(.*?)\)$/i', $bName, $mQ)) {
                         $bName = trim($mQ[1]);
-                        $bQty = floatval(str_replace(['.', ','], '', $mQ[2])) ?: 1;
-                        $bSatuan = trim($mQ[3]);
+                        $bQtyStr = $mQ[2];
+                        $restSatuan = trim($mQ[3]);
+
+                        if (preg_match('/^(.*?)\s*@\s*Rp\s*([\d\.,]+)$/i', $restSatuan, $mH)) {
+                            $bSatuan = trim($mH[1]);
+                            $bHarga = floatval(str_replace(['.', ','], '', $mH[2]));
+                        } else {
+                            $bSatuan = $restSatuan;
+                        }
+                        $bQty = floatval(str_replace(['.', ','], '', $bQtyStr)) ?: 1;
                     }
+
+                    if ($bHarga <= 0 && $nom > 0 && $bQty > 0) {
+                        $bHarga = round($nom / $bQty, 2);
+                    }
+
                     $existingBahanList[] = [
                         'nama_bahan' => $bName,
                         'qty_bahan'  => $bQty,
                         'satuan'     => $bSatuan,
-                        'harga'      => $nom > 0 && $bQty > 0 ? round($nom / $bQty, 2) : 0,
+                        'harga'      => $bHarga,
                         'subtotal'   => $nom,
                     ];
                 } elseif (str_contains($ket, 'Biaya Tambahan:') || str_contains($ket, 'Tambahan:')) {
@@ -976,7 +991,9 @@ class SpkController extends Controller
                 } else {
                     $groupedBahan[$n]['qty_bahan'] += $b['qty_bahan'];
                     $groupedBahan[$n]['subtotal'] += $b['subtotal'];
-                    if ($groupedBahan[$n]['qty_bahan'] > 0) {
+                    if ($b['harga'] > 0) {
+                        $groupedBahan[$n]['harga'] = $b['harga'];
+                    } elseif ($groupedBahan[$n]['qty_bahan'] > 0) {
                         $groupedBahan[$n]['harga'] = round($groupedBahan[$n]['subtotal'] / $groupedBahan[$n]['qty_bahan'], 2);
                     }
                 }
@@ -1545,11 +1562,13 @@ class SpkController extends Controller
                 // A. Extras Bahan
                 foreach ($cleanBahanList as $mat) {
                     $itemMatNominal = round($mat['subtotal'] * $ratio, 2);
-                    $cleanQtyStr = ($mat['qty_bahan'] == (int)$mat['qty_bahan']) ? (int)$mat['qty_bahan'] : (float)$mat['qty_bahan'];
-                    $satuanStr = !empty($mat['satuan']) ? " " . $mat['satuan'] : "";
+                    $itemQtyBahan   = round($mat['qty_bahan'] * $ratio, 4);
+                    $cleanQtyStr    = ($itemQtyBahan == (int)$itemQtyBahan) ? (int)$itemQtyBahan : (float)$itemQtyBahan;
+                    $satuanStr      = !empty($mat['satuan']) ? " " . $mat['satuan'] : "";
+                    $hargaStr       = $mat['harga'] > 0 ? " @ Rp " . number_format($mat['harga'], 0, ',', '.') : "";
                     SpkItemExtra::create([
                         'spk_item_id' => $item->id,
-                        'keterangan'  => "Bahan: {$mat['nama_bahan']} (Qty: {$cleanQtyStr}{$satuanStr})",
+                        'keterangan'  => "Bahan: {$mat['nama_bahan']} (Qty: {$cleanQtyStr}{$satuanStr}{$hargaStr})",
                         'nominal'     => $itemMatNominal,
                     ]);
                 }
@@ -2706,9 +2725,10 @@ class SpkController extends Controller
 
             if ($spkItem) {
                 $cleanQtyStr = ($qtyBahan == (int)$qtyBahan) ? (int)$qtyBahan : (float)$qtyBahan;
+                $hargaStr = $hargaBahan > 0 ? " @ Rp " . number_format($hargaBahan, 0, ',', '.') : "";
                 SpkItemExtra::create([
                     'spk_item_id' => $spkItem->id,
-                    'keterangan'  => "Bahan: {$rawNama} (Qty: {$cleanQtyStr})",
+                    'keterangan'  => "Bahan: {$rawNama} (Qty: {$cleanQtyStr}{$hargaStr})",
                     'nominal'     => $subtotal,
                 ]);
             }
