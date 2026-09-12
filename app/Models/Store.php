@@ -13,6 +13,7 @@ class Store extends Model
         'tenant_id',
         'channel_id',
         'store_name',
+        'logo_path',
         'marketplace_store_id',
         'shop_cipher',
         'access_token',
@@ -60,6 +61,14 @@ class Store extends Model
     public function isTokenExpired(): bool
     {
         return $this->token_expires_at && $this->token_expires_at->isPast();
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        if ($this->logo_path) {
+            return asset('storage/' . $this->logo_path);
+        }
+        return null;
     }
 
     /**

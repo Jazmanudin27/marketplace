@@ -20,7 +20,7 @@
                         <h5 class="fw-bold mb-0 text-dark">Edit Detail Toko</h5>
                     </div>
 
-                    <form id="edit-store-form" action="{{ route('stores.update', $store) }}" method="POST">
+                    <form id="edit-store-form" action="{{ route('stores.update', $store) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
 
@@ -31,6 +31,37 @@
                                 <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-plug"></i></span>
                                 <input type="text" class="form-control bg-light border-start-0" value="{{ $store->channel->name }}" disabled>
                             </div>
+                        </div>
+
+                        <!-- Logo Toko -->
+                        <div class="mb-3">
+                            <label for="logo" class="form-label fw-semibold small text-muted">Logo Toko</label>
+                            <div class="d-flex align-items-center gap-3">
+                                @if($store->logo_url)
+                                    <div class="position-relative flex-shrink-0">
+                                        <img src="{{ $store->logo_url }}" alt="{{ $store->store_name }}" class="rounded-3 border shadow-sm" style="width: 54px; height: 54px; object-fit: cover;">
+                                    </div>
+                                @else
+                                    <div class="rounded-3 border bg-light d-flex align-items-center justify-content-center text-muted flex-shrink-0" style="width: 54px; height: 54px;">
+                                        <i class="fas fa-store fs-4"></i>
+                                    </div>
+                                @endif
+                                <div class="flex-grow-1">
+                                    <input type="file" id="logo" name="logo" class="form-control @error('logo') is-invalid @enderror" accept="image/*">
+                                    <div class="form-text small">Upload logo khusus toko (JPG, PNG, WEBP, GIF, SVG, Maks 2MB).</div>
+                                    @if($store->logo_path)
+                                        <div class="form-check mt-1">
+                                            <input class="form-check-input" type="checkbox" name="remove_logo" id="remove_logo" value="1">
+                                            <label class="form-check-label text-danger small" for="remove_logo">
+                                                Hapus logo toko saat ini
+                                            </label>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                            @error('logo')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <!-- Nama Toko -->

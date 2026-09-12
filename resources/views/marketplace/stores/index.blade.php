@@ -107,9 +107,13 @@
                                     };
 
                                 @endphp
-                                <div class="rounded-3 d-flex align-items-center justify-content-center {{ $logoBgClass }} shadow-sm" style="width: 46px; height: 46px; font-size: 1.25rem;">
-                                    <i class="{{ $iconClass }}"></i>
-                                </div>
+                                @if ($store->logo_url)
+                                    <img src="{{ $store->logo_url }}" alt="{{ $store->store_name }}" class="rounded-3 border shadow-sm flex-shrink-0" style="width: 46px; height: 46px; object-fit: cover;">
+                                @else
+                                    <div class="rounded-3 d-flex align-items-center justify-content-center {{ $logoBgClass }} shadow-sm flex-shrink-0" style="width: 46px; height: 46px; font-size: 1.25rem;">
+                                        <i class="{{ $iconClass }}"></i>
+                                    </div>
+                                @endif
                                 <div>
                                     <h6 class="fw-bold mb-0 text-dark" style="font-size:0.9rem;">{{ $store->channel->name }}</h6>
                                     <span class="text-muted" style="font-size:0.7rem;">Official Channel</span>

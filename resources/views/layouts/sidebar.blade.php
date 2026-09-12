@@ -489,15 +489,15 @@
                 <div class="collapse {{ $isMarketingActive ? 'show' : '' }}" id="collapseMarketing">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
 
-                        @can('spks.index')
-                            <a href="{{ route('spks.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('spks.index') || request()->routeIs('spks.create') || request()->routeIs('spks.show') ? 'active text-white' : 'text-secondary' }}">Surat Perintah Kerja (SPK)</a>
-                        @endcan
-
                         @can('offline-sales.index')
                             <a href="{{ route('offline_sales.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('offline_sales.*') ? 'active text-white' : 'text-secondary' }}">Penjualan
                                 Offline</a>
+                        @endcan
+
+                        @can('spks.index')
+                            <a href="{{ route('spks.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('spks.index') || request()->routeIs('spks.create') || request()->routeIs('spks.show') ? 'active text-white' : 'text-secondary' }}">Surat Perintah Kerja (SPK)</a>
                         @endcan
 {{-- Inbox Chat disembunyikan sementara --}}
                         

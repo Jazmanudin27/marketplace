@@ -7,6 +7,7 @@ use App\Models\Channel;
 use App\Models\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class StoreController extends Controller
 {
@@ -34,10 +35,23 @@ class StoreController extends Controller
             'channel_id'           => 'required|exists:channels,id',
             'store_name'           => 'required|string|max:255',
             'marketplace_store_id' => 'required|string|max:100',
+            'logo'                 => 'nullable|image|mimes:jpeg,png,jpg,webp,gif,svg|max:2048',
         ]);
 
         $tenantId = Auth::user()->tenant_id ?? 1;
         $marketStoreId = trim($data['marketplace_store_id']);
+
+        $updateData = [
+            'store_name'       => $data['store_name'],
+            'status'           => 'connected',
+            'access_token'     => 'manual_access_token_' . time(),
+            'refresh_token'    => 'manual_refresh_token_' . time(),
+            'token_expires_at' => now()->addYears(5),
+        ];
+
+        if ($request->hasFile('logo')) {
+            $updateData['logo_path'] = $request->file('logo')->store('store-logos', 'public');
+        }
 
         $store = Store::updateOrCreate(
             [
@@ -45,13 +59,7 @@ class StoreController extends Controller
                 'channel_id'           => $data['channel_id'],
                 'marketplace_store_id' => $marketStoreId,
             ],
-            [
-                'store_name'       => $data['store_name'],
-                'status'           => 'connected',
-                'access_token'     => 'manual_access_token_' . time(),
-                'refresh_token'    => 'manual_refresh_token_' . time(),
-                'token_expires_at' => now()->addYears(5),
-            ]
+            $updateData
         );
 
         return redirect()->route('stores.index')->with('success', "✅ Toko \"{$store->store_name}\" berhasil disimpan ke ERP!");
@@ -72,7 +80,21 @@ class StoreController extends Controller
             'store_name' => 'required|string|max:255',
             'status'     => 'required|in:connected,disconnected',
             'shipping_handover_method' => 'required|in:DROP_OFF,PICK_UP',
+            'logo'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif,svg|max:2048',
         ]);
+
+        if ($request->boolean('remove_logo')) {
+            if ($store->logo_path && Storage::disk('public')->exists($store->logo_path)) {
+                Storage::disk('public')->delete($store->logo_path);
+            }
+            $data['logo_path'] = null;
+        } elseif ($request->hasFile('logo')) {
+            if ($store->logo_path && Storage::disk('public')->exists($store->logo_path)) {
+                Storage::disk('public')->delete($store->logo_path);
+            }
+            $data['logo_path'] = $request->file('logo')->store('store-logos', 'public');
+        }
+
         $store->update($data);
         return redirect()->route('stores.index')->with('success', 'Toko berhasil diperbarui.');
     }

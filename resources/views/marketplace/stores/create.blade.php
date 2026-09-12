@@ -159,10 +159,10 @@
                             </div>
 
                             <div class="collapse show mt-3" id="manualStoreForm">
-                                <form action="{{ route('stores.store') }}" method="POST">
+                                <form action="{{ route('stores.store') }}" method="POST" enctype="multipart/form-data">
                                     @csrf
                                     <div class="row g-3">
-                                        <div class="col-12 col-md-4">
+                                        <div class="col-12 col-md-3">
                                             <label for="channel_id" class="form-label fw-bold small text-dark">Channel / Marketplace</label>
                                             <select name="channel_id" id="channel_id" class="form-select form-select-sm" required>
                                                 <option value="">-- Pilih Channel --</option>
@@ -171,13 +171,17 @@
                                                 @endforeach
                                             </select>
                                         </div>
-                                        <div class="col-12 col-md-4">
+                                        <div class="col-12 col-md-3">
                                             <label for="store_name" class="form-label fw-bold small text-dark">Nama Toko</label>
                                             <input type="text" name="store_name" id="store_name" class="form-control form-control-sm" placeholder="Contoh: Nusantara Seragam Sekolah" required>
                                         </div>
-                                        <div class="col-12 col-md-4">
+                                        <div class="col-12 col-md-3">
                                             <label for="marketplace_store_id" class="form-label fw-bold small text-dark">Shop ID / Username Toko</label>
                                             <input type="text" name="marketplace_store_id" id="marketplace_store_id" class="form-control form-control-sm" placeholder="Contoh: 2036279 atau shop_shopee_01" required>
+                                        </div>
+                                        <div class="col-12 col-md-3">
+                                            <label for="logo" class="form-label fw-bold small text-dark">Logo Toko (Opsional)</label>
+                                            <input type="file" name="logo" id="logo" class="form-control form-control-sm" accept="image/*">
                                         </div>
                                     </div>
                                     <div class="mt-3 text-end">
