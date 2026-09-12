@@ -5,7 +5,7 @@
     <title>Cetak Label Stiker Kemasan - SPK #{{ $spk->no_spk }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 
     <style>
         * {
@@ -71,7 +71,7 @@
             break-inside: avoid;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
         }
 
@@ -97,37 +97,10 @@
             text-transform: uppercase;
         }
 
-        .sticker-body {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .qr-wrapper {
-            width: 105px;
-            height: 105px;
-            flex-shrink: 0;
-            background: #ffffff;
-            padding: 3px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .qr-wrapper img, .qr-wrapper canvas {
-            width: 100% !important;
-            height: 100% !important;
-            display: block;
-        }
-
-        .product-info {
-            flex-grow: 1;
-            min-width: 0;
+        .product-info-row {
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            height: 105px;
+            gap: 2px;
         }
 
         .product-name {
@@ -147,14 +120,31 @@
             color: #2563eb;
             font-weight: 700;
             word-break: break-all;
-            margin-top: 2px;
         }
 
-        .size-container {
+        .barcode-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2px 0;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+
+        .barcode-svg {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .sticker-footer {
             display: flex;
             align-items: flex-end;
             justify-content: space-between;
             margin-top: auto;
+            padding-top: 2px;
         }
 
         .size-badge {
@@ -166,7 +156,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-width: 55px;
+            min-width: 60px;
         }
 
         .size-label {
@@ -179,7 +169,7 @@
         }
 
         .size-value {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 900;
             color: #ffffff;
             line-height: 1.1;
@@ -227,10 +217,10 @@
     <div class="no-print-bar">
         <div>
             <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">
-                🏷️ Label Stiker Kemasan SPK #{{ $spk->no_spk }}
+                🏷️ Label Stiker Kemasan (1D Barcode) — SPK #{{ $spk->no_spk }}
             </h3>
             <p style="font-size: 12px; color: #64748b; margin: 0;">
-                Cetak label stiker untuk ditempelkan pada kemasan pakaian sebelum di-scan saat penerimaan.
+                Cetak label stiker barcode 1D (Code 128) untuk ditempelkan pada kemasan pakaian sebelum di-scan.
             </p>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
@@ -245,40 +235,32 @@
         @foreach($spk->items as $item)
             @php
                 $skuDisplay = $item->sku ?: ($item->masterProduct->sku ?? ('ITEM-' . $item->id));
-                $qrData = [
-                    'spk_id'      => $spk->id,
-                    'no_spk'      => $spk->no_spk,
-                    'no_produksi' => $spk->no_produksi,
-                    'item_id'     => $item->id,
-                    'sku'         => $skuDisplay,
-                    'ukuran'      => $item->ukuran ?: '',
-                ];
+                $barcodeValue = 'SPK-' . $spk->id . '-ITEM-' . $item->id;
                 $repeatQty = max(1, (int) $item->quantity);
             @endphp
 
             @for($i = 1; $i <= $repeatQty; $i++)
                 <div class="sticker-card">
                     <div class="sticker-header">
-                        <span class="spk-num">{{ $spk->no_spk }}</span>
+                        <span class="spk-num">SPK #{{ $spk->no_spk }}</span>
                         <span class="client-name">{{ \Illuminate\Support\Str::limit($spk->pemesan ?: 'GUDANG', 16) }}</span>
                     </div>
 
-                    <div class="sticker-body">
-                        <div class="qr-wrapper" id="qr-box-{{ $item->id }}-{{ $i }}"></div>
-                        <div class="product-info">
-                            <div>
-                                <div class="product-name" title="{{ $item->nama_produk }}">{{ $item->nama_produk }}</div>
-                                <div class="sku-tag">{{ $skuDisplay }}</div>
-                            </div>
-                            
-                            <div class="size-container">
-                                <div class="size-badge">
-                                    <span class="size-label">SIZE</span>
-                                    <span class="size-value">{{ $item->ukuran ?: 'ALL' }}</span>
-                                </div>
-                                <span class="item-count-badge">#{{ $i }}/{{ $repeatQty }}</span>
-                            </div>
+                    <div class="product-info-row">
+                        <div class="product-name" title="{{ $item->nama_produk }}">{{ $item->nama_produk }}</div>
+                        <div class="sku-tag">SKU: {{ $skuDisplay }}</div>
+                    </div>
+
+                    <div class="barcode-container">
+                        <svg class="barcode-svg" id="barcode-{{ $item->id }}-{{ $i }}"></svg>
+                    </div>
+
+                    <div class="sticker-footer">
+                        <div class="size-badge">
+                            <span class="size-label">SIZE</span>
+                            <span class="size-value">{{ $item->ukuran ?: 'ALL' }}</span>
                         </div>
+                        <span class="item-count-badge">#{{ $i }}/{{ $repeatQty }} Pcs</span>
                     </div>
                 </div>
             @endfor
@@ -289,27 +271,23 @@
         document.addEventListener("DOMContentLoaded", function() {
             @foreach($spk->items as $item)
                 @php
-                    $skuDisplay = $item->sku ?: ($item->masterProduct->sku ?? ('ITEM-' . $item->id));
-                    $qrData = [
-                        'spk_id'      => $spk->id,
-                        'no_spk'      => $spk->no_spk,
-                        'no_produksi' => $spk->no_produksi,
-                        'item_id'     => $item->id,
-                        'sku'         => $skuDisplay,
-                        'ukuran'      => $item->ukuran ?: '',
-                    ];
+                    $barcodeValue = 'SPK-' . $spk->id . '-ITEM-' . $item->id;
                     $repeatQty = max(1, (int) $item->quantity);
                 @endphp
                 @for($i = 1; $i <= $repeatQty; $i++)
                     try {
-                        new QRCode(document.getElementById("qr-box-{{ $item->id }}-{{ $i }}"), {
-                            text: JSON.stringify(@json($qrData)),
-                            width: 105,
-                            height: 105,
-                            correctLevel: QRCode.CorrectLevel.M
+                        JsBarcode("#barcode-{{ $item->id }}-{{ $i }}", "{{ $barcodeValue }}", {
+                            format: "CODE128",
+                            width: 1.5,
+                            height: 40,
+                            displayValue: true,
+                            fontSize: 10,
+                            fontOptions: "bold",
+                            font: "JetBrains Mono",
+                            margin: 2
                         });
                     } catch(e) {
-                        console.error("QR Code generation error: ", e);
+                        console.error("Barcode generation error: ", e);
                     }
                 @endfor
             @endforeach
