@@ -20,7 +20,7 @@ class GoodsReceiptController extends Controller
     public function index(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
-        $query = GoodsReceipt::with(['supplier', 'department', 'purchaseOrder'])
+        $query = GoodsReceipt::with(['supplier', 'department', 'purchaseOrder', 'items.inventoryItem', 'items.masterProduct', 'createdBy', 'approvedBy', 'payable'])
             ->where('tenant_id', $tenantId)
             ->orderByDesc('receipt_date');
 

@@ -106,10 +106,9 @@
                             </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-1">
-                                    <a href="{{ route('pembelian.goods_issue.show', $row) }}"
-                                        class="btn btn-xs btn-outline-success py-1 px-2 fw-semibold" title="Detail">
+                                    <button type="button" class="btn btn-xs btn-outline-success py-1 px-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#showModal-{{ $row->id }}" title="Detail">
                                         <i class="fas fa-eye me-1"></i> Detail
-                                    </a>
+                                    </button>
                                     @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin')
                                         <button type="button" class="btn btn-xs btn-outline-warning text-dark fw-semibold py-1 px-2" data-bs-toggle="modal" data-bs-target="#editModal-{{ $row->id }}" title="Edit">
                                             <i class="fas fa-edit me-1"></i> Edit
@@ -122,6 +121,126 @@
                                             @csrf
                                             @method('DELETE')
                                         </form>
+
+                                        {{-- Modal Detail Transaksi Pengeluaran --}}
+                                        <div class="modal fade text-start" id="showModal-{{ $row->id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                                <div class="modal-content border-0 shadow-lg rounded-3">
+                                                    <div class="modal-header text-white py-3 px-4" style="background:linear-gradient(135deg,#10b981,#059669)">
+                                                        <h6 class="modal-title fw-bold mb-0 d-flex align-items-center gap-2">
+                                                            <i class="fas fa-info-circle"></i> Detail Pengeluaran Barang #{{ $row->mutation_number }}
+                                                        </h6>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body p-4">
+                                                        <div class="row g-3 mb-4">
+                                                            <div class="col-md-6">
+                                                                <div class="p-3 bg-light rounded-3 border">
+                                                                    <small class="text-muted d-block fw-semibold mb-1">No. Transaksi</small>
+                                                                    <span class="font-monospace fw-bold text-success fs-6">{{ $row->mutation_number }}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <div class="p-3 bg-light rounded-3 border">
+                                                                    <small class="text-muted d-block fw-semibold mb-1">Tanggal & Status</small>
+                                                                    <div class="d-flex justify-content-between align-items-center">
+                                                                        <span class="fw-bold text-dark">{{ $row->mutation_date ? $row->mutation_date->format('d F Y') : '—' }}</span>
+                                                                        <span class="badge bg-success text-uppercase">Approved</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <div class="p-3 bg-light rounded-3 border">
+                                                                    <small class="text-muted d-block fw-semibold mb-1">Tujuan Pengeluaran</small>
+                                                                    <span class="fw-bold text-dark">
+                                                                        {{ $row->toDepartment ? $row->toDepartment->name : 'Lain-lain' }}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <div class="p-3 bg-light rounded-3 border">
+                                                                    <small class="text-muted d-block fw-semibold mb-1">Operator Pencatat</small>
+                                                                    <span class="fw-bold text-dark">{{ $row->createdBy->name ?? 'System' }}</span>
+                                                                </div>
+                                                            </div>
+                                                            @if($row->spk)
+                                                            <div class="col-12">
+                                                                <div class="p-3 bg-primary-subtle border border-primary-subtle rounded-3">
+                                                                    <small class="text-primary fw-bold d-block mb-1"><i class="fas fa-link me-1"></i> Terhubung dengan SPK</small>
+                                                                    <a href="{{ route('spks.show', $row->spk) }}" class="btn btn-sm btn-primary fw-bold">
+                                                                        <i class="fas fa-file-alt me-1"></i> Buka SPK #{{ $row->spk->no_spk }}
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                            @endif
+                                                            <div class="col-12">
+                                                                <div class="p-3 bg-light rounded-3 border">
+                                                                    <small class="text-muted d-block fw-semibold mb-1">Catatan / Alasan</small>
+                                                                    <span class="small text-muted">{{ $row->notes ?: 'Tidak ada catatan.' }}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <h6 class="fw-bold text-dark mb-2"><i class="fas fa-boxes me-2 text-success"></i>Daftar Barang yang Dikeluarkan ({{ number_format($row->items->count()) }} Item)</h6>
+                                                        <div class="table-responsive border rounded-2">
+                                                            <table class="table table-sm table-hover align-middle mb-0" style="font-size:12px;">
+                                                                <thead class="table-light">
+                                                                    <tr class="text-muted text-uppercase">
+                                                                        <th class="py-2 px-3">Nama Barang</th>
+                                                                        <th class="text-center">Tipe</th>
+                                                                        <th class="text-center">Qty Keluar</th>
+                                                                        <th class="text-end">Harga Satuan</th>
+                                                                        <th class="text-end px-3">Subtotal</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @php $grandTotal = 0; @endphp
+                                                                    @foreach($row->items as $item)
+                                                                        @php
+                                                                            $subtotal = $item->quantity * $item->unit_price;
+                                                                            $grandTotal += $subtotal;
+                                                                        @endphp
+                                                                        <tr>
+                                                                            <td class="px-3 py-2">
+                                                                                <div class="fw-bold text-dark">{{ $item->inventoryItem->name ?? '—' }}</div>
+                                                                                @if(!empty($item->notes))
+                                                                                    <small class="text-muted">{{ $item->notes }}</small>
+                                                                                @endif
+                                                                            </td>
+                                                                            <td class="text-center">
+                                                                                <span class="badge bg-secondary rounded-pill" style="font-size:10px;">
+                                                                                    {{ ucfirst($item->inventoryItem->type ?? 'raw') }}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td class="text-center fw-bold text-danger">
+                                                                                -{{ number_format($item->quantity) }} {{ $item->inventoryItem->unit ?? 'pcs' }}
+                                                                            </td>
+                                                                            <td class="font-monospace text-end text-muted">
+                                                                                Rp {{ number_format($item->unit_price, 0, ',', '.') }}
+                                                                            </td>
+                                                                            <td class="font-monospace text-end fw-bold text-dark px-3">
+                                                                                Rp {{ number_format($subtotal, 0, ',', '.') }}
+                                                                            </td>
+                                                                        </tr>
+                                                                    @endforeach
+                                                                </tbody>
+                                                                <tfoot class="table-light">
+                                                                    <tr>
+                                                                        <td colspan="4" class="text-end fw-bold px-3 py-2">Total Nilai Pengeluaran</td>
+                                                                        <td class="font-monospace text-end fw-bold text-danger px-3 py-2">
+                                                                            Rp {{ number_format($grandTotal, 0, ',', '.') }}
+                                                                        </td>
+                                                                    </tr>
+                                                                </tfoot>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer bg-light py-2 px-3">
+                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
 
                                         {{-- Modal Edit Transaksi --}}
                                         <div class="modal fade text-start" id="editModal-{{ $row->id }}" tabindex="-1" aria-hidden="true">

@@ -131,10 +131,148 @@
                             </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-1">
-                                    <a href="{{ route('goods_receipts.show', $receipt) }}"
-                                        class="btn btn-info btn-sm text-white" title="Detail">
+                                    <button type="button" class="btn btn-info btn-sm text-white" data-bs-toggle="modal" data-bs-target="#showReceiptModal-{{ $receipt->id }}" title="Detail">
                                         <i class="fas fa-eye"></i>
-                                    </a>
+                                    </button>
+
+                                    {{-- Modal Detail Penerimaan Barang --}}
+                                    <div class="modal fade text-start" id="showReceiptModal-{{ $receipt->id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                                            <div class="modal-content border-0 shadow-lg rounded-3">
+                                                <div class="modal-header text-white py-3 px-4" style="background:linear-gradient(135deg,#10b981,#059669)">
+                                                    <h6 class="modal-title fw-bold mb-0 d-flex align-items-center gap-2">
+                                                        <i class="fas fa-truck"></i> Detail Penerimaan Barang #{{ $receipt->receipt_number }}
+                                                    </h6>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body p-4">
+                                                    <div class="row g-3 mb-4">
+                                                        <div class="col-md-6">
+                                                            <div class="p-3 bg-light rounded-3 border">
+                                                                <small class="text-muted d-block fw-semibold mb-1">No. Penerimaan</small>
+                                                                <span class="font-monospace fw-bold text-success fs-6">{{ $receipt->receipt_number }}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="p-3 bg-light rounded-3 border">
+                                                                <small class="text-muted d-block fw-semibold mb-1">Tanggal & Status</small>
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <span class="fw-bold text-dark">{{ $receipt->receipt_date ? $receipt->receipt_date->format('d F Y') : '—' }}</span>
+                                                                    <span class="badge bg-{{ $receipt->status_badge }} text-uppercase">{{ $receipt->status_label }}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="p-3 bg-light rounded-3 border">
+                                                                <small class="text-muted d-block fw-semibold mb-1">Supplier / Toko</small>
+                                                                <span class="fw-bold text-dark">
+                                                                    {{ $receipt->supplier ? $receipt->supplier->name : '— (Toko Umum)' }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="p-3 bg-light rounded-3 border">
+                                                                <small class="text-muted d-block fw-semibold mb-1">Departemen Tujuan</small>
+                                                                <span class="fw-bold text-dark">
+                                                                    {{ $receipt->department ? $receipt->department->name : 'Umum' }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        @if($receipt->purchaseOrder)
+                                                        <div class="col-md-6">
+                                                            <div class="p-3 bg-primary-subtle border border-primary-subtle rounded-3">
+                                                                <small class="text-primary fw-bold d-block mb-1">PO Referensi</small>
+                                                                <span class="fw-bold text-primary">{{ $receipt->purchaseOrder->po_number }}</span>
+                                                            </div>
+                                                        </div>
+                                                        @endif
+                                                        <div class="col-md-{{ $receipt->purchaseOrder ? '6' : '12' }}">
+                                                            <div class="p-3 bg-light rounded-3 border">
+                                                                <small class="text-muted d-block fw-semibold mb-1">Operator / Petugas</small>
+                                                                <span class="fw-bold text-dark">{{ $receipt->createdBy->name ?? 'System' }}</span>
+                                                                @if($receipt->approvedBy)
+                                                                    <small class="text-muted d-block mt-1">Disetujui: <strong>{{ $receipt->approvedBy->name }}</strong> ({{ $receipt->approved_at ? $receipt->approved_at->format('d/m/Y H:i') : '' }})</small>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                        @if($receipt->notes)
+                                                        <div class="col-12">
+                                                            <div class="p-3 bg-light rounded-3 border">
+                                                                <small class="text-muted d-block fw-semibold mb-1">Catatan</small>
+                                                                <span class="small text-muted">{{ $receipt->notes }}</span>
+                                                            </div>
+                                                        </div>
+                                                        @endif
+                                                    </div>
+
+                                                    <h6 class="fw-bold text-dark mb-2"><i class="fas fa-boxes me-2 text-success"></i>Barang yang Diterima ({{ number_format($receipt->items->count()) }} Item)</h6>
+                                                    <div class="table-responsive border rounded-2 mb-3">
+                                                        <table class="table table-sm table-hover align-middle mb-0" style="font-size:12px;">
+                                                            <thead class="table-light">
+                                                                <tr class="text-muted text-uppercase">
+                                                                    <th class="py-2 px-3">Barang / SKU</th>
+                                                                    <th class="text-center">Tipe</th>
+                                                                    <th class="text-center">Qty Diterima</th>
+                                                                    <th class="text-end">Harga Satuan</th>
+                                                                    <th class="text-end px-3">Subtotal</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach($receipt->items as $item)
+                                                                    <tr>
+                                                                        <td class="px-3 py-2">
+                                                                            <div class="fw-bold text-dark">{{ $item->item_name }}</div>
+                                                                            <div class="font-monospace text-muted" style="font-size:11px;">{{ $item->item_sku }}</div>
+                                                                        </td>
+                                                                        <td class="text-center">
+                                                                            <span class="badge bg-secondary rounded-pill" style="font-size:10px;">
+                                                                                {{ ucfirst($item->inventoryItem->type ?? 'raw') }}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td class="text-center fw-bold text-success">
+                                                                            +{{ number_format($item->quantity) }} {{ $item->inventoryItem->unit ?? 'pcs' }}
+                                                                        </td>
+                                                                        <td class="font-monospace text-end text-muted">
+                                                                            Rp {{ number_format($item->unit_price, 0, ',', '.') }}
+                                                                        </td>
+                                                                        <td class="font-monospace text-end fw-bold text-dark px-3">
+                                                                            Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                                                                        </td>
+                                                                    </tr>
+                                                                @endforeach
+                                                            </tbody>
+                                                            <tfoot class="table-light">
+                                                                <tr>
+                                                                    <td colspan="4" class="text-end fw-bold px-3 py-2">TOTAL PENERIMAAN</td>
+                                                                    <td class="font-monospace text-end fw-bold text-success px-3 py-2">
+                                                                        Rp {{ number_format($receipt->total_amount, 0, ',', '.') }}
+                                                                    </td>
+                                                                </tr>
+                                                            </tfoot>
+                                                        </table>
+                                                    </div>
+
+                                                    @if($receipt->status === 'pending')
+                                                        <div class="alert alert-warning py-2 px-3 small d-flex justify-content-between align-items-center mb-0">
+                                                            <div>
+                                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                                                Barang belum masuk ke stok persediaan.
+                                                            </div>
+                                                            <form action="{{ route('goods_receipts.approve', $receipt) }}" method="POST" class="m-0">
+                                                                @csrf
+                                                                <button type="submit" class="btn btn-success btn-sm fw-bold px-3">
+                                                                    <i class="fas fa-check-circle me-1"></i> Setujui & Masukkan Stok
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                                <div class="modal-footer bg-light py-2 px-3">
+                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                     @if($receipt->status === 'pending')
                                         <a href="{{ route('goods_receipts.edit', $receipt) }}"
                                             class="btn btn-warning btn-sm text-white" title="Edit">
