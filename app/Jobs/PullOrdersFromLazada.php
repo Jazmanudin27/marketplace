@@ -136,6 +136,7 @@ class PullOrdersFromLazada implements ShouldQueue
                 'financial_breakdown' => $financialBreakdown,
                 'cancel_reason' => $cancelReason,
                 'cancelled_by' => $cancelledBy,
+                'payment_method' => $orderData['payment_method'] ?? (!empty($orderData['is_cod']) ? 'Cash on Delivery' : null),
             ]
         );
 

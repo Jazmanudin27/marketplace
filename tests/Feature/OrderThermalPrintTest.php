@@ -69,6 +69,49 @@ class OrderThermalPrintTest extends TestCase
         $response->assertSee('585062237481240338');
     }
 
+    public function test_single_order_print_correctly_identifies_cod_and_non_cod()
+    {
+        [$tenant, $user, $store] = $this->setupBaseData();
+
+        $codOrder = Order::create([
+            'tenant_id' => $tenant->id,
+            'store_id' => $store->id,
+            'order_marketplace_id' => 'ORDER-COD-101',
+            'order_date' => now(),
+            'tracking_number' => 'RESI-COD-101',
+            'courier' => 'J&T Express',
+            'buyer_name' => 'Budi COD',
+            'total_amount' => 150000,
+            'payment_method' => 'Cash on Delivery',
+            'order_status' => 'READY_TO_SHIP',
+        ]);
+
+        $nonCodOrder = Order::create([
+            'tenant_id' => $tenant->id,
+            'store_id' => $store->id,
+            'order_marketplace_id' => 'ORDER-NONCOD-102',
+            'order_date' => now(),
+            'tracking_number' => 'RESI-NONCOD-102',
+            'courier' => 'J&T Express',
+            'buyer_name' => 'Siti Non COD',
+            'total_amount' => 200000,
+            'payment_method' => 'Transfer Bank',
+            'order_status' => 'READY_TO_SHIP',
+        ]);
+
+        $this->assertTrue($codOrder->is_cod);
+        $this->assertFalse($nonCodOrder->is_cod);
+
+        $responseCod = $this->actingAs($user)->get(route('orders.print', $codOrder->id));
+        $responseCod->assertStatus(200);
+        $responseCod->assertSee('COD');
+        $responseCod->assertDontSee('NON-COD');
+
+        $responseNonCod = $this->actingAs($user)->get(route('orders.print', $nonCodOrder->id));
+        $responseNonCod->assertStatus(200);
+        $responseNonCod->assertSee('NON-COD');
+    }
+
     public function test_mass_print_auto_fetches_tracking_number_and_succeeds()
     {
         [$tenant, $user, $store] = $this->setupBaseData();

@@ -253,6 +253,44 @@ class Order extends Model
         };
     }
 
+    /**
+     * Accesor untuk mendeteksi apakah pesanan menggunakan sistem COD (Cash on Delivery).
+     */
+    public function getIsCodAttribute(): bool
+    {
+        // 1. Cek dari kolom payment_method pada tabel orders
+        if (!empty($this->payment_method)) {
+            $pm = strtolower((string)$this->payment_method);
+            if (str_contains($pm, 'cod') || str_contains($pm, 'cash on delivery') || str_contains($pm, 'bayar di tempat')) {
+                return true;
+            }
+        }
+
+        // 2. Cek dari array financial_breakdown
+        $fb = $this->financial_breakdown;
+        if (is_string($fb)) {
+            $fb = json_decode($fb, true) ?? [];
+        }
+
+        if (is_array($fb)) {
+            if (!empty($fb['is_cod']) || !empty($fb['is_cod_order'])) {
+                return true;
+            }
+
+            foreach (['payment_method', 'payment_method_name', 'payment_method_code', 'payment_type'] as $key) {
+                if (!empty($fb[$key])) {
+                    $pmStr = strtolower((string)$fb[$key]);
+                    if (str_contains($pmStr, 'cod') || str_contains($pmStr, 'cash on delivery') || str_contains($pmStr, 'bayar di tempat')) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+
     public function processStockDeduction(): void
     {
         $this->load('items');

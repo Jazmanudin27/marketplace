@@ -362,6 +362,7 @@ class PullOrdersFromShopee implements ShouldQueue
             'dropshipper_phone' => $dropshipperPhone,
             'cancel_reason' => $cancelReason,
             'cancelled_by' => $cancelledBy,
+            'payment_method' => $shopeeOrder['payment_method'] ?? null,
         ];
 
         // Proteksi Data Keuangan: Hanya update net_amount, marketplace_fee, dan financial_breakdown jika data belum RECONCILED

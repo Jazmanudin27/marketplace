@@ -464,10 +464,7 @@
         $sizeSummaryStr = !empty($sizeSummaryParts) ? implode(', ', array_unique($sizeSummaryParts)) : 'L';
 
         // COD Check
-        $isCod = false;
-        if ($order->financial_breakdown && isset($order->financial_breakdown['payment_method'])) {
-            $isCod = stripos($order->financial_breakdown['payment_method'], 'cod') !== false;
-        }
+        $isCod = (bool) $order->is_cod;
 
         // Sanitize shipping address from long trailing asterisks
         $rawAddress = $order->shipping_address ?? '';
