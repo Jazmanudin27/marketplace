@@ -319,6 +319,11 @@ class Spk extends Model
         return 'SPK-' . $today . '-' . sprintf('%04d', $count + 1);
     }
 
+    public function warehouseMutations(): HasMany
+    {
+        return $this->hasMany(WarehouseMutation::class);
+    }
+
     public static function generateNoProduksi()
     {
         $prefix = 'JN' . date('ym');

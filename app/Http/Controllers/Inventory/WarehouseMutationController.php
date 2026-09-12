@@ -311,13 +311,21 @@ class WarehouseMutationController extends Controller
     public function goodsIssueIndex(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
-        $query = WarehouseMutation::with(['items.inventoryItem', 'toDepartment'])
+        $query = WarehouseMutation::with(['items.inventoryItem', 'toDepartment', 'spk'])
             ->where('tenant_id', $tenantId)
             ->where('type', 'out')
             ->orderByDesc('mutation_date');
 
         if ($request->filled('search')) {
-            $query->where('mutation_number', 'like', '%' . $request->search . '%');
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('mutation_number', 'like', '%' . $search . '%')
+                  ->orWhere('notes', 'like', '%' . $search . '%')
+                  ->orWhereHas('spk', function ($sq) use ($search) {
+                      $sq->where('no_spk', 'like', '%' . $search . '%')
+                         ->orWhere('no_produksi', 'like', '%' . $search . '%');
+                  });
+            });
         }
         if ($request->filled('date_from')) {
             $query->whereDate('mutation_date', '>=', $request->date_from);
@@ -441,7 +449,7 @@ class WarehouseMutationController extends Controller
     public function goodsIssueShow(WarehouseMutation $warehouseMutation)
     {
         abort_unless($warehouseMutation->tenant_id === Auth::user()->tenant_id, 403);
-        $warehouseMutation->load(['items.inventoryItem', 'createdBy', 'toDepartment']);
+        $warehouseMutation->load(['items.inventoryItem', 'createdBy', 'toDepartment', 'spk']);
 
         return view('inventory.pembelian.goods_issue.show', compact('warehouseMutation'));
     }

@@ -90,6 +90,13 @@
                             </td>
                             <td class="small text-muted text-wrap" style="max-width: 300px;">
                                 {{ $row->notes ?: '—' }}
+                                @if($row->spk)
+                                    <div class="mt-1">
+                                        <a href="{{ route('spks.show', $row->spk) }}" class="badge bg-primary text-white text-decoration-none">
+                                            <i class="fas fa-file-alt me-1"></i> SPK #{{ $row->spk->no_spk }}
+                                        </a>
+                                    </div>
+                                @endif
                             </td>
                             <td class="text-center fw-bold text-dark small">
                                 {{ number_format($row->items->count()) }}

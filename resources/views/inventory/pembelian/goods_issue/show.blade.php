@@ -45,6 +45,14 @@
                     <label class="small text-muted fw-semibold d-block">Operator Pencatat</label>
                     <div class="fw-bold text-dark">{{ $warehouseMutation->createdBy->name ?? 'System' }}</div>
                 </div>
+                @if($warehouseMutation->spk)
+                <div class="mb-3">
+                    <label class="small text-muted fw-semibold d-block">Referensi SPK</label>
+                    <a href="{{ route('spks.show', $warehouseMutation->spk) }}" class="btn btn-sm btn-outline-primary fw-bold text-decoration-none py-1">
+                        <i class="fas fa-file-alt me-1"></i> SPK #{{ $warehouseMutation->spk->no_spk }}
+                    </a>
+                </div>
+                @endif
                 <div class="mb-0">
                     <label class="small text-muted fw-semibold d-block">Catatan / Alasan</label>
                     <div class="p-2 rounded bg-light small text-muted text-wrap">{{ $warehouseMutation->notes ?: 'Tidak ada catatan.' }}</div>

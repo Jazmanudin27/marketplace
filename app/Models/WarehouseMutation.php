@@ -13,6 +13,7 @@ class WarehouseMutation extends Model
         'mutation_number',
         'type', // in, out
         'goods_receipt_id',
+        'spk_id',
         'from_department_id',
         'to_department_id',
         'mutation_date',
@@ -33,6 +34,11 @@ class WarehouseMutation extends Model
     public function goodsReceipt(): BelongsTo
     {
         return $this->belongsTo(GoodsReceipt::class);
+    }
+
+    public function spk(): BelongsTo
+    {
+        return $this->belongsTo(Spk::class);
     }
 
     public function fromDepartment(): BelongsTo

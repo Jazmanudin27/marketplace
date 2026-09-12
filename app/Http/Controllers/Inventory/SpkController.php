@@ -15,6 +15,10 @@ use App\Models\ProductRecipeItem;
 use App\Models\SpkPayment;
 use App\Models\Expense;
 use App\Models\BankAccount;
+use App\Models\WarehouseMutation;
+use App\Models\WarehouseMutationItem;
+use App\Models\Department;
+use App\Models\StockMovement;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
@@ -723,6 +727,10 @@ class SpkController extends Controller
                         'nominal'     => $ex['nominal'],
                     ]);
                 }
+            }
+
+            if (!empty($globalBahanItems)) {
+                $this->syncSpkWarehouseMutation($spk, $globalBahanItems);
             }
 
             return $spk;
@@ -1580,6 +1588,9 @@ class SpkController extends Controller
                     null
                 );
             }
+
+            // Sync WarehouseMutation (Pengeluaran Barang) and deduct stock
+            $this->syncSpkWarehouseMutation($spk, $cleanBahanList);
         });
 
         return redirect()->route('spks.show', $spk)
@@ -1605,6 +1616,9 @@ class SpkController extends Controller
             $affectedNoPesanans = $spkList->pluck('no_pesanan')->filter()->unique();
 
             foreach ($spkList as $itemSpk) {
+                // Restore stock and delete associated WarehouseMutation
+                $this->syncSpkWarehouseMutation($itemSpk, []);
+
                 foreach ($itemSpk->items as $item) {
                     SpkItemExtra::where('spk_item_id', $item->id)->delete();
                     SpkItemProgres::where('spk_item_id', $item->id)->delete();
@@ -2739,6 +2753,168 @@ class SpkController extends Controller
         }
 
         return $totalHpp;
+    }
+
+    /**
+     * Synchronize SPK material usage with WarehouseMutation (Pengeluaran Barang)
+     * and deduct/adjust inventory stock automatically.
+     */
+    private function syncSpkWarehouseMutation(Spk $spk, array $cleanBahanList): void
+    {
+        $tenantId = $spk->tenant_id;
+        $userId   = Auth::id() ?: ($spk->penginput_id ?: 1);
+
+        // 1. Get Department ID for "Produksi"
+        $toDeptId = null;
+        $dept = Department::where('tenant_id', $tenantId)
+            ->where('name', 'Produksi')
+            ->first();
+        if (!$dept) {
+            $dept = Department::create([
+                'tenant_id' => $tenantId,
+                'name'      => 'Produksi',
+                'code'      => 'PRODUKSI',
+                'is_active' => true,
+            ]);
+        }
+        $toDeptId = $dept->id;
+
+        // 2. Find existing WarehouseMutation for this SPK
+        $existingMutation = WarehouseMutation::where('tenant_id', $tenantId)
+            ->where('spk_id', $spk->id)
+            ->with('items.inventoryItem')
+            ->first();
+
+        // If existing mutation found, restore old stocks before applying new items
+        if ($existingMutation) {
+            foreach ($existingMutation->items as $oldItem) {
+                if ($oldItem->inventoryItem && $oldItem->quantity > 0) {
+                    $invItem = $oldItem->inventoryItem;
+                    $invItem->increment('stock', $oldItem->quantity);
+                    $newStock = $invItem->fresh()->stock;
+
+                    StockMovement::create([
+                        'tenant_id'             => $tenantId,
+                        'inventory_item_id'     => $invItem->id,
+                        'warehouse_mutation_id' => $existingMutation->id,
+                        'user_id'               => $userId,
+                        'type'                  => 'in',
+                        'quantity'              => $oldItem->quantity,
+                        'reference'             => 'Revisi/Batal Pengeluaran Bahan Baku SPK #' . $spk->no_spk,
+                        'balance_after'         => $newStock,
+                    ]);
+                }
+            }
+            $existingMutation->items()->delete();
+        }
+
+        // Filter valid bahan entries with qty > 0
+        $validBahanList = [];
+        foreach ($cleanBahanList as $b) {
+            $rawNama = trim($b['nama_bahan'] ?? ($b['keterangan'] ?? ''));
+            if (empty($rawNama)) continue;
+
+            $qtyBahan = floatval($b['qty_bahan'] ?? ($b['qty'] ?? 0));
+            if ($qtyBahan <= 0) continue;
+
+            $validBahanList[] = [
+                'nama_bahan' => $rawNama,
+                'qty_bahan'  => $qtyBahan,
+                'harga'      => floatval($b['harga'] ?? ($b['nominal'] ?? 0)),
+                'subtotal'   => floatval($b['subtotal'] ?? 0),
+            ];
+        }
+
+        // If no materials, delete existing mutation if it exists and return
+        if (empty($validBahanList)) {
+            if ($existingMutation) {
+                $existingMutation->delete();
+            }
+            return;
+        }
+
+        // 3. Create or update WarehouseMutation
+        if (!$existingMutation) {
+            $mutationNumber = WarehouseMutation::generateMutationNumber('out');
+            $mutation = WarehouseMutation::create([
+                'tenant_id'       => $tenantId,
+                'spk_id'          => $spk->id,
+                'mutation_number' => $mutationNumber,
+                'type'            => 'out',
+                'to_department_id'=> $toDeptId,
+                'mutation_date'   => $spk->tanggal ?: date('Y-m-d'),
+                'status'          => 'approved',
+                'notes'           => 'Pengeluaran Bahan Baku SPK #' . $spk->no_spk,
+                'created_by'      => $userId,
+            ]);
+        } else {
+            $mutation = $existingMutation;
+            $mutation->update([
+                'to_department_id' => $toDeptId,
+                'mutation_date'    => $spk->tanggal ?: date('Y-m-d'),
+                'notes'            => 'Pengeluaran Bahan Baku SPK #' . $spk->no_spk,
+            ]);
+        }
+
+        // 4. Create mutation items and deduct stock
+        foreach ($validBahanList as $mat) {
+            $cleanName = $mat['nama_bahan'];
+            $extractedUnit = 'pcs';
+            if (preg_match('/^(.*?)\s*\((.*?)\)$/', $mat['nama_bahan'], $m)) {
+                $cleanName = trim($m[1]);
+                $extractedUnit = trim($m[2]);
+            }
+
+            // Find matching InventoryItem
+            $invItem = InventoryItem::where('tenant_id', $tenantId)
+                ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($cleanName))])
+                ->first();
+
+            if (!$invItem) {
+                $invItem = InventoryItem::where('tenant_id', $tenantId)
+                    ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($mat['nama_bahan']))])
+                    ->first();
+            }
+
+            if (!$invItem) {
+                // If not found, create new raw inventory item
+                $skuCode = 'INV-' . strtoupper(Str::random(6));
+                $invItem = InventoryItem::create([
+                    'tenant_id'  => $tenantId,
+                    'sku'        => $skuCode,
+                    'name'       => $cleanName,
+                    'type'       => 'raw',
+                    'unit'       => $extractedUnit,
+                    'stock'      => 0,
+                    'min_stock'  => 0,
+                    'cost_price' => $mat['harga'],
+                    'is_active'  => true,
+                ]);
+            }
+
+            $qtyDeduct = max(1, (int) round($mat['qty_bahan']));
+
+            $mutation->items()->create([
+                'inventory_item_id' => $invItem->id,
+                'quantity'          => $qtyDeduct,
+                'unit_price'        => $mat['harga'] ?: ($invItem->cost_price ?: 0),
+                'notes'             => 'Dialokasikan untuk SPK #' . $spk->no_spk,
+            ]);
+
+            $invItem->decrement('stock', $qtyDeduct);
+            $newStock = $invItem->fresh()->stock;
+
+            StockMovement::create([
+                'tenant_id'             => $tenantId,
+                'inventory_item_id'     => $invItem->id,
+                'warehouse_mutation_id' => $mutation->id,
+                'user_id'               => $userId,
+                'type'                  => 'out',
+                'quantity'              => -$qtyDeduct,
+                'reference'             => 'Pengeluaran Bahan Baku SPK #' . $spk->no_spk,
+                'balance_after'         => $newStock,
+            ]);
+        }
     }
 
     /**

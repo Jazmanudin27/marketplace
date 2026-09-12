@@ -338,7 +338,6 @@
         @if (auth()->user()->isSuperAdmin() ||
                 in_array(auth()->user()->role, ['admin', 'owner']) ||
                 auth()->user()->hasAnyPermission([
-                        'purchase-orders.index',
                         'goods-receipts.index',
                         'goods-issues.index',
                         'purchase-returns.index',
@@ -356,11 +355,6 @@
                 </a>
                 <div class="collapse {{ $isPembelianActive ? 'show' : '' }}" id="collapsePembelian">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @can('purchase-orders.index')
-                            <a href="{{ route('purchase_orders.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('purchase_orders.*') && !request()->routeIs('purchase_orders.report') ? 'active text-white' : 'text-secondary' }}">Purchase
-                                Order</a>
-                        @endcan
                         @can('goods-receipts.index')
                             <a href="{{ route('goods_receipts.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('goods_receipts.*') ? 'active text-white' : 'text-secondary' }}">Penerimaan
