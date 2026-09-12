@@ -144,8 +144,44 @@
                                     </a>
                                 </div>
                             </div>
-                        </div>
+                        {{-- MANUAL STORE ADDITION --}}
+                        <div class="card border rounded-3 p-3 bg-light">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0"><i class="fas fa-edit me-1 text-primary"></i> Tambah Toko Secara Manual</h6>
+                                    <small class="text-muted">Gunakan opsi ini jika Anda ingin mendaftarkan toko secara langsung ke ERP.</small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#manualStoreForm">
+                                    <i class="fas fa-plus me-1"></i> Form Manual
+                                </button>
+                            </div>
 
+                            <div class="collapse mt-3" id="manualStoreForm">
+                                <form action="{{ route('stores.store') }}" method="POST">
+                                    @csrf
+                                    <div class="mb-3">
+                                        <label for="channel_id" class="form-label fw-bold small text-dark">Channel / Marketplace</label>
+                                        <select name="channel_id" id="channel_id" class="form-select form-select-sm" required>
+                                            <option value="">-- Pilih Channel --</option>
+                                            @foreach($channels as $c)
+                                                <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="store_name" class="form-label fw-bold small text-dark">Nama Toko</label>
+                                        <input type="text" name="store_name" id="store_name" class="form-select-sm form-control" placeholder="Contoh: Toko Shopee Official" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="marketplace_store_id" class="form-label fw-bold small text-dark">Marketplace Shop ID / Username Toko</label>
+                                        <input type="text" name="marketplace_store_id" id="marketplace_store_id" class="form-select-sm form-control" placeholder="Contoh: 123456789 atau shop_username" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold rounded-3">
+                                        <i class="fas fa-save me-1"></i> Simpan Toko Ke ERP
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
 
                     </div>
 
@@ -153,12 +189,10 @@
                     <div class="alert alert-info border-0 shadow-sm d-flex gap-3 p-3 mt-4 rounded-3" role="alert" style="background-color: rgba(13, 110, 253, 0.05);">
                         <i class="fas fa-info-circle fs-5 text-primary mt-0.5 flex-shrink-0"></i>
                         <div>
-                            <h6 class="fw-bold text-dark mb-1" style="font-size: 0.88rem;">Bagaimana cara kerja koneksi otomatis?</h6>
+                            <h6 class="fw-bold text-dark mb-1" style="font-size: 0.88rem;">Bagaimana cara kerja koneksi toko?</h6>
                             <ol class="text-muted mb-0 ps-3 small" style="line-height: 1.6;">
-                               <li>Pilih salah satu platform marketplace di atas lalu klik <strong>Hubungkan</strong>.</li>
-                               <li>Sistem akan mengarahkan Anda ke portal otorisasi resmi penjual marketplace secara aman.</li>
-                               <li>Masuk ke akun toko Anda dan setujui izin sinkronisasi data.</li>
-                               <li>Setelah disetujui, Anda akan otomatis dialihkan kembali ke ERP ini dengan koneksi aktif.</li>
+                               <li>Pilih platform marketplace di atas lalu klik <strong>Hubungkan</strong> untuk otorisasi otomatis, atau gunakan <strong>Form Manual</strong> jika ingin memasukkan ID toko langsung.</li>
+                               <li>Setelah terhubung, Anda akan dialihkan kembali ke halaman daftar toko dengan status terhubung (Connected).</li>
                             </ol>
                         </div>
                     </div>

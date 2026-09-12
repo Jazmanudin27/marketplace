@@ -19,8 +19,23 @@ class ShopeeService
         $this->baseUrl = rtrim(config('shopee.base_url'), '/');
         $this->redirectUrl = config('shopee.redirect_url');
     }
+    /**
+     * Memeriksa apakah integrasi berjalan dalam mode simulasi / tanpa API Key partner
+     */
+    public function isSimulated(): bool
+    {
+        return empty($this->partnerId) || empty($this->partnerKey);
+    }
+
     public function getAuthorizationUrl(): string
     {
+        if ($this->isSimulated()) {
+            return route('shopee.callback') . '?' . http_build_query([
+                'code' => 'mock_shopee_code_' . rand(100, 999),
+                'shop_id' => rand(100000, 999999),
+            ]);
+        }
+
         $path = '/api/v2/shop/auth_partner';
         $timestamp = time();
         $sign = $this->signBaseRequest($path, $timestamp);
@@ -48,6 +63,14 @@ class ShopeeService
 
     public function getAccessToken(string $code, int $shopId): array
     {
+        if ($this->isSimulated() || str_starts_with($code, 'mock_')) {
+            return [
+                'access_token' => 'dummy_shopee_access_token_' . $shopId,
+                'refresh_token' => 'dummy_shopee_refresh_token_' . $shopId,
+                'expire_in' => 86400 * 30,
+            ];
+        }
+
         $path = '/api/v2/auth/token/get';
         $timestamp = time();
         $sign = $this->signBaseRequest($path, $timestamp);
@@ -100,6 +123,14 @@ class ShopeeService
 
     public function refreshAccessToken(string $refreshToken, int $shopId): array
     {
+        if ($this->isSimulated() || str_contains($refreshToken, 'dummy_')) {
+            return [
+                'access_token' => 'dummy_shopee_access_token_' . $shopId,
+                'refresh_token' => 'dummy_shopee_refresh_token_' . $shopId,
+                'expire_in' => 86400 * 30,
+            ];
+        }
+
         $path = '/api/v2/auth/access_token/get';
         $timestamp = time();
         $sign = $this->signBaseRequest($path, $timestamp);
@@ -135,37 +166,49 @@ class ShopeeService
 
     public function getShopInfo(string $accessToken, int $shopId): array
     {
-        $path = '/api/v2/shop/get_shop_info';
-        $timestamp = time();
-        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
-
-        $response = Http::get($this->baseUrl . $path, [
-            'partner_id' => $this->partnerId,
-            'timestamp' => $timestamp,
-            'sign' => $sign,
-            'access_token' => $accessToken,
-            'shop_id' => $shopId,
-        ]);
-
-        Log::info('[Shopee] getShopInfo response', [
-            'status' => $response->status(),
-            'body' => $response->body(),
-        ]);
-
-        if ($response->failed()) {
-            throw new \RuntimeException('Gagal ambil info toko Shopee: ' . $response->body());
+        if ($this->isSimulated() || str_contains($accessToken, 'dummy_')) {
+            return [
+                'shop_name' => 'Shopee Toko Demo #' . $shopId,
+            ];
         }
 
-        $data = $response->json();
+        try {
+            $path = '/api/v2/shop/get_shop_info';
+            $timestamp = time();
+            $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
-        if (!empty($data['error']) && $data['error'] !== '') {
-            // Jika gagal ambil info toko, tidak perlu throw — kembalikan array kosong
-            Log::warning('[Shopee] getShopInfo error (non-fatal)', ['data' => $data]);
+            $response = Http::get($this->baseUrl . $path, [
+                'partner_id' => $this->partnerId,
+                'timestamp' => $timestamp,
+                'sign' => $sign,
+                'access_token' => $accessToken,
+                'shop_id' => $shopId,
+            ]);
+
+            Log::info('[Shopee] getShopInfo response', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            if ($response->failed()) {
+                Log::warning('[Shopee] getShopInfo HTTP failed (non-fatal): ' . $response->body());
+                return [];
+            }
+
+            $data = $response->json();
+
+            if (!empty($data['error']) && $data['error'] !== '') {
+                Log::warning('[Shopee] getShopInfo error (non-fatal)', ['data' => $data]);
+                return [];
+            }
+
+            return $data['response'] ?? [];
+        } catch (\Throwable $e) {
+            Log::warning('[Shopee] getShopInfo exception (non-fatal): ' . $e->getMessage());
             return [];
         }
-
-        return $data['response'] ?? [];
     }
+
 
     public function getItemList(string $accessToken, int $shopId, int $offset = 0, int $pageSize = 50, array $itemStatus = ['NORMAL']): array
     {

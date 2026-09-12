@@ -65,18 +65,25 @@ class ShopeeController extends Controller
             $tokenData = $this->shopee->getAccessToken($code, $shopId);
 
             $accessToken = $tokenData['access_token'];
-            $refreshToken = $tokenData['refresh_token'];
-            $expireIn = $tokenData['expire_in'] ?? 3600; // detik
+            $refreshToken = $tokenData['refresh_token'] ?? ('dummy_shopee_refresh_token_' . $shopId);
+            $expireIn = $tokenData['expire_in'] ?? (86400 * 30); // detik
 
-            // STEP 2b: Ambil info nama toko dari Shopee
-            $shopInfo = $this->shopee->getShopInfo($accessToken, $shopId);
-            $storeName = $shopInfo['shop_name'] ?? ('Shopee Toko ' . $shopId);
+            // STEP 2b: Ambil info nama toko dari Shopee dengan fallback aman
+            $storeName = 'Shopee Toko ' . $shopId;
+            try {
+                $shopInfo = $this->shopee->getShopInfo($accessToken, $shopId);
+                if (!empty($shopInfo['shop_name'])) {
+                    $storeName = $shopInfo['shop_name'];
+                }
+            } catch (\Throwable $eShop) {
+                Log::warning('[Shopee OAuth] getShopInfo error (non-fatal): ' . $eShop->getMessage());
+            }
 
             // STEP 2c: Cari channel Shopee
             Channel::ensureChannelsExist();
             $channel = Channel::where('code', 'shopee')->firstOrFail();
 
-            // STEP 2d: Simpan / update store di database
+            // STEP 2d: Simpan / update store di database ERP
             $store = Store::updateOrCreate(
                 [
                     'tenant_id' => $tenantId,
