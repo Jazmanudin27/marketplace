@@ -1081,6 +1081,10 @@ class SpkController extends Controller
         ]);
 
         $rawCode = trim($request->input('code'));
+        // Unescape double-encoded JSON or escaped quotes if scanned from old stickers
+        $rawCode = str_replace('\"', '"', $rawCode);
+        $rawCode = trim($rawCode, '"\'');
+        
         $qtyRequested = max(1, (int) $request->input('qty', 1));
         $namaPengambil = trim($request->input('nama_pengambil')) ?: (Auth::user()->name ?? 'Petugas Gudang');
         $catatan = trim($request->input('catatan')) ?: 'Scan Multi-SPK Karung Penerimaan';
