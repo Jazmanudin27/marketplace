@@ -1110,29 +1110,39 @@ class SpkController extends Controller
         $matchedItem = null;
         $matchedSpk = null;
 
-        // Extract JSON string if embedded inside rawCode
-        if (preg_match('/\{.*?\}/s', $rawCode, $jsonMatches)) {
+        // ⚡ OPTIMIZATION 1: Fast direct ITEM-{id} extraction (Primary Key lookup - 1ms)
+        if (preg_match('/ITEM-(\d+)/i', $rawCode, $itemMatches)) {
+            $itemId = (int) $itemMatches[1];
+            $matchedItem = SpkItem::whereHas('spk', fn($q) => $q->where('tenant_id', $tenantId))
+                ->with(['spk', 'masterProduct'])
+                ->find($itemId);
+            if ($matchedItem) {
+                $matchedSpk = $matchedItem->spk;
+            }
+        }
+
+        // ⚡ OPTIMIZATION 2: Extract JSON string if embedded inside rawCode
+        if (!$matchedItem && preg_match('/\{.*?\}/s', $rawCode, $jsonMatches)) {
             $jsonCode = $jsonMatches[0];
             $json = json_decode($jsonCode, true);
             if (is_array($json)) {
                 if (!empty($json['item_id'])) {
-                    $matchedItem = \App\Models\SpkItem::whereHas('spk', fn($q) => $q->where('tenant_id', $tenantId))
-                        ->with(['spk', 'masterProduct', 'pickups'])
+                    $matchedItem = SpkItem::whereHas('spk', fn($q) => $q->where('tenant_id', $tenantId))
+                        ->with(['spk', 'masterProduct'])
                         ->find((int) $json['item_id']);
                     if ($matchedItem) {
                         $matchedSpk = $matchedItem->spk;
                     }
                 }
                 if (!$matchedItem && (!empty($json['spk_id']) || !empty($json['no_spk']) || !empty($json['no_produksi']))) {
-                    $querySpk = Spk::where('tenant_id', $tenantId);
-                    if (!empty($json['spk_id'])) {
-                        $querySpk->where('id', (int) $json['spk_id']);
-                    } elseif (!empty($json['no_spk'])) {
-                        $querySpk->where('no_spk', trim($json['no_spk']));
-                    } else {
-                        $querySpk->where('no_produksi', trim($json['no_produksi']));
-                    }
-                    $targetSpk = $querySpk->with(['items.masterProduct', 'items.pickups'])->first();
+                    $targetSpk = Spk::where('tenant_id', $tenantId)
+                        ->where(function ($q) use ($json) {
+                            if (!empty($json['spk_id'])) $q->where('id', (int) $json['spk_id']);
+                            elseif (!empty($json['no_spk'])) $q->where('no_spk', trim($json['no_spk']));
+                            else $q->where('no_produksi', trim($json['no_produksi']));
+                        })
+                        ->with(['items.masterProduct'])
+                        ->first();
                     if ($targetSpk) {
                         $targetSku = !empty($json['sku']) ? strtoupper(trim($json['sku'])) : null;
                         if ($targetSku) {
@@ -1152,66 +1162,7 @@ class SpkController extends Controller
             }
         }
 
-        $cleanCode = strtoupper($rawCode);
-
-        // A. Format Kombinasi String: SPK-{spk_id}-ITEM-{item_id} atau ITEM-{item_id}
-        if (!$matchedItem) {
-            if (preg_match('/(?:SPK-(\d+)-)?ITEM-(\d+)/i', $rawCode, $matches)) {
-                $spkIdFromCode = !empty($matches[1]) ? (int) $matches[1] : null;
-                $itemIdFromCode = (int) $matches[2];
-
-                $matchedItem = \App\Models\SpkItem::whereHas('spk', fn($q) => $q->where('tenant_id', $tenantId))
-                    ->with(['spk', 'masterProduct', 'pickups'])
-                    ->find($itemIdFromCode);
-
-                if ($matchedItem && $spkIdFromCode && $matchedItem->spk_id != $spkIdFromCode) {
-                    $matchedItem = null;
-                } elseif ($matchedItem) {
-                    $matchedSpk = $matchedItem->spk;
-                }
-            }
-        }
-
-        // B. Format Separator Pipe/Underscore/Slash/Colon: SPK-001|ITEM-34 atau SPK-001|SKU
-        if (!$matchedItem) {
-            if (preg_match('/^([A-Z0-9\-\#]+)[\|_:\/](.+)$/i', $rawCode, $matches)) {
-                $noSpkCandidate = ltrim(trim($matches[1]), '#');
-                if (str_starts_with(strtoupper($noSpkCandidate), 'SPK-SPK-')) {
-                    $noSpkCandidate = substr($noSpkCandidate, 4);
-                }
-                $skuCandidate = strtoupper(trim($matches[2]));
-
-                $targetSpk = Spk::where('tenant_id', $tenantId)
-                    ->where(function ($q) use ($noSpkCandidate) {
-                        $q->where('no_spk', $noSpkCandidate)
-                          ->orWhere('no_spk', 'SPK-' . $noSpkCandidate)
-                          ->orWhere('no_produksi', $noSpkCandidate);
-                    })
-                    ->with(['items.masterProduct', 'items.pickups'])
-                    ->first();
-
-                if ($targetSpk) {
-                    if (preg_match('/ITEM-(\d+)/i', $skuCandidate, $itemMatches)) {
-                        $itemId = (int) $itemMatches[1];
-                        $matchedItem = $targetSpk->items->firstWhere('id', $itemId);
-                    }
-                    if (!$matchedItem) {
-                        $matchedItem = $targetSpk->items->first(function ($it) use ($skuCandidate) {
-                            return (!empty($it->sku) && strtoupper(trim($it->sku)) === $skuCandidate) ||
-                                   ($it->masterProduct && strtoupper(trim($it->masterProduct->sku ?? '')) === $skuCandidate);
-                        });
-                    }
-                    if (!$matchedItem) {
-                        $matchedItem = $targetSpk->items->first(fn($it) => $it->sisa_qty > 0) ?: $targetSpk->items->first();
-                    }
-                    if ($matchedItem) {
-                        $matchedSpk = $targetSpk;
-                    }
-                }
-            }
-        }
-
-        // C. Direct No SPK / No Produksi Lookup (e.g., SPK-20260912-0001, #SPK-20260912-0001, Label Stiker Kemasan SPK #SPK-20260912-0001)
+        // ⚡ OPTIMIZATION 3: Direct No SPK / No Produksi Lookup
         if (!$matchedItem) {
             $spkNoSearch = $rawCode;
             if (preg_match('/(SPK-[A-Z0-9\-]+|PROD-[A-Z0-9\-]+)/i', $rawCode, $spkMatches)) {
@@ -1229,7 +1180,7 @@ class SpkController extends Controller
                       ->orWhere('no_produksi', ltrim($rawCode, '#'))
                       ->orWhere('no_produksi', $rawCode);
                 })
-                ->with(['items.masterProduct', 'items.pickups'])
+                ->with(['items.masterProduct'])
                 ->first();
 
             if ($targetSpk) {
@@ -1240,57 +1191,21 @@ class SpkController extends Controller
             }
         }
 
-        // D. Fallback: Search across all open/active SPKs by SKU or Barcode
+        // ⚡ OPTIMIZATION 4: Fast SQL Query across active SPKs (Replaces heavy memory loops)
         if (!$matchedItem) {
-            $openSpks = Spk::where('tenant_id', $tenantId)
-                ->where('tahap_saat_ini', '!=', 'Selesai (Finished Good)')
-                ->with(['items.masterProduct', 'items.pickups'])
-                ->orderBy('created_at', 'asc')
-                ->get();
+            $cleanCode = strtoupper($rawCode);
+            $matchedItem = SpkItem::whereHas('spk', function ($q) use ($tenantId) {
+                    $q->where('tenant_id', $tenantId)->where('tahap_saat_ini', '!=', 'Selesai (Finished Good)');
+                })
+                ->where(function ($q) use ($cleanCode) {
+                    $q->where(DB::raw('UPPER(sku)'), $cleanCode)
+                      ->orWhereHas('masterProduct', fn($mq) => $mq->where(DB::raw('UPPER(sku)'), $cleanCode)->orWhere(DB::raw('UPPER(barcode)'), $cleanCode));
+                })
+                ->with(['spk', 'masterProduct'])
+                ->first();
 
-            foreach ($openSpks as $spkCandidate) {
-                $foundInSpk = $spkCandidate->items->first(function ($it) use ($cleanCode, $rawCode) {
-                    if ($it->sisa_qty <= 0) return false;
-                    if (!empty($it->sku) && strtoupper(trim($it->sku)) === $cleanCode) return true;
-                    if ($it->masterProduct) {
-                        if (!empty($it->masterProduct->barcode) && strtoupper(trim($it->masterProduct->barcode)) === $cleanCode) return true;
-                        if (!empty($it->masterProduct->sku) && strtoupper(trim($it->masterProduct->sku)) === $cleanCode) return true;
-                    }
-                    return false;
-                });
-
-                if ($foundInSpk) {
-                    $matchedItem = $foundInSpk;
-                    $matchedSpk = $spkCandidate;
-                    break;
-                }
-            }
-        }
-
-        // E. Fallback pencocokan ukuran / SKU ending
-        if (!$matchedItem) {
-            $openSpks = Spk::where('tenant_id', $tenantId)
-                ->where('tahap_saat_ini', '!=', 'Selesai (Finished Good)')
-                ->with(['items.masterProduct', 'items.pickups'])
-                ->orderBy('created_at', 'asc')
-                ->get();
-
-            $szClean = preg_replace('/^(SIZE|UKURAN|SZ|VARIAN)[\s\-_:]*/i', '', $cleanCode);
-            $szClean = trim($szClean);
-
-            if (!empty($szClean)) {
-                foreach ($openSpks as $spkCandidate) {
-                    $foundInSpk = $spkCandidate->items->first(function ($it) use ($szClean) {
-                        if ($it->sisa_qty <= 0) return false;
-                        return !empty($it->ukuran) && strtoupper(trim($it->ukuran)) === $szClean;
-                    });
-
-                    if ($foundInSpk) {
-                        $matchedItem = $foundInSpk;
-                        $matchedSpk = $spkCandidate;
-                        break;
-                    }
-                }
+            if ($matchedItem) {
+                $matchedSpk = $matchedItem->spk;
             }
         }
 
@@ -1332,7 +1247,7 @@ class SpkController extends Controller
             ], 422);
         }
 
-        // 3. Eksekusi Penerimaan Barang SPK
+        // 3. ⚡ LIGHTNING FAST DB TRANSACTION
         $qtyToTake = min($qtyRequested, $sisaQty);
 
         $pickup = DB::transaction(function () use ($matchedItem, $spk, $qtyToTake, $namaPengambil, $catatan) {
@@ -1345,50 +1260,43 @@ class SpkController extends Controller
                 'catatan'        => $catatan,
             ]);
 
-            // Mutasi Stok Master Produk
-            $product = null;
-            if ($matchedItem->master_product_id) {
-                $product = MasterProduct::find($matchedItem->master_product_id);
-            } elseif (!empty($matchedItem->sku)) {
-                $product = MasterProduct::where('tenant_id', $spk->tenant_id)->where('sku', trim($matchedItem->sku))->first();
-            } elseif (!empty($matchedItem->nama_produk)) {
-                $product = MasterProduct::where('tenant_id', $spk->tenant_id)->where('name', trim($matchedItem->nama_produk))->first();
-            }
+            // Single Audit Log entry in StockMovement (fast direct insert without double marketplace sync overhead)
+            $productId = $matchedItem->master_product_id;
+            if ($productId) {
+                StockMovement::create([
+                    'tenant_id'         => $spk->tenant_id,
+                    'master_product_id' => $productId,
+                    'user_id'           => Auth::id(),
+                    'type'              => 'in',
+                    'quantity'          => $qtyToTake,
+                    'reference'         => 'Penerimaan Hasil Produksi SPK #' . $spk->no_spk . ' (' . $matchedItem->nama_produk . ' - ' . ($matchedItem->ukuran ?: 'ALL') . ') Penerima: ' . $namaPengambil,
+                    'balance_after'     => MasterProduct::where('id', $productId)->value('stock') ?? 0,
+                ]);
 
-            if ($product) {
-                $product->recordStockMovement(
-                    $qtyToTake,
-                    'in',
-                    'Scan Karung SPK #' . $spk->no_spk . ' (' . $matchedItem->nama_produk . ' - ' . $matchedItem->ukuran . ')',
-                    Auth::id()
-                );
-
-                $product->recordStockMovement(
-                    $qtyToTake,
-                    'out',
-                    'Penyerahan Scan Karung SPK #' . $spk->no_spk . ' (Penerima: ' . $namaPengambil . ')',
-                    Auth::id()
-                );
-
-                $recipe = \App\Models\ProductRecipe::where('master_product_id', $product->id)
+                // Recipe Inventory Deduction
+                $recipe = \App\Models\ProductRecipe::where('master_product_id', $productId)
                     ->where('tenant_id', $spk->tenant_id)
                     ->where('is_active', true)
-                    ->with('items.inventoryItem')
+                    ->with('items')
                     ->first();
 
                 if ($recipe) {
+                    $batchQty = max(1, $recipe->batch_qty);
                     foreach ($recipe->items as $recipeItem) {
-                        $invItem = $recipeItem->inventoryItem;
-                        if ($invItem) {
-                            $batchQty = max(1, $recipe->batch_qty);
-                            $qtyNeeded = ($recipeItem->quantity / $batchQty) * $qtyToTake;
-
-                            $invItem->recordStockMovement(
-                                (int) ceil($qtyNeeded),
-                                'out',
-                                'Konsumsi Bahan Scan Karung SPK #' . $spk->no_spk . ' (' . $qtyToTake . ' pcs)',
-                                Auth::id()
-                            );
+                        $qtyNeeded = (int) ceil(($recipeItem->quantity / $batchQty) * $qtyToTake);
+                        if ($qtyNeeded > 0 && $recipeItem->inventory_item_id) {
+                            $invItem = InventoryItem::find($recipeItem->inventory_item_id);
+                            if ($invItem) {
+                                $invItem->decrement('stock', $qtyNeeded);
+                                StockMovement::create([
+                                    'tenant_id'         => $spk->tenant_id,
+                                    'user_id'           => Auth::id(),
+                                    'type'              => 'out',
+                                    'quantity'          => -$qtyNeeded,
+                                    'reference'         => 'Konsumsi Bahan SPK #' . $spk->no_spk . ' (' . $qtyToTake . ' pcs)',
+                                    'balance_after'     => $invItem->stock,
+                                ]);
+                            }
                         }
                     }
                 }
@@ -1397,21 +1305,26 @@ class SpkController extends Controller
             return $p;
         });
 
-        // 4. Update status & refresh data
-        $spk->load(['items.pickups']);
-        $matchedItem->refresh();
-
-        $itemTotalDiambil = $matchedItem->qty_diambil;
-        $itemSisa = $matchedItem->sisa_qty;
+        // 4. ⚡ Fast Aggregates Query (Fast DB calculation instead of heavy memory loops)
+        $itemTotalDiambil = (int) \App\Models\SpkItemPickup::where('spk_item_id', $matchedItem->id)->sum('qty_diambil');
+        $itemSisa = max(0, (int)$matchedItem->quantity - $itemTotalDiambil);
         $isItemComplete = ($itemSisa == 0);
 
-        $spkTotalTarget = (int) $spk->items->sum('quantity');
-        $spkTotalDiambil = (int) $spk->items->sum('qty_diambil');
-        $spkTotalSisa = (int) $spk->items->sum('sisa_qty');
-        $allComplete = $spk->items->every(fn($it) => $it->sisa_qty == 0);
+        $spkStats = DB::table('spk_items')
+            ->where('spk_id', $spk->id)
+            ->select(
+                DB::raw('SUM(quantity) as total_target'),
+                DB::raw('(SELECT COALESCE(SUM(p.qty_diambil), 0) FROM spk_item_pickups p JOIN spk_items i ON p.spk_item_id = i.id WHERE i.spk_id = ' . (int)$spk->id . ') as total_diambil')
+            )
+            ->first();
+
+        $spkTotalTarget  = (int) ($spkStats->total_target ?? 0);
+        $spkTotalDiambil = (int) ($spkStats->total_diambil ?? 0);
+        $spkTotalSisa    = max(0, $spkTotalTarget - $spkTotalDiambil);
+        $allComplete     = ($spkTotalSisa == 0 && $spkTotalTarget > 0);
 
         if ($allComplete && $spk->tahap_saat_ini !== 'Selesai (Finished Good)') {
-            $spk->update(['tahap_saat_ini' => 'Selesai (Finished Good)']);
+            Spk::where('id', $spk->id)->update(['tahap_saat_ini' => 'Selesai (Finished Good)']);
         }
 
         return response()->json([

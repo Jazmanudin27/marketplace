@@ -490,10 +490,23 @@
             html5QrCode = new Html5Qrcode("reader");
             const config = { fps: 10, qrbox: { width: 240, height: 240 } };
 
+            let lastScannedText = '';
+            let lastScannedTime = 0;
+
             html5QrCode.start(
                 { facingMode: "environment" },
                 config,
                 (decodedText) => {
+                    const now = Date.now();
+                    if (decodedText === lastScannedText && (now - lastScannedTime) < 2000) {
+                        return; // Ignore duplicate camera frames within 2s
+                    }
+                    if ((now - lastScannedTime) < 800) {
+                        return; // Min delay between scans
+                    }
+                    lastScannedText = decodedText;
+                    lastScannedTime = now;
+
                     if (!isProcessing) {
                         barcodeInput.value = decodedText;
                         submitScan(decodedText);
