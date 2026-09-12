@@ -1662,35 +1662,23 @@ class SpkController extends Controller
         $tenantId = Auth::user()->tenant_id;
         abort_unless($spk->tenant_id === $tenantId, 403);
 
-        $noProduksi = $spk->no_produksi;
+        DB::transaction(function () use ($spk, $tenantId) {
+            $noPesanan = $spk->no_pesanan;
 
-        DB::transaction(function () use ($spk, $tenantId, $noProduksi) {
-            if (!empty($noProduksi)) {
-                $spkList = Spk::where('tenant_id', $tenantId)
-                    ->where('no_produksi', $noProduksi)
-                    ->get();
-            } else {
-                $spkList = collect([$spk]);
+            // Restore stock and delete associated WarehouseMutation
+            $this->syncSpkWarehouseMutation($spk, []);
+
+            foreach ($spk->items as $item) {
+                SpkItemExtra::where('spk_item_id', $item->id)->delete();
+                SpkItemProgres::where('spk_item_id', $item->id)->delete();
+                \App\Models\SpkItemPickup::where('spk_item_id', $item->id)->delete();
+                $item->delete();
             }
-
-            $affectedNoPesanans = $spkList->pluck('no_pesanan')->filter()->unique();
-
-            foreach ($spkList as $itemSpk) {
-                // Restore stock and delete associated WarehouseMutation
-                $this->syncSpkWarehouseMutation($itemSpk, []);
-
-                foreach ($itemSpk->items as $item) {
-                    SpkItemExtra::where('spk_item_id', $item->id)->delete();
-                    SpkItemProgres::where('spk_item_id', $item->id)->delete();
-                    \App\Models\SpkItemPickup::where('spk_item_id', $item->id)->delete();
-                    $item->delete();
-                }
-                SpkProses::where('spk_id', $itemSpk->id)->delete();
-                $itemSpk->delete();
-            }
+            SpkProses::where('spk_id', $spk->id)->delete();
+            $spk->delete();
 
             // Sync kembali status Penjualan Offline jika seluruh SPK terkait telah dihapus
-            foreach ($affectedNoPesanans as $noPesanan) {
+            if (!empty($noPesanan)) {
                 $remainingSpkCount = Spk::where('tenant_id', $tenantId)
                     ->where('no_pesanan', $noPesanan)
                     ->count();
@@ -1713,9 +1701,34 @@ class SpkController extends Controller
             }
         });
 
-        $prodLabel = !empty($noProduksi) ? 'Produksi ' . $noProduksi : 'SPK #' . $spk->no_spk;
         return redirect()->route('spks.index')
-            ->with('success', 'Data ' . $prodLabel . ' berhasil dihapus.');
+            ->with('success', 'SPK #' . $spk->no_spk . ' berhasil dihapus.');
+    }
+
+    /**
+     * Hapus 1 item produk tertentu dari SPK tanpa menghapus SPK utuh
+     */
+    public function destroyItem(SpkItem $item)
+    {
+        $spk = $item->spk;
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($spk && $spk->tenant_id === $tenantId, 403);
+
+        DB::transaction(function () use ($item) {
+            SpkItemExtra::where('spk_item_id', $item->id)->delete();
+            SpkItemProgres::where('spk_item_id', $item->id)->delete();
+            \App\Models\SpkItemPickup::where('spk_item_id', $item->id)->delete();
+            $item->delete();
+        });
+
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Item produk SPK berhasil dihapus.'
+            ]);
+        }
+
+        return back()->with('success', 'Item produk SPK berhasil dihapus.');
     }
 
     public function print(Spk $spk)

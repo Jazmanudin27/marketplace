@@ -588,6 +588,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/spks/items/{item}/update-details', [\App\Http\Controllers\Inventory\SpkController::class, 'updateItemDetails'])->name('spks.items.update_details');
         Route::post('/spks/progres/{progres}/update', [\App\Http\Controllers\Inventory\SpkController::class, 'updateItemProgres'])->name('spks.progres.update');
         Route::post('/spks/items/{item}/pickup', [\App\Http\Controllers\Inventory\SpkController::class, 'storePickup'])->name('spks.items.store_pickup');
+        Route::delete('/spks/items/{item}', [\App\Http\Controllers\Inventory\SpkController::class, 'destroyItem'])->name('spks.items.destroy');
         Route::delete('/spks/pickups/{pickup}', [\App\Http\Controllers\Inventory\SpkController::class, 'destroyPickup'])->name('spks.pickups.destroy');
         Route::get('/spks/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'show'])->name('spks.show');
         Route::put('/spks/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'update'])->name('spks.update');
