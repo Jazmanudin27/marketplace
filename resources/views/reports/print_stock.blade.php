@@ -338,22 +338,21 @@
                     </td>
                     <td>
                         @php
-                            $connectedStores = $product->marketplaceProducts
+                            $connectedStoreList = $product->marketplaceProducts
                                 ->map(fn($mp) => $mp->store)
                                 ->filter()
-                                ->unique('id');
+                                ->unique('id')
+                                ->map(function($st) {
+                                    $chName = ucfirst($st->channel->name ?? $st->channel->code ?? 'MP');
+                                    return "{$st->store_name} ({$chName})";
+                                })
+                                ->implode(', ');
                         @endphp
-                        @forelse($connectedStores as $st)
-                            @php
-                                $chName = ucfirst($st->channel->name ?? $st->channel->code ?? 'MP');
-                            @endphp
-                            <div style="font-size: 10px; margin-bottom: 2px; white-space: nowrap;">
-                                <strong style="color: #0f172a;">{{ $st->store_name }}</strong>
-                                <span style="color: #64748b;">({{ $chName }})</span>
-                            </div>
-                        @empty
+                        @if ($connectedStoreList)
+                            <span style="font-size: 10px; font-weight: 600; color: #0f172a;">{{ $connectedStoreList }}</span>
+                        @else
                             <span style="color: #94a3b8; font-style: italic; font-size: 10px;">- Belum Terhubung -</span>
-                        @endforelse
+                        @endif
                     </td>
                     <td class="text-right" style="background-color: #f0fdf4;">
                         <strong style="color: #15803d;">{{ number_format($stokGudang, 0, ',', '.') }}</strong>

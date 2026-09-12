@@ -140,28 +140,21 @@
                             </td>
                             <td>
                                 @php
-                                    $connectedStores = $product->marketplaceProducts
+                                    $connectedStoreList = $product->marketplaceProducts
                                         ->map(fn($mp) => $mp->store)
                                         ->filter()
-                                        ->unique('id');
+                                        ->unique('id')
+                                        ->map(function($st) {
+                                            $chName = ucfirst($st->channel->name ?? $st->channel->code ?? 'MP');
+                                            return "{$st->store_name} ({$chName})";
+                                        })
+                                        ->implode(', ');
                                 @endphp
-                                @forelse($connectedStores as $st)
-                                    @php
-                                        $chName = ucfirst($st->channel->name ?? $st->channel->code ?? 'MP');
-                                        $badgeBg = match(strtolower($st->channel->code ?? '')) {
-                                            'shopee' => 'bg-danger bg-opacity-10 text-danger border-danger border-opacity-25',
-                                            'tiktok' => 'bg-dark bg-opacity-10 text-dark border-dark border-opacity-25',
-                                            'tokopedia' => 'bg-success bg-opacity-10 text-success border-success border-opacity-25',
-                                            'lazada' => 'bg-primary bg-opacity-10 text-primary border-primary border-opacity-25',
-                                            default => 'bg-secondary bg-opacity-10 text-secondary border-secondary border-opacity-25',
-                                        };
-                                    @endphp
-                                    <span class="badge {{ $badgeBg }} border rounded-2 me-1 mb-1" style="font-size: 0.72rem; font-weight: 500;">
-                                        <i class="fas fa-store me-1"></i>{{ $st->store_name }} ({{ $chName }})
-                                    </span>
-                                @empty
+                                @if ($connectedStoreList)
+                                    <span class="small fw-semibold text-dark">{{ $connectedStoreList }}</span>
+                                @else
                                     <span class="text-muted small fst-italic">- Belum Terhubung -</span>
-                                @endforelse
+                                @endif
                             </td>
                             <td class="text-end fw-bold text-success bg-success bg-opacity-10 fs-6">
                                 {{ number_format($stokGudang, 0, ',', '.') }}
