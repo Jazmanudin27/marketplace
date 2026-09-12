@@ -61,7 +61,7 @@
             margin: 0 auto;
         }
 
-        /* Micro Compact Sticker Card: Barcode (QR), SKU, Size */
+        /* Micro Compact Sticker Card: No SPK, QR Code, SKU */
         .sticker-card {
             background: #ffffff;
             border: 1.5px solid #000000;
@@ -76,6 +76,17 @@
             gap: 4px;
             text-align: center;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .spk-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 8.5px;
+            color: #000000;
+            font-weight: 800;
+            word-break: break-all;
+            line-height: 1.15;
+            max-width: 100%;
+            padding: 0 2px;
         }
 
         .qr-wrapper {
@@ -105,34 +116,6 @@
             line-height: 1.15;
             max-width: 100%;
             padding: 0 2px;
-        }
-
-        .size-badge {
-            background: #000000;
-            color: #ffffff;
-            padding: 2px 8px;
-            border-radius: 4px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            min-width: 46px;
-        }
-
-        .size-label {
-            font-size: 7px;
-            font-weight: 800;
-            color: #cbd5e1;
-            letter-spacing: 0.4px;
-            text-transform: uppercase;
-        }
-
-        .size-value {
-            font-size: 13px;
-            font-weight: 900;
-            color: #ffffff;
-            line-height: 1;
-            font-family: 'Inter', system-ui, sans-serif;
         }
 
         /* Print Media Styling - 6 Columns */
@@ -169,7 +152,7 @@
                 🏷️ Label Stiker Kemasan (6 Per Baris) - SPK #{{ $spk->no_spk }}
             </h3>
             <p style="font-size: 11px; color: #64748b; margin: 0;">
-                Tampilan micro-compact: 6 stiker per baris dengan QR Code, SKU kecil, dan Ukuran.
+                Tampilan micro-compact: 6 stiker per baris dengan No SPK, QR Code, dan SKU.
             </p>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
@@ -190,16 +173,13 @@
 
             @for($i = 1; $i <= $repeatQty; $i++)
                 <div class="sticker-card">
+                    <div class="spk-tag" title="{{ $spk->no_spk }}">#{{ $spk->no_spk }}</div>
+
                     <div class="qr-wrapper">
                         <canvas id="qr-canvas-{{ $item->id }}-{{ $i }}"></canvas>
                     </div>
                     
                     <div class="sku-tag" title="{{ $skuDisplay }}">{{ $skuDisplay }}</div>
-                    
-                    <div class="size-badge">
-                        <span class="size-label">SIZE</span>
-                        <span class="size-value">{{ $item->ukuran ?: 'ALL' }}</span>
-                    </div>
                 </div>
             @endfor
         @endforeach
