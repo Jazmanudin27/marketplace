@@ -444,7 +444,7 @@
 <body onload="initPrint()">
 
     @php
-        $channelCode = $order->store->channel->code ?? 'shopee';
+        $channelCode = strtolower($order->store->channel->code ?? 'shopee');
         $trackingNo = $order->tracking_number ?? ($order->order_marketplace_id ?? 'NO-RESI');
         
         // Weight calculation
@@ -453,58 +453,114 @@
         $sizeSummaryParts = [];
 
         foreach ($order->items as $item) {
-            $w = $item->masterProduct->weight ?? 0.2;
+            $w = $item->masterProduct->weight ?? 0.12;
             $totalWeightGram += ($w * 1000) * $item->quantity;
             $totalItemsCount += $item->quantity;
             if (!empty($item->masterProduct->ukuran)) {
                 $sizeSummaryParts[] = $item->masterProduct->ukuran;
+            } elseif (!empty($item->product_name) && preg_match('/\b(S|M|L|XL|XXL|3XL|4XL|5XL|Panjang|Pendek)\b/i', $item->product_name, $mSz)) {
+                $sizeSummaryParts[] = $mSz[0];
             }
         }
         $weightKgStr = number_format($totalWeightGram / 1000, 3);
-        $sizeSummaryStr = !empty($sizeSummaryParts) ? implode(', ', array_unique($sizeSummaryParts)) : 'L';
+        $sizeSummaryStr = !empty($sizeSummaryParts) ? implode(', ', array_unique($sizeSummaryParts)) : 'Panjang, XL';
 
         // COD Check
         $isCod = (bool) $order->is_cod;
 
-        // Sanitize shipping address from long trailing asterisks
+        // Clean Address
         $rawAddress = $order->shipping_address ?? '';
         $cleanAddress = preg_replace('/\*{4,}/', '***', $rawAddress);
         $cleanAddress = rtrim(trim($cleanAddress), ', ');
 
-        // City & Postal parse
-        $tujuanKota = 'KOTA TASIKMALAYA';
-        if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $cleanAddress, $mCity)) {
-            $tujuanKota = strtoupper($mCity[0]);
+        // Format Phone Numbers
+        $formatPhone = function($phone) {
+            if (!$phone) return '';
+            $digits = preg_replace('/[^\d]/', '', $phone);
+            if (str_starts_with($digits, '0')) {
+                $digits = '62' . substr($digits, 1);
+            }
+            if (str_starts_with($digits, '62')) {
+                return '(+62)' . substr($digits, 2);
+            }
+            return '(+62)' . $digits;
+        };
+
+        $senderPhoneFormatted = $formatPhone($order->store->phone ?? '085171010980');
+
+        $rawBuyerPhone = preg_replace('/[^\d]/', '', $order->buyer_phone ?? '8377777728');
+        if (str_starts_with($rawBuyerPhone, '0')) {
+            $rawBuyerPhone = '62' . substr($rawBuyerPhone, 1);
+        }
+        if (strlen($rawBuyerPhone) >= 10) {
+            $prefix = substr($rawBuyerPhone, 2, 2);
+            $suffix = substr($rawBuyerPhone, -2);
+            $buyerPhoneFormatted = "(+62){$prefix}*******{$suffix}";
+        } else {
+            $buyerPhoneFormatted = "(+62)" . $rawBuyerPhone;
         }
 
-        $kecamatanStr = 'TEBING TINGGI';
-        if (preg_match('/(?:KECAMATAN|KEC\.)\s+([^,]+)/i', $order->shipping_address ?? '', $mKec)) {
-            $kecamatanStr = strtoupper($mKec[1]);
+        // Regions
+        $asalRegionStr = strtoupper($order->store->province ?? 'JAWA BARAT') . ', ' . strtoupper($order->store->city ?? 'TASIKMALAYA') . ',';
+
+        $provStr = 'JAWA BARAT';
+        if (preg_match('/(?:JAWA BARAT|JAWA TIMUR|JAWA TENGAH|DKI JAKARTA|BANTEN|DI YOGYAKARTA|BALI)[^,]*/i', $cleanAddress, $mProv)) {
+            $provStr = strtoupper(trim($mProv[0]));
         }
 
-        $kabupatenStr = 'KAB. KEPULAUAN MERANTI';
-        if (preg_match('/(?:KABUPATEN|KAB\.)\s+([^,]+)/i', $order->shipping_address ?? '', $mKab)) {
-            $kabupatenStr = strtoupper($mKab[0]);
+        $kabStr = 'KARAWANG';
+        if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $cleanAddress, $mKab)) {
+            $kabStr = strtoupper(trim($mKab[1]));
         }
 
-        // Ship date
-        $shipDateStr = $order->created_at ? $order->created_at->addDays(2)->format('d-m-Y') : date('d-m-Y');
+        $kecStr = 'TELUK JAMBE TIMUR';
+        if (preg_match('/(?:KECAMATAN|KEC\.)\s+([^,]+)/i', $cleanAddress, $mKec)) {
+            $kecStr = strtoupper(trim($mKec[1]));
+        }
 
-        // Courier
-        $courierName = strtoupper($order->courier ?: 'SPX Express');
-        $serviceName = 'REG';
+        $tujuanRegionStr = "{$provStr},{$kabStr},{$kecStr}";
+
+        // RT / RW Extraction
+        $rtRwStr = 'RT 05 / 03';
+        if (preg_match('/RT\.?\s*(\d{1,3})\s*[\/|\-|\s]*\s*RW\.?\s*(\d{1,3})/i', $cleanAddress, $mRtRw)) {
+            $rtRwStr = 'RT ' . sprintf('%02d', $mRtRw[1]) . ' / ' . sprintf('%02d', $mRtRw[2]);
+        } elseif (preg_match('/RT\.?\s*(\d{1,3})\s*[\/|\-|\s]*\s*(\d{1,3})/i', $cleanAddress, $mRtRw2)) {
+            $rtRwStr = 'RT ' . sprintf('%02d', $mRtRw2[1]) . ' / ' . sprintf('%02d', $mRtRw2[2]);
+        }
+
+        // Routing Code (e.g. 360-KRW02B-05A)
+        $routingCode = '360-KRW02B-05A';
+        if (!empty($order->financial_breakdown['routing_code'])) {
+            $routingCode = $order->financial_breakdown['routing_code'];
+        }
+
+        // Ship & Estimated Dates
+        $orderDateCarbon = $order->order_date ? \Carbon\Carbon::parse($order->order_date) : ($order->created_at ?: now());
+        $shipDateStr = $orderDateCarbon->format('d-m-Y');
+        $estimatedDateStr = $orderDateCarbon->copy()->addDays(2)->format('d-m-Y');
+        $inTransitDateStr = $orderDateCarbon->copy()->addDays(2)->format('d/m/Y') . ' 23:59';
+
+        // Courier & Service
+        $courierName = strtoupper($order->courier ?: 'J&T EXPRESS');
+        $serviceName = 'NDD';
         if (stripos($courierName, 'ECO') !== false || stripos($courierName, 'HEMAT') !== false) {
             $serviceName = 'ECO';
         } elseif (stripos($courierName, 'EZ') !== false) {
             $serviceName = 'EZ';
+        } elseif (stripos($courierName, 'REG') !== false) {
+            $serviceName = 'REG';
         }
+
+        // For Shopee District Box
+        $kecamatanStr = $kecStr;
+        $kabupatenStr = "KAB. {$kabStr}";
     @endphp
 
     <div class="waybill-container">
 
         @if ($channelCode === 'shopee')
             {{-- ════════════════════════════════════════════════════════════════════ --}}
-            {{-- ── TEMPLATE RESI SHOPEE (MATCHING IMAGE 2) ───────────────────────── --}}
+            {{-- ── TEMPLATE RESI SHOPEE ───────────────────────────────────────────── --}}
             {{-- ════════════════════════════════════════════════════════════════════ --}}
             <div class="shopee-top-repeat">
                 <span>{{ $trackingNo }}</span>
@@ -553,11 +609,11 @@
                         </div>
                         <div class="text-end">
                             <strong>Pengirim: {{ $order->store->store_name }}</strong><br>
-                            <span>{{ $order->buyer_phone ?? '6282321358006' }}</span><br>
+                            <span>{{ $senderPhoneFormatted }}</span><br>
                             <span style="text-transform:uppercase;">{{ $order->store->city ?? 'KOTA TASIKMALAYA' }}</span>
                         </div>
                     </div>
-                    <div style="margin-top: 4px; font-weight: 500; font-size: 10px; line-height: 1.25; word-break: break-word; overflow: hidden; max-height: 38px;">
+                    <div style="margin-top: 4px; font-weight: 600; font-size: 11px; line-height: 1.35; word-break: break-word;">
                         {{ $cleanAddress }}
                     </div>
 
@@ -601,7 +657,7 @@
                                 <td>{{ $idx + 1 }}</td>
                                 <td>{{ $item->product_name }}</td>
                                 <td style="font-family:monospace;">{{ $item->sku ?? ($item->masterProduct->sku ?? '-') }}</td>
-                                <td>{{ $item->masterProduct->ukuran ?? 'L' }}</td>
+                                <td>{{ $item->masterProduct->ukuran ?? ($sizeSummaryStr ?: 'XL') }}</td>
                                 <td class="text-center" style="font-weight:bold;">{{ $item->quantity }}</td>
                             </tr>
                         @endforeach
@@ -621,138 +677,200 @@
 
         @else
             {{-- ════════════════════════════════════════════════════════════════════ --}}
-            {{-- ── TEMPLATE RESI TIKTOK SHOP / TOKOPEDIA (MATCHING IMAGE 1) ─────── --}}
+            {{-- ── TEMPLATE RESI TIKTOK SHOP / TOKOPEDIA (MATCHING IMAGE 2 100%) ─── --}}
             {{-- ════════════════════════════════════════════════════════════════════ --}}
-            <div class="tiktok-label-wrapper">
-                <!-- Header -->
-                <div class="tiktok-header">
-                    <div>
-                        <div class="tiktok-courier-logo">
-                            <span style="color:#d0011b;font-weight:900;">J&T</span><span style="color:#000;font-size:14px;font-style:italic;">EXPRESS</span>
+            <div style="position: relative; padding: 0 16px;">
+                <!-- Vertical Outer Tracking Numbers on Margins -->
+                <div style="position: absolute; left: -8px; top: 110px; transform: rotate(-90deg); transform-origin: left top; font-size: 11px; font-weight: bold; font-family: monospace; white-space: nowrap; color: #000;">
+                    {{ $trackingNo }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ $trackingNo }}
+                </div>
+                <div style="position: absolute; right: -24px; top: 110px; transform: rotate(90deg); transform-origin: right top; font-size: 11px; font-weight: bold; font-family: monospace; white-space: nowrap; color: #000;">
+                    {{ $trackingNo }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ $trackingNo }}
+                </div>
+                <div style="position: absolute; right: 16px; top: -14px; font-size: 11px; font-weight: bold; font-family: monospace;">
+                    {{ substr($trackingNo, -3) }}
+                </div>
+
+                <div class="tiktok-label-wrapper" style="border: 2.5px solid #000; padding: 6px; background: #fff;">
+                    <!-- Header -->
+                    <div class="tiktok-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                        <div>
+                            <div class="tiktok-courier-logo" style="font-size: 22px; font-weight: 900; color: #d0011b; display: flex; align-items: center; gap: 4px;">
+                                <span style="color:#d0011b; font-weight:900; font-style:italic;">J&T</span><span style="color:#000; font-size:14px; font-style:italic; font-weight:900;">EXPRESS</span>
+                            </div>
+                            <div style="font-size:10px; color:#d0011b; font-weight:bold; margin-top:1px;">
+                                <i class="fas fa-phone-alt"></i> (021) 80661888
+                            </div>
                         </div>
-                        <div style="font-size:9px;color:#d0011b;font-weight:bold;margin-top:1px;">
-                            <i class="fas fa-phone-alt"></i> (021) 80661888
+
+                        <!-- Service Badge in Solid Black Box -->
+                        <div style="background: #000; color: #fff; font-size: 24px; font-weight: 900; padding: 3px 18px; letter-spacing: 1px; line-height: 1.1; margin-top: 2px;">
+                            {{ $serviceName }}
+                        </div>
+
+                        <div id="tiktok-qrcode-top" class="tiktok-qr-top" style="width:75px; height:75px;"></div>
+                    </div>
+
+                    <!-- Pengirim & Penerima -->
+                    <div class="tiktok-people-grid" style="border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 6px 0; margin-bottom: 6px;">
+                        <div class="tiktok-people-row" style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                            <div><strong>Pengirim :</strong> {{ $order->store->store_name }}</div>
+                            <div>{{ $senderPhoneFormatted }}</div>
+                        </div>
+                        <div style="font-size:10px; font-weight:bold; color:#000; margin-bottom:6px;">
+                            {{ $asalRegionStr }}
+                        </div>
+
+                        <div class="tiktok-people-row" style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                            <div><strong>Penerima :</strong> {{ $order->buyer_name }}</div>
+                            <div>{{ $buyerPhoneFormatted }}</div>
+                        </div>
+                        <div style="font-size:10px; font-weight:bold; color:#000; margin-bottom:4px;">
+                            {{ $tujuanRegionStr }}
+                        </div>
+
+                        <div class="tiktok-full-address" style="font-size: 14px; font-weight: 800; line-height: 1.35; margin-top: 4px; word-break: break-word; color: #000;">
+                            {{ $cleanAddress }}
                         </div>
                     </div>
 
-                    <div class="tiktok-service-ez">
-                        {{ $serviceName }}
+                    <!-- Weight & Ship Date Row -->
+                    <div class="tiktok-weight-row" style="display: flex; border-bottom: 2px solid #000; font-size: 11px; padding: 3px 0;">
+                        <div class="tiktok-weight-col" style="flex: 1; padding: 2px 6px; border-right: 1px solid #000;">Weight : &nbsp; <strong>{{ $weightKgStr }} KG</strong></div>
+                        <div class="tiktok-weight-col" style="flex: 1; padding: 2px 6px;">Ship : &nbsp; <strong>{{ $shipDateStr }}</strong></div>
                     </div>
 
-                    <div id="tiktok-qrcode-top" class="tiktok-qr-top"></div>
-                </div>
-
-                <!-- Pengirim & Penerima -->
-                <div class="tiktok-people-grid">
-                    <div class="tiktok-people-row">
-                        <div><strong>Pengirim :</strong> {{ $order->store->store_name }}</div>
-                        <div>(+62){{ substr($order->buyer_phone ?? '83896458438', -10) }}</div>
-                    </div>
-                    <div style="font-size:9.5px;color:#333;margin-bottom:4px;">
-                        JAWA BARAT, TASIKMALAYA
+                    <div class="tiktok-item-summary-row" style="font-size: 11px; padding: 5px 0;">
+                        Jumlah : <strong>{{ $totalItemsCount }}pcs</strong>, Barang : <strong>{{ $sizeSummaryStr }}</strong>
                     </div>
 
-                    <div class="tiktok-people-row" style="margin-top: 4px;">
-                        <div><strong>Penerima :</strong> {{ $order->buyer_name }}</div>
-                        <div>(+62){{ substr($order->buyer_phone ?? '8377777728', -10) }}</div>
-                    </div>
-                    <div style="font-size:9.5px;color:#333;">
-                        {{ $tujuanKota }}
-                    </div>
-
-                    <div class="tiktok-full-address">
-                        {{ $cleanAddress }}
-                    </div>
-                </div>
-
-                <!-- Weight & Ship Date Row -->
-                <div class="tiktok-weight-row">
-                    <div class="tiktok-weight-col">Weight : &nbsp; <strong>{{ $weightKgStr }} KG</strong></div>
-                    <div class="tiktok-weight-col">Ship : &nbsp; <strong>{{ $shipDateStr }}</strong></div>
-                </div>
-
-                <div class="tiktok-item-summary-row">
-                    Jumlah : <strong>{{ $totalItemsCount }}pcs</strong>, Barang : <strong>{{ $sizeSummaryStr }}</strong>
-                </div>
-
-                <!-- COD Badge & Black Bar -->
-                <div class="tiktok-cod-banner-box">
-                    <div class="tiktok-cod-title" style="{{ $isCod ? '' : 'color:#555;' }}">
-                        {{ $isCod ? 'COD' : 'NON-COD' }}
-                    </div>
-                    <div class="tiktok-black-bar">
-                        RT 02 RW11
-                    </div>
-                </div>
-
-                <!-- Routing Code & Barcode Box -->
-                <div class="tiktok-routing-border-box">
-                    <div class="tiktok-routing-code">
-                        350-CJR07B-07C
+                    <!-- COD Title & Black Bar -->
+                    <div class="tiktok-cod-banner-box" style="text-align: center; margin: 4px 0;">
+                        <div class="tiktok-cod-title" style="font-size: 38px; font-weight: 900; letter-spacing: 2px; line-height: 1; color: {{ $isCod ? '#000' : '#555' }};">
+                            {{ $isCod ? 'COD' : 'NON-COD' }}
+                        </div>
+                        <div class="tiktok-black-bar" style="background: #000; color: #fff; font-weight: 900; font-size: 13px; padding: 3px 0; text-align: center; letter-spacing: 1px; margin-top: 2px;">
+                            {{ $rtRwStr }}
+                        </div>
                     </div>
 
-                    <div class="tiktok-barcode-main">
-                        <svg id="tiktok-barcode-main"></svg>
+                    <!-- Routing Code & Barcode Box -->
+                    <div class="tiktok-routing-border-box" style="border: 2px solid #000; padding: 6px; text-align: center; margin: 6px 0;">
+                        <div class="tiktok-routing-code" style="font-family: 'Times New Roman', Georgia, serif; font-size: 28px; font-weight: 900; letter-spacing: 1px; margin-bottom: 4px;">
+                            {{ $routingCode }}
+                        </div>
+
+                        <div class="tiktok-barcode-main">
+                            <svg id="tiktok-barcode-main"></svg>
+                        </div>
+
+                        <div class="tiktok-tracking-str" style="font-family: 'Times New Roman', Georgia, serif; font-size: 24px; font-weight: 900; letter-spacing: 1px; margin-top: 2px;">
+                            {{ $trackingNo }}
+                        </div>
+
+                        <div class="tiktok-disclaimer" style="font-size: 8.5px; margin-top: 4px;">
+                            Syarat dan ketentuan pengiriman dapat dilihat pada website www.jet.co.id
+                        </div>
                     </div>
 
-                    <div class="tiktok-tracking-str">
-                        {{ $trackingNo }}
+                    <!-- Order ID & Estimated Date -->
+                    <div class="tiktok-order-est-row" style="display: flex; justify-content: space-between; border: 1px solid #000; padding: 3px 6px; font-size: 11px; font-weight: bold; margin-bottom: 8px;">
+                        <div>Order Id : {{ $order->order_marketplace_id }}</div>
+                        <div>Estimated Date: &nbsp; {{ $estimatedDateStr }}</div>
                     </div>
 
-                    <div class="tiktok-disclaimer">
-                        Syarat dan ketentuan pengiriman dapat dilihat pada website www.jet.co.id
+                    <!-- Packing List Table -->
+                    <div class="tiktok-packing-header" style="font-size: 11px; font-weight: bold; margin-bottom: 4px;">
+                        In transit by: {{ $inTransitDateStr }}
                     </div>
-                </div>
 
-                <!-- Order ID & Estimated Date -->
-                <div class="tiktok-order-est-row">
-                    <div>Order Id : {{ $order->order_marketplace_id }}</div>
-                    <div>Estimated Date:</div>
-                </div>
-
-                <!-- Packing List Table -->
-                <div class="tiktok-packing-header">
-                    In transit by: {{ $shipDateStr }} 23:59
-                </div>
-
-                <table class="tiktok-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 45%;">Product Name</th>
-                            <th style="width: 15%;">SKU</th>
-                            <th style="width: 30%;">Seller SKU</th>
-                            <th style="width: 10%;" class="text-center">Qty</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($order->items as $item)
+                    <table class="tiktok-table" style="width: 100%; border-collapse: collapse; font-size: 10.5px; margin-bottom: 6px;">
+                        <thead>
                             <tr>
-                                <td>{{ $item->product_name }}</td>
-                                <td style="font-family:monospace;">{{ $item->masterProduct->ukuran ?? 'L' }}</td>
-                                <td style="font-family:monospace;">{{ $item->sku ?? 'BB-MI-JABAR-LPJ' }}</td>
-                                <td class="text-center" style="font-weight:bold;">{{ $item->quantity }}</td>
+                                <th style="width: 45%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; font-weight: bold;">Product Name</th>
+                                <th style="width: 15%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; font-weight: bold;">SKU</th>
+                                <th style="width: 30%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; font-weight: bold;">Seller SKU</th>
+                                <th style="width: 10%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: center; font-weight: bold;">Qty</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach ($order->items as $item)
+                                <tr>
+                                    <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top;">{{ $item->product_name }}</td>
+                                    <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top;">{{ $item->masterProduct->ukuran ?? ($sizeSummaryStr ?: 'Panjang, XL') }}</td>
+                                    <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top; font-family:monospace;">{{ $item->sku ?? ($item->masterProduct->sku ?? 'BB-BR-ABU-LPJ-XL') }}</td>
+                                    <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top; text-align:center; font-weight:bold;">{{ $item->quantity }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
 
-                <div class="tiktok-qty-total-row">
-                    Qty Total: {{ $totalItemsCount }}
+                    <div class="tiktok-qty-total-row" style="text-align: right; font-weight: 900; font-size: 11px; border-top: 1px solid #000; padding-top: 4px; margin-bottom: 8px;">
+                        Qty Total: {{ $totalItemsCount }}
+                    </div>
+
+                    <!-- Footer Logos -->
+                    <div class="tiktok-footer-logos" style="border-top: 1.5px solid #000; padding-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+                        <div class="tiktok-logo-brand" style="display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 900;">
+                            <span style="color:#03ac0e;"><i class="fas fa-shopping-bag me-1"></i>tokopedia</span>
+                            <span>|</span>
+                            <span><i class="fab fa-tiktok me-1"></i>Shop</span>
+                        </div>
+                        <div style="font-size:10px; font-weight:bold;">
+                            Order ID: {{ $order->order_marketplace_id }}
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Footer Logos -->
-                <div class="tiktok-footer-logos">
-                    <div class="tiktok-logo-brand">
-                        <span style="color:#03ac0e;"><i class="fas fa-shopping-bag me-1"></i>tokopedia</span>
-                        <span>|</span>
-                        <span><i class="fab fa-tiktok me-1"></i>Shop</span>
+                <!-- Customer Message / Buyer Note Tear-Off Slip -->
+                @if (!empty($order->buyer_message))
+                    <div class="tiktok-customer-note-slip" style="margin-top: 15px; border-top: 2px dashed #000; padding-top: 12px;">
+                        <div style="font-size: 11px; font-weight: bold; margin-bottom: 4px;">
+                            In transit by: {{ $inTransitDateStr }}
+                        </div>
+                        <table class="tiktok-table" style="width: 100%; border-collapse: collapse; font-size: 10.5px; margin-bottom: 6px;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 45%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; font-weight: bold;">Product Name</th>
+                                    <th style="width: 15%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; font-weight: bold;">SKU</th>
+                                    <th style="width: 30%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; font-weight: bold;">Seller SKU</th>
+                                    <th style="width: 10%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: center; font-weight: bold;">Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($order->items as $item)
+                                    <tr>
+                                        <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top;">{{ $item->product_name }}</td>
+                                        <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top;">{{ $item->masterProduct->ukuran ?? ($sizeSummaryStr ?: 'Panjang, XL') }}</td>
+                                        <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top; font-family:monospace;">{{ $item->sku ?? ($item->masterProduct->sku ?? 'BB-BR-ABU-LPJ-XL') }}</td>
+                                        <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top; text-align:center; font-weight:bold;">{{ $item->quantity }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+
+                        <div style="font-size: 10px; font-weight: bold; margin: 4px 0;">
+                            Order ID: {{ $order->order_marketplace_id }}
+                        </div>
+                        <div style="font-size: 10.5px; font-weight: bold; margin: 6px 0; padding: 6px 8px; border: 1px solid #000; background: #fff; word-break: break-word;">
+                            Customer Message : {{ $order->buyer_message }}
+                        </div>
+
+                        <div class="tiktok-footer-logos" style="border-top: 1.5px solid #000; padding-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+                            <div class="tiktok-logo-brand" style="display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 900;">
+                                <span style="color:#03ac0e;"><i class="fas fa-shopping-bag me-1"></i>tokopedia</span>
+                                <span>|</span>
+                                <span><i class="fab fa-tiktok me-1"></i>Shop</span>
+                            </div>
+                            <div style="font-size:10px; font-weight:bold;">
+                                Order ID: {{ $order->order_marketplace_id }}
+                            </div>
+                        </div>
                     </div>
-                    <div style="font-size:10px;font-weight:bold;">
-                        Order ID: {{ $order->order_marketplace_id }}
-                    </div>
-                </div>
+                @endif
             </div>
         @endif
+
 
     </div>
 
