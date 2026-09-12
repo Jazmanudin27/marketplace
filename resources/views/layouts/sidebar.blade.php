@@ -512,7 +512,8 @@
             </div>
         @endif
 
-        <!-- 11. HRD (Kepegawaian) -->
+        {{-- HRD (Kepegawaian) - Disembunyikan sementara --}}
+        {{-- 
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasPermissionTo('manage-employees'))
@@ -567,6 +568,7 @@
                 </div>
             </div>
         @endif
+        --}}
 
 
         <!-- ========================================================================= -->

@@ -280,10 +280,11 @@
         <thead>
             <tr>
                 <th class="bg-blue" style="width: 3%;">No</th>
-                <th class="bg-blue" style="width: 15%;">SKU</th>
+                <th class="bg-blue" style="width: 14%;">SKU</th>
                 <th class="bg-blue">Nama Produk</th>
-                <th class="bg-blue" style="width: 11%;">Status &amp; PO</th>
-                <th class="bg-green" style="width: 9%;">Stok Gudang</th>
+                <th class="bg-blue" style="width: 10%;">Status &amp; PO</th>
+                <th class="bg-blue" style="width: 16%;">Toko / Marketplace Terhubung</th>
+                <th class="bg-green" style="width: 8%;">Stok Gudang</th>
                 @foreach($stores as $store)
                     @php
                         $channelCode = strtolower($store->channel->code ?? $store->channel->name ?? '');
@@ -335,6 +336,25 @@
                             <span style="color: #16a34a; font-weight: bold;">📦 Ready Stock</span>
                         @endif
                     </td>
+                    <td>
+                        @php
+                            $connectedStores = $product->marketplaceProducts
+                                ->map(fn($mp) => $mp->store)
+                                ->filter()
+                                ->unique('id');
+                        @endphp
+                        @forelse($connectedStores as $st)
+                            @php
+                                $chName = ucfirst($st->channel->name ?? $st->channel->code ?? 'MP');
+                            @endphp
+                            <div style="font-size: 10px; margin-bottom: 2px; white-space: nowrap;">
+                                <strong style="color: #0f172a;">{{ $st->store_name }}</strong>
+                                <span style="color: #64748b;">({{ $chName }})</span>
+                            </div>
+                        @empty
+                            <span style="color: #94a3b8; font-style: italic; font-size: 10px;">- Belum Terhubung -</span>
+                        @endforelse
+                    </td>
                     <td class="text-right" style="background-color: #f0fdf4;">
                         <strong style="color: #15803d;">{{ number_format($stokGudang, 0, ',', '.') }}</strong>
                     </td>
@@ -368,7 +388,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ 6 + count($stores) }}" class="text-center" style="padding: 20px;">Tidak ada data barang yang sesuai dengan filter.</td>
+                    <td colspan="{{ 7 + count($stores) }}" class="text-center" style="padding: 20px;">Tidak ada data barang yang sesuai dengan filter.</td>
                 </tr>
             @endforelse
         </tbody>
