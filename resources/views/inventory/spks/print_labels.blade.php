@@ -5,7 +5,8 @@
     <title>Cetak Label Stiker Kemasan - SPK #{{ $spk->no_spk }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 
     <style>
         * {
@@ -66,17 +67,17 @@
             background: #ffffff;
             border: 1.5px solid #0f172a;
             border-radius: 8px;
-            padding: 10px 12px;
+            padding: 8px 10px;
             page-break-inside: avoid;
             break-inside: avoid;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
         }
 
         .sticker-header {
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px dashed #cbd5e1;
             padding-bottom: 4px;
             display: flex;
             justify-content: space-between;
@@ -100,22 +101,22 @@
         .sticker-body {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .qr-wrapper {
-            width: 105px;
-            height: 105px;
+            width: 95px;
+            height: 95px;
             flex-shrink: 0;
             background: #ffffff;
-            padding: 3px;
-            border: 1px solid #cbd5e1;
+            padding: 2px;
+            border: 1px solid #0f172a;
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        .qr-wrapper img, .qr-wrapper canvas {
+        .qr-wrapper canvas {
             width: 100% !important;
             height: 100% !important;
             display: block;
@@ -127,13 +128,13 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            height: 105px;
+            height: 95px;
         }
 
         .product-name {
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 800;
-            line-height: 1.25;
+            line-height: 1.2;
             color: #0f172a;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -143,7 +144,7 @@
 
         .sku-tag {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 9.5px;
+            font-size: 9px;
             color: #2563eb;
             font-weight: 700;
             word-break: break-all;
@@ -160,17 +161,17 @@
         .size-badge {
             background: #0f172a;
             color: #ffffff;
-            padding: 4px 10px;
-            border-radius: 6px;
+            padding: 3px 8px;
+            border-radius: 5px;
             display: inline-flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-width: 55px;
+            min-width: 50px;
         }
 
         .size-label {
-            font-size: 7.5px;
+            font-size: 7px;
             font-weight: 800;
             color: #94a3b8;
             letter-spacing: 0.5px;
@@ -179,21 +180,33 @@
         }
 
         .size-value {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 900;
             color: #ffffff;
-            line-height: 1.1;
+            line-height: 1;
             font-family: 'Inter', system-ui, sans-serif;
         }
 
         .item-count-badge {
-            font-size: 9px;
+            font-size: 8.5px;
             color: #475569;
             font-weight: 700;
             background: #f1f5f9;
-            padding: 3px 6px;
+            padding: 2px 5px;
             border-radius: 4px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #cbd5e1;
+        }
+
+        .barcode-1d-container {
+            border-top: 1px dashed #cbd5e1;
+            padding-top: 4px;
+            text-align: center;
+        }
+        .barcode-1d-container svg {
+            max-width: 100%;
+            height: 28px;
+            display: block;
+            margin: 0 auto;
         }
 
         /* Print Media Styling */
@@ -208,7 +221,7 @@
             .labels-grid {
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
-                gap: 8px;
+                gap: 6px;
                 max-width: 100%;
                 margin: 0;
             }
@@ -216,7 +229,7 @@
                 border: 1.5px solid #000;
                 box-shadow: none;
                 border-radius: 6px;
-                padding: 8px;
+                padding: 6px;
             }
         }
     </style>
@@ -230,7 +243,7 @@
                 🏷️ Label Stiker Kemasan SPK #{{ $spk->no_spk }}
             </h3>
             <p style="font-size: 12px; color: #64748b; margin: 0;">
-                Cetak label stiker untuk ditempelkan pada kemasan pakaian sebelum di-scan saat penerimaan.
+                Label dilengkapi Dual Barcode (2D QR Code &amp; 1D Laser Barcode) untuk jaminan 100% terbaca semua mesin scanner.
             </p>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
@@ -245,14 +258,7 @@
         @foreach($spk->items as $item)
             @php
                 $skuDisplay = $item->sku ?: ($item->masterProduct->sku ?? ('ITEM-' . $item->id));
-                $qrData = [
-                    'spk_id'      => $spk->id,
-                    'no_spk'      => $spk->no_spk,
-                    'no_produksi' => $spk->no_produksi,
-                    'item_id'     => $item->id,
-                    'sku'         => $skuDisplay,
-                    'ukuran'      => $item->ukuran ?: '',
-                ];
+                $barcodeVal = $spk->no_spk . "|ITEM-" . $item->id;
                 $repeatQty = max(1, (int) $item->quantity);
             @endphp
 
@@ -264,7 +270,9 @@
                     </div>
 
                     <div class="sticker-body">
-                        <div class="qr-wrapper" id="qr-box-{{ $item->id }}-{{ $i }}"></div>
+                        <div class="qr-wrapper">
+                            <canvas id="qr-canvas-{{ $item->id }}-{{ $i }}"></canvas>
+                        </div>
                         <div class="product-info">
                             <div>
                                 <div class="product-name" title="{{ $item->nama_produk }}">{{ $item->nama_produk }}</div>
@@ -280,6 +288,10 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="barcode-1d-container">
+                        <svg id="barcode-1d-{{ $item->id }}-{{ $i }}"></svg>
+                    </div>
                 </div>
             @endfor
         @endforeach
@@ -289,19 +301,29 @@
         document.addEventListener("DOMContentLoaded", function() {
             @foreach($spk->items as $item)
                 @php
-                    $qrString = "SPK-" . $spk->no_spk . "|ITEM-" . $item->id;
+                    $barcodeVal = $spk->no_spk . "|ITEM-" . $item->id;
                     $repeatQty = max(1, (int) $item->quantity);
                 @endphp
                 @for($i = 1; $i <= $repeatQty; $i++)
                     try {
-                        new QRCode(document.getElementById("qr-box-{{ $item->id }}-{{ $i }}"), {
-                            text: @json($qrString),
-                            width: 105,
-                            height: 105,
-                            correctLevel: QRCode.CorrectLevel.L
+                        // 1. QR Code 2D (QRious HD Canvas)
+                        new QRious({
+                            element: document.getElementById("qr-canvas-{{ $item->id }}-{{ $i }}"),
+                            value: @json($barcodeVal),
+                            size: 110,
+                            level: 'L'
+                        });
+
+                        // 2. 1D Barcode CODE128 (JsBarcode - Sinar Laser Red Line compatible)
+                        JsBarcode("#barcode-1d-{{ $item->id }}-{{ $i }}", @json($barcodeVal), {
+                            format: "CODE128",
+                            width: 1.4,
+                            height: 32,
+                            displayValue: false,
+                            margin: 0
                         });
                     } catch(e) {
-                        console.error("QR Code generation error: ", e);
+                        console.error("Barcode generation error: ", e);
                     }
                 @endfor
             @endforeach

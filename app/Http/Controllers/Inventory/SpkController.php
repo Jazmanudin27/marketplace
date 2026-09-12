@@ -1154,25 +1154,35 @@ class SpkController extends Controller
             }
         }
 
-        // B. Format Separator Pipe/Underscore/Slash/Colon: SPK-001|SKU atau SPK-001_SKU atau SPK-001/SKU
+        // B. Format Separator Pipe/Underscore/Slash/Colon: SPK-001|ITEM-34 atau SPK-001|SKU
         if (!$matchedItem) {
             if (preg_match('/^([A-Z0-9\-\#]+)[\|_:\/](.+)$/i', $rawCode, $matches)) {
                 $noSpkCandidate = ltrim(trim($matches[1]), '#');
+                if (str_starts_with(strtoupper($noSpkCandidate), 'SPK-SPK-')) {
+                    $noSpkCandidate = substr($noSpkCandidate, 4);
+                }
                 $skuCandidate = strtoupper(trim($matches[2]));
 
                 $targetSpk = Spk::where('tenant_id', $tenantId)
                     ->where(function ($q) use ($noSpkCandidate) {
                         $q->where('no_spk', $noSpkCandidate)
+                          ->orWhere('no_spk', 'SPK-' . $noSpkCandidate)
                           ->orWhere('no_produksi', $noSpkCandidate);
                     })
                     ->with(['items.masterProduct', 'items.pickups'])
                     ->first();
 
                 if ($targetSpk) {
-                    $matchedItem = $targetSpk->items->first(function ($it) use ($skuCandidate) {
-                        return (!empty($it->sku) && strtoupper(trim($it->sku)) === $skuCandidate) ||
-                               ($it->masterProduct && strtoupper(trim($it->masterProduct->sku ?? '')) === $skuCandidate);
-                    });
+                    if (preg_match('/ITEM-(\d+)/i', $skuCandidate, $itemMatches)) {
+                        $itemId = (int) $itemMatches[1];
+                        $matchedItem = $targetSpk->items->firstWhere('id', $itemId);
+                    }
+                    if (!$matchedItem) {
+                        $matchedItem = $targetSpk->items->first(function ($it) use ($skuCandidate) {
+                            return (!empty($it->sku) && strtoupper(trim($it->sku)) === $skuCandidate) ||
+                                   ($it->masterProduct && strtoupper(trim($it->masterProduct->sku ?? '')) === $skuCandidate);
+                        });
+                    }
                     if (!$matchedItem) {
                         $matchedItem = $targetSpk->items->first(fn($it) => $it->sisa_qty > 0) ?: $targetSpk->items->first();
                     }
