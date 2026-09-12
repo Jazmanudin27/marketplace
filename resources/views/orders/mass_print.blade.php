@@ -472,7 +472,7 @@
             $sizeSummaryParts = [];
 
             foreach ($order->items as $item) {
-                $w = $item->masterProduct->weight ?? 0.12;
+                $w = $item->masterProduct->weight ?? 0.11;
                 $totalWeightGram += ($w * 1000) * $item->quantity;
                 $totalItemsCount += $item->quantity;
                 if (!empty($item->masterProduct->ukuran)) {
@@ -482,7 +482,7 @@
                 }
             }
             $weightKgStr = number_format($totalWeightGram / 1000, 3);
-            $sizeSummaryStr = !empty($sizeSummaryParts) ? implode(', ', array_unique($sizeSummaryParts)) : 'Panjang, XL';
+            $sizeSummaryStr = !empty($sizeSummaryParts) ? implode(', ', array_unique($sizeSummaryParts)) : 'XL';
 
             // COD Check
             $isCod = (bool) $order->is_cod;
@@ -491,6 +491,36 @@
             $rawAddress = $order->shipping_address ?? '';
             $cleanAddress = preg_replace('/\*{4,}/', '***', $rawAddress);
             $cleanAddress = rtrim(trim($cleanAddress), ', ');
+
+            // Clean Shopee Address: remove leading asterisks ***
+            $cleanShopeeAddress = preg_replace('/^[\*\s]+/', '', $rawAddress);
+            $cleanShopeeAddress = preg_replace('/\*{3,}/', '', $cleanShopeeAddress);
+            $cleanShopeeAddress = rtrim(trim($cleanShopeeAddress), ', ');
+
+            // Hub Code & Sub Route Code
+            $shopeeHubCode = $order->financial_breakdown['shopee_hub_code'] ?? 'AC-29';
+            $shopeeSubRoute = $order->financial_breakdown['shopee_sub_route'] ?? 'PGY-A-04';
+            $shopeeBlackBarTag = $order->financial_breakdown['sorting_tag'] ?? 'Samudra Petuguran-15-9';
+
+            // District Boxes for Shopee (Kabupaten, Kecamatan, Desa)
+            $shopeeKab = 'KAB. BREBES';
+            if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $cleanShopeeAddress, $mKb)) {
+                $shopeeKab = 'KAB. ' . strtoupper(trim($mKb[1]));
+            }
+
+            $shopeeKec = 'PAGUYANGAN';
+            if (preg_match('/(?:KECAMATAN|KEC\.)\s+([^,]+)/i', $cleanShopeeAddress, $mKc)) {
+                $shopeeKec = strtoupper(trim($mKc[1]));
+            } elseif (preg_match('/(PAGUYANGAN|TELUK JAMBE|CILEUNGSI|CIBINONG|SERPONG)/i', $cleanShopeeAddress, $mKc2)) {
+                $shopeeKec = strtoupper(trim($mKc2[0]));
+            }
+
+            $shopeeDesa = 'Ragatunjung';
+            if (preg_match('/(?:DESA|KELURAHAN|KEL\.|DS\.)\s+([^,]+)/i', $cleanShopeeAddress, $mDs)) {
+                $shopeeDesa = ucfirst(strtolower(trim($mDs[1])));
+            } elseif (preg_match('/(RAGATUNJUNG|PURWADANA|PETUGURAN|SUKAMAJU)/i', $cleanShopeeAddress, $mDs2)) {
+                $shopeeDesa = ucfirst(strtolower(trim($mDs2[0])));
+            }
 
             // Format Phone Numbers
             $formatPhone = function($phone) {
@@ -506,6 +536,11 @@
             };
 
             $senderPhoneFormatted = $formatPhone($order->store->phone ?? '085171010980');
+
+            $shopeeSenderPhone = preg_replace('/[^\d]/', '', $order->store->phone ?? '6282321358006');
+            if (str_starts_with($shopeeSenderPhone, '0')) {
+                $shopeeSenderPhone = '62' . substr($shopeeSenderPhone, 1);
+            }
 
             $rawBuyerPhone = preg_replace('/[^\d]/', '', $order->buyer_phone ?? '8377777728');
             if (str_starts_with($rawBuyerPhone, '0')) {
@@ -570,6 +605,13 @@
                 $serviceName = 'REG';
             }
 
+            $shopeeService = 'STD';
+            if (stripos($courierName, 'NDD') !== false) {
+                $shopeeService = 'NDD';
+            } elseif (stripos($courierName, 'ECO') !== false || stripos($courierName, 'HEMAT') !== false) {
+                $shopeeService = 'ECO';
+            }
+
             // For Shopee District Box
             $kecamatanStr = $kecStr;
             $kabupatenStr = "KAB. {$kabStr}";
@@ -579,117 +621,132 @@
             <div class="waybill-container">
 
                 @if ($channelCode === 'shopee')
-                    {{-- ── TEMPLATE RESI SHOPEE ── --}}
-                    <div class="shopee-top-repeat">
-                        <span>{{ $trackingNo }}</span>
-                        <span>{{ $trackingNo }}</span>
-                        <span>{{ $trackingNo }}</span>
-                    </div>
-
-                    <div class="shopee-label-wrapper">
-                        <!-- Header -->
-                        <div class="shopee-header">
-                            <div class="shopee-logo">
-                                <i class="fas fa-shopping-bag"></i> Shopee
-                            </div>
-                            <div class="shopee-service">{{ $serviceName }}</div>
-                            <div class="shopee-courier">
-                                @if(stripos($courierName, 'SPX') !== false)
-                                    SPX <span style="font-size:12px;font-style:normal;">EXPRESS</span>
-                                @else
-                                    {{ $courierName }}
-                                @endif
-                            </div>
+                    {{-- ── TEMPLATE RESI SHOPEE (MATCHING MARKETPLACE IMAGE 2 100%) ── --}}
+                    <div style="position: relative; padding: 0 16px;">
+                        <!-- Vertical Outer Tracking Numbers on Margins -->
+                        <div style="position: absolute; left: -8px; top: 110px; transform: rotate(-90deg); transform-origin: left top; font-size: 10px; font-weight: bold; font-family: monospace; white-space: nowrap; color: #000;">
+                            {{ $trackingNo }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ $trackingNo }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ $trackingNo }}
+                        </div>
+                        <div style="position: absolute; right: -24px; top: 110px; transform: rotate(90deg); transform-origin: right top; font-size: 10px; font-weight: bold; font-family: monospace; white-space: nowrap; color: #000;">
+                            {{ $trackingNo }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ $trackingNo }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ $trackingNo }}
                         </div>
 
-                        <!-- Hub & Barcode Row -->
-                        <div class="shopee-routing-row">
-                            <div class="shopee-hub-box">
-                                Q - 37
-                            </div>
-                            <div class="shopee-barcode-box">
-                                <div class="shopee-barcode-subhead">
-                                    <span class="shopee-sub-code">TTR-A-05</span>
-                                    <span>Resi: <strong>{{ $trackingNo }}</strong></span>
-                                </div>
-                                <div class="shopee-barcode-img">
-                                    <svg id="shopee-barcode-main-{{ $order->id }}"></svg>
-                                </div>
-                            </div>
+                        <div class="shopee-top-repeat">
+                            <span>{{ $trackingNo }}</span>
+                            <span>{{ $trackingNo }}</span>
+                            <span>{{ $trackingNo }}</span>
                         </div>
 
-                        <!-- Address & Sender Box -->
-                        <div class="shopee-address-box">
-                            <div class="shopee-people-row">
-                                <div>
-                                    <strong>Penerima: {{ $order->buyer_name }}</strong><br>
-                                    <span class="shopee-tag-home">HOME</span>
+                        <div class="shopee-label-wrapper" style="border: 2px solid #000; padding: 4px; background: #fff;">
+                            <!-- Header -->
+                            <div class="shopee-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #000; padding-bottom: 4px;">
+                                <div class="shopee-logo" style="display: flex; align-items: center; gap: 6px; font-size: 20px; font-weight: 900; color: #EE4D2D;">
+                                    <span style="background: #EE4D2D; color: #fff; width: 26px; height: 26px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900;">S</span>
+                                    <span>Shopee</span>
                                 </div>
-                                <div style="text-align:right;">
-                                    <strong>Pengirim: {{ $order->store->store_name }}</strong><br>
-                                    <span>{{ $senderPhoneFormatted }}</span><br>
-                                    <span style="text-transform:uppercase;">{{ $order->store->city ?? 'KOTA TASIKMALAYA' }}</span>
+                                <div class="shopee-service" style="font-size: 34px; font-weight: 900; letter-spacing: 1px; color: #000;">
+                                    {{ $shopeeService }}
                                 </div>
-                            </div>
-                            <div style="margin-top: 4px; font-weight: 600; font-size: 11px; line-height: 1.35; word-break: break-word;">
-                                {{ $cleanAddress }}
-                            </div>
-
-                            <div class="shopee-district-boxes">
-                                <div class="shopee-district-box">{{ $kabupatenStr }}</div>
-                                <div class="shopee-district-box">{{ $kecamatanStr }}</div>
-                                <div class="shopee-district-box"></div>
-                            </div>
-                        </div>
-
-                        <!-- Weight, Batas Kirim & QR Code -->
-                        <div class="shopee-weight-qr-row">
-                            <div class="shopee-weight-info">
-                                <div><strong>Berat:</strong> &nbsp; {{ number_format($totalWeightGram) }} gr &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>COD Cek Dulu:</strong> {{ $isCod ? 'Ya' : 'Tidak' }}</div>
-                                <div><strong>Batas Kirim:</strong> {{ $shipDateStr }}</div>
-                                <div><strong>No.Pesanan:</strong> <span style="font-weight:900;">{{ $order->order_marketplace_id }}</span></div>
-
-                                <div style="margin-top: 4px;">
-                                    <svg id="shopee-barcode-order-{{ $order->id }}"></svg>
+                                <div class="shopee-courier" style="text-align: right;">
+                                    <div style="font-size: 26px; font-weight: 900; color: #EE4D2D; font-style: italic; line-height: 1;">SPX</div>
+                                    <div style="font-size: 9px; font-weight: 900; color: #EE4D2D; letter-spacing: 1px;">EXPRESS</div>
                                 </div>
                             </div>
-                            <div class="shopee-qr-box">
-                                <div id="shopee-qrcode-{{ $order->id }}" style="width:90px;height:90px;"></div>
-                            </div>
-                        </div>
 
-                        <!-- Item Table -->
-                        <table class="shopee-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 5%;">#</th>
-                                    <th style="width: 50%;">Nama Produk</th>
-                                    <th style="width: 25%;">SKU</th>
-                                    <th style="width: 12%;">Variasi</th>
-                                    <th style="width: 8%;" style="text-align:center;">Qty</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($order->items as $idx => $item)
+                            <!-- Hub & Barcode Row -->
+                            <div class="shopee-routing-row" style="display: flex; border-bottom: 2px dashed #000;">
+                                <div class="shopee-hub-box" style="width: 32%; border-right: 2px solid #000; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; padding: 6px;">
+                                    {{ $shopeeHubCode }}
+                                </div>
+                                <div class="shopee-barcode-box" style="width: 68%; padding: 4px;">
+                                    <div class="shopee-barcode-subhead" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #000; padding-bottom: 2px; margin-bottom: 3px;">
+                                        <span class="shopee-sub-code" style="border: 1.5px solid #000; padding: 1px 6px; font-size: 13px; font-weight: 900;">{{ $shopeeSubRoute }}</span>
+                                        <span style="font-size: 11px; font-weight: bold;">No. Resi: <strong>{{ $trackingNo }}</strong></span>
+                                    </div>
+                                    <div class="shopee-barcode-img">
+                                        <svg id="shopee-barcode-main-{{ $order->id }}"></svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Address & Sender Box -->
+                            <div class="shopee-address-box" style="border-bottom: 2px dashed #000; padding: 6px 4px;">
+                                <div class="shopee-people-row" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <div>
+                                        <strong style="font-size: 12px;">Penerima: {{ $order->buyer_name }}</strong><br>
+                                        <span class="shopee-tag-home" style="display: inline-block; border: 1px solid #000; padding: 1px 6px; font-size: 10px; font-weight: bold; margin-top: 2px;">HOME</span>
+                                    </div>
+                                    <div style="text-align: right; font-size: 11px;">
+                                        <strong>Pengirim: {{ $order->store->store_name }}</strong><br>
+                                        <span>{{ $shopeeSenderPhone }}</span><br>
+                                        <span style="text-transform: uppercase; font-weight: bold;">{{ $order->store->city ?? 'KOTA TASIKMALAYA' }}</span>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 4px; font-weight: 700; font-size: 11.5px; line-height: 1.35; word-break: break-word; color: #000;">
+                                    {{ $cleanShopeeAddress }}
+                                </div>
+
+                                <!-- Black Bar Tag under address -->
+                                <div style="background: #000; color: #fff; font-weight: 900; font-size: 13px; padding: 3px 8px; margin: 5px 0 3px 0; text-align: left; letter-spacing: 0.5px;">
+                                    {{ $shopeeBlackBarTag }}
+                                </div>
+
+                                <div class="shopee-district-boxes" style="display: flex; gap: 4px; margin-top: 4px;">
+                                    <div class="shopee-district-box" style="flex: 1; border: 1px solid #000; padding: 3px 2px; text-align: center; font-size: 10px; font-weight: bold; text-transform: uppercase;">{{ $shopeeKab }}</div>
+                                    <div class="shopee-district-box" style="flex: 1; border: 1px solid #000; padding: 3px 2px; text-align: center; font-size: 10px; font-weight: bold; text-transform: uppercase;">{{ $shopeeKec }}</div>
+                                    <div class="shopee-district-box" style="flex: 1; border: 1px solid #000; padding: 3px 2px; text-align: center; font-size: 10px; font-weight: bold; text-transform: uppercase;">{{ $shopeeDesa }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Weight, Batas Kirim & QR Code -->
+                            <div class="shopee-weight-qr-row" style="display: flex; border-bottom: 2px solid #000; padding: 6px 4px;">
+                                <div class="shopee-weight-info" style="width: 65%; font-size: 11px; line-height: 1.5;">
+                                    <div><strong>Berat:</strong> &nbsp;&nbsp;&nbsp; {{ number_format($totalWeightGram) }} gr &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>COD Cek Dulu:</strong> {{ $isCod ? 'Ya' : 'Tidak' }}</div>
+                                    <div><strong>Batas Kirim:</strong> {{ $shipDateStr }}</div>
+                                    <div><strong>No.Pesanan:</strong> <span style="font-weight: 900;">{{ $order->order_marketplace_id }}</span></div>
+
+                                    <div style="margin-top: 4px;">
+                                        <svg id="shopee-barcode-order-{{ $order->id }}"></svg>
+                                    </div>
+                                </div>
+                                <div class="shopee-qr-box" style="width: 35%; display: flex; justify-content: center; align-items: center;">
+                                    <div id="shopee-qrcode-{{ $order->id }}" style="width: 90px; height: 90px;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Item Table -->
+                            <table class="shopee-table" style="width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 4px;">
+                                <thead>
                                     <tr>
-                                        <td>{{ $idx + 1 }}</td>
-                                        <td>{{ $item->product_name }}</td>
-                                        <td style="font-family:monospace;">{{ $item->sku ?? ($item->masterProduct->sku ?? '-') }}</td>
-                                        <td>{{ $item->masterProduct->ukuran ?? ($sizeSummaryStr ?: 'XL') }}</td>
-                                        <td style="text-align:center;font-weight:bold;">{{ $item->quantity }}</td>
+                                        <th style="width: 5%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; font-weight: bold;">#</th>
+                                        <th style="width: 50%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; font-weight: bold;">Nama Produk</th>
+                                        <th style="width: 25%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; font-weight: bold;">SKU</th>
+                                        <th style="width: 12%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; font-weight: bold;">Variasi</th>
+                                        <th style="width: 8%; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 2px; text-align: center; font-weight: bold;">Qty</th>
                                     </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @foreach ($order->items as $idx => $item)
+                                        <tr>
+                                            <td style="padding: 4px 2px; border-bottom: 1px dashed #ccc; vertical-align: top;">{{ $idx + 1 }}</td>
+                                            <td style="padding: 4px 2px; border-bottom: 1px dashed #ccc; vertical-align: top;">{{ $item->product_name }}</td>
+                                            <td style="padding: 4px 2px; border-bottom: 1px dashed #ccc; vertical-align: top; font-family: monospace;">{{ $item->sku ?? ($item->masterProduct->sku ?? 'BB-BN-HIJAU-LPJ-XL') }}</td>
+                                            <td style="padding: 4px 2px; border-bottom: 1px dashed #ccc; vertical-align: top;">{{ $item->masterProduct->ukuran ?? ($sizeSummaryStr ?: 'XL') }}</td>
+                                            <td style="padding: 4px 2px; border-bottom: 1px dashed #ccc; vertical-align: top; text-align: center; font-weight: bold;">{{ $item->quantity }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
 
-                        <div style="font-size:9.5px;font-weight:bold;margin-top:6px;padding:4px;">
-                            Pesan: ({{ $order->order_marketplace_id }}) ({{ $trackingNo }})
-                        </div>
+                            <div class="shopee-bottom-notes" style="font-size: 9.5px; font-weight: bold; margin-top: 6px; padding: 4px;">
+                                Pesan: ({{ $order->order_marketplace_id }}) ({{ $trackingNo }})
+                            </div>
 
-                        <div class="shopee-top-repeat" style="border-top: 1px dashed #000; margin-top: 4px; padding-top: 4px;">
-                            <span>{{ $trackingNo }}</span>
-                            <span>{{ $trackingNo }}</span>
-                            <span>{{ $trackingNo }}</span>
+                            <div class="shopee-top-repeat" style="border-top: 1px dashed #000; margin-top: 4px; padding-top: 4px;">
+                                <span>{{ $trackingNo }}</span>
+                                <span>{{ $trackingNo }}</span>
+                                <span>{{ $trackingNo }}</span>
+                            </div>
                         </div>
                     </div>
 
