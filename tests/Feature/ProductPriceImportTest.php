@@ -45,7 +45,18 @@ class ProductPriceImportTest extends TestCase
             'cost_price' => 50000,
             'est_kain' => 1.5,
             'est_biaya_produksi' => 20000,
+            'is_bundle' => false,
             'stock' => 10,
+        ]);
+
+        MasterProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Paket Bundle Test',
+            'sku' => 'SKU-BUNDLE-99',
+            'price' => 250000,
+            'cost_price' => 120000,
+            'is_bundle' => true,
+            'stock' => 5,
         ]);
 
         $response = $this->get(route('products.download_price_template'));
@@ -56,6 +67,7 @@ class ProductPriceImportTest extends TestCase
         $content = $response->streamedContent();
         $this->assertStringContainsString('sku;harga_jual;hpp;est_kain;est_biaya_produksi', $content);
         $this->assertStringContainsString('SKU-TMP-01', $content);
+        $this->assertStringNotContainsString('SKU-BUNDLE-99', $content);
     }
 
     public function test_csv_import_updates_valid_values_and_ignores_zero_or_empty_with_semicolon(): void

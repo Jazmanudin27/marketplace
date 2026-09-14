@@ -1463,7 +1463,13 @@ class MasterProductController extends Controller
     public function downloadPriceTemplate()
     {
         $tenantId = Auth::user()->tenant_id;
-        $products = MasterProduct::where('tenant_id', $tenantId)->orderBy('sku')->get();
+        $products = MasterProduct::where('tenant_id', $tenantId)
+            ->where(function ($q) {
+                $q->where('is_bundle', false)
+                  ->orWhereNull('is_bundle');
+            })
+            ->orderBy('sku')
+            ->get();
 
         $filename = "template_import_harga_" . date('Y-m-d_H-i-s') . ".csv";
 
