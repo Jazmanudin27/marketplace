@@ -1480,8 +1480,8 @@ class MasterProductController extends Controller
             // Add UTF-8 BOM for Excel compatibility
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
-            // Headers: sku, harga_jual, hpp, est_kain, est_biaya_produksi, harga_dropship, harga_shopee, harga_tiktok, harga_lazada, harga_dropship_shopee, harga_dropship_tiktok, harga_dropship_lazada
-            fputcsv($file, ['sku', 'harga_jual', 'hpp', 'est_kain', 'est_biaya_produksi', 'harga_dropship', 'harga_shopee', 'harga_tiktok', 'harga_lazada', 'harga_dropship_shopee', 'harga_dropship_tiktok', 'harga_dropship_lazada']);
+            // Headers with semicolon delimiter for native Excel column separation in Windows/Indonesian locale
+            fputcsv($file, ['sku', 'harga_jual', 'hpp', 'est_kain', 'est_biaya_produksi', 'harga_dropship', 'harga_shopee', 'harga_tiktok', 'harga_lazada', 'harga_dropship_shopee', 'harga_dropship_tiktok', 'harga_dropship_lazada'], ';');
 
             foreach ($products as $p) {
                 fputcsv($file, [
@@ -1497,7 +1497,7 @@ class MasterProductController extends Controller
                     (int)$p->shopee_dropship_price,
                     (int)$p->tiktok_dropship_price,
                     (int)$p->lazada_dropship_price
-                ]);
+                ], ';');
             }
 
             fclose($file);

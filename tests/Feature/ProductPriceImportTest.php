@@ -35,7 +35,7 @@ class ProductPriceImportTest extends TestCase
         $this->actingAs($this->user);
     }
 
-    public function test_can_download_price_template_with_new_columns(): void
+    public function test_can_download_price_template_with_semicolon_columns(): void
     {
         MasterProduct::create([
             'tenant_id' => $this->tenant->id,
@@ -54,11 +54,11 @@ class ProductPriceImportTest extends TestCase
         $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
 
         $content = $response->streamedContent();
-        $this->assertStringContainsString('sku,harga_jual,hpp,est_kain,est_biaya_produksi', $content);
+        $this->assertStringContainsString('sku;harga_jual;hpp;est_kain;est_biaya_produksi', $content);
         $this->assertStringContainsString('SKU-TMP-01', $content);
     }
 
-    public function test_csv_import_updates_valid_values_and_ignores_zero_or_empty(): void
+    public function test_csv_import_updates_valid_values_and_ignores_zero_or_empty_with_semicolon(): void
     {
         $product1 = MasterProduct::create([
             'tenant_id' => $this->tenant->id,
@@ -82,13 +82,13 @@ class ProductPriceImportTest extends TestCase
             'stock' => 5,
         ]);
 
-        // CSV content:
+        // CSV content with semicolon delimiter (standard for Excel in Windows/ID locale):
         // SKU-001: updates all values
         // SKU-002: provides 0 or empty values, so old values must remain unchanged
         $csvContent = implode("\n", [
-            'sku,harga_jual,hpp,est_kain,est_biaya_produksi',
-            'SKU-001,120000,60000,1.8,25000',
-            'SKU-002,0,,0,0',
+            'sku;harga_jual;hpp;est_kain;est_biaya_produksi',
+            'SKU-001;120000;60000;1.8;25000',
+            'SKU-002;0;;0;0',
         ]);
 
         $file = UploadedFile::fake()->createWithContent('import_harga_test.csv', $csvContent);
