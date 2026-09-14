@@ -38,6 +38,7 @@ class MasterProduct extends Model
         'is_active',
         'exclude_commission',
         'est_kain',
+        'est_biaya_produksi',
     ];
 
     protected $casts = [
@@ -47,6 +48,7 @@ class MasterProduct extends Model
         'min_stock' => 'integer',
         'safety_stock' => 'integer',
         'est_kain' => 'float',
+        'est_biaya_produksi' => 'decimal:2',
         'is_preorder' => 'boolean',
         'is_bundle' => 'boolean',
         'is_active' => 'boolean',

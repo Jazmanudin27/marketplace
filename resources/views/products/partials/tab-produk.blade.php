@@ -289,6 +289,12 @@
                                                 class="text-primary font-monospace">{{ number_format($product->est_kain, 0) }} cm</strong>
                                         </div>
                                     @endif
+                                    @if(!empty($product->est_biaya_produksi) && $product->est_biaya_produksi > 0)
+                                        <div class="mt-1">
+                                            <span class="text-muted">Est. Prod:</span> <strong
+                                                class="text-success font-monospace">Rp {{ number_format($product->est_biaya_produksi, 0, ',', '.') }}</strong>
+                                        </div>
+                                    @endif
                                 </div>
                             </td>
                             <td class="text-end">
@@ -747,11 +753,14 @@
                 <div class="modal-body p-4">
                     <div class="alert alert-info py-2.5 px-3 small border-0 bg-info bg-opacity-10 text-dark mb-3">
                         <div class="fw-bold mb-1"><i class="fas fa-info-circle text-info me-1"></i>Format Kolom File CSV / Excel:</div>
-                        <code class="d-block bg-white p-2 rounded border font-monospace text-primary" style="font-size:0.7rem;overflow-x:auto;white-space:nowrap;">sku,hpp,harga_normal,harga_dropship,harga_shopee,harga_tiktok,harga_lazada,harga_dropship_shopee,harga_dropship_tiktok,harga_dropship_lazada</code>
+                        <code class="d-block bg-white p-2 rounded border font-monospace text-primary" style="font-size:0.7rem;overflow-x:auto;white-space:nowrap;">sku,harga_jual,hpp,est_kain,est_biaya_produksi,harga_dropship,harga_shopee,harga_tiktok,harga_lazada,harga_dropship_shopee,harga_dropship_tiktok,harga_dropship_lazada</code>
                         <div class="mt-2 text-muted" style="font-size: 0.72rem;">
                             &bull; <code>sku</code>: Kode SKU Produk (Wajib)<br>
-                            &bull; <code>harga_normal</code> / <code>harga_dropship</code>: Khusus Kasir Offline POS (<strong>Tidak di-push ke marketplace</strong>)<br>
-                            &bull; <code>harga_shopee</code>, <code>harga_tiktok</code>, <code>harga_lazada</code>: Khusus Push Sync ke toko masing-masing marketplace
+                            &bull; <code>harga_jual</code> &bull; <code>hpp</code> &bull; <code>est_kain</code> &bull; <code>est_biaya_produksi</code>: Data Finansial &amp; Produksi Produk<br>
+                            &bull; <code>harga_dropship</code> / <code>harga_shopee</code> / dll: Khusus Harga Marketplace / Reseller
+                        </div>
+                        <div class="mt-2 p-1.5 bg-warning bg-opacity-15 rounded border border-warning border-opacity-25 text-dark fw-semibold" style="font-size: 0.72rem;">
+                            <i class="fas fa-exclamation-triangle text-warning me-1"></i><strong>Penting:</strong> Kolom yang bernilai <strong>0</strong> atau <strong>kosong</strong> tidak akan di-update (dibiarkan tidak diubah apa-apa).
                         </div>
                     </div>
 

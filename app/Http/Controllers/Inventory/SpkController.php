@@ -460,11 +460,22 @@ class SpkController extends Controller
                         $prod = null;
                         if (!empty($skuProduk)) {
                             $cleanSku = trim($skuProduk);
+                            // 1. Prioritaskan exact match pada SKU
                             $prod = MasterProduct::where('tenant_id', $tenantId)
-                                ->where(function($q) use ($cleanSku) {
-                                    $q->where(DB::raw('LOWER(sku)'), strtolower($cleanSku))
-                                      ->orWhere(DB::raw('LOWER(sku_induk)'), strtolower($cleanSku));
-                                })->first();
+                                ->where(DB::raw('LOWER(sku)'), strtolower($cleanSku))
+                                ->first();
+
+                            // 2. Jika tidak ketemu, cari berdasarkan SKU Induk + Ukuran
+                            if (!$prod) {
+                                $q = MasterProduct::where('tenant_id', $tenantId)
+                                    ->where(DB::raw('LOWER(sku_induk)'), strtolower($cleanSku));
+                                if (!empty($ukuran)) {
+                                    $prod = (clone $q)->where(DB::raw('LOWER(ukuran)'), strtolower(trim($ukuran)))->first();
+                                }
+                                if (!$prod) {
+                                    $prod = $q->first();
+                                }
+                            }
                         }
                         if (!$prod && !empty($namaProduk)) {
                             $cleanName = trim($namaProduk);
@@ -673,18 +684,36 @@ class SpkController extends Controller
             foreach ($request->items as $row) {
                 $prodId = null;
                 if (!empty($row['sku'])) {
+                    $cleanSku = trim($row['sku']);
                     $prod = MasterProduct::where('tenant_id', $tenantId)
-                        ->where('sku', trim($row['sku']))->first();
+                        ->where(DB::raw('LOWER(sku)'), strtolower($cleanSku))->first();
                     if ($prod) $prodId = $prod->id;
                 }
                 if (!$prodId && !empty($row['sku_induk'])) {
-                    $prod = MasterProduct::where('tenant_id', $tenantId)
-                        ->where('sku_induk', trim($row['sku_induk']))->first();
+                    $cleanInduk = trim($row['sku_induk']);
+                    $sz = !empty($row['size']) ? strtolower(trim($row['size'])) : null;
+                    $q = MasterProduct::where('tenant_id', $tenantId)
+                        ->where(DB::raw('LOWER(sku_induk)'), strtolower($cleanInduk));
+                    if ($sz) {
+                        $prod = (clone $q)->where(DB::raw('LOWER(ukuran)'), $sz)->first();
+                    }
+                    if (!$prod) {
+                        $prod = $q->first();
+                    }
                     if ($prod) $prodId = $prod->id;
                 }
                 if (!$prodId && !empty($row['name'])) {
-                    $prod = MasterProduct::where('tenant_id', $tenantId)
-                        ->where('name', trim($row['name']))->first();
+                    $cleanName = trim($row['name']);
+                    $sz = !empty($row['size']) ? strtolower(trim($row['size'])) : null;
+                    if ($sz) {
+                        $prod = MasterProduct::where('tenant_id', $tenantId)
+                            ->where('name', $cleanName)
+                            ->where(DB::raw('LOWER(ukuran)'), $sz)->first();
+                    }
+                    if (!$prod) {
+                        $prod = MasterProduct::where('tenant_id', $tenantId)
+                            ->where('name', $cleanName)->first();
+                    }
                     if ($prod) $prodId = $prod->id;
                 }
 
@@ -1470,11 +1499,22 @@ class SpkController extends Controller
                             $prod = null;
                             if ($skuProduk) {
                                 $cleanSku = trim($skuProduk);
+                                // 1. Prioritaskan exact match pada SKU
                                 $prod = MasterProduct::where('tenant_id', $spk->tenant_id)
-                                    ->where(function($q) use ($cleanSku) {
-                                        $q->where(DB::raw('LOWER(sku)'), strtolower($cleanSku))
-                                          ->orWhere(DB::raw('LOWER(sku_induk)'), strtolower($cleanSku));
-                                    })->first();
+                                    ->where(DB::raw('LOWER(sku)'), strtolower($cleanSku))
+                                    ->first();
+
+                                // 2. Jika tidak ketemu, cari berdasarkan SKU Induk + Ukuran
+                                if (!$prod) {
+                                    $q = MasterProduct::where('tenant_id', $spk->tenant_id)
+                                        ->where(DB::raw('LOWER(sku_induk)'), strtolower($cleanSku));
+                                    if (!empty($ukuranInput)) {
+                                        $prod = (clone $q)->where(DB::raw('LOWER(ukuran)'), strtolower(trim($ukuranInput)))->first();
+                                    }
+                                    if (!$prod) {
+                                        $prod = $q->first();
+                                    }
+                                }
                             }
                             if (!$prod && $namaProduk) {
                                 $cleanName = trim($namaProduk);

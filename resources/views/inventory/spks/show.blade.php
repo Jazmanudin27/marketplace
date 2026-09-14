@@ -2138,6 +2138,7 @@
         const inventoryItemsMap = @json($inventoryItemsMap ?? []);
 
         const masterProductsMap = {};
+        const masterProductsByIndukMap = {};
         @foreach ($products as $p)
             @php
                 $prodInfo = [
@@ -2151,7 +2152,14 @@
                 masterProductsMap[@json(strtoupper(trim($p->sku)))] = @json($prodInfo);
             @endif
             @if (!empty($p->sku_induk))
-                masterProductsMap[@json(strtoupper(trim($p->sku_induk)))] = @json($prodInfo);
+                @php $indukKey = strtoupper(trim($p->sku_induk)); @endphp
+                if (!masterProductsByIndukMap[@json($indukKey)]) {
+                    masterProductsByIndukMap[@json($indukKey)] = [];
+                }
+                masterProductsByIndukMap[@json($indukKey)].push(@json($prodInfo));
+                if (!masterProductsMap[@json($indukKey)]) {
+                    masterProductsMap[@json($indukKey)] = @json($prodInfo);
+                }
             @endif
         @endforeach
 
@@ -2344,16 +2352,33 @@
 
             const cleanSku = skuInput ? skuInput.value.trim().toUpperCase() : '';
             const cleanName = nameInput ? nameInput.value.trim().toUpperCase() : '';
+            const cleanUk = ukInput ? ukInput.value.trim().toUpperCase() : '';
 
             let masterProd = null;
-            if (cleanSku && masterProductsMap[cleanSku]) {
+
+            // 1. Match by exact SKU in list or map
+            if (cleanSku) {
+                const foundBySku = allMasterProductsList.find(p => p.sku && p.sku.trim().toUpperCase() === cleanSku);
+                if (foundBySku) {
+                    masterProd = foundBySku;
+                }
+            }
+            if (!masterProd && cleanSku && masterProductsMap[cleanSku]) {
                 masterProd = masterProductsMap[cleanSku];
-            } else if (cleanName && masterProductsMap[cleanName]) {
-                masterProd = masterProductsMap[cleanName];
-            } else if (cleanName) {
-                const found = allMasterProductsList.find(p => p.name && p.name.trim().toUpperCase() === cleanName);
-                if (found && found.sku) {
-                    masterProd = masterProductsMap[found.sku.toUpperCase()];
+            }
+
+            // 2. Match by SKU Induk + Ukuran
+            if (!masterProd && cleanSku && cleanUk && masterProductsByIndukMap[cleanSku]) {
+                masterProd = masterProductsByIndukMap[cleanSku].find(p => p.ukuran && p.ukuran.trim().toUpperCase() === cleanUk);
+            }
+
+            // 3. Match by Name + Ukuran (or Name only)
+            if (!masterProd && cleanName) {
+                if (cleanUk) {
+                    masterProd = allMasterProductsList.find(p => p.name && p.name.trim().toUpperCase() === cleanName && p.ukuran && p.ukuran.trim().toUpperCase() === cleanUk);
+                }
+                if (!masterProd) {
+                    masterProd = allMasterProductsList.find(p => p.name && p.name.trim().toUpperCase() === cleanName);
                 }
             }
 
