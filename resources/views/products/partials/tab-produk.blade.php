@@ -740,27 +740,68 @@
 
 <!-- MODAL IMPORT HARGA MASAL -->
 <div class="modal fade" id="modalImportPrices" tabindex="-1" aria-labelledby="modalImportPricesLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header py-2.5 bg-light">
+            <div class="modal-header py-2.5 bg-light border-bottom">
                 <h6 class="modal-title fw-bold text-dark" id="modalImportPricesLabel">
-                    <i class="fas fa-file-excel me-2 text-success"></i>Import Harga Produk Masal (CSV)
+                    <i class="fas fa-file-excel me-2 text-success"></i>Import &amp; Update Data Produk Masal (CSV / Excel)
                 </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="{{ route('products.import_prices') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body p-4">
-                    <div class="alert alert-info py-2.5 px-3 small border-0 bg-info bg-opacity-10 text-dark mb-3">
-                        <div class="fw-bold mb-1"><i class="fas fa-info-circle text-info me-1"></i>Format Kolom File CSV / Excel:</div>
-                        <code class="d-block bg-white p-2 rounded border font-monospace text-primary" style="font-size:0.7rem;overflow-x:auto;white-space:nowrap;">sku,harga_jual,hpp,est_kain,est_biaya_produksi,harga_dropship,harga_shopee,harga_tiktok,harga_lazada,harga_dropship_shopee,harga_dropship_tiktok,harga_dropship_lazada</code>
+                    <div class="alert alert-info py-3 px-3 small border-0 bg-info bg-opacity-10 text-dark mb-3 rounded-3">
+                        <div class="fw-bold mb-2 text-primary">
+                            <i class="fas fa-table me-1"></i> Contoh Format Grid Excel / CSV (Tampilan Per Kolom):
+                        </div>
+                        
+                        <div class="table-responsive mb-2 border rounded shadow-sm bg-white">
+                            <table class="table table-sm table-bordered text-center align-middle mb-0 font-monospace" style="font-size: 0.72rem;">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th class="bg-primary text-white text-nowrap px-2">sku</th>
+                                        <th class="bg-success text-white text-nowrap px-2">harga_jual</th>
+                                        <th class="bg-success text-white text-nowrap px-2">hpp</th>
+                                        <th class="bg-info text-dark text-nowrap px-2">est_kain</th>
+                                        <th class="bg-info text-dark text-nowrap px-2">est_biaya_produksi</th>
+                                        <th class="bg-secondary text-white text-nowrap px-2">harga_dropship</th>
+                                        <th class="bg-secondary text-white text-nowrap px-2">harga_shopee</th>
+                                        <th class="bg-secondary text-white text-nowrap px-2">harga_tiktok</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="fw-bold bg-light text-nowrap">TSHIRT-BLK-M</td>
+                                        <td class="text-success fw-bold">120000</td>
+                                        <td class="text-success fw-bold">60000</td>
+                                        <td class="text-info fw-bold text-dark">1.5</td>
+                                        <td class="text-info fw-bold text-dark">25000</td>
+                                        <td>110000</td>
+                                        <td>125000</td>
+                                        <td>125000</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold bg-light text-nowrap">HOODIE-RED-L</td>
+                                        <td class="text-success fw-bold">180000</td>
+                                        <td class="text-success fw-bold">85000</td>
+                                        <td class="bg-warning bg-opacity-25 text-danger fw-bold">0 <span class="text-muted fw-normal">(Abaikan)</span></td>
+                                        <td class="bg-warning bg-opacity-25 text-danger fw-bold">0 <span class="text-muted fw-normal">(Abaikan)</span></td>
+                                        <td class="bg-warning bg-opacity-25 text-muted"><em>(kosong)</em></td>
+                                        <td>190000</td>
+                                        <td class="bg-warning bg-opacity-25 text-danger fw-bold">0 <span class="text-muted fw-normal">(Abaikan)</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
                         <div class="mt-2 text-muted" style="font-size: 0.72rem;">
                             &bull; <code>sku</code>: Kode SKU Produk (Wajib)<br>
-                            &bull; <code>harga_jual</code> &bull; <code>hpp</code> &bull; <code>est_kain</code> &bull; <code>est_biaya_produksi</code>: Data Finansial &amp; Produksi Produk<br>
-                            &bull; <code>harga_dropship</code> / <code>harga_shopee</code> / dll: Khusus Harga Marketplace / Reseller
+                            &bull; <code>harga_jual</code>, <code>hpp</code>, <code>est_kain</code>, <code>est_biaya_produksi</code>: Data Finansial &amp; Estimasi Produksi<br>
+                            &bull; <code>harga_dropship</code>, <code>harga_shopee</code>, <code>harga_tiktok</code>: Khusus Harga Marketplace / Dropship
                         </div>
-                        <div class="mt-2 p-1.5 bg-warning bg-opacity-15 rounded border border-warning border-opacity-25 text-dark fw-semibold" style="font-size: 0.72rem;">
-                            <i class="fas fa-exclamation-triangle text-warning me-1"></i><strong>Penting:</strong> Kolom yang bernilai <strong>0</strong> atau <strong>kosong</strong> tidak akan di-update (dibiarkan tidak diubah apa-apa).
+                        <div class="mt-2 p-2 bg-warning bg-opacity-15 rounded border border-warning border-opacity-25 text-dark fw-semibold" style="font-size: 0.73rem;">
+                            <i class="fas fa-exclamation-triangle text-warning me-1"></i><strong>Aturan Pengisian:</strong> Jika kolom bernilai <strong>0</strong> atau <strong>dikosongkan</strong>, sistem <u>tidak akan mengubah</u> data lama di produk tersebut.
                         </div>
                     </div>
 
