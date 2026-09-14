@@ -1014,6 +1014,7 @@ class ReportController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
         $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $stores = \App\Models\Store::with('channel')->where('tenant_id', $tenantId)->where('status', 'connected')->get();
 
         $query = MasterProduct::with(['category', 'brand', 'components', 'marketplaceProducts.store.channel'])
             ->where('tenant_id', $tenantId);
@@ -1037,6 +1038,14 @@ class ReportController extends Controller
             }
         }
 
+        if ($request->filled('is_preorder')) {
+            if ($request->is_preorder === '1') {
+                $query->where('is_preorder', true);
+            } elseif ($request->is_preorder === '0') {
+                $query->where('is_preorder', false);
+            }
+        }
+
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
@@ -1047,6 +1056,16 @@ class ReportController extends Controller
 
         if ($request->filled('is_active')) {
             $query->where('is_active', $request->is_active == '1');
+        }
+
+        if ($request->filled('store_id')) {
+            $query->whereHas('marketplaceProducts', function($q) use ($request) {
+                $q->where('store_id', $request->store_id);
+            });
+        }
+
+        if ($request->boolean('hide_zero_stock')) {
+            $query->where('stock', '>', 0);
         }
 
         $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
@@ -1062,6 +1081,7 @@ class ReportController extends Controller
             'products',
             'categories',
             'brands',
+            'stores',
             'totalCount',
             'bundleCount',
             'singleCount',
@@ -1072,6 +1092,7 @@ class ReportController extends Controller
     public function printMasterProductReport(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
+        $stores = \App\Models\Store::with('channel')->where('tenant_id', $tenantId)->where('status', 'connected')->get();
 
         $query = MasterProduct::with(['category', 'brand', 'components', 'marketplaceProducts.store.channel'])
             ->where('tenant_id', $tenantId);
@@ -1095,6 +1116,14 @@ class ReportController extends Controller
             }
         }
 
+        if ($request->filled('is_preorder')) {
+            if ($request->is_preorder === '1') {
+                $query->where('is_preorder', true);
+            } elseif ($request->is_preorder === '0') {
+                $query->where('is_preorder', false);
+            }
+        }
+
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
@@ -1105,6 +1134,16 @@ class ReportController extends Controller
 
         if ($request->filled('is_active')) {
             $query->where('is_active', $request->is_active == '1');
+        }
+
+        if ($request->filled('store_id')) {
+            $query->whereHas('marketplaceProducts', function($q) use ($request) {
+                $q->where('store_id', $request->store_id);
+            });
+        }
+
+        if ($request->boolean('hide_zero_stock')) {
+            $query->where('stock', '>', 0);
         }
 
         $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
@@ -1118,6 +1157,7 @@ class ReportController extends Controller
 
         return view('reports.print_master_product', compact(
             'products',
+            'stores',
             'totalCount',
             'bundleCount',
             'singleCount',
@@ -1151,6 +1191,14 @@ class ReportController extends Controller
             }
         }
 
+        if ($request->filled('is_preorder')) {
+            if ($request->is_preorder === '1') {
+                $query->where('is_preorder', true);
+            } elseif ($request->is_preorder === '0') {
+                $query->where('is_preorder', false);
+            }
+        }
+
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
@@ -1161,6 +1209,16 @@ class ReportController extends Controller
 
         if ($request->filled('is_active')) {
             $query->where('is_active', $request->is_active == '1');
+        }
+
+        if ($request->filled('store_id')) {
+            $query->whereHas('marketplaceProducts', function($q) use ($request) {
+                $q->where('store_id', $request->store_id);
+            });
+        }
+
+        if ($request->boolean('hide_zero_stock')) {
+            $query->where('stock', '>', 0);
         }
 
         $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
@@ -1189,10 +1247,13 @@ class ReportController extends Controller
                 'Komponen Set (SKU)',
                 'Kategori',
                 'Merk',
-                'HPP (Modal)',
                 'Harga Jual',
-                'Stok',
-                'Status',
+                'Harga HPP (Modal)',
+                'Estimasi Kain (Meter)',
+                'Estimasi Harga Produksi',
+                'Stok Gudang',
+                'Status Pre-Order',
+                'Status Aktif',
                 'Jumlah Produk MP Taut',
                 'Toko Marketplace Taut'
             ]);
@@ -1216,9 +1277,12 @@ class ReportController extends Controller
                     $comps,
                     $p->category->name ?? '-',
                     $p->brand->name ?? '-',
-                    $p->cost_price,
                     $p->price,
+                    $p->cost_price,
+                    $p->est_kain ? (float)$p->est_kain : 0,
+                    $p->est_biaya_produksi ? (float)$p->est_biaya_produksi : 0,
                     $p->stock,
+                    $p->is_preorder ? 'PO' : 'Ready Stock',
                     $p->is_active ? 'Aktif' : 'Nonaktif',
                     $mpCount,
                     $mpCount > 0 ? $mpStores : 'Belum Ditautkan'
