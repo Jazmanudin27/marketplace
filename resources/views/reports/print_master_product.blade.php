@@ -162,15 +162,17 @@
         <thead>
             <tr>
                 <th class="th-blue" style="width: 3%; text-align: center;">NO</th>
-                <th class="th-blue" style="width: 12%;">SKU</th>
-                <th class="th-blue" style="width: 20%;">NAMA PRODUK</th>
-                <th class="th-blue" style="width: 10%; text-align: right;">HARGA JUAL</th>
-                <th class="th-blue" style="width: 10%; text-align: right;">HARGA HPP</th>
-                <th class="th-blue" style="width: 8%; text-align: right;">EST. KAIN</th>
-                <th class="th-blue" style="width: 10%; text-align: right;">EST. PRODUKSI</th>
-                <th class="th-blue" style="width: 7%; text-align: right;">STOK</th>
-                <th class="th-blue" style="width: 8%; text-align: center;">STATUS</th>
-                <th class="th-blue" style="width: 12%;">MARKETPLACE TERHUBUNG</th>
+                <th class="th-blue" style="width: 11%;">SKU</th>
+                <th class="th-blue" style="width: 19%;">NAMA PRODUK</th>
+                <th class="th-blue" style="width: 9%; text-align: right;">HARGA JUAL</th>
+                <th class="th-blue" style="width: 9%; text-align: right;">HARGA HPP</th>
+                <th class="th-blue" style="width: 7%; text-align: right;">EST. KAIN</th>
+                <th class="th-blue" style="width: 9%; text-align: right;">EST. PRODUKSI</th>
+                <th class="th-blue" style="width: 6%; text-align: right;">STOK</th>
+                <th class="th-blue" style="width: 6%; text-align: center;">JENIS</th>
+                <th class="th-blue" style="width: 6%; text-align: center;">TIPE PO</th>
+                <th class="th-blue" style="width: 6%; text-align: center;">STATUS</th>
+                <th class="th-blue" style="width: 9%;">MARKETPLACE TERHUBUNG</th>
             </tr>
         </thead>
         <tbody>
@@ -220,19 +222,19 @@
                         {{ number_format($p->stock, 0, ',', '.') }}
                     </td>
                     <td style="text-align: center;">
-                        <span style="display: inline-block; padding: 1px 4px; border-radius: 3px; font-size: 8.5px; font-weight: bold; {{ $p->is_active ? 'background: #dcfce7; color: #15803d; border: 1px solid #86efac;' : 'background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;' }}">
+                        <span style="display: inline-block; padding: 2px 5px; border-radius: 3px; font-size: 8.5px; font-weight: bold; {{ $p->is_bundle ? 'background: #f3ebff; color: #6f42c1; border: 1px solid #d8b4fe;' : 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;' }}">
+                            {{ $p->is_bundle ? 'Set' : 'Single' }}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        <span style="display: inline-block; padding: 2px 5px; border-radius: 3px; font-size: 8.5px; font-weight: bold; {{ $p->is_preorder ? 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;' : 'background: #dcfce7; color: #15803d; border: 1px solid #86efac;' }}">
+                            {{ $p->is_preorder ? 'PO' : 'Ready' }}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        <span style="display: inline-block; padding: 2px 5px; border-radius: 3px; font-size: 8.5px; font-weight: bold; {{ $p->is_active ? 'background: #dcfce7; color: #15803d; border: 1px solid #86efac;' : 'background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;' }}">
                             {{ $p->is_active ? 'Aktif' : 'Nonaktif' }}
                         </span>
-                        <div style="margin-top: 2px;">
-                            <span style="display: inline-block; padding: 1px 4px; border-radius: 3px; font-size: 8.5px; font-weight: bold; {{ $p->is_preorder ? 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;' : 'background: #dcfce7; color: #15803d; border: 1px solid #86efac;' }}">
-                                {{ $p->is_preorder ? 'PO' : 'Ready' }}
-                            </span>
-                        </div>
-                        <div style="margin-top: 2px;">
-                            <span style="display: inline-block; padding: 1px 4px; border-radius: 3px; font-size: 8.5px; font-weight: bold; {{ $p->is_bundle ? 'background: #f3ebff; color: #6f42c1; border: 1px solid #d8b4fe;' : 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;' }}">
-                                {{ $p->is_bundle ? 'Set' : 'Single' }}
-                            </span>
-                        </div>
                     </td>
                     <td style="font-size: 8.5px;">
                         @if($mpCount > 0)
@@ -245,7 +247,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="10" style="text-align: center; padding: 20px; color: #64748b;">Tidak ada data master produk.</td>
+                    <td colspan="12" style="text-align: center; padding: 20px; color: #64748b;">Tidak ada data master produk.</td>
                 </tr>
             @endforelse
         </tbody>
