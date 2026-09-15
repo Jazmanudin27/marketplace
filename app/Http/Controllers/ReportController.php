@@ -1068,14 +1068,12 @@ class ReportController extends Controller
             $query->where('stock', '>', 0);
         }
 
-        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
-
-        $totalCount = $products->count();
-        $bundleCount = $products->where('is_bundle', true)->count();
+        $totalCount = (clone $query)->count();
+        $bundleCount = (clone $query)->where('is_bundle', true)->count();
         $singleCount = $totalCount - $bundleCount;
-        $totalStockValue = $products->sum(function ($p) {
-            return $p->stock * $p->cost_price;
-        });
+        $totalStockValue = (clone $query)->sum(\Illuminate\Support\Facades\DB::raw('stock * cost_price'));
+
+        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->paginate(50)->withQueryString();
 
         return view('reports.master_product', compact(
             'products',
@@ -1146,14 +1144,12 @@ class ReportController extends Controller
             $query->where('stock', '>', 0);
         }
 
-        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
-
-        $totalCount = $products->count();
-        $bundleCount = $products->where('is_bundle', true)->count();
+        $totalCount = (clone $query)->count();
+        $bundleCount = (clone $query)->where('is_bundle', true)->count();
         $singleCount = $totalCount - $bundleCount;
-        $totalStockValue = $products->sum(function ($p) {
-            return $p->stock * $p->cost_price;
-        });
+        $totalStockValue = (clone $query)->sum(\Illuminate\Support\Facades\DB::raw('stock * cost_price'));
+
+        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
 
         return view('reports.print_master_product', compact(
             'products',

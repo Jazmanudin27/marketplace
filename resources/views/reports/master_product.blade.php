@@ -173,7 +173,7 @@
                             $mpStockTotal = $product->marketplaceProducts->sum('stock');
                         @endphp
                         <tr>
-                            <td class="text-center text-muted fw-semibold">{{ $index + 1 }}</td>
+                            <td class="text-center text-muted fw-semibold">{{ $products->firstItem() + $index }}</td>
                             <td>
                                 <div class="fw-bold text-dark font-monospace">{{ $product->sku }}</div>
                                 @if($product->sku_induk)
@@ -277,5 +277,10 @@
                 </tbody>
             </table>
         </div>
+        @if($products->hasPages())
+            <div class="card-footer bg-white border-0 py-3">
+                {{ $products->links() }}
+            </div>
+        @endif
     </div>
 @endsection
