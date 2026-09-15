@@ -106,26 +106,6 @@
             color: #fff;
         }
 
-        .nav-btn {
-            padding: 5px 12px;
-            background: #2563eb;
-            color: #fff;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 11px;
-            font-weight: bold;
-            display: inline-block;
-        }
-
-        .nav-btn-disabled {
-            padding: 5px 12px;
-            background: #334155;
-            color: #94a3b8;
-            border-radius: 4px;
-            font-size: 11px;
-            display: inline-block;
-        }
-
         @media print {
             body {
                 padding: 0;
@@ -141,45 +121,14 @@
 <body>
 
     <div class="no-print">
-        <div style="font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 10px;">
-            <span>📊 Laporan Master Produk (Single &amp; Set Bundling)</span>
-            <span style="font-size: 11px; font-weight: normal; color: #cbd5e1;">
-                @if (method_exists($products, 'hasPages'))
-                    Menampilkan {{ number_format($products->firstItem() ?? 0) }}-{{ number_format($products->lastItem() ?? 0) }} dari {{ number_format($products->total()) }} produk
-                @else
-                    Total {{ number_format($products->count()) }} produk
-                @endif
-            </span>
+        <div style="font-weight: 700; font-size: 13px;">
+            📊 Laporan Master Produk (Single &amp; Set Bundling)
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-            @if (method_exists($products, 'hasPages') && $products->hasPages())
-                <div style="display: flex; align-items: center; gap: 6px; margin-right: 8px;">
-                    @if ($products->onFirstPage())
-                        <span class="nav-btn-disabled">&laquo; Prev</span>
-                    @else
-                        <a href="{{ $products->previousPageUrl() }}" class="nav-btn">&laquo; Prev</a>
-                    @endif
-
-                    <span style="font-size: 11px; color: #cbd5e1;">Hal {{ $products->currentPage() }} / {{ $products->lastPage() }}</span>
-
-                    @if ($products->hasMorePages())
-                        <a href="{{ $products->nextPageUrl() }}" class="nav-btn">Next &raquo;</a>
-                    @else
-                        <span class="nav-btn-disabled">Next &raquo;</span>
-                    @endif
-                </div>
-            @endif
-
-            @if (method_exists($products, 'hasPages') && request('per_page') !== 'all')
-                <a href="{{ request()->fullUrlWithQuery(['per_page' => 'all']) }}" style="padding: 6px 12px; background: #0284c7; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 700; font-size: 11px;" title="Muat seluruh data sekaligus dalam satu halaman">
-                    🌐 Tampilkan Semua
-                </a>
-            @endif
-
+        <div>
             <button onclick="window.print()" style="padding: 6px 16px; background:#22c55e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:800; font-size:12px;">
                 🖨️ Cetak Laporan
             </button>
-            <button onclick="window.close()" style="padding: 6px 14px; background:#475569; color:#fff; border:none; border-radius:6px; cursor:pointer; margin-left:4px; font-weight:700; font-size:12px;">
+            <button onclick="window.close()" style="padding: 6px 14px; background:#475569; color:#fff; border:none; border-radius:6px; cursor:pointer; margin-left:8px; font-weight:700; font-size:12px;">
                 ✕ Tutup
             </button>
         </div>
@@ -227,7 +176,6 @@
         <tbody>
             @forelse($products as $index => $p)
                 @php
-                    $rowNo = method_exists($products, 'firstItem') && $products->firstItem() ? $products->firstItem() + $index : $index + 1;
                     $mpCount = $p->marketplaceProducts->count();
                     $mpStores = $p->marketplaceProducts
                         ->map(function ($m) {
@@ -239,7 +187,7 @@
                         ->implode(', ');
                 @endphp
                 <tr>
-                    <td style="text-align: center;">{{ $rowNo }}</td>
+                    <td style="text-align: center;">{{ $index + 1 }}</td>
                     <td style="font-family: monospace; font-weight: bold;">
                         {{ $p->sku }}
                         @if($p->sku_induk)
@@ -308,28 +256,6 @@
             @endforelse
         </tbody>
     </table>
-
-    {{-- Bottom Navigation if paginated --}}
-    @if (method_exists($products, 'hasPages') && $products->hasPages())
-        <div class="no-print" style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px 16px; border-radius: 6px;">
-            <div style="font-size: 11px; color: #475569;">
-                Menampilkan {{ number_format($products->firstItem() ?? 0) }} - {{ number_format($products->lastItem() ?? 0) }} dari total {{ number_format($products->total()) }} produk
-            </div>
-            <div style="display: flex; gap: 8px;">
-                @if ($products->onFirstPage())
-                    <span class="nav-btn-disabled">&laquo; Halaman Sebelumnya</span>
-                @else
-                    <a href="{{ $products->previousPageUrl() }}" class="nav-btn">&laquo; Halaman Sebelumnya</a>
-                @endif
-
-                @if ($products->hasMorePages())
-                    <a href="{{ $products->nextPageUrl() }}" class="nav-btn">Halaman Selanjutnya &raquo;</a>
-                @else
-                    <span class="nav-btn-disabled">Halaman Selanjutnya &raquo;</span>
-                @endif
-            </div>
-        </div>
-    @endif
 
 </body>
 

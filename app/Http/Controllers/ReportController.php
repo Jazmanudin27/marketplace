@@ -1011,6 +1011,9 @@ class ReportController extends Controller
 
     public function masterProductReport(Request $request)
     {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(180);
+
         $tenantId = Auth::user()->tenant_id;
         $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
         $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
@@ -1073,12 +1076,7 @@ class ReportController extends Controller
         $singleCount = $totalCount - $bundleCount;
         $totalStockValue = (clone $query)->sum(\Illuminate\Support\Facades\DB::raw('stock * cost_price'));
 
-        $perPage = $request->get('per_page', 100);
-        if ($perPage === 'all') {
-            $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
-        } else {
-            $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->paginate(is_numeric($perPage) ? (int)$perPage : 100)->withQueryString();
-        }
+        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
 
         return view('reports.master_product', compact(
             'products',
@@ -1094,6 +1092,9 @@ class ReportController extends Controller
 
     public function printMasterProductReport(Request $request)
     {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(180);
+
         $tenantId = Auth::user()->tenant_id;
         $stores = \App\Models\Store::with('channel')->where('tenant_id', $tenantId)->where('status', 'connected')->get();
 
@@ -1154,12 +1155,7 @@ class ReportController extends Controller
         $singleCount = $totalCount - $bundleCount;
         $totalStockValue = (clone $query)->sum(\Illuminate\Support\Facades\DB::raw('stock * cost_price'));
 
-        $perPage = $request->get('per_page', 100);
-        if ($perPage === 'all') {
-            $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
-        } else {
-            $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->paginate(is_numeric($perPage) ? (int)$perPage : 100)->withQueryString();
-        }
+        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
 
         return view('reports.print_master_product', compact(
             'products',
