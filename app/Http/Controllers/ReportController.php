@@ -1259,6 +1259,49 @@ class ReportController extends Controller
 
         $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
 
+        // Fast tenant-indexed JOIN for Marketplace Products
+        $mpData = \Illuminate\Support\Facades\DB::table('marketplace_products')
+            ->join('stores', 'marketplace_products.store_id', '=', 'stores.id')
+            ->leftJoin('channels', 'stores.channel_id', '=', 'channels.id')
+            ->where('stores.tenant_id', $tenantId)
+            ->where('stores.status', 'connected')
+            ->select(
+                'marketplace_products.master_product_id',
+                'marketplace_products.stock',
+                'stores.store_name',
+                'channels.name as channel_name'
+            )
+            ->get();
+
+        $mpMap = [];
+        $mpCountMap = [];
+        foreach ($mpData as $mp) {
+            if (!$mp->master_product_id) continue;
+            $ch = $mp->channel_name ?: '';
+            $st = $mp->store_name ?: '';
+            $stk = number_format($mp->stock);
+            $str = $ch ? "{$ch} ({$st}: {$stk} Pcs)" : "{$st} ({$stk} Pcs)";
+            $mpMap[$mp->master_product_id][] = $str;
+            $mpCountMap[$mp->master_product_id] = ($mpCountMap[$mp->master_product_id] ?? 0) + 1;
+        }
+
+        // Fast tenant-indexed JOIN for Bundle Components
+        $bundleData = \Illuminate\Support\Facades\DB::table('master_product_bundles')
+            ->join('master_products', 'master_product_bundles.child_id', '=', 'master_products.id')
+            ->where('master_products.tenant_id', $tenantId)
+            ->select(
+                'master_product_bundles.parent_id',
+                'master_product_bundles.quantity',
+                'master_products.sku'
+            )
+            ->get();
+
+        $compMap = [];
+        foreach ($bundleData as $bd) {
+            $qty = $bd->quantity > 1 ? $bd->quantity . 'x ' : '';
+            $compMap[$bd->parent_id][] = $qty . $bd->sku;
+        }
+
         $filename = 'Laporan_Master_Produk_' . date('Ymd_His') . '.csv';
 
         $headers = [
@@ -1266,62 +1309,66 @@ class ReportController extends Controller
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
-        $callback = function () use ($products) {
+        $callback = function () use ($products, $mpMap, $mpCountMap, $compMap) {
             $file = fopen('php://output', 'w');
 
             // UTF-8 BOM for Excel
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
             fputcsv($file, [
-                'No',
-                'SKU Produk',
-                'SKU Induk',
-                'Nama Produk',
-                'Ukuran',
-                'Warna',
-                'Tipe Produk',
-                'Komponen Set (SKU)',
-                'Kategori',
-                'Merk',
-                'Harga Jual',
-                'Harga HPP (Modal)',
-                'Estimasi Kain (Meter)',
-                'Estimasi Harga Produksi',
-                'Stok Gudang',
-                'Status Pre-Order',
-                'Status Aktif',
-                'Jumlah Produk MP Taut',
-                'Toko Marketplace Taut'
+                'NO',
+                'SKU',
+                'NAMA PRODUK',
+                'HARGA JUAL',
+                'HARGA HPP',
+                'EST. KAIN',
+                'EST. PRODUKSI',
+                'STOK',
+                'JENIS',
+                'TIPE PO',
+                'STATUS',
+                'MARKETPLACE TERHUBUNG'
             ]);
 
             foreach ($products as $i => $p) {
-                $type = $p->is_bundle ? 'Set / Bundling' : 'Single';
-                $comps = $p->is_bundle 
-                    ? $p->components->map(fn($c) => ($c->pivot->quantity > 1 ? $c->pivot->quantity . 'x ' : '') . $c->sku)->implode(', ')
-                    : '-';
-                $mpCount = $p->marketplaceProducts->count();
-                $mpStores = $p->marketplaceProducts->unique('store_id')->map(fn($m) => ($m->store->channel->name ?? '') . ': ' . ($m->store->store_name ?? ''))->implode('; ');
+                // SKU
+                $skuVal = $p->sku;
+                if ($p->sku_induk) {
+                    $skuVal .= " (Induk: {$p->sku_induk})";
+                }
+
+                // NAMA PRODUK
+                $nameVal = $p->name;
+                $details = [];
+                if ($p->ukuran) $details[] = "[{$p->ukuran}]";
+                if ($p->warna) $details[] = "[{$p->warna}]";
+                if ($p->category) $details[] = $p->category->name;
+                if ($p->brand) $details[] = $p->brand->name;
+                if (!empty($details)) {
+                    $nameVal .= " " . implode(' ', $details);
+                }
+                if ($p->is_bundle && !empty($compMap[$p->id])) {
+                    $nameVal .= " [Komponen: " . implode(', ', $compMap[$p->id]) . "]";
+                }
+
+                // MARKETPLACE TERHUBUNG
+                $mpCount = $mpCountMap[$p->id] ?? 0;
+                $mpStoresStr = isset($mpMap[$p->id]) ? implode(', ', $mpMap[$p->id]) : '';
+                $mpVal = $mpCount > 0 ? "{$mpCount} Toko: {$mpStoresStr}" : 'Belum Ditautkan';
 
                 fputcsv($file, [
                     $i + 1,
-                    $p->sku,
-                    $p->sku_induk ?? '-',
-                    $p->name,
-                    $p->ukuran ?? '-',
-                    $p->warna ?? '-',
-                    $type,
-                    $comps,
-                    $p->category->name ?? '-',
-                    $p->brand->name ?? '-',
+                    $skuVal,
+                    $nameVal,
                     $p->price,
                     $p->cost_price,
-                    $p->est_kain ? (float)$p->est_kain : 0,
-                    $p->est_biaya_produksi ? (float)$p->est_biaya_produksi : 0,
+                    $p->est_kain > 0 ? $p->est_kain : '-',
+                    $p->est_biaya_produksi > 0 ? $p->est_biaya_produksi : '-',
                     $p->stock,
-                    $p->is_preorder ? 'PO' : 'Ready Stock',
+                    $p->is_bundle ? 'Set' : 'Single',
+                    $p->is_preorder ? 'PO' : 'Ready',
                     $p->is_active ? 'Aktif' : 'Nonaktif',
-                    $mpCount,
-                    $mpCount > 0 ? $mpStores : 'Belum Ditautkan'
+                    $mpVal
                 ]);
             }
 
