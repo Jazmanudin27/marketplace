@@ -1071,20 +1071,25 @@ class ReportController extends Controller
             $query->where('stock', '>', 0);
         }
 
-        $totalCount = (clone $query)->count();
-        $bundleCount = (clone $query)->where('is_bundle', true)->count();
+        $stats = (clone $query)->selectRaw('
+            COUNT(*) as total_count,
+            SUM(CASE WHEN is_bundle = 1 THEN 1 ELSE 0 END) as bundle_count,
+            SUM(stock * cost_price) as total_stock_value
+        ')->first();
+
+        $totalCount = $stats->total_count ?? 0;
+        $bundleCount = $stats->bundle_count ?? 0;
         $singleCount = $totalCount - $bundleCount;
-        $totalStockValue = (clone $query)->sum(\Illuminate\Support\Facades\DB::raw('stock * cost_price'));
+        $totalStockValue = $stats->total_stock_value ?? 0;
 
         $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
 
-        $productIds = $products->pluck('id');
-
-        // Fast SQL pre-aggregation for Marketplace Products
+        // Fast tenant-indexed JOIN for Marketplace Products
         $mpData = \Illuminate\Support\Facades\DB::table('marketplace_products')
             ->join('stores', 'marketplace_products.store_id', '=', 'stores.id')
             ->leftJoin('channels', 'stores.channel_id', '=', 'channels.id')
-            ->whereIn('marketplace_products.master_product_id', $productIds)
+            ->where('stores.tenant_id', $tenantId)
+            ->where('stores.status', 'connected')
             ->select(
                 'marketplace_products.master_product_id',
                 'marketplace_products.stock',
@@ -1096,6 +1101,7 @@ class ReportController extends Controller
         $mpMap = [];
         $mpCountMap = [];
         foreach ($mpData as $mp) {
+            if (!$mp->master_product_id) continue;
             $ch = $mp->channel_name ?: '';
             $st = $mp->store_name ?: '';
             $stk = number_format($mp->stock);
@@ -1104,10 +1110,10 @@ class ReportController extends Controller
             $mpCountMap[$mp->master_product_id] = ($mpCountMap[$mp->master_product_id] ?? 0) + 1;
         }
 
-        // Fast SQL pre-aggregation for Bundle Components
+        // Fast tenant-indexed JOIN for Bundle Components
         $bundleData = \Illuminate\Support\Facades\DB::table('master_product_bundles')
             ->join('master_products', 'master_product_bundles.child_id', '=', 'master_products.id')
-            ->whereIn('master_product_bundles.parent_id', $productIds)
+            ->where('master_products.tenant_id', $tenantId)
             ->select(
                 'master_product_bundles.parent_id',
                 'master_product_bundles.quantity',
@@ -1196,20 +1202,25 @@ class ReportController extends Controller
             $query->where('stock', '>', 0);
         }
 
-        $totalCount = (clone $query)->count();
-        $bundleCount = (clone $query)->where('is_bundle', true)->count();
+        $stats = (clone $query)->selectRaw('
+            COUNT(*) as total_count,
+            SUM(CASE WHEN is_bundle = 1 THEN 1 ELSE 0 END) as bundle_count,
+            SUM(stock * cost_price) as total_stock_value
+        ')->first();
+
+        $totalCount = $stats->total_count ?? 0;
+        $bundleCount = $stats->bundle_count ?? 0;
         $singleCount = $totalCount - $bundleCount;
-        $totalStockValue = (clone $query)->sum(\Illuminate\Support\Facades\DB::raw('stock * cost_price'));
+        $totalStockValue = $stats->total_stock_value ?? 0;
 
         $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
 
-        $productIds = $products->pluck('id');
-
-        // Fast SQL pre-aggregation for Marketplace Products
+        // Fast tenant-indexed JOIN for Marketplace Products
         $mpData = \Illuminate\Support\Facades\DB::table('marketplace_products')
             ->join('stores', 'marketplace_products.store_id', '=', 'stores.id')
             ->leftJoin('channels', 'stores.channel_id', '=', 'channels.id')
-            ->whereIn('marketplace_products.master_product_id', $productIds)
+            ->where('stores.tenant_id', $tenantId)
+            ->where('stores.status', 'connected')
             ->select(
                 'marketplace_products.master_product_id',
                 'marketplace_products.stock',
@@ -1221,6 +1232,7 @@ class ReportController extends Controller
         $mpMap = [];
         $mpCountMap = [];
         foreach ($mpData as $mp) {
+            if (!$mp->master_product_id) continue;
             $ch = $mp->channel_name ?: '';
             $st = $mp->store_name ?: '';
             $stk = number_format($mp->stock);
@@ -1229,10 +1241,10 @@ class ReportController extends Controller
             $mpCountMap[$mp->master_product_id] = ($mpCountMap[$mp->master_product_id] ?? 0) + 1;
         }
 
-        // Fast SQL pre-aggregation for Bundle Components
+        // Fast tenant-indexed JOIN for Bundle Components
         $bundleData = \Illuminate\Support\Facades\DB::table('master_product_bundles')
             ->join('master_products', 'master_product_bundles.child_id', '=', 'master_products.id')
-            ->whereIn('master_product_bundles.parent_id', $productIds)
+            ->where('master_products.tenant_id', $tenantId)
             ->select(
                 'master_product_bundles.parent_id',
                 'master_product_bundles.quantity',
