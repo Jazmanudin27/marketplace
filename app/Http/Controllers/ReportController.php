@@ -1019,7 +1019,7 @@ class ReportController extends Controller
         $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
         $stores = \App\Models\Store::with('channel')->where('tenant_id', $tenantId)->where('status', 'connected')->get();
 
-        $query = MasterProduct::with(['category', 'brand', 'components', 'marketplaceProducts.store.channel'])
+        $query = MasterProduct::with(['category:id,name', 'brand:id,name'])
             ->where('tenant_id', $tenantId);
 
         if ($request->filled('search')) {
@@ -1078,6 +1078,49 @@ class ReportController extends Controller
 
         $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
 
+        $productIds = $products->pluck('id');
+
+        // Fast SQL pre-aggregation for Marketplace Products
+        $mpData = \Illuminate\Support\Facades\DB::table('marketplace_products')
+            ->join('stores', 'marketplace_products.store_id', '=', 'stores.id')
+            ->leftJoin('channels', 'stores.channel_id', '=', 'channels.id')
+            ->whereIn('marketplace_products.master_product_id', $productIds)
+            ->select(
+                'marketplace_products.master_product_id',
+                'marketplace_products.stock',
+                'stores.store_name',
+                'channels.name as channel_name'
+            )
+            ->get();
+
+        $mpMap = [];
+        $mpCountMap = [];
+        foreach ($mpData as $mp) {
+            $ch = $mp->channel_name ?: '';
+            $st = $mp->store_name ?: '';
+            $stk = number_format($mp->stock);
+            $str = $ch ? "{$ch} ({$st}: {$stk} Pcs)" : "{$st} ({$stk} Pcs)";
+            $mpMap[$mp->master_product_id][] = $str;
+            $mpCountMap[$mp->master_product_id] = ($mpCountMap[$mp->master_product_id] ?? 0) + 1;
+        }
+
+        // Fast SQL pre-aggregation for Bundle Components
+        $bundleData = \Illuminate\Support\Facades\DB::table('master_product_bundles')
+            ->join('master_products', 'master_product_bundles.child_id', '=', 'master_products.id')
+            ->whereIn('master_product_bundles.parent_id', $productIds)
+            ->select(
+                'master_product_bundles.parent_id',
+                'master_product_bundles.quantity',
+                'master_products.sku'
+            )
+            ->get();
+
+        $compMap = [];
+        foreach ($bundleData as $bd) {
+            $qty = $bd->quantity > 1 ? $bd->quantity . 'x ' : '';
+            $compMap[$bd->parent_id][] = $qty . $bd->sku;
+        }
+
         return view('reports.master_product', compact(
             'products',
             'categories',
@@ -1086,7 +1129,10 @@ class ReportController extends Controller
             'totalCount',
             'bundleCount',
             'singleCount',
-            'totalStockValue'
+            'totalStockValue',
+            'mpMap',
+            'mpCountMap',
+            'compMap'
         ));
     }
 
@@ -1098,7 +1144,7 @@ class ReportController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $stores = \App\Models\Store::with('channel')->where('tenant_id', $tenantId)->where('status', 'connected')->get();
 
-        $query = MasterProduct::with(['category', 'brand', 'components', 'marketplaceProducts.store.channel'])
+        $query = MasterProduct::with(['category:id,name', 'brand:id,name'])
             ->where('tenant_id', $tenantId);
 
         if ($request->filled('search')) {
@@ -1157,13 +1203,59 @@ class ReportController extends Controller
 
         $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
 
+        $productIds = $products->pluck('id');
+
+        // Fast SQL pre-aggregation for Marketplace Products
+        $mpData = \Illuminate\Support\Facades\DB::table('marketplace_products')
+            ->join('stores', 'marketplace_products.store_id', '=', 'stores.id')
+            ->leftJoin('channels', 'stores.channel_id', '=', 'channels.id')
+            ->whereIn('marketplace_products.master_product_id', $productIds)
+            ->select(
+                'marketplace_products.master_product_id',
+                'marketplace_products.stock',
+                'stores.store_name',
+                'channels.name as channel_name'
+            )
+            ->get();
+
+        $mpMap = [];
+        $mpCountMap = [];
+        foreach ($mpData as $mp) {
+            $ch = $mp->channel_name ?: '';
+            $st = $mp->store_name ?: '';
+            $stk = number_format($mp->stock);
+            $str = $ch ? "{$ch} ({$st}: {$stk} Pcs)" : "{$st} ({$stk} Pcs)";
+            $mpMap[$mp->master_product_id][] = $str;
+            $mpCountMap[$mp->master_product_id] = ($mpCountMap[$mp->master_product_id] ?? 0) + 1;
+        }
+
+        // Fast SQL pre-aggregation for Bundle Components
+        $bundleData = \Illuminate\Support\Facades\DB::table('master_product_bundles')
+            ->join('master_products', 'master_product_bundles.child_id', '=', 'master_products.id')
+            ->whereIn('master_product_bundles.parent_id', $productIds)
+            ->select(
+                'master_product_bundles.parent_id',
+                'master_product_bundles.quantity',
+                'master_products.sku'
+            )
+            ->get();
+
+        $compMap = [];
+        foreach ($bundleData as $bd) {
+            $qty = $bd->quantity > 1 ? $bd->quantity . 'x ' : '';
+            $compMap[$bd->parent_id][] = $qty . $bd->sku;
+        }
+
         return view('reports.print_master_product', compact(
             'products',
             'stores',
             'totalCount',
             'bundleCount',
             'singleCount',
-            'totalStockValue'
+            'totalStockValue',
+            'mpMap',
+            'mpCountMap',
+            'compMap'
         ));
     }
 

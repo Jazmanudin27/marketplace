@@ -176,15 +176,9 @@
         <tbody>
             @forelse($products as $index => $p)
                 @php
-                    $mpCount = $p->marketplaceProducts->count();
-                    $mpStores = $p->marketplaceProducts
-                        ->map(function ($m) {
-                            $ch = $m->store->channel->name ?? '';
-                            $st = $m->store->store_name ?? '';
-                            $stk = number_format($m->stock);
-                            return $ch ? "{$ch} ({$st}: {$stk} Pcs)" : "{$st} ({$stk} Pcs)";
-                        })
-                        ->implode(', ');
+                    $mpCount = $mpCountMap[$p->id] ?? 0;
+                    $mpStoresStr = isset($mpMap[$p->id]) ? implode(', ', $mpMap[$p->id]) : '';
+                    $compStr = isset($compMap[$p->id]) ? implode(', ', $compMap[$p->id]) : '';
                 @endphp
                 <tr>
                     <td style="text-align: center;">{{ $index + 1 }}</td>
@@ -204,9 +198,9 @@
                                 @if($p->brand) | {{ $p->brand->name }} @endif
                             </div>
                         @endif
-                        @if($p->is_bundle && $p->components->isNotEmpty())
+                        @if($p->is_bundle && !empty($compStr))
                             <div style="margin-top: 2px; font-size: 8px; color: #6f42c1;">
-                                <strong>Komponen:</strong> {{ $p->components->map(fn($c) => ($c->pivot->quantity > 1 ? $c->pivot->quantity . 'x ' : '') . $c->sku)->implode(', ') }}
+                                <strong>Komponen:</strong> {{ $compStr }}
                             </div>
                         @endif
                     </td>
@@ -243,7 +237,7 @@
                     <td style="font-size: 8.5px;">
                         @if($mpCount > 0)
                             <div><strong>{{ $mpCount }} Toko:</strong></div>
-                            <div>{{ $mpStores }}</div>
+                            <div>{{ $mpStoresStr }}</div>
                         @else
                             <span style="color: #94a3b8; font-style: italic;">Belum Ditautkan</span>
                         @endif
