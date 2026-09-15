@@ -192,9 +192,9 @@
             text-align: center;
             margin-bottom: 0;
             background: #fff;
-            height: 280px;
-            min-height: 280px;
-            max-height: 300px;
+            height: 140px;
+            min-height: 100px;
+            max-height: 150px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -205,7 +205,7 @@
         .design-img {
             width: 100%;
             height: 100%;
-            max-height: 280px;
+            max-height: 140px;
             object-fit: contain;
         }
 
@@ -214,7 +214,7 @@
             font-size: 10px;
             font-weight: 700;
             border: 1px dashed #cbd5e1;
-            padding: 15px 30px;
+            padding: 10px 20px;
             border-radius: 6px;
             background: #f8fafc;
             width: 100%;
