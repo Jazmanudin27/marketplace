@@ -661,7 +661,7 @@
                                 class="nav-link py-1 {{ request()->routeIs('reports.production_hpp*') ? 'active text-white' : 'text-secondary' }}">HPP Produksi</a>
                         @endcan
                         @can('reports.master_product')
-                            <a href="{{ route('reports.master_product') }}"
+                            <a href="{{ route('reports.master_product.print') }}" target="_blank"
                                 class="nav-link py-1 {{ request()->routeIs('reports.master_product*') ? 'active text-white' : 'text-secondary' }}">Laporan Master Produk</a>
                         @endcan
                         @can('marketplace-products.index')

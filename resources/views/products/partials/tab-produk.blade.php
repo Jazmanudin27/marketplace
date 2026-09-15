@@ -25,7 +25,7 @@
             <button type="button" class="btn btn-outline-success btn-sm px-3 rounded-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalImportPrices">
                 <i class="fas fa-file-excel me-1"></i>Import Harga Masal
             </button>
-            <a href="{{ route('reports.master_product') }}" target="_blank" class="btn btn-outline-secondary btn-sm px-3 rounded-3" title="Laporan & Cetak Master Produk">
+            <a href="{{ route('reports.master_product.print') }}" target="_blank" class="btn btn-outline-secondary btn-sm px-3 rounded-3" title="Laporan &amp; Cetak Master Produk">
                 <i class="fas fa-file-alt me-1"></i>Laporan Master Produk
             </a>
             <a href="{{ route('products.create') }}" class="btn btn-primary btn-sm px-3 rounded-3">
