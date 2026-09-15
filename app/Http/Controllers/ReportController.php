@@ -1073,7 +1073,7 @@ class ReportController extends Controller
         $singleCount = $totalCount - $bundleCount;
         $totalStockValue = (clone $query)->sum(\Illuminate\Support\Facades\DB::raw('stock * cost_price'));
 
-        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->paginate(50)->withQueryString();
+        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
 
         return view('reports.master_product', compact(
             'products',
