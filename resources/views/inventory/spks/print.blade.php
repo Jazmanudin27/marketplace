@@ -192,8 +192,8 @@
             text-align: center;
             margin-bottom: 0;
             background: #fff;
-            height: 280px;
-            min-height: 280px;
+            height: 230px;
+            min-height: 230px;
             max-height: 300px;
             display: flex;
             align-items: center;
