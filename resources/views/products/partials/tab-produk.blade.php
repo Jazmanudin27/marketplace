@@ -188,9 +188,6 @@
                         <th class="text-center" style="width: 40px;"><input type="checkbox" id="selectAllProducts" class="form-check-input"></th>
                         <th>SKU VARIASI</th>
                         <th>NAMA BARANG</th>
-                        <th>SKU INDUK</th>
-                        <th>KATEGORI / MERK</th>
-                        <th class="text-center">VARIASI</th>
                         <th class="text-end">HARGA (NORMAL / DROPSHIP)</th>
                         <th class="text-center">STOK</th>
                         <th class="text-center">STATUS & PO</th>
@@ -250,51 +247,6 @@
                                             @endif
                                         </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td>
-                                @if ($product->sku_induk)
-                                    <code class="text-secondary font-monospace">{{ $product->sku_induk }}</code>
-                                @else
-                                    <span class="text-muted opacity-50">—</span>
-                                @endif
-                            </td>
-                            <td>
-                                <div class="lh-sm">
-                                    <strong class="small">{{ $product->category->name ?? '-' }}</strong>
-                                    <div class="mt-1">
-                                        @if ($product->brand)
-                                            <span class="badge bg-light text-dark border me-1">
-                                                <i class="fas fa-tag me-1"></i>{{ $product->brand->name }}
-                                            </span>
-                                        @else
-                                            <span>Merk:</span> <span class="text-muted opacity-50">—</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <div class="lh-sm small">
-                                    <div>
-                                        <span class="text-muted">Sz:</span> <strong
-                                            class="text-dark font-monospace">{{ $product->ukuran ?? '—' }}</strong>
-                                    </div>
-                                    <div class="mt-1">
-                                        <span class="text-muted">Wrn:</span> <strong
-                                            class="text-secondary">{{ $product->warna ?? '—' }}</strong>
-                                    </div>
-                                    @if(!empty($product->est_kain) && $product->est_kain > 0)
-                                        <div class="mt-1">
-                                            <span class="text-muted">Est. Kain:</span> <strong
-                                                class="text-primary font-monospace">{{ number_format($product->est_kain, 0) }} cm</strong>
-                                        </div>
-                                    @endif
-                                    @if(!empty($product->est_biaya_produksi) && $product->est_biaya_produksi > 0)
-                                        <div class="mt-1">
-                                            <span class="text-muted">Est. Prod:</span> <strong
-                                                class="text-success font-monospace">Rp {{ number_format($product->est_biaya_produksi, 0, ',', '.') }}</strong>
-                                        </div>
-                                    @endif
                                 </div>
                             </td>
                             <td class="text-end">
@@ -447,7 +399,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="text-center text-muted py-5">
+                            <td colspan="8" class="text-center text-muted py-5">
                                 <i class="fas fa-box-open d-block mb-2 opacity-25 fs-2"></i>
                                 Belum ada produk.
                                 <a href="{{ route('products.create') }}"
