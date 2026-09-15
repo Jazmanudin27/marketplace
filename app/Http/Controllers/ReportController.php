@@ -1312,64 +1312,58 @@ class ReportController extends Controller
         $callback = function () use ($products, $mpMap, $mpCountMap, $compMap) {
             $file = fopen('php://output', 'w');
 
-            // UTF-8 BOM for Excel
+            // UTF-8 BOM for Excel & sep=; directive for Excel automatic column separation
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            fprintf($file, "sep=;\n");
 
             fputcsv($file, [
                 'NO',
-                'SKU',
+                'SKU PRODUK',
+                'SKU INDUK',
                 'NAMA PRODUK',
+                'UKURAN',
+                'WARNA',
+                'KATEGORI',
+                'BRAND / MERK',
+                'KOMPONEN SET',
                 'HARGA JUAL',
-                'HARGA HPP',
-                'EST. KAIN',
-                'EST. PRODUKSI',
-                'STOK',
-                'JENIS',
+                'HARGA HPP (MODAL)',
+                'ESTIMASI KAIN (METER)',
+                'ESTIMASI HARGA PRODUKSI',
+                'STOK GUDANG',
+                'JENIS PRODUK',
                 'TIPE PO',
-                'STATUS',
-                'MARKETPLACE TERHUBUNG'
-            ]);
+                'STATUS AKTIF',
+                'JUMLAH TOKO TERHUBUNG',
+                'RINCIAN TOKO MARKETPLACE TERHUBUNG'
+            ], ';');
 
             foreach ($products as $i => $p) {
-                // SKU
-                $skuVal = $p->sku;
-                if ($p->sku_induk) {
-                    $skuVal .= " (Induk: {$p->sku_induk})";
-                }
-
-                // NAMA PRODUK
-                $nameVal = $p->name;
-                $details = [];
-                if ($p->ukuran) $details[] = "[{$p->ukuran}]";
-                if ($p->warna) $details[] = "[{$p->warna}]";
-                if ($p->category) $details[] = $p->category->name;
-                if ($p->brand) $details[] = $p->brand->name;
-                if (!empty($details)) {
-                    $nameVal .= " " . implode(' ', $details);
-                }
-                if ($p->is_bundle && !empty($compMap[$p->id])) {
-                    $nameVal .= " [Komponen: " . implode(', ', $compMap[$p->id]) . "]";
-                }
-
-                // MARKETPLACE TERHUBUNG
+                $compStr = $p->is_bundle && isset($compMap[$p->id]) ? implode(', ', $compMap[$p->id]) : '-';
                 $mpCount = $mpCountMap[$p->id] ?? 0;
-                $mpStoresStr = isset($mpMap[$p->id]) ? implode(', ', $mpMap[$p->id]) : '';
-                $mpVal = $mpCount > 0 ? "{$mpCount} Toko: {$mpStoresStr}" : 'Belum Ditautkan';
+                $mpStoresStr = isset($mpMap[$p->id]) ? implode(' | ', $mpMap[$p->id]) : 'Belum Ditautkan';
 
                 fputcsv($file, [
                     $i + 1,
-                    $skuVal,
-                    $nameVal,
+                    $p->sku,
+                    $p->sku_induk ?: '-',
+                    $p->name,
+                    $p->ukuran ?: '-',
+                    $p->warna ?: '-',
+                    $p->category->name ?? '-',
+                    $p->brand->name ?? '-',
+                    $compStr,
                     $p->price,
                     $p->cost_price,
-                    $p->est_kain > 0 ? $p->est_kain : '-',
-                    $p->est_biaya_produksi > 0 ? $p->est_biaya_produksi : '-',
+                    $p->est_kain > 0 ? $p->est_kain : 0,
+                    $p->est_biaya_produksi > 0 ? $p->est_biaya_produksi : 0,
                     $p->stock,
                     $p->is_bundle ? 'Set' : 'Single',
                     $p->is_preorder ? 'PO' : 'Ready',
                     $p->is_active ? 'Aktif' : 'Nonaktif',
-                    $mpVal
-                ]);
+                    $mpCount,
+                    $mpStoresStr
+                ], ';');
             }
 
             fclose($file);
