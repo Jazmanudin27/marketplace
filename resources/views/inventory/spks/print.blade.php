@@ -18,35 +18,35 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            font-size: 11px;
+            font-size: 9.5px;
             color: #0f172a;
             margin: 0;
             padding: 0;
             background: #cbd5e1;
-            line-height: 1.3;
+            line-height: 1.2;
         }
 
         .no-print-bar {
             margin: 0;
-            padding: 12px 24px;
+            padding: 10px 24px;
             background: #0f172a;
             color: #fff;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .btn-print {
             background-color: #2563eb;
             color: #ffffff;
             border: none;
-            padding: 8px 18px;
+            padding: 6px 16px;
             border-radius: 6px;
             font-weight: 700;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             transition: background 0.2s;
         }
 
@@ -54,14 +54,14 @@
             background-color: #1d4ed8;
         }
 
-        /* ── Real A4 Paper Sheet Container ── */
+        /* ── Real A4 Paper Sheet Container (297mm Total Height) ── */
         .a4-sheet-container {
             width: 210mm;
             height: 297mm;
             min-height: 297mm;
             max-height: 297mm;
             margin: 20px auto;
-            padding: 8mm 10mm;
+            padding: 0;
             background: #ffffff;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
             border-radius: 4px;
@@ -75,11 +75,33 @@
             break-after: page;
         }
 
+        /* ── Half A4 Slip Card (Exact 147mm height per slip = A4 dibagi 2) ── */
+        .spk-slip-card {
+            width: 100%;
+            height: 147mm;
+            max-height: 147mm;
+            padding: 4mm 6mm;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .slip-separator {
+            border-top: 1.5px dashed #64748b;
+            margin: 0;
+            width: 100%;
+            height: 3mm;
+            flex-shrink: 0;
+        }
+
         /* Header Layout */
         .header-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 6px;
+            margin-bottom: 3px;
         }
 
         .header-table td {
@@ -88,30 +110,32 @@
         }
 
         .header-left {
-            width: 30%;
-            font-size: 11px;
+            width: 28%;
+            font-size: 9px;
             font-weight: 700;
         }
 
         .header-center {
-            width: 40%;
+            width: 34%;
             text-align: center;
         }
 
         .header-right {
-            width: 30%;
+            width: 24%;
             text-align: right;
-            font-size: 11px;
+            font-size: 9px;
+            padding-right: 6px;
         }
 
         .header-qr {
+            width: 14%;
             text-align: center;
-            padding-left: 8px;
+            padding-left: 2px;
         }
 
         .qr-code-img {
-            width: 80px;
-            height: 80px;
+            width: 68px;
+            height: 68px;
             display: block;
             margin: 0 auto;
             border: 1px solid #cbd5e1;
@@ -123,21 +147,21 @@
         }
 
         .spk-title-main {
-            font-size: 28px;
+            font-size: 22px;
             font-weight: 900;
-            letter-spacing: 6px;
+            letter-spacing: 5px;
             line-height: 1;
             margin: 0;
             color: #000;
         }
 
         .spk-sub-main {
-            font-size: 11px;
+            font-size: 8.5px;
             font-weight: 800;
-            letter-spacing: 2px;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
             color: #1e293b;
-            margin-top: 2px;
+            margin-top: 1px;
         }
 
         .val-mono {
@@ -155,19 +179,19 @@
 
         .header-divider-bar {
             width: 100%;
-            height: 3px;
+            height: 2.5px;
             background: #000;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
 
         /* Pemesan & Admin Bar */
         .pemesan-info-bar {
-            border-top: 1.5px dashed #475569;
-            border-bottom: 1.5px dashed #475569;
-            padding: 6px 0;
-            font-size: 11px;
+            border-top: 1px dashed #475569;
+            border-bottom: 1px dashed #475569;
+            padding: 3px 0;
+            font-size: 8.5px;
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             color: #0f172a;
             white-space: nowrap;
             overflow: hidden;
@@ -178,12 +202,13 @@
         .design-box-frame {
             border: 1.5px dashed #64748b;
             border-radius: 6px;
-            padding: 4px;
+            padding: 2px;
             text-align: center;
             margin-bottom: 0;
             background: #fff;
-            height: 420px;
-            max-height: 460px;
+            height: 220px;
+            min-height: 220px;
+            max-height: 250px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -194,16 +219,16 @@
         .design-img {
             width: 100%;
             height: 100%;
-            max-height: 440px;
+            max-height: 220px;
             object-fit: contain;
         }
 
         .design-placeholder-text {
             color: #94a3b8;
-            font-size: 13px;
+            font-size: 10px;
             font-weight: 700;
             border: 1px dashed #cbd5e1;
-            padding: 30px;
+            padding: 15px 30px;
             border-radius: 6px;
             background: #f8fafc;
             width: 100%;
@@ -217,74 +242,76 @@
         .banner-blue {
             background: #2563eb;
             color: #fff;
-            font-size: 10.5px;
+            font-size: 8.5px;
             font-weight: 800;
             text-align: center;
-            padding: 4px 6px;
+            padding: 2px 4px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border-radius: 4px 4px 0 0;
+            border-radius: 2px 2px 0 0;
         }
 
         .banner-slate {
             background: #475569;
             color: #fff;
-            font-size: 10.5px;
+            font-size: 8.5px;
             font-weight: 800;
             text-align: center;
-            padding: 4px 6px;
+            padding: 2px 4px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border-radius: 4px 4px 0 0;
+            border-radius: 2px 2px 0 0;
         }
 
         .grid-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
 
         .grid-table th,
         .grid-table td {
             border: 1px solid #000;
-            padding: 4px 5px;
+            padding: 2px 3px;
             text-align: center;
-            font-size: 10.5px;
+            font-size: 8.5px;
         }
 
         .grid-table th {
             background: #fff;
             font-weight: 800;
             text-transform: uppercase;
-            font-size: 10px;
+            font-size: 8px;
         }
 
         /* Catatan / Keterangan Box */
         .catatan-box {
             border: 1.5px solid #000;
             border-radius: 6px;
-            padding: 6px 10px;
+            padding: 4px 6px;
             background: #fff;
-            margin-top: 4px;
-            min-height: 45px;
+            margin-top: 2px;
+            min-height: 30px;
         }
 
         .catatan-title {
             font-weight: 800;
-            font-size: 9.5px;
+            font-size: 8px;
             text-transform: uppercase;
             color: #0f172a;
-            margin-bottom: 2px;
+            margin-bottom: 1px;
         }
 
         .catatan-text {
-            font-size: 11px;
+            font-size: 8.5px;
             font-weight: 700;
             color: #0f172a;
         }
 
         @media print {
-            .no-print, .no-print-bar {
+
+            .no-print,
+            .no-print-bar {
                 display: none !important;
             }
 
@@ -303,7 +330,7 @@
                 min-height: 297mm !important;
                 max-height: 297mm !important;
                 margin: 0 !important;
-                padding: 8mm 10mm !important;
+                padding: 0 !important;
                 box-shadow: none !important;
                 border-radius: 0 !important;
                 background: #fff !important;
@@ -320,17 +347,23 @@
     <!-- Top Control Bar (Screen Only) -->
     <div class="no-print-bar no-print">
         <div>
-            <strong>🖨️ Cetak SPK Perintah Kerja</strong> — 1 SPK per Lembar Kertas A4
+            <strong>🖨️ Cetak SPK Perintah Kerja</strong> — Ukuran Setengah A4 (147mm per SPK)
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
             <button onclick="window.print()" class="btn-print">
                 🖨️ Cetak Halaman Ini
             </button>
-            <button onclick="window.close()" style="background: #475569; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600;">
+            <button onclick="window.close()"
+                style="background: #475569; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600;">
                 Tutup
             </button>
         </div>
     </div>
+
+    @php
+        $globalSlipCount = 0;
+        $totalBlocks = count($spkBlocks);
+    @endphp
 
     @foreach ($spkBlocks as $bIdx => $block)
         @php
@@ -338,34 +371,50 @@
             $variantRows = $block['variantRows'];
             $bazaItems = $block['bazaItems'];
             $firstVarName = !empty($variantRows) ? array_key_first($variantRows) : 'MODEL VARIAN';
+
+            $globalSlipCount++;
+            $isOddSlip = $globalSlipCount % 2 === 1;
+            $isEvenSlip = $globalSlipCount % 2 === 0;
         @endphp
 
-        <!-- START REAL A4 SHEET CONTAINER (1 SPK PER LEMBAR A4) -->
-        <div class="a4-sheet-container">
+        @if ($isOddSlip)
+            <!-- START REAL A4 SHEET CONTAINER -->
+            <div class="a4-sheet-container">
+        @endif
+
+        <div class="spk-slip-card">
             <div>
                 <!-- Header Grid -->
                 <table class="header-table">
                     <tr>
                         <td class="header-left">
-                            <div><span style="color:#475569;">NO PRODUKSI :</span> <span class="val-mono">{{ $currentSpk->no_produksi ?: '—' }}</span></div>
-                            <div style="margin-top: 4px;"><span style="color:#475569;">NO PESANAN :</span> <span class="val-mono">{{ $currentSpk->no_spk }}</span></div>
+                            <div><span style="color:#475569;">NO PRODUKSI :</span> <span
+                                    class="val-mono">{{ $currentSpk->no_produksi ?: '—' }}</span></div>
+                            <div style="margin-top: 2px;"><span style="color:#475569;">NO PESANAN :</span> <span
+                                    class="val-mono">{{ $currentSpk->no_spk }}</span></div>
                         </td>
                         <td class="header-center">
                             <h1 class="spk-title-main">S P K</h1>
                             <div class="spk-sub-main">SURAT PERINTAH KERJA</div>
                         </td>
                         <td class="header-right">
-                            <div><span style="color:#475569;">ORDER DATE :</span> <strong>{{ $currentSpk->tanggal ? $currentSpk->tanggal->format('Y-m-d') : date('Y-m-d') }}</strong></div>
-                            <div style="margin-top: 4px;"><span style="color:#475569;">DEADLINE :</span> <span class="text-danger fw-bold">{{ $currentSpk->deadline ? $currentSpk->deadline->format('Y-m-d') : '—' }}</span></div>
+                            <div><span style="color:#475569;">ORDER DATE :</span>
+                                <strong>{{ $currentSpk->tanggal ? $currentSpk->tanggal->format('Y-m-d') : date('Y-m-d') }}</strong>
+                            </div>
+                            <div style="margin-top: 2px;"><span style="color:#475569;">DEADLINE :</span> <span
+                                    class="text-danger fw-bold">{{ $currentSpk->deadline ? $currentSpk->deadline->format('Y-m-d') : '—' }}</span>
+                            </div>
                         </td>
                         <td class="header-qr">
                             @php
                                 $spkTrackUrl = route('spks.mobile_scan', $currentSpk->id);
                             @endphp
                             <a href="{{ $spkTrackUrl }}" target="_blank" title="Scan / Update Tracking SPK">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&ecc=M&data={{ urlencode($spkTrackUrl) }}" alt="QR Tracking SPK" class="qr-code-img">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&ecc=M&data={{ urlencode($spkTrackUrl) }}"
+                                    alt="QR Tracking SPK" class="qr-code-img">
                             </a>
-                            <div style="font-size: 7.5px; text-align: center; color: #0f172a; font-weight: 800; margin-top: 2px; line-height: 1; letter-spacing: 0.3px;">
+                            <div
+                                style="font-size: 6.5px; text-align: center; color: #0f172a; font-weight: 800; margin-top: 1.5px; line-height: 1; letter-spacing: 0.3px;">
                                 SCAN TRACKING
                             </div>
                         </td>
@@ -385,25 +434,6 @@
                 </div>
 
                 <!-- GAMBAR DESAIN / MOCKUP -->
-                <div style="margin-bottom: 8px;">
-                    <div class="banner-slate">
-                        🖼️ GAMBAR DESAIN / MOCKUP
-                    </div>
-                    <div class="design-box-frame">
-                        @php
-                            $imgSrc = $currentSpk->mockup_url ?: ($currentSpk->image_url ?: $currentSpk->referensi_klien_url);
-                        @endphp
-                        @if ($imgSrc)
-                            <img src="{{ $imgSrc }}" class="design-img" alt="Desain SPK">
-                        @else
-                            <div class="design-placeholder-text">
-                                👕 TEMPEL GAMBAR DESAIN / MOCKUP DI SINI
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- RINCIAN VARIAN PRODUK & KEBUTUHAN KAIN -->
                 @php
                     $firstBazaItem = !empty($bazaItems) ? reset($bazaItems) : null;
                     $formattedQty = '—';
@@ -421,7 +451,27 @@
                         }
                     }
                 @endphp
-                <div style="margin-bottom: 8px;">
+                <div style="margin-bottom: 4px;">
+                    <div class="banner-slate">
+                        🖼️ GAMBAR DESAIN / MOCKUP
+                    </div>
+                    <div class="design-box-frame">
+                        @php
+                            $imgSrc =
+                                $currentSpk->mockup_url ?: ($currentSpk->image_url ?: $currentSpk->referensi_klien_url);
+                        @endphp
+                        @if ($imgSrc)
+                            <img src="{{ $imgSrc }}" class="design-img" alt="Desain SPK">
+                        @else
+                            <div class="design-placeholder-text">
+                                👕 TEMPEL GAMBAR DESAIN / MOCKUP DI SINI
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- RINCIAN VARIAN PRODUK & KEBUTUHAN KAIN -->
+                <div style="margin-bottom: 4px;">
                     <div class="banner-blue">
                         RINCIAN VARIAN PRODUK &amp; KEBUTUHAN KAIN
                     </div>
@@ -454,7 +504,12 @@
                             @forelse($variantRows as $varRowIdx => $varRow)
                                 @php
                                     $rowFabQty = (float) ($varRow['fabric_qty'] ?? 0);
-                                    if ($rowFabQty <= 0 && $loop->first && !empty($formattedQty) && $formattedQty !== '—') {
+                                    if (
+                                        $rowFabQty <= 0 &&
+                                        $loop->first &&
+                                        !empty($formattedQty) &&
+                                        $formattedQty !== '—'
+                                    ) {
                                         $rowFabQty = (float) str_replace(',', '.', $formattedQty);
                                     }
                                     $grandTotalFabric += $rowFabQty;
@@ -464,11 +519,12 @@
                                     }
                                 @endphp
                                 <tr>
-                                    <td style="text-align: left; font-weight: bold; padding-left: 6px;">
+                                    <td style="text-align: left; font-weight: bold; padding-left: 4px;">
                                         {{ $varRow['sku'] ?? ($varRow['name'] ?? '—') }}
                                     </td>
                                     @foreach ($sizesHeader as $szH)
-                                        <td style="{{ !empty($varRow['sizes'][$szH]) ? 'color:#dc2626; font-weight:bold;' : '' }}">
+                                        <td
+                                            style="{{ !empty($varRow['sizes'][$szH]) ? 'color:#dc2626; font-weight:bold;' : '' }}">
                                             {{ $varRow['sizes'][$szH] ?? '' }}
                                         </td>
                                     @endforeach
@@ -500,7 +556,8 @@
                                 <tr style="background: #f1f5f9; font-weight: bold; border-top: 2px solid #000;">
                                     <td style="text-align: center; font-weight: 900; background: #e2e8f0;">TOTAL</td>
                                     @foreach ($sizesHeader as $szH)
-                                        <td style="{{ $sizeTotals[$szH] > 0 ? 'color:#dc2626; font-weight:900;' : '' }}">
+                                        <td
+                                            style="{{ $sizeTotals[$szH] > 0 ? 'color:#dc2626; font-weight:900;' : '' }}">
                                             {{ $sizeTotals[$szH] > 0 ? $sizeTotals[$szH] : '' }}
                                         </td>
                                     @endforeach
@@ -534,6 +591,15 @@
                 </div>
             </div>
         </div>
+
+        @if ($isOddSlip && !$loop->last)
+            <div class="slip-separator"></div>
+        @endif
+
+        @if ($isEvenSlip || $loop->last)
+            </div>
+            <!-- END REAL A4 SHEET CONTAINER -->
+        @endif
     @endforeach
 
 </body>
