@@ -1073,7 +1073,12 @@ class ReportController extends Controller
         $singleCount = $totalCount - $bundleCount;
         $totalStockValue = (clone $query)->sum(\Illuminate\Support\Facades\DB::raw('stock * cost_price'));
 
-        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
+        $perPage = $request->get('per_page', 100);
+        if ($perPage === 'all') {
+            $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
+        } else {
+            $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->paginate(is_numeric($perPage) ? (int)$perPage : 100)->withQueryString();
+        }
 
         return view('reports.master_product', compact(
             'products',
@@ -1149,7 +1154,12 @@ class ReportController extends Controller
         $singleCount = $totalCount - $bundleCount;
         $totalStockValue = (clone $query)->sum(\Illuminate\Support\Facades\DB::raw('stock * cost_price'));
 
-        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
+        $perPage = $request->get('per_page', 100);
+        if ($perPage === 'all') {
+            $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
+        } else {
+            $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->paginate(is_numeric($perPage) ? (int)$perPage : 100)->withQueryString();
+        }
 
         return view('reports.print_master_product', compact(
             'products',
