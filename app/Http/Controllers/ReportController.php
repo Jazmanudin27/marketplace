@@ -1188,6 +1188,19 @@ class ReportController extends Controller
             });
         }
 
+        if ($request->filled('name')) {
+            $name = trim($request->name);
+            $query->where('name', 'like', "%{$name}%");
+        }
+
+        if ($request->filled('sku')) {
+            $sku = trim($request->sku);
+            $query->where(function ($q) use ($sku) {
+                $q->where('sku', 'like', "%{$sku}%")
+                  ->orWhere('sku_induk', 'like', "%{$sku}%");
+            });
+        }
+
         if ($request->filled('is_bundle')) {
             if ($request->is_bundle === '1') {
                 $query->where('is_bundle', true);
@@ -1202,7 +1215,9 @@ class ReportController extends Controller
             if ($request->is_preorder === '1') {
                 $query->where('is_preorder', true);
             } elseif ($request->is_preorder === '0') {
-                $query->where('is_preorder', false);
+                $query->where(function ($q) {
+                    $q->where('is_preorder', false)->orWhereNull('is_preorder');
+                });
             }
         }
 
@@ -1222,6 +1237,20 @@ class ReportController extends Controller
             $query->whereHas('marketplaceProducts', function($q) use ($request) {
                 $q->where('store_id', $request->store_id);
             });
+        }
+
+        if ($request->filled('channel_id')) {
+            $query->whereHas('marketplaceProducts.store', function($q) use ($request) {
+                $q->where('channel_id', $request->channel_id);
+            });
+        }
+
+        if ($request->filled('link_status')) {
+            if ($request->link_status === 'unlinked') {
+                $query->whereDoesntHave('marketplaceProducts');
+            } elseif ($request->link_status === 'linked' || $request->link_status === 'all') {
+                $query->whereHas('marketplaceProducts');
+            }
         }
 
         if ($request->boolean('hide_zero_stock')) {
