@@ -1,256 +1,179 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.app')
+@section('title', 'Laporan Rekap Persediaan')
+@section('page-title', 'Laporan Rekap Persediaan')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Master Produk (Single &amp; Set Bundling)</title>
-    <style>
-        @page {
-            size: A4 landscape;
-            margin: 6mm 8mm;
-        }
-
-        * {
-            box-sizing: border-box;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            color: #0f172a;
-            margin: 0;
-            padding: 15px;
-            font-size: 10px;
-            background: #fff;
-            line-height: 1.2;
-        }
-
-        /* ERP Header Standard */
-        .header {
-            text-align: center;
-            margin-bottom: 12px;
-            border-bottom: 2px solid #0f172a;
-            padding-bottom: 8px;
-        }
-
-        .header h1 {
-            margin: 0 0 4px 0;
-            font-size: 20px;
-            font-weight: 900;
-            letter-spacing: 0.5px;
-            color: #000;
-            text-transform: uppercase;
-        }
-
-        .header p {
-            margin: 0;
-            font-size: 11px;
-            color: #64748b;
-        }
-
-        /* ERP Info Box Standard */
-        .info-box {
-            border: 1px solid #0f172a;
-            padding: 8px 12px;
-            margin-bottom: 12px;
-            background: #f8fafc;
-        }
-
-        .info-box table {
-            width: 100%;
-            border: none;
-            border-collapse: collapse;
-        }
-
-        .info-box table td {
-            border: none;
-            padding: 3px 6px;
-            font-size: 11px;
-            color: #0f172a;
-        }
-
-        /* Main Data Table */
-        table.report-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 9.5px;
-        }
-
-        table.report-table th,
-        table.report-table td {
-            border: 1px solid #000;
-            padding: 4px 5px;
-            text-align: left;
-            vertical-align: top;
-        }
-
-        /* Blue Header Column Styles */
-        .th-blue {
-            background-color: #2563eb !important;
-            color: #ffffff !important;
-            font-weight: 800;
-            font-size: 9.5px;
-            text-transform: uppercase;
-        }
-
-        .no-print {
-            margin-bottom: 12px;
-            background: #1e293b;
-            padding: 10px 16px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: #fff;
-        }
-
-        @media print {
-            body {
-                padding: 0;
-            }
-
-            .no-print {
-                display: none !important;
-            }
-        }
-    </style>
-</head>
-
-<body>
-
-    <div class="no-print">
-        <div style="font-weight: 700; font-size: 13px;">
-            📊 Laporan Master Produk (Single &amp; Set Bundling)
-        </div>
+@section('content')
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
-            <button onclick="window.print()" style="padding: 6px 16px; background:#22c55e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:800; font-size:12px;">
-                🖨️ Cetak Laporan
-            </button>
-            <button onclick="window.close()" style="padding: 6px 14px; background:#475569; color:#fff; border:none; border-radius:6px; cursor:pointer; margin-left:8px; font-weight:700; font-size:12px;">
-                ✕ Tutup
-            </button>
+            <h4 class="fw-bold text-dark mb-1">Laporan Rekap Persediaan</h4>
+            <p class="text-muted mb-0 small">Ringkasan persediaan produk master (Single &amp; Set Bundling) serta estimasi modal stok.</p>
+        </div>
+        <div class="d-flex gap-2">
+            @if(Route::has('reports.master_product.export'))
+                <a href="{{ route('reports.master_product.export', request()->all()) }}" class="btn btn-outline-success px-3 py-2 rounded-3 fw-semibold shadow-sm">
+                    <i class="fas fa-file-excel me-1"></i> Ekspor CSV / Excel
+                </a>
+            @endif
+            <a href="{{ route('reports.master_product.print', request()->all()) }}" target="_blank" class="btn btn-primary px-3 py-2 rounded-3 fw-semibold shadow-sm">
+                <i class="fas fa-print me-1"></i> Cetak / Print Laporan
+            </a>
         </div>
     </div>
 
-    {{-- ERP Header Standard --}}
-    <div class="header">
-        <h1>LAPORAN MASTER PRODUK (SINGLE &amp; SET BUNDLING)</h1>
-        <p>Tanggal Dicetak: {{ date('d-m-Y H:i:s') }} | Perusahaan: {{ Auth::user()->tenant->name ?? 'ERP System' }}</p>
+    <!-- Summary Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase mb-1">Total Master Produk</div>
+                        <h3 class="fw-bold text-dark mb-0">{{ number_format($totalCount) }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary">
+                        <i class="fas fa-boxes fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase mb-1">Produk Single</div>
+                        <h3 class="fw-bold text-info mb-0">{{ number_format($singleCount) }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-info bg-opacity-10 p-3 text-info">
+                        <i class="fas fa-box fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase mb-1">Produk Set / Bundle</div>
+                        <h3 class="fw-bold text-purple mb-0" style="color: #6f42c1;">{{ number_format($bundleCount) }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-opacity-10 p-3" style="background-color: rgba(111, 66, 193, 0.1); color: #6f42c1;">
+                        <i class="fas fa-cubes fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase mb-1">Est. Total Modal Stok</div>
+                        <h3 class="fw-bold text-success mb-0">Rp {{ number_format($totalStockValue, 0, ',', '.') }}</h3>
+                    </div>
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success">
+                        <i class="fas fa-wallet fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    {{-- ERP Info Box Standard --}}
-    <div class="info-box">
-        <table>
-            <tr>
-                <td width="20%"><strong>Total Master Produk</strong></td>
-                <td width="30%">: <strong>{{ number_format($totalCount) }}</strong></td>
-                <td width="20%"><strong>Produk Single</strong></td>
-                <td width="30%">: <strong style="color: #0284c7;">{{ number_format($singleCount) }}</strong></td>
-            </tr>
-            <tr>
-                <td><strong>Produk Set / Bundle</strong></td>
-                <td>: <strong style="color: #6f42c1;">{{ number_format($bundleCount) }}</strong></td>
-                <td><strong>Est. Total Modal Stok</strong></td>
-                <td>: <strong style="color: #16a34a;">Rp {{ number_format($totalStockValue, 0, ',', '.') }}</strong></td>
-            </tr>
-        </table>
+    <!-- Filter Section Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold text-dark mb-0"><i class="fas fa-filter text-primary me-2"></i>Filter &amp; Cetak Laporan</h5>
+            <span class="badge bg-light text-muted border">Atur Kriteria &amp; Cetak</span>
+        </div>
+        <div class="card-body p-4">
+            <form action="{{ route('reports.master_product') }}" method="GET" id="masterProductFilterForm">
+                <div class="row g-3">
+                    <div class="col-12 col-md-3">
+                        <label class="form-label form-label-sm fw-semibold text-muted">Toko / Marketplace</label>
+                        <select name="store_id" class="form-select form-select-sm rounded-3">
+                            <option value="">Semua Toko Marketplace</option>
+                            @foreach ($stores as $st)
+                                <option value="{{ $st->id }}" {{ request('store_id') == $st->id ? 'selected' : '' }}>
+                                    {{ $st->store_name }} ({{ ucfirst($st->channel->name ?? $st->channel->code ?? 'MP') }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <label class="form-label form-label-sm fw-semibold text-muted">Kategori Produk</label>
+                        <select name="category_id" class="form-select form-select-sm rounded-3">
+                            <option value="">Semua Kategori</option>
+                            @foreach ($categories as $cat)
+                                <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>
+                                    {{ $cat->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-2">
+                        <label class="form-label form-label-sm fw-semibold text-muted">Merk / Brand</label>
+                        <select name="brand_id" class="form-select form-select-sm rounded-3">
+                            <option value="">Semua Brand</option>
+                            @foreach ($brands as $b)
+                                <option value="{{ $b->id }}" {{ request('brand_id') == $b->id ? 'selected' : '' }}>
+                                    {{ $b->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-2">
+                        <label class="form-label form-label-sm fw-semibold text-muted">Jenis Produk</label>
+                        <select name="is_bundle" class="form-select form-select-sm rounded-3">
+                            <option value="">Semua Jenis</option>
+                            <option value="0" {{ request('is_bundle') === '0' ? 'selected' : '' }}>📦 Single</option>
+                            <option value="1" {{ request('is_bundle') === '1' ? 'selected' : '' }}>🎁 BUNDLE / Set</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-2">
+                        <label class="form-label form-label-sm fw-semibold text-muted">Tipe Pre-Order</label>
+                        <select name="is_preorder" class="form-select form-select-sm rounded-3">
+                            <option value="">Semua Tipe</option>
+                            <option value="1" {{ request('is_preorder') === '1' ? 'selected' : '' }}>⏳ PO</option>
+                            <option value="0" {{ request('is_preorder') === '0' ? 'selected' : '' }}>📦 Ready Stock</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label class="form-label form-label-sm fw-semibold text-muted">Cari Nama / SKU</label>
+                        <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm rounded-3" placeholder="Ketik nama produk atau SKU...">
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <label class="form-label form-label-sm fw-semibold text-muted">Status Produk</label>
+                        <select name="is_active" class="form-select form-select-sm rounded-3">
+                            <option value="">Semua Status</option>
+                            <option value="1" {{ request('is_active') === '1' ? 'selected' : '' }}>✅ Aktif</option>
+                            <option value="0" {{ request('is_active') === '0' ? 'selected' : '' }}>❌ Nonaktif</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-5 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-sm btn-primary flex-fill rounded-3 fw-semibold py-2">
+                            <i class="fas fa-filter me-1"></i> Terapkan Filter
+                        </button>
+                        <button type="submit" formaction="{{ route('reports.master_product.print') }}" formtarget="_blank" class="btn btn-sm btn-success flex-fill rounded-3 fw-semibold py-2">
+                            <i class="fas fa-print me-1"></i> Cetak Laporan Terfilter
+                        </button>
+                        <a href="{{ route('reports.master_product') }}" class="btn btn-sm btn-outline-secondary rounded-3 py-2">Reset</a>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-4 mt-4 pt-3 border-top">
+                    <div class="form-check form-switch m-0">
+                        <input class="form-check-input" type="checkbox" name="hide_zero_stock" value="1" id="hideZeroStock" {{ request()->boolean('hide_zero_stock') ? 'checked' : '' }} onchange="this.form.submit()">
+                        <label class="form-check-label small fw-semibold text-dark" for="hideZeroStock">
+                            Sembunyikan Produk Stok 0
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
+@endsection
 
-    <table class="report-table">
-        <thead>
-            <tr>
-                <th class="th-blue" style="width: 3%; text-align: center;">NO</th>
-                <th class="th-blue" style="width: 12%;">SKU</th>
-                <th class="th-blue" style="width: 20%;">NAMA PRODUK</th>
-                <th class="th-blue" style="width: 10%; text-align: right;">HARGA JUAL</th>
-                <th class="th-blue" style="width: 10%; text-align: right;">HARGA HPP</th>
-                <th class="th-blue" style="width: 8%; text-align: right;">EST. KAIN</th>
-                <th class="th-blue" style="width: 10%; text-align: right;">EST. PRODUKSI</th>
-                <th class="th-blue" style="width: 7%; text-align: right;">STOK</th>
-                <th class="th-blue" style="width: 8%; text-align: center;">STATUS</th>
-                <th class="th-blue" style="width: 12%;">MARKETPLACE TERHUBUNG</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($products as $index => $p)
-                @php
-                    $mpCount = $mpCountMap[$p->id] ?? 0;
-                    $mpStoresStr = isset($mpMap[$p->id]) ? implode(', ', $mpMap[$p->id]) : '';
-                    $compStr = isset($compMap[$p->id]) ? implode(', ', $compMap[$p->id]) : '';
-                @endphp
-                <tr>
-                    <td style="text-align: center;">{{ $index + 1 }}</td>
-                    <td style="font-family: monospace; font-weight: bold;">
-                        {{ $p->sku }}
-                        @if($p->sku_induk)
-                            <div style="font-size: 8px; color: #64748b;">Induk: {{ $p->sku_induk }}</div>
-                        @endif
-                    </td>
-                    <td>
-                        <strong>{{ $p->name }}</strong>
-                        @if($p->ukuran || $p->warna || $p->category || $p->brand)
-                            <div style="margin-top: 2px; font-size: 8.5px; color: #475569;">
-                                @if($p->ukuran) [{{ $p->ukuran }}] @endif
-                                @if($p->warna) [{{ $p->warna }}] @endif
-                                @if($p->category) {{ $p->category->name }} @endif
-                                @if($p->brand) | {{ $p->brand->name }} @endif
-                            </div>
-                        @endif
-                        @if($p->is_bundle && !empty($compStr))
-                            <div style="margin-top: 2px; font-size: 8px; color: #6f42c1;">
-                                <strong>Komponen:</strong> {{ $compStr }}
-                            </div>
-                        @endif
-                    </td>
-                    <td style="text-align: right; font-family: monospace; font-weight: bold; color: #0284c7;">
-                        Rp {{ number_format($p->price, 0, ',', '.') }}
-                    </td>
-                    <td style="text-align: right; font-family: monospace;">
-                        Rp {{ number_format($p->cost_price, 0, ',', '.') }}
-                    </td>
-                    <td style="text-align: right; font-family: monospace;">
-                        {{ $p->est_kain > 0 ? number_format($p->est_kain, 2, ',', '.') . ' m' : '-' }}
-                    </td>
-                    <td style="text-align: right; font-family: monospace;">
-                        {{ $p->est_biaya_produksi > 0 ? 'Rp ' . number_format($p->est_biaya_produksi, 0, ',', '.') : '-' }}
-                    </td>
-                    <td style="text-align: right; font-family: monospace; font-weight: bold; color: #16a34a;">
-                        {{ number_format($p->stock, 0, ',', '.') }}
-                    </td>
-                    <td style="text-align: center;">
-                        <span style="display: inline-block; padding: 1px 4px; border-radius: 3px; font-size: 8.5px; font-weight: bold; {{ $p->is_active ? 'background: #dcfce7; color: #15803d; border: 1px solid #86efac;' : 'background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;' }}">
-                            {{ $p->is_active ? 'Aktif' : 'Nonaktif' }}
-                        </span>
-                        <div style="margin-top: 2px;">
-                            <span style="display: inline-block; padding: 1px 4px; border-radius: 3px; font-size: 8.5px; font-weight: bold; {{ $p->is_preorder ? 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;' : 'background: #dcfce7; color: #15803d; border: 1px solid #86efac;' }}">
-                                {{ $p->is_preorder ? 'PO' : 'Ready' }}
-                            </span>
-                        </div>
-                        <div style="margin-top: 2px;">
-                            <span style="display: inline-block; padding: 1px 4px; border-radius: 3px; font-size: 8.5px; font-weight: bold; {{ $p->is_bundle ? 'background: #f3ebff; color: #6f42c1; border: 1px solid #d8b4fe;' : 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;' }}">
-                                {{ $p->is_bundle ? 'Set' : 'Single' }}
-                            </span>
-                        </div>
-                    </td>
-                    <td style="font-size: 8.5px;">
-                        @if($mpCount > 0)
-                            <div><strong>{{ $mpCount }} Toko:</strong></div>
-                            <div>{{ $mpStoresStr }}</div>
-                        @else
-                            <span style="color: #94a3b8; font-style: italic;">Belum Ditautkan</span>
-                        @endif
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="10" style="text-align: center; padding: 20px; color: #64748b;">Tidak ada data master produk.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
-
-</body>
-
-</html>

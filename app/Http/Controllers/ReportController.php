@@ -1011,16 +1011,12 @@ class ReportController extends Controller
 
     public function masterProductReport(Request $request)
     {
-        @ini_set('memory_limit', '512M');
-        @set_time_limit(180);
-
         $tenantId = Auth::user()->tenant_id;
         $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
         $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
         $stores = \App\Models\Store::with('channel')->where('tenant_id', $tenantId)->where('status', 'connected')->get();
 
-        $query = MasterProduct::with(['category:id,name', 'brand:id,name'])
-            ->where('tenant_id', $tenantId);
+        $query = MasterProduct::where('tenant_id', $tenantId);
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -1082,63 +1078,14 @@ class ReportController extends Controller
         $singleCount = $totalCount - $bundleCount;
         $totalStockValue = $stats->total_stock_value ?? 0;
 
-        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
-
-        // Fast tenant-indexed JOIN for Marketplace Products
-        $mpData = \Illuminate\Support\Facades\DB::table('marketplace_products')
-            ->join('stores', 'marketplace_products.store_id', '=', 'stores.id')
-            ->leftJoin('channels', 'stores.channel_id', '=', 'channels.id')
-            ->where('stores.tenant_id', $tenantId)
-            ->where('stores.status', 'connected')
-            ->select(
-                'marketplace_products.master_product_id',
-                'marketplace_products.stock',
-                'stores.store_name',
-                'channels.name as channel_name'
-            )
-            ->get();
-
-        $mpMap = [];
-        $mpCountMap = [];
-        foreach ($mpData as $mp) {
-            if (!$mp->master_product_id) continue;
-            $ch = $mp->channel_name ?: '';
-            $st = $mp->store_name ?: '';
-            $stk = number_format($mp->stock);
-            $str = $ch ? "{$ch} ({$st}: {$stk} Pcs)" : "{$st} ({$stk} Pcs)";
-            $mpMap[$mp->master_product_id][] = $str;
-            $mpCountMap[$mp->master_product_id] = ($mpCountMap[$mp->master_product_id] ?? 0) + 1;
-        }
-
-        // Fast tenant-indexed JOIN for Bundle Components
-        $bundleData = \Illuminate\Support\Facades\DB::table('master_product_bundles')
-            ->join('master_products', 'master_product_bundles.child_id', '=', 'master_products.id')
-            ->where('master_products.tenant_id', $tenantId)
-            ->select(
-                'master_product_bundles.parent_id',
-                'master_product_bundles.quantity',
-                'master_products.sku'
-            )
-            ->get();
-
-        $compMap = [];
-        foreach ($bundleData as $bd) {
-            $qty = $bd->quantity > 1 ? $bd->quantity . 'x ' : '';
-            $compMap[$bd->parent_id][] = $qty . $bd->sku;
-        }
-
         return view('reports.master_product', compact(
-            'products',
             'categories',
             'brands',
             'stores',
             'totalCount',
             'bundleCount',
             'singleCount',
-            'totalStockValue',
-            'mpMap',
-            'mpCountMap',
-            'compMap'
+            'totalStockValue'
         ));
     }
 
