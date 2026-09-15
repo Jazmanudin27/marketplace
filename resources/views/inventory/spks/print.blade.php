@@ -356,7 +356,7 @@
             $firstVarName = !empty($variantRows) ? array_key_first($variantRows) : 'MODEL VARIAN';
         @endphp
 
-        @foreach ([1, 2] as $copyNum)
+        @foreach ([1] as $copyNum)
             @php
                 $globalSlipCount++;
                 $isEvenSlip = $globalSlipCount % 2 === 0;
