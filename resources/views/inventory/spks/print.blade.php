@@ -192,9 +192,9 @@
             text-align: center;
             margin-bottom: 0;
             background: #fff;
-            height: 140px;
-            min-height: 100px;
-            max-height: 150px;
+            height: 280px;
+            min-height: 280px;
+            max-height: 300px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -205,7 +205,7 @@
         .design-img {
             width: 100%;
             height: 100%;
-            max-height: 140px;
+            max-height: 230px;
             object-fit: contain;
         }
 
@@ -214,7 +214,7 @@
             font-size: 10px;
             font-weight: 700;
             border: 1px dashed #cbd5e1;
-            padding: 10px 20px;
+            padding: 15px 30px;
             border-radius: 6px;
             background: #f8fafc;
             width: 100%;
@@ -401,8 +401,7 @@
                                 @endphp
                                 <a href="{{ $spkTrackUrl }}" target="_blank" title="Scan / Update Tracking SPK">
                                     <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&ecc=M&data={{ urlencode($spkTrackUrl) }}"
-                                        alt="QR Tracking SPK"
-                                        class="qr-code-img">
+                                        alt="QR Tracking SPK" class="qr-code-img">
                                 </a>
                                 <div
                                     style="font-size: 6.5px; text-align: center; color: #0f172a; font-weight: 800; margin-top: 1.5px; line-height: 1; letter-spacing: 0.3px;">
