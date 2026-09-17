@@ -494,7 +494,8 @@ class SpkController extends Controller
                         }
 
                         $finalUkuran = !empty($ukuran) ? trim($ukuran) : ($prod ? $prod->ukuran : null);
-                        $estKainVal  = !empty($pRow['est_kain']) ? (float)$pRow['est_kain'] : (($prod && $prod->est_kain > 0) ? (float)$prod->est_kain * $qtyProduksi : 0);
+                        $estKainVal  = !empty($pRow['est_kain']) ? (float)$pRow['est_kain'] : (!empty($pRow['est_kain_satuan']) ? (float)$pRow['est_kain_satuan'] * $qtyProduksi : (($prod && $prod->est_kain > 0) ? (float)$prod->est_kain * $qtyProduksi : 0));
+                        $estKainVal  = round($estKainVal, 2);
 
                         $spkItem = SpkItem::create([
                             'spk_id'            => $spkRecord->id,
@@ -1564,6 +1565,9 @@ class SpkController extends Controller
 
                             $finalUkuran = !empty($ukuranInput) ? $ukuranInput : ($prod && !empty($prod->ukuran) ? $prod->ukuran : 'ALL SIZE');
                             $estKainVal  = (isset($pRow['est_kain']) && $pRow['est_kain'] !== '') ? (float)$pRow['est_kain'] : 0;
+                            if ($estKainVal <= 0 && isset($pRow['est_kain_satuan']) && (float)$pRow['est_kain_satuan'] > 0) {
+                                $estKainVal = (float)$pRow['est_kain_satuan'] * $qtyProd;
+                            }
                             if ($estKainVal <= 0) {
                                 if ($prod && $prod->est_kain > 0) {
                                     $estKainVal = (float)$prod->est_kain * $qtyProd;
@@ -1571,6 +1575,7 @@ class SpkController extends Controller
                                     $estKainVal = ($spkItem && $spkItem->est_kain > 0) ? (float)$spkItem->est_kain : 0;
                                 }
                             }
+                            $estKainVal = round($estKainVal, 2);
 
                             $itemPayload = [
                                 'master_product_id' => $prod ? $prod->id : ($spkItem->master_product_id ?? null),

@@ -884,11 +884,12 @@
                             <table class="table table-sm product-table-custom align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th style="width: 22%;">SKU PRODUK / VARIAN</th>
-                                        <th style="width: 30%;">NAMA PRODUK</th>
-                                        <th style="width: 12%;" class="text-center">UKURAN</th>
-                                        <th style="width: 10%;" class="text-center">QTY</th>
-                                        <th style="width: 22%;" class="text-center">ESTIMASI KAIN (CM)</th>
+                                        <th style="width: 18%;">SKU PRODUK / VARIAN</th>
+                                        <th style="width: 24%;">NAMA PRODUK</th>
+                                        <th style="width: 10%;" class="text-center">UKURAN</th>
+                                        <th style="width: 8%;" class="text-center">QTY</th>
+                                        <th style="width: 16%;" class="text-center">EST. KAIN SATUAN (CM)</th>
+                                        <th style="width: 20%;" class="text-center">TOTAL ESTIMASI KAIN (CM)</th>
                                         <th style="width: 4%;" class="text-center"></th>
                                     </tr>
                                 </thead>
@@ -927,22 +928,39 @@
                                             </td>
                                             <td>
                                                 @php
-                                                    $itemEstKain = (float) $item->est_kain;
-                                                    if ($itemEstKain <= 0 && $item->masterProduct && $item->masterProduct->est_kain > 0) {
-                                                        $itemEstKain = (float) $item->masterProduct->est_kain * (int) $item->quantity;
+                                                    $itemEstKainTotal = (float) $item->est_kain;
+                                                    $satuanEstKain = 0;
+                                                    if ($item->masterProduct && (float)$item->masterProduct->est_kain > 0) {
+                                                        $satuanEstKain = (float) $item->masterProduct->est_kain;
+                                                    } elseif ((int)$item->quantity > 0 && $itemEstKainTotal > 0) {
+                                                        $satuanEstKain = round($itemEstKainTotal / (int)$item->quantity, 2);
+                                                    }
+                                                    if ($itemEstKainTotal <= 0 && $satuanEstKain > 0 && (int)$item->quantity > 0) {
+                                                        $itemEstKainTotal = round($satuanEstKain * (int) $item->quantity, 2);
                                                     }
                                                 @endphp
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" step="any"
+                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][est_kain_satuan]"
+                                                        class="form-control text-center row-est-kain-satuan input-est-kain-satuan"
+                                                        placeholder="0"
+                                                        oninput="updateRowKainFromSatuan(this)"
+                                                        value="{{ $satuanEstKain > 0 ? (float) $satuanEstKain : '' }}">
+                                                    <span class="input-group-text bg-light text-muted px-1" style="font-size: 10px;">CM/pcs</span>
+                                                </div>
+                                            </td>
+                                            <td>
                                                 <div class="input-group input-group-sm">
                                                     <input type="number" step="any"
                                                         name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][est_kain]"
                                                         class="form-control text-center row-est-kain input-est-kain"
                                                         placeholder="0"
-                                                        oninput="updateMeterConversion(this)"
-                                                        value="{{ $itemEstKain > 0 ? (float) $itemEstKain : '' }}">
+                                                        oninput="updateRowKainFromTotal(this)"
+                                                        value="{{ $itemEstKainTotal > 0 ? (float) $itemEstKainTotal : '' }}">
                                                     <span class="input-group-text bg-light text-muted px-1" style="font-size: 10px;">CM</span>
                                                 </div>
                                                 <div class="text-center mt-1 row-meter-conv" style="font-size: 10.5px; font-weight: 600; color: #0284c7;">
-                                                    <span class="conv-text">{{ $itemEstKain > 0 ? '(' . number_format($itemEstKain / 100, 2, ',', '.') . ' Meter)' : '' }}</span>
+                                                    <span class="conv-text">{{ $itemEstKainTotal > 0 ? '(' . number_format($itemEstKainTotal / 100, 2, ',', '.') . ' Meter)' : '' }}</span>
                                                 </div>
                                             </td>
                                             <td class="text-center">
@@ -2219,10 +2237,19 @@
             </td>
             <td>
                 <div class="input-group input-group-sm">
+                    <input type="number" step="any" name="rincian[${rIdx}][produk][${pIdx}][est_kain_satuan]" 
+                           class="form-control text-center row-est-kain-satuan input-est-kain-satuan" 
+                           placeholder="0"
+                           oninput="updateRowKainFromSatuan(this)">
+                    <span class="input-group-text bg-light text-muted px-1" style="font-size: 10px;">CM/pcs</span>
+                </div>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
                     <input type="number" step="any" name="rincian[${rIdx}][produk][${pIdx}][est_kain]" 
                            class="form-control text-center row-est-kain input-est-kain" 
                            placeholder="0"
-                           oninput="updateMeterConversion(this)">
+                           oninput="updateRowKainFromTotal(this)">
                     <span class="input-group-text bg-light text-muted px-1" style="font-size: 10px;">CM</span>
                 </div>
                 <div class="text-center mt-1 row-meter-conv" style="font-size: 10.5px; font-weight: 600; color: #0284c7;">
@@ -2239,6 +2266,57 @@
             tbody.appendChild(tr);
             if (window.recalculateSpkCosts) {
                 window.recalculateSpkCosts();
+            }
+        }
+
+        function updateRowKainFromSatuan(input) {
+            if (!input) return;
+            const tr = input.closest('tr');
+            if (!tr) return;
+            const satuanVal = parseFloat(input.value) || 0;
+            const qtyInput = tr.querySelector('.row-qty-produksi, .input-qty-produksi');
+            const qty = parseInt(qtyInput?.value || 1) || 1;
+            const totalEstKain = Math.round(satuanVal * qty * 100) / 100;
+            
+            const totalInput = tr.querySelector('.row-est-kain, .input-est-kain');
+            if (totalInput) {
+                totalInput.value = totalEstKain > 0 ? totalEstKain : '';
+                updateMeterConversion(totalInput);
+            }
+            recalculateTotalEstKain();
+        }
+
+        function updateRowKainFromTotal(input) {
+            if (!input) return;
+            const tr = input.closest('tr');
+            if (!tr) return;
+            const totalVal = parseFloat(input.value) || 0;
+            const qtyInput = tr.querySelector('.row-qty-produksi, .input-qty-produksi');
+            const qty = parseInt(qtyInput?.value || 1) || 1;
+            
+            const satuanInput = tr.querySelector('.row-est-kain-satuan, .input-est-kain-satuan');
+            if (satuanInput) {
+                if (qty > 0 && totalVal > 0) {
+                    satuanInput.value = Math.round((totalVal / qty) * 100) / 100;
+                } else if (totalVal === 0) {
+                    satuanInput.value = '';
+                }
+            }
+            updateMeterConversion(input);
+            recalculateTotalEstKain();
+        }
+
+        function recalculateTotalEstKain() {
+            let total = 0;
+            document.querySelectorAll('.row-est-kain, .input-est-kain').forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            const headerInput = document.getElementById('input_total_est_kain');
+            if (headerInput && total > 0) {
+                headerInput.value = Math.round(total * 100) / 100;
+                if (typeof updateTotalMeterConversion === 'function') {
+                    updateTotalMeterConversion(headerInput);
+                }
             }
         }
 
@@ -2407,12 +2485,21 @@
                 if (skuInput && !skuInput.value && masterProd.sku) skuInput.value = masterProd.sku;
                 if (ukInput && masterProd.ukuran) ukInput.value = masterProd.ukuran;
 
+                const estKainSatuanInput = tr.querySelector('.row-est-kain-satuan, .input-est-kain-satuan');
                 const estKainInput = tr.querySelector('.row-est-kain, .input-est-kain');
-                if (estKainInput && masterProd.est_kain > 0) {
+                if (masterProd.est_kain > 0) {
                     const qty = parseInt(tr.querySelector('.row-qty-produksi, .input-qty-produksi')?.value || 1) || 1;
-                    estKainInput.value = (parseFloat(masterProd.est_kain) * qty);
-                    if (typeof updateMeterConversion === 'function') {
-                        updateMeterConversion(estKainInput);
+                    if (estKainSatuanInput) {
+                        estKainSatuanInput.value = parseFloat(masterProd.est_kain);
+                    }
+                    if (estKainInput) {
+                        estKainInput.value = Math.round(parseFloat(masterProd.est_kain) * qty * 100) / 100;
+                        if (typeof updateMeterConversion === 'function') {
+                            updateMeterConversion(estKainInput);
+                        }
+                    }
+                    if (typeof recalculateTotalEstKain === 'function') {
+                        recalculateTotalEstKain();
                     }
                 }
             }
@@ -2563,6 +2650,19 @@
             } else if (e.target.classList.contains('row-nama-produk') || e.target.classList.contains(
                     'input-nama-produk')) {
                 onProductNameInputChanged(e.target);
+            } else if (e.target.classList.contains('row-qty-produksi') || e.target.classList.contains('input-qty-produksi')) {
+                const tr = e.target.closest('tr');
+                if (tr) {
+                    const satuanInput = tr.querySelector('.row-est-kain-satuan, .input-est-kain-satuan');
+                    if (satuanInput && parseFloat(satuanInput.value) > 0) {
+                        updateRowKainFromSatuan(satuanInput);
+                    } else {
+                        const totalInput = tr.querySelector('.row-est-kain, .input-est-kain');
+                        if (totalInput && parseFloat(totalInput.value) > 0) {
+                            updateRowKainFromTotal(totalInput);
+                        }
+                    }
+                }
             }
         });
 
