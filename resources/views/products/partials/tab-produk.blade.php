@@ -44,9 +44,45 @@
                 {{-- Quick Filter Pills: Status --}}
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-2.5 pb-2 border-bottom">
                     <span class="fw-bold small text-muted me-1"><i class="fas fa-filter text-primary me-1"></i>Filter Cepat:</span>
-                    <a href="{{ route('products.index', request()->except(['link_status'])) }}"
-                        class="btn btn-xs rounded-pill {{ (!request()->has('link_status') || request('link_status') === '') ? 'btn-primary fw-bold' : 'btn-outline-secondary' }} px-3 py-1">
+                    <a href="{{ route('products.index', request()->except(['link_status', 'is_bundle', 'is_preorder'])) }}"
+                        class="btn btn-xs rounded-pill {{ (!request()->has('link_status') && !request()->has('is_bundle') && !request()->has('is_preorder')) ? 'btn-primary fw-bold' : 'btn-outline-secondary' }} px-3 py-1">
                         🌐 Semua Produk <span class="badge bg-white text-dark ms-1">{{ number_format($products->total()) }}</span>
+                    </a>
+
+                    <span class="text-muted opacity-25 mx-1">|</span>
+
+                    {{-- Filter Single --}}
+                    <a href="{{ route('products.index', array_merge(request()->query(), ['is_bundle' => '0'])) }}"
+                        class="btn btn-xs rounded-pill fw-bold px-3 py-1"
+                        style="{{ request('is_bundle') === '0' ? 'background-color:#0284c7; border-color:#0284c7; color:#fff;' : 'color:#0284c7; border-color:#0284c7;' }}"
+                        title="Tampilkan Master Produk Single">
+                        📦 Single <span class="badge bg-white text-dark ms-1">{{ number_format($singleCount ?? 0) }}</span>
+                    </a>
+
+                    {{-- Filter Bundle --}}
+                    <a href="{{ route('products.index', array_merge(request()->query(), ['is_bundle' => '1'])) }}"
+                        class="btn btn-xs rounded-pill fw-bold px-3 py-1"
+                        style="{{ request('is_bundle') === '1' ? 'background-color:#ec4899; border-color:#ec4899; color:#fff;' : 'color:#ec4899; border-color:#ec4899;' }}"
+                        title="Tampilkan Master Produk Bundling / Set">
+                        🍱 Bundle / Set <span class="badge bg-white text-dark ms-1">{{ number_format($bundleCount ?? 0) }}</span>
+                    </a>
+
+                    <span class="text-muted opacity-25 mx-1">|</span>
+
+                    {{-- Filter Ready Stock --}}
+                    <a href="{{ route('products.index', array_merge(request()->query(), ['is_preorder' => '0'])) }}"
+                        class="btn btn-xs rounded-pill fw-bold px-3 py-1"
+                        style="{{ request('is_preorder') === '0' ? 'background-color:#16a34a; border-color:#16a34a; color:#fff;' : 'color:#16a34a; border-color:#16a34a;' }}"
+                        title="Tampilkan Master Produk Ready Stock">
+                        ⚡ Ready Stock <span class="badge bg-white text-dark ms-1">{{ number_format($readyCount ?? 0) }}</span>
+                    </a>
+
+                    {{-- Filter PO --}}
+                    <a href="{{ route('products.index', array_merge(request()->query(), ['is_preorder' => '1'])) }}"
+                        class="btn btn-xs rounded-pill fw-bold px-3 py-1"
+                        style="{{ request('is_preorder') === '1' ? 'background-color:#8b5cf6; border-color:#8b5cf6; color:#fff;' : 'color:#8b5cf6; border-color:#8b5cf6;' }}"
+                        title="Tampilkan Master Produk Pre-Order (PO)">
+                        ⏳ Pre-Order (PO) <span class="badge bg-white text-dark ms-1">{{ number_format($poCount ?? 0) }}</span>
                     </a>
 
                     <span class="text-muted opacity-25 mx-1">|</span>
@@ -62,7 +98,7 @@
 
                 <form method="GET" action="{{ route('products.index') }}" id="filterProdukForm">
                     <div class="row g-2 align-items-end">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">
                                 <i class="fas fa-tag text-muted me-1"></i>Nama Barang
                             </label>
@@ -73,6 +109,26 @@
                                 <i class="fas fa-barcode text-muted me-1"></i>SKU
                             </label>
                             <input type="text" name="sku" class="form-control form-control-sm" placeholder="Cari SKU..." value="{{ request('sku') }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label form-label-sm fw-semibold mb-1">
+                                <i class="fas fa-cubes text-muted me-1"></i>Tipe Produk
+                            </label>
+                            <select name="is_bundle" class="form-select form-select-sm">
+                                <option value="">-- Semua Tipe --</option>
+                                <option value="0" {{ request('is_bundle') === '0' ? 'selected' : '' }}>Single</option>
+                                <option value="1" {{ request('is_bundle') === '1' ? 'selected' : '' }}>Bundle / Set</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label form-label-sm fw-semibold mb-1">
+                                <i class="fas fa-clock text-muted me-1"></i>Status PO
+                            </label>
+                            <select name="is_preorder" class="form-select form-select-sm">
+                                <option value="">-- Semua Status PO --</option>
+                                <option value="0" {{ request('is_preorder') === '0' ? 'selected' : '' }}>Ready Stock (Non-PO)</option>
+                                <option value="1" {{ request('is_preorder') === '1' ? 'selected' : '' }}>Pre-Order (PO)</option>
+                            </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">

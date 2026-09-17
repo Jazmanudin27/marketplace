@@ -227,6 +227,12 @@ class PullOrdersFromShopee implements ShouldQueue
         ];
         $erpStatus = $shopeeStatusMap[$statusRaw] ?? $statusRaw;
 
+        // Skip pesanan UNPAID / Belum Bayar
+        if (in_array($erpStatus, ['UNPAID', 'PENDING'], true)) {
+            Log::info("[Shopee] Skipping UNPAID order: {$shopeeOrder['order_sn']}");
+            return;
+        }
+
         // 🚀 BIAYA ADMIN PRESISI: Ambil data Escrow / Income resmi Shopee untuk SEMUA pesanan yang bukan CANCELLED!
         $financialBreakdown = null;
         if ($erpStatus !== 'CANCELLED') {

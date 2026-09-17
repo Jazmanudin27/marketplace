@@ -81,7 +81,9 @@ class MasterProductController extends Controller
             if ($request->is_preorder === '1') {
                 $query->where('is_preorder', true);
             } elseif ($request->is_preorder === '0') {
-                $query->where('is_preorder', false);
+                $query->where(function($q) {
+                    $q->where('is_preorder', false)->orWhereNull('is_preorder');
+                });
             }
         }
 
@@ -113,7 +115,9 @@ class MasterProductController extends Controller
         $channels = \App\Models\Channel::all();
 
         $poCount = MasterProduct::where('tenant_id', $tenantId)->where('is_preorder', true)->count();
-        $readyCount = MasterProduct::where('tenant_id', $tenantId)->where('is_preorder', false)->count();
+        $readyCount = MasterProduct::where('tenant_id', $tenantId)->where(function($q) {
+            $q->where('is_preorder', false)->orWhereNull('is_preorder');
+        })->count();
         $bundleCount = MasterProduct::where('tenant_id', $tenantId)->where('is_bundle', true)->count();
         $singleCount = MasterProduct::where('tenant_id', $tenantId)->where(function($q) {
             $q->where('is_bundle', false)->orWhereNull('is_bundle');

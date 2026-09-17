@@ -737,7 +737,6 @@
                 $currentStatus = request('status', '');
                 $tabStatuses = [
                     '' => ['label' => 'Semua', 'icon' => 'fas fa-list', 'countKey' => '__all__'],
-                    'UNPAID' => ['label' => 'Belum Bayar', 'icon' => 'fas fa-credit-card', 'countKey' => 'UNPAID'],
                     'READY_TO_SHIP' => [
                         'label' => 'Perlu Dikirim',
                         'icon' => 'fas fa-box',

@@ -176,6 +176,12 @@ class PullOrdersFromTiktok implements ShouldQueue
         ];
         $erpStatus = $statusMap[strtoupper((string)$statusRaw)] ?? strtoupper((string)$statusRaw);
 
+        // Skip pesanan UNPAID / Belum Bayar
+        if (in_array($erpStatus, ['UNPAID', 'PENDING', '100'], true)) {
+            Log::info("[TikTok] Skipping UNPAID order: " . ($tiktokOrder['id'] ?? $tiktokOrder['order_id'] ?? 'unknown'));
+            return;
+        }
+
         // 🚀 BUYER NAME ACCURACY: Prioritaskan nama penerima resmi TikTok API v202309
         $recName = $tiktokOrder['recipient_address']['name'] 
             ?? (trim(($tiktokOrder['recipient_address']['first_name'] ?? '') . ' ' . ($tiktokOrder['recipient_address']['last_name'] ?? '')));

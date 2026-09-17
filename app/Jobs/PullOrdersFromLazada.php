@@ -85,6 +85,12 @@ class PullOrdersFromLazada implements ShouldQueue
 
     protected function processOrder(Store $store, array $orderData)
     {
+        $statusRaw = strtoupper((string)($orderData['order_status'] ?? 'UNPAID'));
+        if (in_array($statusRaw, ['UNPAID', 'PENDING'], true)) {
+            Log::info("[Lazada] Skipping UNPAID order: " . ($orderData['order_id'] ?? 'unknown'));
+            return;
+        }
+
         $orderMarketplaceId = $orderData['order_id'];
         $buyerPhone = $orderData['buyer_phone'];
         $buyerName = $orderData['buyer_name'];
