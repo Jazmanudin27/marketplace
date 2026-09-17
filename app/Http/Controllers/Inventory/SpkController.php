@@ -1020,11 +1020,11 @@ class SpkController extends Controller
 
                         if (preg_match('/^(.*?)\s*@\s*Rp\s*([\d\.,]+)$/i', $restSatuan, $mH)) {
                             $bSatuan = trim($mH[1]);
-                            $bHarga = floatval(str_replace(['.', ','], '', $mH[2]));
+                            $bHarga = $this->parseFormattedNumber($mH[2]);
                         } else {
                             $bSatuan = $restSatuan;
                         }
-                        $bQty = floatval(str_replace(['.', ','], '', $bQtyStr)) ?: 1;
+                        $bQty = $this->parseFormattedNumber($bQtyStr) ?: 1;
                     }
 
                     if ($bHarga <= 0 && $nom > 0 && $bQty > 0) {
@@ -1625,13 +1625,9 @@ class SpkController extends Controller
                     $rawNama = trim($b['nama_bahan'] ?? '');
                     if (empty($rawNama)) continue;
 
-                    $qtyBahan   = floatval(str_replace(['.', ','], ['', '.'], $b['qty_bahan'] ?? 1)) ?: 1;
-                    $hargaBahan = floatval(str_replace(['.', ','], '', $b['harga'] ?? 0));
-                    $subtotal   = floatval(str_replace(['.', ','], '', $b['subtotal'] ?? ($qtyBahan * $hargaBahan)));
-
-                    if ($subtotal <= 0 && $hargaBahan > 0) {
-                        $subtotal = $qtyBahan * $hargaBahan;
-                    }
+                    $qtyBahan   = max(0.0001, $this->parseFormattedNumber($b['qty_bahan'] ?? 1));
+                    $hargaBahan = max(0, $this->parseFormattedNumber($b['harga'] ?? 0));
+                    $subtotal   = ($hargaBahan > 0) ? round($qtyBahan * $hargaBahan, 2) : max(0, $this->parseFormattedNumber($b['subtotal'] ?? 0));
 
                     $cleanBahanList[] = [
                         'nama_bahan' => $rawNama,
@@ -1645,18 +1641,10 @@ class SpkController extends Controller
             }
 
             // 2. Process Biaya Produksi SPK
-            $rawBiayaProduksi = $request->input('spk_biaya_produksi', 0);
-            if (is_string($rawBiayaProduksi)) {
-                $rawBiayaProduksi = str_replace(['.', ','], '', $rawBiayaProduksi);
-            }
-            $biayaProduksiNominal = max(0, floatval($rawBiayaProduksi));
+            $biayaProduksiNominal = max(0, $this->parseFormattedNumber($request->input('spk_biaya_produksi', 0)));
 
             // 3. Process Biaya Tambahan SPK
-            $rawBiayaTambahan = $request->input('spk_biaya_tambahan', 0);
-            if (is_string($rawBiayaTambahan)) {
-                $rawBiayaTambahan = str_replace(['.', ','], '', $rawBiayaTambahan);
-            }
-            $biayaTambahanNominal = max(0, floatval($rawBiayaTambahan));
+            $biayaTambahanNominal = max(0, $this->parseFormattedNumber($request->input('spk_biaya_tambahan', 0)));
             $ketTambahan = trim((string)$request->input('spk_ket_tambahan', ''));
 
             // 4. Hitung Estimasi HPP SPK
@@ -3989,5 +3977,41 @@ class SpkController extends Controller
             'totalPcs',
             'photos'
         ));
+    }
+
+    private function parseFormattedNumber($val): float
+    {
+        if (is_numeric($val)) {
+            return (float) $val;
+        }
+        if (empty($val)) {
+            return 0.0;
+        }
+        $str = trim((string) $val);
+
+        if (str_contains($str, '.') && str_contains($str, ',')) {
+            $lastDot = strrpos($str, '.');
+            $lastComma = strrpos($str, ',');
+            if ($lastComma > $lastDot) {
+                $str = str_replace('.', '', $str);
+                $str = str_replace(',', '.', $str);
+            } else {
+                $str = str_replace(',', '', $str);
+            }
+        } elseif (str_contains($str, '.')) {
+            $parts = explode('.', $str);
+            if (count($parts) > 2 || (count($parts) == 2 && strlen($parts[1]) == 3)) {
+                $str = str_replace('.', '', $str);
+            }
+        } elseif (str_contains($str, ',')) {
+            $parts = explode(',', $str);
+            if (count($parts) == 2 && strlen($parts[1]) <= 2) {
+                $str = str_replace(',', '.', $str);
+            } else {
+                $str = str_replace(',', '', $str);
+            }
+        }
+
+        return floatval($str);
     }
 }
