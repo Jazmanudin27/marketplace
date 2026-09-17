@@ -328,11 +328,12 @@ class SpkController extends Controller
 
         $allMasterProductsList = $products->map(function($p) {
             return [
-                'sku'       => $p->sku,
-                'sku_induk' => $p->sku_induk,
-                'name'      => $p->name,
-                'ukuran'    => $p->ukuran ?? '',
-                'est_kain'  => (float) ($p->est_kain ?? 0),
+                'sku'                => $p->sku,
+                'sku_induk'          => $p->sku_induk,
+                'name'               => $p->name,
+                'ukuran'             => $p->ukuran ?? '',
+                'est_kain'           => (float) ($p->est_kain ?? 0),
+                'est_biaya_produksi' => (float) ($p->est_biaya_produksi ?? 0),
             ];
         });
 
@@ -925,11 +926,12 @@ class SpkController extends Controller
 
         $allMasterProductsList = $products->map(function($p) {
             return [
-                'sku'       => $p->sku,
-                'sku_induk' => $p->sku_induk,
-                'name'      => $p->name,
-                'ukuran'    => $p->ukuran ?? '',
-                'est_kain'  => (float) ($p->est_kain ?? 0),
+                'sku'                => $p->sku,
+                'sku_induk'          => $p->sku_induk,
+                'name'               => $p->name,
+                'ukuran'             => $p->ukuran ?? '',
+                'est_kain'           => (float) ($p->est_kain ?? 0),
+                'est_biaya_produksi' => (float) ($p->est_biaya_produksi ?? 0),
             ];
         });
 
@@ -1045,6 +1047,32 @@ class SpkController extends Controller
                 } else {
                     $existingBiayaProduksi += $nom;
                 }
+            }
+        }
+
+        if ($existingBiayaProduksi <= 0 && $spk->items->isNotEmpty()) {
+            $defaultEstBiaya = 0;
+            foreach ($spk->items as $item) {
+                $mp = $item->masterProduct;
+                if (!$mp && $item->master_product_id) {
+                    $mp = MasterProduct::find($item->master_product_id);
+                }
+                if (!$mp && !empty($item->sku)) {
+                    $mp = MasterProduct::where('tenant_id', $spk->tenant_id)
+                        ->where(DB::raw('LOWER(sku)'), strtolower(trim($item->sku)))
+                        ->first();
+                }
+                if (!$mp && !empty($item->nama_produk)) {
+                    $mp = MasterProduct::where('tenant_id', $spk->tenant_id)
+                        ->where('name', trim($item->nama_produk))
+                        ->first();
+                }
+                if ($mp && $mp->est_biaya_produksi > 0) {
+                    $defaultEstBiaya += (float) $mp->est_biaya_produksi * (int) $item->quantity;
+                }
+            }
+            if ($defaultEstBiaya > 0) {
+                $existingBiayaProduksi = $defaultEstBiaya;
             }
         }
 
@@ -1530,13 +1558,17 @@ class SpkController extends Controller
                                 }
                             }
 
+                            if (!$prod && $spkItem && $spkItem->master_product_id) {
+                                $prod = MasterProduct::find($spkItem->master_product_id);
+                            }
+
                             $finalUkuran = !empty($ukuranInput) ? $ukuranInput : ($prod && !empty($prod->ukuran) ? $prod->ukuran : 'ALL SIZE');
-                            $estKain     = isset($pRow['est_kain']) ? (float)$pRow['est_kain'] : 0;
-                            if ($estKain <= 0) {
+                            $estKainVal  = (isset($pRow['est_kain']) && $pRow['est_kain'] !== '') ? (float)$pRow['est_kain'] : 0;
+                            if ($estKainVal <= 0) {
                                 if ($prod && $prod->est_kain > 0) {
-                                    $estKain = (float)$prod->est_kain * $qtyProd;
+                                    $estKainVal = (float)$prod->est_kain * $qtyProd;
                                 } else {
-                                    $estKain = $spkItem->est_kain ?? 0;
+                                    $estKainVal = ($spkItem && $spkItem->est_kain > 0) ? (float)$spkItem->est_kain : 0;
                                 }
                             }
 
@@ -1546,7 +1578,7 @@ class SpkController extends Controller
                                 'sku'               => $skuProduk ?: ($prod ? $prod->sku : null),
                                 'ukuran'            => $finalUkuran,
                                 'quantity'          => $qtyProd,
-                                'est_kain'          => $estKain,
+                                'est_kain'          => $estKainVal,
                             ];
 
                             if (!$spkItem) {
@@ -1565,11 +1597,13 @@ class SpkController extends Controller
                                 ->delete();
                         }
 
-                        if ($request->has('total_est_kain')) {
-                            $inputTotalEst = max(0, (float) $request->input('total_est_kain'));
-                            $firstItem = SpkItem::where('spk_id', $spk->id)->first();
-                            if ($firstItem) {
-                                $firstItem->update(['est_kain' => $inputTotalEst]);
+                        if ($request->filled('total_est_kain')) {
+                            $inputTotalEst = (float) $request->input('total_est_kain');
+                            if ($inputTotalEst > 0) {
+                                $firstItem = SpkItem::where('spk_id', $spk->id)->first();
+                                if ($firstItem && ($firstItem->est_kain <= 0 || $request->input('total_est_kain_manual') == '1')) {
+                                    $firstItem->update(['est_kain' => $inputTotalEst]);
+                                }
                             }
                         }
                     }

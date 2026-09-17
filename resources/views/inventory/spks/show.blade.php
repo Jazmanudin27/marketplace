@@ -813,9 +813,13 @@
                     <div class="rincian-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <span>📋 DETAIL RINCIAN PRODUK (SPK #{{ $spk->no_spk }})</span>
                         @php
-                            $sumEstKainHeader = (float) $spk->items->sum('est_kain');
-                            if ($sumEstKainHeader <= 0 && $spk->items->first()) {
-                                $sumEstKainHeader = (float) ($spk->items->first()->est_kain ?? 0);
+                            $sumEstKainHeader = 0;
+                            foreach ($spk->items as $it) {
+                                $eK = (float) $it->est_kain;
+                                if ($eK <= 0 && $it->masterProduct && $it->masterProduct->est_kain > 0) {
+                                    $eK = (float) $it->masterProduct->est_kain * (int) $it->quantity;
+                                }
+                                $sumEstKainHeader += $eK;
                             }
                         @endphp
                         <span class="badge bg-white text-primary border px-3 py-2 rounded-pill shadow-2xs" style="font-size: 12px; font-weight: 700;">
@@ -922,18 +926,23 @@
                                                     min="1" value="{{ $item->quantity }}">
                                             </td>
                                             <td>
+                                                @php
+                                                    $itemEstKain = (float) $item->est_kain;
+                                                    if ($itemEstKain <= 0 && $item->masterProduct && $item->masterProduct->est_kain > 0) {
+                                                        $itemEstKain = (float) $item->masterProduct->est_kain * (int) $item->quantity;
+                                                    }
+                                                @endphp
                                                 <div class="input-group input-group-sm">
                                                     <input type="number" step="any"
                                                         name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][est_kain]"
                                                         class="form-control text-center row-est-kain input-est-kain"
                                                         placeholder="0"
                                                         oninput="updateMeterConversion(this)"
-                                                        value="{{ (float) $item->est_kain > 0 ? (float) $item->est_kain : '' }}">
+                                                        value="{{ $itemEstKain > 0 ? (float) $itemEstKain : '' }}">
                                                     <span class="input-group-text bg-light text-muted px-1" style="font-size: 10px;">CM</span>
                                                 </div>
                                                 <div class="text-center mt-1 row-meter-conv" style="font-size: 10.5px; font-weight: 600; color: #0284c7;">
-                                                    @php $cmVal = (float)$item->est_kain; @endphp
-                                                    <span class="conv-text">{{ $cmVal > 0 ? '(' . number_format($cmVal / 100, 2, ',', '.') . ' Meter)' : '' }}</span>
+                                                    <span class="conv-text">{{ $itemEstKain > 0 ? '(' . number_format($itemEstKain / 100, 2, ',', '.') . ' Meter)' : '' }}</span>
                                                 </div>
                                             </td>
                                             <td class="text-center">
@@ -953,9 +962,13 @@
                                 </button>
 
                                 @php
-                                    $totEstKain = (float) $spk->items->sum('est_kain');
-                                    if ($totEstKain <= 0 && $spk->items->first()) {
-                                        $totEstKain = (float) ($spk->items->first()->est_kain ?? 0);
+                                    $totEstKain = 0;
+                                    foreach ($spk->items as $it) {
+                                        $eK = (float) $it->est_kain;
+                                        if ($eK <= 0 && $it->masterProduct && $it->masterProduct->est_kain > 0) {
+                                            $eK = (float) $it->masterProduct->est_kain * (int) $it->quantity;
+                                        }
+                                        $totEstKain += $eK;
                                     }
                                 @endphp
                                 <div class="d-flex align-items-center gap-2 px-2 flex-wrap">
@@ -2145,7 +2158,8 @@
                     'name' => $p->name,
                     'sku' => $p->sku,
                     'ukuran' => $p->ukuran ?? '',
-                    'est_kain' => (float)($p->est_kain ?? 0),
+                    'est_kain'           => (float)($p->est_kain ?? 0),
+                    'est_biaya_produksi' => (float)($p->est_biaya_produksi ?? 0),
                 ];
             @endphp
             @if (!empty($p->sku))

@@ -284,7 +284,9 @@
         }
 
         @media print {
-            .no-print, .no-print-bar {
+
+            .no-print,
+            .no-print-bar {
                 display: none !important;
             }
 
@@ -326,7 +328,8 @@
             <button onclick="window.print()" class="btn-print">
                 🖨️ Cetak Halaman Ini
             </button>
-            <button onclick="window.close()" style="background: #475569; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600;">
+            <button onclick="window.close()"
+                style="background: #475569; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600;">
                 Tutup
             </button>
         </div>
@@ -347,25 +350,33 @@
                 <table class="header-table">
                     <tr>
                         <td class="header-left">
-                            <div><span style="color:#475569;">NO PRODUKSI :</span> <span class="val-mono">{{ $currentSpk->no_produksi ?: '—' }}</span></div>
-                            <div style="margin-top: 4px;"><span style="color:#475569;">NO PESANAN :</span> <span class="val-mono">{{ $currentSpk->no_spk }}</span></div>
+                            <div><span style="color:#475569;">NO PRODUKSI :</span> <span
+                                    class="val-mono">{{ $currentSpk->no_produksi ?: '—' }}</span></div>
+                            <div style="margin-top: 4px;"><span style="color:#475569;">NO PESANAN :</span> <span
+                                    class="val-mono">{{ $currentSpk->no_spk }}</span></div>
                         </td>
                         <td class="header-center">
                             <h1 class="spk-title-main">S P K</h1>
                             <div class="spk-sub-main">SURAT PERINTAH KERJA</div>
                         </td>
                         <td class="header-right">
-                            <div><span style="color:#475569;">ORDER DATE :</span> <strong>{{ $currentSpk->tanggal ? $currentSpk->tanggal->format('Y-m-d') : date('Y-m-d') }}</strong></div>
-                            <div style="margin-top: 4px;"><span style="color:#475569;">DEADLINE :</span> <span class="text-danger fw-bold">{{ $currentSpk->deadline ? $currentSpk->deadline->format('Y-m-d') : '—' }}</span></div>
+                            <div><span style="color:#475569;">ORDER DATE :</span>
+                                <strong>{{ $currentSpk->tanggal ? $currentSpk->tanggal->format('Y-m-d') : date('Y-m-d') }}</strong>
+                            </div>
+                            <div style="margin-top: 4px;"><span style="color:#475569;">DEADLINE :</span> <span
+                                    class="text-danger fw-bold">{{ $currentSpk->deadline ? $currentSpk->deadline->format('Y-m-d') : '—' }}</span>
+                            </div>
                         </td>
                         <td class="header-qr">
                             @php
                                 $spkTrackUrl = route('spks.mobile_scan', $currentSpk->id);
                             @endphp
                             <a href="{{ $spkTrackUrl }}" target="_blank" title="Scan / Update Tracking SPK">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&ecc=M&data={{ urlencode($spkTrackUrl) }}" alt="QR Tracking SPK" class="qr-code-img">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&ecc=M&data={{ urlencode($spkTrackUrl) }}"
+                                    alt="QR Tracking SPK" class="qr-code-img">
                             </a>
-                            <div style="font-size: 7.5px; text-align: center; color: #0f172a; font-weight: 800; margin-top: 2px; line-height: 1; letter-spacing: 0.3px;">
+                            <div
+                                style="font-size: 7.5px; text-align: center; color: #0f172a; font-weight: 800; margin-top: 2px; line-height: 1; letter-spacing: 0.3px;">
                                 SCAN TRACKING
                             </div>
                         </td>
@@ -391,7 +402,8 @@
                     </div>
                     <div class="design-box-frame">
                         @php
-                            $imgSrc = $currentSpk->mockup_url ?: ($currentSpk->image_url ?: $currentSpk->referensi_klien_url);
+                            $imgSrc =
+                                $currentSpk->mockup_url ?: ($currentSpk->image_url ?: $currentSpk->referensi_klien_url);
                         @endphp
                         @if ($imgSrc)
                             <img src="{{ $imgSrc }}" class="design-img" alt="Desain SPK">
@@ -454,7 +466,12 @@
                             @forelse($variantRows as $varRowIdx => $varRow)
                                 @php
                                     $rowFabQty = (float) ($varRow['fabric_qty'] ?? 0);
-                                    if ($rowFabQty <= 0 && $loop->first && !empty($formattedQty) && $formattedQty !== '—') {
+                                    if (
+                                        $rowFabQty <= 0 &&
+                                        $loop->first &&
+                                        !empty($formattedQty) &&
+                                        $formattedQty !== '—'
+                                    ) {
                                         $rowFabQty = (float) str_replace(',', '.', $formattedQty);
                                     }
                                     $grandTotalFabric += $rowFabQty;
@@ -468,7 +485,8 @@
                                         {{ $varRow['sku'] ?? ($varRow['name'] ?? '—') }}
                                     </td>
                                     @foreach ($sizesHeader as $szH)
-                                        <td style="{{ !empty($varRow['sizes'][$szH]) ? 'color:#dc2626; font-weight:bold;' : '' }}">
+                                        <td
+                                            style="{{ !empty($varRow['sizes'][$szH]) ? 'color:#dc2626; font-weight:bold;' : '' }}">
                                             {{ $varRow['sizes'][$szH] ?? '' }}
                                         </td>
                                     @endforeach
@@ -500,7 +518,8 @@
                                 <tr style="background: #f1f5f9; font-weight: bold; border-top: 2px solid #000;">
                                     <td style="text-align: center; font-weight: 900; background: #e2e8f0;">TOTAL</td>
                                     @foreach ($sizesHeader as $szH)
-                                        <td style="{{ $sizeTotals[$szH] > 0 ? 'color:#dc2626; font-weight:900;' : '' }}">
+                                        <td
+                                            style="{{ $sizeTotals[$szH] > 0 ? 'color:#dc2626; font-weight:900;' : '' }}">
                                             {{ $sizeTotals[$szH] > 0 ? $sizeTotals[$szH] : '' }}
                                         </td>
                                     @endforeach

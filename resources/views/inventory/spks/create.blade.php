@@ -838,7 +838,8 @@
                 'name' => $p->name,
                 'sku' => $p->sku,
                 'ukuran' => $p->ukuran ?? '',
-                'est_kain' => (float)($p->est_kain ?? 0),
+                'est_kain'           => (float)($p->est_kain ?? 0),
+                'est_biaya_produksi' => (float)($p->est_biaya_produksi ?? 0),
             ];
         @endphp
         @if(!empty($p->sku))

@@ -1276,6 +1276,14 @@ class OfflineSaleController extends Controller
                         $ukuran = strtoupper($m[1]);
                     }
 
+                    $estKainVal = 0;
+                    if (!empty($itemData->master_product_id)) {
+                        $mp = \App\Models\MasterProduct::find($itemData->master_product_id);
+                        if ($mp && $mp->est_kain > 0) {
+                            $estKainVal = (float) $mp->est_kain * (int) $itemData->quantity;
+                        }
+                    }
+
                     \App\Models\SpkItem::create([
                         'spk_id'            => $spk->id,
                         'master_product_id' => $itemData->master_product_id,
@@ -1283,6 +1291,7 @@ class OfflineSaleController extends Controller
                         'sku'               => $itemData->sku,
                         'ukuran'            => $ukuran,
                         'quantity'          => $itemData->quantity,
+                        'est_kain'          => $estKainVal,
                         'hpp'               => $itemData->unit_price,
                         'status'            => 'Pending',
                     ]);
