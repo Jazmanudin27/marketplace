@@ -1024,19 +1024,19 @@ class SpkController extends Controller
                         } else {
                             $bSatuan = $restSatuan;
                         }
-                        $bQty = $this->parseFormattedNumber($bQtyStr) ?: 1;
+                        $bQty = round($this->parseFormattedNumber($bQtyStr)) ?: 1;
                     }
 
                     if ($bHarga <= 0 && $nom > 0 && $bQty > 0) {
-                        $bHarga = round($nom / $bQty, 2);
+                        $bHarga = round($nom / $bQty);
                     }
 
                     $existingBahanList[] = [
                         'nama_bahan' => $bName,
-                        'qty_bahan'  => $bQty,
+                        'qty_bahan'  => round($bQty),
                         'satuan'     => $bSatuan,
-                        'harga'      => $bHarga,
-                        'subtotal'   => $nom,
+                        'harga'      => round($bHarga),
+                        'subtotal'   => round($nom),
                     ];
                 } elseif (str_contains($ket, 'Biaya Tambahan:') || str_contains($ket, 'Tambahan:')) {
                     $existingBiayaTambahan += $nom;
@@ -1083,12 +1083,12 @@ class SpkController extends Controller
                 if (!isset($groupedBahan[$n])) {
                     $groupedBahan[$n] = $b;
                 } else {
-                    $groupedBahan[$n]['qty_bahan'] += $b['qty_bahan'];
-                    $groupedBahan[$n]['subtotal'] += $b['subtotal'];
+                    $groupedBahan[$n]['qty_bahan'] = round($groupedBahan[$n]['qty_bahan'] + $b['qty_bahan']);
+                    $groupedBahan[$n]['subtotal']  = round($groupedBahan[$n]['subtotal'] + $b['subtotal']);
                     if ($b['harga'] > 0) {
-                        $groupedBahan[$n]['harga'] = $b['harga'];
+                        $groupedBahan[$n]['harga'] = round($b['harga']);
                     } elseif ($groupedBahan[$n]['qty_bahan'] > 0) {
-                        $groupedBahan[$n]['harga'] = round($groupedBahan[$n]['subtotal'] / $groupedBahan[$n]['qty_bahan'], 2);
+                        $groupedBahan[$n]['harga'] = round($groupedBahan[$n]['subtotal'] / $groupedBahan[$n]['qty_bahan']);
                     }
                 }
             }
@@ -1625,9 +1625,9 @@ class SpkController extends Controller
                     $rawNama = trim($b['nama_bahan'] ?? '');
                     if (empty($rawNama)) continue;
 
-                    $qtyBahan   = max(0.0001, $this->parseFormattedNumber($b['qty_bahan'] ?? 1));
-                    $hargaBahan = max(0, $this->parseFormattedNumber($b['harga'] ?? 0));
-                    $subtotal   = ($hargaBahan > 0) ? round($qtyBahan * $hargaBahan, 2) : max(0, $this->parseFormattedNumber($b['subtotal'] ?? 0));
+                    $qtyBahan   = max(1, round($this->parseFormattedNumber($b['qty_bahan'] ?? 1)));
+                    $hargaBahan = max(0, round($this->parseFormattedNumber($b['harga'] ?? 0)));
+                    $subtotal   = ($hargaBahan > 0) ? round($qtyBahan * $hargaBahan) : max(0, round($this->parseFormattedNumber($b['subtotal'] ?? 0)));
 
                     $cleanBahanList[] = [
                         'nama_bahan' => $rawNama,
@@ -1641,10 +1641,10 @@ class SpkController extends Controller
             }
 
             // 2. Process Biaya Produksi SPK
-            $biayaProduksiNominal = max(0, $this->parseFormattedNumber($request->input('spk_biaya_produksi', 0)));
+            $biayaProduksiNominal = max(0, round($this->parseFormattedNumber($request->input('spk_biaya_produksi', 0))));
 
             // 3. Process Biaya Tambahan SPK
-            $biayaTambahanNominal = max(0, $this->parseFormattedNumber($request->input('spk_biaya_tambahan', 0)));
+            $biayaTambahanNominal = max(0, round($this->parseFormattedNumber($request->input('spk_biaya_tambahan', 0))));
             $ketTambahan = trim((string)$request->input('spk_ket_tambahan', ''));
 
             // 4. Hitung Estimasi HPP SPK
@@ -1666,9 +1666,11 @@ class SpkController extends Controller
                 foreach ($cleanBahanList as $mat) {
                     $itemMatNominal = round($mat['subtotal'] * $ratio, 2);
                     $itemQtyBahan   = round($mat['qty_bahan'] * $ratio, 4);
-                    $cleanQtyStr    = ($itemQtyBahan == (int)$itemQtyBahan) ? (int)$itemQtyBahan : (float)$itemQtyBahan;
+                    $roundedQty     = round($itemQtyBahan, 2);
+                    $cleanQtyStr    = ($roundedQty == (int)$roundedQty) ? (int)$roundedQty : $roundedQty;
+                    $cleanHarga     = round($mat['harga']);
                     $satuanStr      = !empty($mat['satuan']) ? " " . $mat['satuan'] : "";
-                    $hargaStr       = $mat['harga'] > 0 ? " @ Rp " . number_format($mat['harga'], 0, ',', '.') : "";
+                    $hargaStr       = $cleanHarga > 0 ? " @ Rp " . number_format($cleanHarga, 0, ',', '.') : "";
                     SpkItemExtra::create([
                         'spk_item_id' => $item->id,
                         'keterangan'  => "Bahan: {$mat['nama_bahan']} (Qty: {$cleanQtyStr}{$satuanStr}{$hargaStr})",

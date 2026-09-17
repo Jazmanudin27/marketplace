@@ -1031,7 +1031,7 @@
                                                 @forelse($spkBahanData as $bIdx => $bItem)
                                                     @php
                                                         $rawQtyB = (float)($bItem['qty_bahan'] ?? 1);
-                                                        $cleanQtyB = ($rawQtyB == (int)$rawQtyB) ? (int)$rawQtyB : round($rawQtyB, 4);
+                                                        $cleanQtyB = round($rawQtyB);
                                                         $cleanHargaB = round((float)($bItem['harga'] ?? 0));
                                                         $cleanSubtotalB = round((float)($bItem['subtotal'] ?? 0));
                                                     @endphp
