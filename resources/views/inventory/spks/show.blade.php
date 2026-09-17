@@ -1029,6 +1029,12 @@
                                             </thead>
                                             <tbody id="spkBahanTableBody">
                                                 @forelse($spkBahanData as $bIdx => $bItem)
+                                                    @php
+                                                        $rawQtyB = (float)($bItem['qty_bahan'] ?? 1);
+                                                        $cleanQtyB = ($rawQtyB == (int)$rawQtyB) ? (int)$rawQtyB : round($rawQtyB, 4);
+                                                        $cleanHargaB = round((float)($bItem['harga'] ?? 0));
+                                                        $cleanSubtotalB = round((float)($bItem['subtotal'] ?? 0));
+                                                    @endphp
                                                     <tr class="spk-bahan-row" data-b-idx="{{ $bIdx }}">
                                                         <td>
                                                             <input type="text" name="spk_bahan[{{ $bIdx }}][nama_bahan]" 
@@ -1041,7 +1047,7 @@
                                                             <input type="text" name="spk_bahan[{{ $bIdx }}][qty_bahan]" 
                                                                    class="form-control form-control-sm text-center spk-bahan-qty" 
                                                                    placeholder="1"
-                                                                   value="{{ $bItem['qty_bahan'] ?? 1 }}">
+                                                                   value="{{ $cleanQtyB }}">
                                                         </td>
                                                         <td>
                                                             <input type="text" name="spk_bahan[{{ $bIdx }}][satuan]" 
@@ -1055,15 +1061,15 @@
                                                                 <input type="text" name="spk_bahan[{{ $bIdx }}][harga]" 
                                                                        class="form-control form-control-sm text-end fw-bold spk-bahan-harga numeric-dot-format" 
                                                                        placeholder="0"
-                                                                       value="{{ number_format($bItem['harga'] ?? 0, 0, ',', '.') }}">
+                                                                       value="{{ number_format($cleanHargaB, 0, ',', '.') }}">
                                                             </div>
                                                         </td>
                                                         <td class="text-end">
                                                             <input type="hidden" name="spk_bahan[{{ $bIdx }}][subtotal]" 
                                                                    class="spk-bahan-subtotal-val" 
-                                                                   value="{{ $bItem['subtotal'] ?? 0 }}">
+                                                                   value="{{ $cleanSubtotalB }}">
                                                             <span class="fw-bold text-primary spk-bahan-subtotal-text">
-                                                                Rp {{ number_format($bItem['subtotal'] ?? 0, 0, ',', '.') }}
+                                                                Rp {{ number_format($cleanSubtotalB, 0, ',', '.') }}
                                                             </span>
                                                         </td>
                                                         <td class="text-center">
