@@ -498,28 +498,24 @@
             $cleanShopeeAddress = rtrim(trim($cleanShopeeAddress), ', ');
 
             // Hub Code & Sub Route Code
-            $shopeeHubCode = $order->financial_breakdown['shopee_hub_code'] ?? 'AC-29';
-            $shopeeSubRoute = $order->financial_breakdown['shopee_sub_route'] ?? 'PGY-A-04';
-            $shopeeBlackBarTag = $order->financial_breakdown['sorting_tag'] ?? 'Samudra Petuguran-15-9';
+            $shopeeHubCode = $order->financial_breakdown['shopee_hub_code'] ?? ($trackingNo ? strtoupper(substr($trackingNo, -5)) : 'HUB');
+            $shopeeSubRoute = $order->financial_breakdown['shopee_sub_route'] ?? ($trackingNo ? strtoupper(substr($trackingNo, -8, 6)) : '');
+            $shopeeBlackBarTag = $order->financial_breakdown['sorting_tag'] ?? '';
 
             // District Boxes for Shopee (Kabupaten, Kecamatan, Desa)
-            $shopeeKab = 'KAB. BREBES';
+            $shopeeKab = 'KAB. BEKASI';
             if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $cleanShopeeAddress, $mKb)) {
                 $shopeeKab = 'KAB. ' . strtoupper(trim($mKb[1]));
             }
 
-            $shopeeKec = 'PAGUYANGAN';
+            $shopeeKec = '';
             if (preg_match('/(?:KECAMATAN|KEC\.)\s+([^,]+)/i', $cleanShopeeAddress, $mKc)) {
                 $shopeeKec = strtoupper(trim($mKc[1]));
-            } elseif (preg_match('/(PAGUYANGAN|TELUK JAMBE|CILEUNGSI|CIBINONG|SERPONG)/i', $cleanShopeeAddress, $mKc2)) {
-                $shopeeKec = strtoupper(trim($mKc2[0]));
             }
 
-            $shopeeDesa = 'Ragatunjung';
+            $shopeeDesa = '';
             if (preg_match('/(?:DESA|KELURAHAN|KEL\.|DS\.)\s+([^,]+)/i', $cleanShopeeAddress, $mDs)) {
                 $shopeeDesa = ucfirst(strtolower(trim($mDs[1])));
-            } elseif (preg_match('/(RAGATUNJUNG|PURWADANA|PETUGURAN|SUKAMAJU)/i', $cleanShopeeAddress, $mDs2)) {
-                $shopeeDesa = ucfirst(strtolower(trim($mDs2[0])));
             }
 
             // Format Phone Numbers
@@ -542,16 +538,16 @@
                 $shopeeSenderPhone = '62' . substr($shopeeSenderPhone, 1);
             }
 
-            $rawBuyerPhone = preg_replace('/[^\d]/', '', $order->buyer_phone ?? '8377777728');
+            $rawBuyerPhone = preg_replace('/[^\d]/', '', $order->buyer_phone ?? '');
             if (str_starts_with($rawBuyerPhone, '0')) {
                 $rawBuyerPhone = '62' . substr($rawBuyerPhone, 1);
             }
-            if (strlen($rawBuyerPhone) >= 10) {
+            if (strlen($rawBuyerPhone) >= 8) {
                 $prefix = substr($rawBuyerPhone, 2, 2);
                 $suffix = substr($rawBuyerPhone, -2);
                 $buyerPhoneFormatted = "(+62){$prefix}*******{$suffix}";
             } else {
-                $buyerPhoneFormatted = "(+62)" . $rawBuyerPhone;
+                $buyerPhoneFormatted = $order->buyer_phone ?: '(+62)';
             }
 
             // Regions
@@ -562,31 +558,32 @@
                 $provStr = strtoupper(trim($mProv[0]));
             }
 
-            $kabStr = 'KARAWANG';
+            $kabStr = 'BEKASI';
             if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $cleanAddress, $mKab)) {
                 $kabStr = strtoupper(trim($mKab[1]));
             }
 
-            $kecStr = 'TELUK JAMBE TIMUR';
+            $kecStr = '';
             if (preg_match('/(?:KECAMATAN|KEC\.)\s+([^,]+)/i', $cleanAddress, $mKec)) {
                 $kecStr = strtoupper(trim($mKec[1]));
             }
 
-            $tujuanRegionStr = "{$provStr},{$kabStr},{$kecStr}";
+            $tujuanRegionStr = "{$provStr},{$kabStr}" . ($kecStr ? ",{$kecStr}" : "");
 
-            // RT / RW Extraction
-            $rtRwStr = 'RT 05 / 03';
-            if (preg_match('/RT\.?\s*(\d{1,3})\s*[\/|\-|\s]*\s*RW\.?\s*(\d{1,3})/i', $cleanAddress, $mRtRw)) {
-                $rtRwStr = 'RT ' . sprintf('%02d', $mRtRw[1]) . ' / ' . sprintf('%02d', $mRtRw[2]);
-            } elseif (preg_match('/RT\.?\s*(\d{1,3})\s*[\/|\-|\s]*\s*(\d{1,3})/i', $cleanAddress, $mRtRw2)) {
-                $rtRwStr = 'RT ' . sprintf('%02d', $mRtRw2[1]) . ' / ' . sprintf('%02d', $mRtRw2[2]);
+            // Dynamic Black Bar Tag Extraction from Address (e.g., KONTRAKAN BU SARI BAHAGIA)
+            $blackBarTag = $order->financial_breakdown['sorting_tag'] ?? '';
+            if (empty($blackBarTag)) {
+                $addrParts = array_filter(array_map('trim', explode(',', $cleanAddress)));
+                if (count($addrParts) >= 2) {
+                    $blackBarTag = strtoupper($addrParts[count($addrParts) - 2]);
+                } elseif (!empty($kecStr)) {
+                    $blackBarTag = strtoupper($kecStr);
+                }
             }
+            $rtRwStr = $blackBarTag;
 
-            // Routing Code (e.g. 360-KRW02B-05A)
-            $routingCode = '360-KRW02B-05A';
-            if (!empty($order->financial_breakdown['routing_code'])) {
-                $routingCode = $order->financial_breakdown['routing_code'];
-            }
+            // Routing Code (e.g. 330-6BKI74-10B)
+            $routingCode = $order->financial_breakdown['routing_code'] ?? '';
 
             // Ship & Estimated Dates
             $orderDateCarbon = $order->order_date ? \Carbon\Carbon::parse($order->order_date) : ($order->created_at ?: now());
@@ -619,11 +616,7 @@
 
         <div class="waybill-wrapper {{ !$loop->last ? 'page-break' : '' }}">
             <div class="waybill-container">
-
                 @if ($channelCode === 'shopee')
-                    {{-- ── TEMPLATE RESI SHOPEE (MATCHING MARKETPLACE IMAGE 2 100%) ── --}}
-                    <div style="position: relative; padding: 0 16px;">
-                        <!-- Vertical Outer Tracking Numbers on Margins -->
                         <div style="position: absolute; left: -8px; top: 110px; transform: rotate(-90deg); transform-origin: left top; font-size: 10px; font-weight: bold; font-family: monospace; white-space: nowrap; color: #000;">
                             {{ $trackingNo }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ $trackingNo }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ $trackingNo }}
                         </div>
