@@ -884,12 +884,13 @@
                             <table class="table table-sm product-table-custom align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th style="width: 18%;">SKU PRODUK / VARIAN</th>
-                                        <th style="width: 24%;">NAMA PRODUK</th>
-                                        <th style="width: 10%;" class="text-center">UKURAN</th>
-                                        <th style="width: 8%;" class="text-center">QTY</th>
-                                        <th style="width: 16%;" class="text-center">EST. KAIN SATUAN (CM)</th>
-                                        <th style="width: 20%;" class="text-center">TOTAL ESTIMASI KAIN (CM)</th>
+                                        <th style="width: 16%;">SKU PRODUK / VARIAN</th>
+                                        <th style="width: 20%;">NAMA PRODUK</th>
+                                        <th style="width: 8%;" class="text-center">UKURAN</th>
+                                        <th style="width: 7%;" class="text-center">QTY</th>
+                                        <th style="width: 15%;" class="text-center">EST. KAIN SATUAN (CM)</th>
+                                        <th style="width: 17%;" class="text-center">TOTAL ESTIMASI KAIN (CM)</th>
+                                        <th style="width: 13%;" class="text-center">EST. BIAYA PRODUKSI</th>
                                         <th style="width: 4%;" class="text-center"></th>
                                     </tr>
                                 </thead>
@@ -961,6 +962,22 @@
                                                 </div>
                                                 <div class="text-center mt-1 row-meter-conv" style="font-size: 10.5px; font-weight: 600; color: #0284c7;">
                                                     <span class="conv-text">{{ $itemEstKainTotal > 0 ? '(' . number_format($itemEstKainTotal / 100, 2, ',', '.') . ' Meter)' : '' }}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @php
+                                                    $itemEstBiayaProduksi = 0;
+                                                    if ($item->masterProduct && (float)$item->masterProduct->est_biaya_produksi > 0) {
+                                                        $itemEstBiayaProduksi = (float) $item->masterProduct->est_biaya_produksi;
+                                                    }
+                                                @endphp
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text bg-light text-muted px-1" style="font-size: 10px;">Rp</span>
+                                                    <input type="number" step="any"
+                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][est_biaya_produksi]"
+                                                        class="form-control text-end row-est-biaya-produksi"
+                                                        placeholder="0"
+                                                        value="{{ $itemEstBiayaProduksi > 0 ? (float) $itemEstBiayaProduksi : '' }}">
                                                 </div>
                                             </td>
                                             <td class="text-center">
@@ -2254,6 +2271,14 @@
                 </div>
                 <div class="text-center mt-1 row-meter-conv" style="font-size: 10.5px; font-weight: 600; color: #0284c7;">
                     <span class="conv-text"></span>
+                </div>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light text-muted px-1" style="font-size: 10px;">Rp</span>
+                    <input type="number" step="any" name="rincian[${rIdx}][produk][${pIdx}][est_biaya_produksi]" 
+                           class="form-control text-end row-est-biaya-produksi input-est-biaya-produksi" 
+                           placeholder="0">
                 </div>
             </td>
             <td class="text-center">

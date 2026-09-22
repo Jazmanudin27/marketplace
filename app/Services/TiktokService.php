@@ -847,6 +847,28 @@ class TiktokService
     }
 
     /**
+     * Mengambil konten binary PDF resi resmi TikTok Shop dari API.
+     */
+    public function getOfficialShippingLabelPdf(string $accessToken, string $shopCipher, string $orderId, ?string $packageId = null): string
+    {
+        $docData = $this->getShippingDocument($accessToken, $shopCipher, $orderId, $packageId);
+
+        $docUrl = $docData['doc_url'] ?? $docData['url'] ?? null;
+        if (!empty($docUrl)) {
+            $res = Http::timeout(30)->get($docUrl);
+            if ($res->successful() && !empty($res->body())) {
+                return $res->body();
+            }
+        }
+
+        if (!empty($docData['doc_pdf'])) {
+            return base64_decode($docData['doc_pdf']);
+        }
+
+        throw new \RuntimeException('Dokumen resi TikTok tidak dapat diunduh dari API TikTok Shop.');
+    }
+
+    /**
      * Mendapatkan daftar warehouse TikTok Shop
      */
     public function getWarehouses(string $accessToken, string $shopCipher)

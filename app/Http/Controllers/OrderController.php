@@ -856,20 +856,38 @@ class OrderController extends Controller
         $order->load('items.masterProduct', 'store.channel');
         $store = $order->store;
 
-        // Coba untuk fetch dokumen pengiriman dari marketplace API
+        // Coba fetch & stream PDF dokumen pengiriman resmi dari marketplace API
         try {
-            if (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
-                $response = $tiktokService->getShippingDocument(
+            $channelCode = strtolower($store->channel->code ?? '');
+            if ($channelCode === 'shopee' && !empty($store->access_token) && !$shopeeService->isSimulated()) {
+                $pdfData = $shopeeService->getOfficialShippingLabelPdf(
+                    $store->getValidAccessToken(),
+                    (int) $store->marketplace_store_id,
+                    [$order->order_marketplace_id]
+                );
+
+                if (!empty($pdfData)) {
+                    return response($pdfData, 200, [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => 'inline; filename="resi_shopee_' . $order->order_marketplace_id . '.pdf"',
+                    ]);
+                }
+            } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
+                $pdfData = $tiktokService->getOfficialShippingLabelPdf(
                     $store->getValidAccessToken(),
                     $store->shop_cipher ?: $store->marketplace_store_id,
                     $order->order_marketplace_id
                 );
-                if (!empty($response['doc_url'])) {
-                    return redirect($response['doc_url']);
+
+                if (!empty($pdfData)) {
+                    return response($pdfData, 200, [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => 'inline; filename="resi_tiktok_' . $order->order_marketplace_id . '.pdf"',
+                    ]);
                 }
             }
-        } catch (\Exception $e) {
-            // Jika error, gunakan invoice/resi standar lokal
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("[OrderPrint] Single print official PDF fetch failed for order #{$order->id}: " . $e->getMessage());
         }
 
         return view('orders.print', compact('order'));

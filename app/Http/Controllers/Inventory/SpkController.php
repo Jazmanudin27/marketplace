@@ -513,6 +513,26 @@ class SpkController extends Controller
                             'hpp'               => 0,
                         ]);
 
+                        // Auto-sync est_kain & est_biaya_produksi to MasterProduct
+                        if ($prod) {
+                            $masterSync = [];
+                            $satuanEst = 0;
+                            if (!empty($pRow['est_kain_satuan']) && (float)$pRow['est_kain_satuan'] > 0) {
+                                $satuanEst = (float)$pRow['est_kain_satuan'];
+                            } elseif ($qtyProduksi > 0 && $estKainVal > 0) {
+                                $satuanEst = round($estKainVal / $qtyProduksi, 2);
+                            }
+                            if ($satuanEst > 0) {
+                                $masterSync['est_kain'] = $satuanEst;
+                            }
+                            if (!empty($pRow['est_biaya_produksi']) && (float)$pRow['est_biaya_produksi'] > 0) {
+                                $masterSync['est_biaya_produksi'] = (float)$pRow['est_biaya_produksi'];
+                            }
+                            if (!empty($masterSync)) {
+                                $prod->update($masterSync);
+                            }
+                        }
+
                         // Save operational labor details and tariffs into SpkItemExtra for payment/payroll tracking
                         $laborTotal = 0;
 
@@ -1593,6 +1613,27 @@ class SpkController extends Controller
                                 $spkItem->update($itemPayload);
                             }
                             $savedItemIds[] = $spkItem->id;
+
+                            // Auto-sync est_kain & est_biaya_produksi to MasterProduct
+                            $targetProd = $prod ?: ($spkItem->master_product_id ? MasterProduct::find($spkItem->master_product_id) : null);
+                            if ($targetProd) {
+                                $masterSync = [];
+                                $satuanEst = 0;
+                                if (isset($pRow['est_kain_satuan']) && (float)$pRow['est_kain_satuan'] > 0) {
+                                    $satuanEst = (float)$pRow['est_kain_satuan'];
+                                } elseif ($qtyProd > 0 && $estKainVal > 0) {
+                                    $satuanEst = round($estKainVal / $qtyProd, 2);
+                                }
+                                if ($satuanEst > 0) {
+                                    $masterSync['est_kain'] = $satuanEst;
+                                }
+                                if (isset($pRow['est_biaya_produksi']) && (float)$pRow['est_biaya_produksi'] > 0) {
+                                    $masterSync['est_biaya_produksi'] = (float)$pRow['est_biaya_produksi'];
+                                }
+                                if (!empty($masterSync)) {
+                                    $targetProd->update($masterSync);
+                                }
+                            }
                         }
 
                         // Hapus varian yang dihapus dari tabel jika ada
@@ -1608,6 +1649,12 @@ class SpkController extends Controller
                                 $firstItem = SpkItem::where('spk_id', $spk->id)->first();
                                 if ($firstItem && ($firstItem->est_kain <= 0 || $request->input('total_est_kain_manual') == '1')) {
                                     $firstItem->update(['est_kain' => $inputTotalEst]);
+                                    if ($firstItem->master_product_id && (int)$firstItem->quantity > 0) {
+                                        $mProd = MasterProduct::find($firstItem->master_product_id);
+                                        if ($mProd) {
+                                            $mProd->update(['est_kain' => round($inputTotalEst / (int)$firstItem->quantity, 2)]);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -3557,6 +3604,26 @@ class SpkController extends Controller
 
             if (!empty($updatePayload)) {
                 $item->update($updatePayload);
+            }
+
+            // Auto-sync est_kain & est_biaya_produksi to MasterProduct from tracking updates
+            if ($item->master_product_id || $item->masterProduct) {
+                $mSync = [];
+                if ($estKainPotong && (int)$item->quantity > 0) {
+                    $satuanEst = round((float)$estKainPotong / (int)$item->quantity, 2);
+                    if ($satuanEst > 0) {
+                        $mSync['est_kain'] = $satuanEst;
+                    }
+                }
+                if ($request->filled('est_biaya_produksi') && (float)$request->input('est_biaya_produksi') > 0) {
+                    $mSync['est_biaya_produksi'] = (float)$request->input('est_biaya_produksi');
+                }
+                if (!empty($mSync)) {
+                    $mProd = $item->masterProduct ?: MasterProduct::find($item->master_product_id);
+                    if ($mProd) {
+                        $mProd->update($mSync);
+                    }
+                }
             }
 
             if ($itemPenjahit) {

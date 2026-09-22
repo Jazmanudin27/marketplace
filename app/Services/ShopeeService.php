@@ -747,6 +747,116 @@ class ShopeeService
         return $data['response'] ?? [];
     }
 
+    /**
+     * Buat dokumen pengiriman (Airwaybill/Label Thermal) di Shopee.
+     * Endpoint: POST /api/v2/logistics/create_shipping_document
+     */
+    public function createShippingDocument(string $accessToken, int $shopId, array $orderSns, string $documentType = 'THERMAL_AIR_WAYBILL'): array
+    {
+        $path = '/api/v2/logistics/create_shipping_document';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $orderList = array_map(function ($sn) {
+            return ['order_sn' => (string)$sn];
+        }, $orderSns);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+        ];
+
+        $response = Http::asJson()->timeout(30)->post($this->baseUrl . $path . '?' . http_build_query($queryParams), [
+            'order_list' => $orderList,
+            'shipping_document_type' => $documentType,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal membuat dokumen pengiriman Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+        if (!empty($data['error']) && $data['error'] !== '' && $data['error'] !== 'OK') {
+            throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    /**
+     * Unduh file PDF dokumen pengiriman (Airwaybill/Label Thermal) dari Shopee.
+     * Endpoint: POST /api/v2/logistics/download_shipping_document
+     */
+    public function downloadShippingDocument(string $accessToken, int $shopId, array $orderSns, string $documentType = 'THERMAL_AIR_WAYBILL'): string
+    {
+        $path = '/api/v2/logistics/download_shipping_document';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $orderList = array_map(function ($sn) {
+            return ['order_sn' => (string)$sn];
+        }, $orderSns);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+        ];
+
+        $response = Http::asJson()->timeout(45)->post($this->baseUrl . $path . '?' . http_build_query($queryParams), [
+            'order_list' => $orderList,
+            'shipping_document_type' => $documentType,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal mengunduh resi Shopee: ' . $response->body());
+        }
+
+        $contentType = $response->header('Content-Type');
+        if (str_contains(strtolower($contentType ?? ''), 'application/json')) {
+            $data = $response->json();
+            if (!empty($data['error']) && $data['error'] !== '' && $data['error'] !== 'OK') {
+                throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+            }
+        }
+
+        return $response->body();
+    }
+
+    /**
+     * Mengambil file PDF resi resmi Shopee (memicu pembuatannya lalu mengunduhnya).
+     */
+    public function getOfficialShippingLabelPdf(string $accessToken, int $shopId, array $orderSns, string $documentType = 'THERMAL_AIR_WAYBILL'): string
+    {
+        try {
+            $this->createShippingDocument($accessToken, $shopId, $orderSns, $documentType);
+        } catch (\Throwable $e) {
+            Log::warning("[Shopee] createShippingDocument warning: " . $e->getMessage());
+        }
+
+        usleep(500000);
+
+        $lastException = null;
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            try {
+                $pdfData = $this->downloadShippingDocument($accessToken, $shopId, $orderSns, $documentType);
+                if (!empty($pdfData) && (str_starts_with($pdfData, '%PDF') || str_starts_with($pdfData, "\x50\x4b"))) {
+                    return $pdfData;
+                }
+            } catch (\Throwable $e) {
+                $lastException = $e;
+            }
+            sleep(1);
+        }
+
+        throw $lastException ?? new \RuntimeException('Resi Shopee belum siap diunduh dari API Shopee. Coba beberapa saat lagi.');
+    }
+
     public function getReturnList(string $accessToken, int $shopId, int $pageNo = 0, int $pageSize = 50, int $timeFrom = 0, int $timeTo = 0): array
     {
         $path = '/api/v2/returns/get_return_list';

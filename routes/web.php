@@ -442,6 +442,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/orders/export', [OrderController::class, 'export'])->name('orders.export')->middleware('permission:orders.export');
         Route::post('/orders/sync', [OrderController::class, 'sync'])->name('orders.sync');
         Route::post('/orders/mass-print', [OrderPrintController::class, 'massPrint'])->name('orders.mass_print');
+        Route::get('/orders/{order}/official-label-pdf', [OrderPrintController::class, 'streamOfficialPdf'])->name('orders.stream_official_pdf');
         Route::post('/orders/mass-ship', [OrderController::class, 'massShip'])->name('orders.mass_ship');
         Route::post('/orders/mass-tracking', [OrderController::class, 'massTracking'])->name('orders.mass_tracking');
         Route::get('/orders/create', [OrderController::class, 'create'])->name('orders.create');

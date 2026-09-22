@@ -77,22 +77,47 @@ class OrderPrintController extends Controller
             'printed_at' => now(),
         ]);
 
-        // Jika hanya 1 order TikTok yang dipilih, coba ambil dokumen PDF resmi dari API TikTok
-        if ($orders->count() === 1) {
-            $order = $orders->first();
-            $store = $order->store;
-            if ($store && in_array($store->channel->code ?? '', ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
-                try {
-                    $docData = $tiktokService->getShippingDocument(
-                        $store->getValidAccessToken(),
-                        $store->shop_cipher ?: $store->marketplace_store_id,
-                        $order->order_marketplace_id
-                    );
-                    if (!empty($docData['doc_url'])) {
-                        return redirect($docData['doc_url']);
+        // Jika seluruh pesanan berasal dari 1 Toko Shopee yang sama dan terhubung API resmi, tarik PDF massal langsung dari Shopee API
+        if ($orders->count() >= 1) {
+            $stores = $orders->pluck('store')->filter()->unique('id');
+            if ($stores->count() === 1) {
+                $store = $stores->first();
+                $channelCode = strtolower($store->channel->code ?? '');
+
+                if ($channelCode === 'shopee' && !empty($store->access_token) && !$shopeeService->isSimulated()) {
+                    try {
+                        $orderSns = $orders->pluck('order_marketplace_id')->filter()->values()->toArray();
+                        $pdfData = $shopeeService->getOfficialShippingLabelPdf(
+                            $store->getValidAccessToken(),
+                            (int) $store->marketplace_store_id,
+                            $orderSns
+                        );
+                        if (!empty($pdfData)) {
+                            return response($pdfData, 200, [
+                                'Content-Type' => 'application/pdf',
+                                'Content-Disposition' => 'inline; filename="resi_shopee_massal.pdf"',
+                            ]);
+                        }
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Shopee mass print PDF API failed: " . $e->getMessage());
                     }
-                } catch (\Exception $e) {
-                    // Fallback ke template resi thermal lokal
+                } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && $orders->count() === 1 && !empty($store->access_token)) {
+                    try {
+                        $order = $orders->first();
+                        $pdfData = $tiktokService->getOfficialShippingLabelPdf(
+                            $store->getValidAccessToken(),
+                            $store->shop_cipher ?: $store->marketplace_store_id,
+                            $order->order_marketplace_id
+                        );
+                        if (!empty($pdfData)) {
+                            return response($pdfData, 200, [
+                                'Content-Type' => 'application/pdf',
+                                'Content-Disposition' => 'inline; filename="resi_tiktok_' . $order->order_marketplace_id . '.pdf"',
+                            ]);
+                        }
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok single print PDF API failed: " . $e->getMessage());
+                    }
                 }
             }
         }
@@ -113,5 +138,57 @@ class OrderPrintController extends Controller
         }
 
         return view('orders.mass_print', compact('orders', 'pickList'));
+    }
+
+    /**
+     * Stream file PDF resi resmi marketplace dari API untuk 1 pesanan (digunakan di iframe bulk print).
+     */
+    public function streamOfficialPdf(
+        Order $order,
+        ShopeeService $shopeeService,
+        TiktokService $tiktokService
+    ) {
+        abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
+
+        $store = $order->store;
+        if (!$store) {
+            abort(404, 'Store tidak ditemukan.');
+        }
+
+        $channelCode = strtolower($store->channel->code ?? '');
+
+        try {
+            if ($channelCode === 'shopee' && !empty($store->access_token) && !$shopeeService->isSimulated()) {
+                $pdfData = $shopeeService->getOfficialShippingLabelPdf(
+                    $store->getValidAccessToken(),
+                    (int) $store->marketplace_store_id,
+                    [$order->order_marketplace_id]
+                );
+
+                if (!empty($pdfData)) {
+                    return response($pdfData, 200, [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => 'inline; filename="resi_shopee_' . $order->order_marketplace_id . '.pdf"',
+                    ]);
+                }
+            } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
+                $pdfData = $tiktokService->getOfficialShippingLabelPdf(
+                    $store->getValidAccessToken(),
+                    $store->shop_cipher ?: $store->marketplace_store_id,
+                    $order->order_marketplace_id
+                );
+
+                if (!empty($pdfData)) {
+                    return response($pdfData, 200, [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => 'inline; filename="resi_tiktok_' . $order->order_marketplace_id . '.pdf"',
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("[OrderPrintController] streamOfficialPdf failed for order #{$order->id}: " . $e->getMessage());
+        }
+
+        abort(404, 'Dokumen resi resmi tidak tersedia dari API.');
     }
 }

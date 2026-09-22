@@ -284,6 +284,61 @@ class OrderThermalPrintTest extends TestCase
 
         $this->assertEquals('SPXID9988776655', $trackingNo);
         $this->assertEquals('SPXID9988776655', $order->fresh()->tracking_number);
-        $this->assertEquals(Order::STATUS_SHIPPED, $order->fresh()->order_status);
+        $this->assertEquals('READY_TO_SHIP', $order->fresh()->order_status);
+    }
+
+    public function test_single_order_print_streams_official_shopee_pdf_when_available()
+    {
+        $tenant = Tenant::create([
+            'name' => 'Test Tenant',
+            'domain' => 'shopee.local',
+        ]);
+
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'role' => 'admin',
+        ]);
+
+        $channel = Channel::create([
+            'code' => 'shopee',
+            'name' => 'Shopee',
+        ]);
+
+        $store = Store::create([
+            'tenant_id' => $tenant->id,
+            'channel_id' => $channel->id,
+            'store_name' => 'Shopee Official',
+            'marketplace_store_id' => '99887766',
+            'access_token' => 'real_shopee_access_token',
+            'status' => 'active',
+        ]);
+
+        $order = Order::create([
+            'tenant_id' => $tenant->id,
+            'store_id' => $store->id,
+            'order_marketplace_id' => '240910SHOPEE02',
+            'order_date' => now(),
+            'tracking_number' => 'SPXID9988776655',
+            'courier' => 'SPX Standard',
+            'buyer_name' => 'Budi',
+            'total_amount' => 120000,
+            'order_status' => 'READY_TO_SHIP',
+        ]);
+
+        $fakePdfContent = "%PDF-1.4 Official Shopee AWB Label";
+
+        $this->mock(\App\Services\ShopeeService::class, function ($mock) use ($fakePdfContent) {
+            $mock->shouldReceive('isSimulated')->andReturn(false);
+            $mock->shouldReceive('getOfficialShippingLabelPdf')
+                ->once()
+                ->with('real_shopee_access_token', 99887766, ['240910SHOPEE02'])
+                ->andReturn($fakePdfContent);
+        });
+
+        $response = $this->actingAs($user)->get(route('orders.print', $order->id));
+
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'application/pdf');
+        $this->assertEquals($fakePdfContent, $response->getContent());
     }
 }
