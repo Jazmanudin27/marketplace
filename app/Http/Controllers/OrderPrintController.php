@@ -104,16 +104,13 @@ class OrderPrintController extends Controller
                 } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && $orders->count() === 1 && !empty($store->access_token)) {
                     try {
                         $order = $orders->first();
-                        $pdfData = $tiktokService->getOfficialShippingLabelPdf(
+                        $docData = $tiktokService->getShippingDocument(
                             $store->getValidAccessToken(),
                             $store->shop_cipher ?: $store->marketplace_store_id,
                             $order->order_marketplace_id
                         );
-                        if (!empty($pdfData)) {
-                            return response($pdfData, 200, [
-                                'Content-Type' => 'application/pdf',
-                                'Content-Disposition' => 'inline; filename="resi_tiktok_' . $order->order_marketplace_id . '.pdf"',
-                            ]);
+                        if (!empty($docData['doc_url'])) {
+                            return redirect($docData['doc_url']);
                         }
                     } catch (\Throwable $e) {
                         \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok single print PDF API failed: " . $e->getMessage());
@@ -172,17 +169,14 @@ class OrderPrintController extends Controller
                     ]);
                 }
             } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
-                $pdfData = $tiktokService->getOfficialShippingLabelPdf(
+                $docData = $tiktokService->getShippingDocument(
                     $store->getValidAccessToken(),
                     $store->shop_cipher ?: $store->marketplace_store_id,
                     $order->order_marketplace_id
                 );
 
-                if (!empty($pdfData)) {
-                    return response($pdfData, 200, [
-                        'Content-Type' => 'application/pdf',
-                        'Content-Disposition' => 'inline; filename="resi_tiktok_' . $order->order_marketplace_id . '.pdf"',
-                    ]);
+                if (!empty($docData['doc_url'])) {
+                    return redirect($docData['doc_url']);
                 }
             }
         } catch (\Throwable $e) {
