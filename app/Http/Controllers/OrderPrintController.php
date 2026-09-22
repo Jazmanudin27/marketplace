@@ -169,20 +169,43 @@ class OrderPrintController extends Controller
                     ]);
                 }
             } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
+                $pdfData = $tiktokService->getOfficialShippingLabelPdf(
+                    $store->getValidAccessToken(),
+                    $store->shop_cipher ?: $store->marketplace_store_id,
+                    $order->order_marketplace_id,
+                    $order->package_id
+                );
+
+                if (!empty($pdfData)) {
+                    return response($pdfData, 200, [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => 'inline; filename="resi_tiktok_' . $order->order_marketplace_id . '.pdf"',
+                    ]);
+                }
+
                 $docData = $tiktokService->getShippingDocument(
                     $store->getValidAccessToken(),
                     $store->shop_cipher ?: $store->marketplace_store_id,
-                    $order->order_marketplace_id
+                    $order->order_marketplace_id,
+                    $order->package_id
                 );
 
                 if (!empty($docData['doc_url'])) {
                     return redirect($docData['doc_url']);
+                }
+
+                if (!empty($docData['doc_pdf'])) {
+                    return response(base64_decode($docData['doc_pdf']), 200, [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => 'inline; filename="resi_tiktok_' . $order->order_marketplace_id . '.pdf"',
+                    ]);
                 }
             }
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning("[OrderPrintController] streamOfficialPdf failed for order #{$order->id}: " . $e->getMessage());
         }
 
-        abort(404, 'Dokumen resi resmi tidak tersedia dari API.');
+        // Fallback to HTML label view with stored official API routing_code
+        return view('orders.print', compact('order'));
     }
 }

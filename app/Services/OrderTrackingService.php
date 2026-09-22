@@ -226,8 +226,8 @@ class OrderTrackingService
                             Log::warning("[OrderTrackingService] TikTok getOrderDetail pasca ship attempt {$attempt}: " . $e->getMessage());
                         }
 
-                        // Coba juga via getShippingDocument jika trackingNo masih kosong
-                        if (empty($trackingNo) && !empty($order->package_id)) {
+                        // Coba juga via getShippingDocument jika trackingNo atau routing_code belum ada
+                        if ((empty($trackingNo) || empty($order->financial_breakdown['routing_code'])) && !empty($order->package_id)) {
                             try {
                                 $docRes = $this->tiktokService->getShippingDocument(
                                     $accessToken,
@@ -235,14 +235,26 @@ class OrderTrackingService
                                     $order->order_marketplace_id,
                                     $order->package_id
                                 );
-                                $trackingNo = $docRes['tracking_number'] ?? $docRes['tracking_no'] ?? $docRes['express_tracking_number'] ?? null;
+                                $trackingNo = $trackingNo ?: ($docRes['tracking_number'] ?? $docRes['tracking_no'] ?? $docRes['express_tracking_number'] ?? null);
+
+                                $fb = $order->financial_breakdown ?? [];
+                                if (!is_array($fb)) {
+                                    $fb = json_decode($fb, true) ?? [];
+                                }
+                                if (!empty($docRes['routing_code']) || !empty($docRes['sorting_code'])) {
+                                    $fb['routing_code'] = $docRes['routing_code'] ?? $docRes['sorting_code'];
+                                }
+                                if (!empty($docRes['shipping_service_name']) || !empty($docRes['shipping_type'])) {
+                                    $fb['courier_service'] = $docRes['shipping_service_name'] ?? $docRes['shipping_type'];
+                                }
+                                $order->financial_breakdown = $fb;
                             } catch (\Throwable $e) {}
                         }
                     }
                 }
 
                 // 3. Fallback: getShippingDocument jika belum terisi
-                if (empty($trackingNo)) {
+                if (empty($trackingNo) || empty($order->financial_breakdown['routing_code'])) {
                     try {
                         $docRes = $this->tiktokService->getShippingDocument(
                             $accessToken,
@@ -250,7 +262,19 @@ class OrderTrackingService
                             $order->order_marketplace_id,
                             $order->package_id
                         );
-                        $trackingNo = $docRes['tracking_number'] ?? $docRes['tracking_no'] ?? $docRes['express_tracking_number'] ?? null;
+                        $trackingNo = $trackingNo ?: ($docRes['tracking_number'] ?? $docRes['tracking_no'] ?? $docRes['express_tracking_number'] ?? null);
+
+                        $fb = $order->financial_breakdown ?? [];
+                        if (!is_array($fb)) {
+                            $fb = json_decode($fb, true) ?? [];
+                        }
+                        if (!empty($docRes['routing_code']) || !empty($docRes['sorting_code'])) {
+                            $fb['routing_code'] = $docRes['routing_code'] ?? $docRes['sorting_code'];
+                        }
+                        if (!empty($docRes['shipping_service_name']) || !empty($docRes['shipping_type'])) {
+                            $fb['courier_service'] = $docRes['shipping_service_name'] ?? $docRes['shipping_type'];
+                        }
+                        $order->financial_breakdown = $fb;
                     } catch (\Throwable $e) {}
                 }
 

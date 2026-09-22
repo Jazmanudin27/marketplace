@@ -582,8 +582,8 @@
             }
             $rtRwStr = $blackBarTag;
 
-            // Routing Code (e.g. 330-6BKI74-10B)
-            $routingCode = $order->financial_breakdown['routing_code'] ?? '';
+            // Routing Code (e.g. 360-KRW02B-05A)
+            $routingCode = $order->financial_breakdown['routing_code'] ?? ($order->financial_breakdown['sorting_code'] ?? '');
 
             // Ship & Estimated Dates
             $orderDateCarbon = $order->order_date ? \Carbon\Carbon::parse($order->order_date) : ($order->created_at ?: now());
@@ -593,20 +593,28 @@
 
             // Courier & Service
             $courierName = strtoupper($order->courier ?: 'J&T EXPRESS');
-            $serviceName = 'NDD';
-            if (stripos($courierName, 'ECO') !== false || stripos($courierName, 'HEMAT') !== false) {
-                $serviceName = 'ECO';
-            } elseif (stripos($courierName, 'EZ') !== false) {
-                $serviceName = 'EZ';
-            } elseif (stripos($courierName, 'REG') !== false) {
-                $serviceName = 'REG';
+            $officialService = $order->financial_breakdown['courier_service'] ?? ($order->financial_breakdown['shipping_service_name'] ?? '');
+
+            if (!empty($officialService)) {
+                $serviceName = strtoupper($officialService);
+            } else {
+                $serviceName = 'NDD';
+                if (stripos($courierName, 'ECO') !== false || stripos($courierName, 'HEMAT') !== false) {
+                    $serviceName = 'ECO';
+                } elseif (stripos($courierName, 'EZ') !== false) {
+                    $serviceName = 'EZ';
+                } elseif (stripos($courierName, 'REG') !== false) {
+                    $serviceName = 'REG';
+                }
             }
 
-            $shopeeService = 'STD';
-            if (stripos($courierName, 'NDD') !== false) {
-                $shopeeService = 'NDD';
-            } elseif (stripos($courierName, 'ECO') !== false || stripos($courierName, 'HEMAT') !== false) {
-                $shopeeService = 'ECO';
+            $shopeeService = !empty($officialService) ? strtoupper($officialService) : 'STD';
+            if (empty($officialService)) {
+                if (stripos($courierName, 'NDD') !== false) {
+                    $shopeeService = 'NDD';
+                } elseif (stripos($courierName, 'ECO') !== false || stripos($courierName, 'HEMAT') !== false) {
+                    $shopeeService = 'ECO';
+                }
             }
 
             // For Shopee District Box

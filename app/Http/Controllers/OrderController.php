@@ -873,10 +873,25 @@ class OrderController extends Controller
                     ]);
                 }
             } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
+                $pdfData = $tiktokService->getOfficialShippingLabelPdf(
+                    $store->getValidAccessToken(),
+                    $store->shop_cipher ?: $store->marketplace_store_id,
+                    $order->order_marketplace_id,
+                    $order->package_id
+                );
+
+                if (!empty($pdfData)) {
+                    return response($pdfData, 200, [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => 'inline; filename="resi_tiktok_' . $order->order_marketplace_id . '.pdf"',
+                    ]);
+                }
+
                 $docData = $tiktokService->getShippingDocument(
                     $store->getValidAccessToken(),
                     $store->shop_cipher ?: $store->marketplace_store_id,
-                    $order->order_marketplace_id
+                    $order->order_marketplace_id,
+                    $order->package_id
                 );
 
                 if (!empty($docData['doc_url'])) {
