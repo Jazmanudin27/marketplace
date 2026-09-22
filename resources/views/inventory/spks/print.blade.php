@@ -544,7 +544,7 @@
                     </table>
                 </div>
 
-                <!-- Catatan / Keterangan Box -->
+                <!-- Catatan / Keterangan Bsox -->
                 <div class="catatan-box">
                     <div class="catatan-title">CATATAN / KETERANGAN:</div>
                     <div class="catatan-text">
