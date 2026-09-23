@@ -518,7 +518,11 @@
                 ?? ($order->financial_breakdown['black_bar_tag'] ?? '');
 
             if (empty($shopeeBlackBarTag)) {
-                if (preg_match('/(?:Gg|Gang|Jl\.|Jalan|Blok|Perumahan|Perum)\s+[^,]+/i', $cleanShopeeAddress, $mTag)) {
+                if (preg_match('/(?:Gg|Gang|Gn|Gunung)\s+[^,]+/i', $cleanShopeeAddress, $mTag)) {
+                    $shopeeBlackBarTag = trim($mTag[0]);
+                } elseif (preg_match('/(?:Blok|Block)\s+[^,]+/i', $cleanShopeeAddress, $mTag)) {
+                    $shopeeBlackBarTag = trim($mTag[0]);
+                } elseif (preg_match('/(?:Jl\.|Jalan)\s+[^,]+/i', $cleanShopeeAddress, $mTag)) {
                     $shopeeBlackBarTag = trim($mTag[0]);
                 } else {
                     $shopeeBlackBarTag = 'Gg Matahari L10-L11-41';
