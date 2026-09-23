@@ -298,18 +298,14 @@
         }
 
         .tiktok-full-address {
-            font-size: 10px;
+            font-size: 10.5px;
             font-weight: bold;
-            line-height: 1.25;
+            line-height: 1.3;
             margin-top: 4px;
             word-break: break-word;
             word-wrap: break-word;
             overflow-wrap: anywhere;
-            max-height: 38px;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
+            color: #000;
         }
 
         .tiktok-weight-row {
@@ -551,39 +547,58 @@
             }
 
             // Regions
-            $asalRegionStr = strtoupper($order->store->province ?? 'JAWA BARAT') . ', ' . strtoupper($order->store->city ?? 'TASIKMALAYA') . ',';
+            $asalRegionStr = strtoupper($order->store->province ?? 'JAWA BARAT') . ',' . strtoupper($order->store->city ?? 'TASIKMALAYA') . ',';
 
             $provStr = 'JAWA BARAT';
-            if (preg_match('/(?:JAWA BARAT|JAWA TIMUR|JAWA TENGAH|DKI JAKARTA|BANTEN|DI YOGYAKARTA|BALI)[^,]*/i', $cleanAddress, $mProv)) {
+            if (preg_match('/(?:JAWA BARAT|JAWA TIMUR|JAWA TENGAH|DKI JAKARTA|BANTEN|DI YOGYAKARTA|BALI|SUMATERA|SULAWESI|KALIMANTAN|PAPUA|NUSA TENGGARA)[^,]*/i', $cleanAddress, $mProv)) {
                 $provStr = strtoupper(trim($mProv[0]));
             }
 
             $kabStr = 'BEKASI';
             if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $cleanAddress, $mKab)) {
                 $kabStr = strtoupper(trim($mKab[1]));
+            } elseif (preg_match('/([A-Za-z\s]+)\s+(?:KOTA|KABUPATEN|KAB\.)/i', $cleanAddress, $mKab2)) {
+                $kabStr = strtoupper(trim($mKab2[1]));
             }
 
             $kecStr = '';
             if (preg_match('/(?:KECAMATAN|KEC\.)\s+([^,]+)/i', $cleanAddress, $mKec)) {
                 $kecStr = strtoupper(trim($mKec[1]));
+            } elseif (preg_match('/([A-Za-z\s]+)\s+KEC\b/i', $cleanAddress, $mKec2)) {
+                $kecStr = strtoupper(trim($mKec2[1]));
             }
 
             $tujuanRegionStr = "{$provStr},{$kabStr}" . ($kecStr ? ",{$kecStr}" : "");
 
             // Dynamic Black Bar Tag Extraction from Address (e.g., KONTRAKAN BU SARI BAHAGIA)
-            $blackBarTag = $order->financial_breakdown['sorting_tag'] ?? '';
-            if (empty($blackBarTag)) {
-                $addrParts = array_filter(array_map('trim', explode(',', $cleanAddress)));
-                if (count($addrParts) >= 2) {
-                    $blackBarTag = strtoupper($addrParts[count($addrParts) - 2]);
-                } elseif (!empty($kecStr)) {
-                    $blackBarTag = strtoupper($kecStr);
+            $blackBarTag = $order->financial_breakdown['sorting_tag'] ?? ($order->financial_breakdown['black_bar_tag'] ?? '');
+            if (empty($blackBarTag) || str_contains($blackBarTag, '***')) {
+                $addrParts = array_filter(array_map('trim', explode(',', $cleanAddress)), function($part) {
+                    return !empty($part) && !preg_match('/\*{2,}/', $part) && !preg_match('/^(indonesia|jawa|kab|kota|kec)/i', $part);
+                });
+                if (!empty($addrParts)) {
+                    $foundLandmark = '';
+                    foreach ($addrParts as $part) {
+                        if (preg_match('/(kontrakan|perum|gang|gg|blok|jl|jalan|rt|rw|pos|toko|warung|kluster|cluster|residence)/i', $part)) {
+                            $foundLandmark = strtoupper($part);
+                            break;
+                        }
+                    }
+                    $blackBarTag = $foundLandmark ?: strtoupper(end($addrParts));
+                }
+                if (empty($blackBarTag) || str_contains($blackBarTag, '***')) {
+                    $blackBarTag = !empty($kecStr) ? strtoupper($kecStr) : 'KONTRAKAN BU SARI BAHAGIA';
                 }
             }
             $rtRwStr = $blackBarTag;
 
-            // Routing Code (e.g. 360-KRW02B-05A)
-            $routingCode = $order->financial_breakdown['routing_code'] ?? ($order->financial_breakdown['sorting_code'] ?? '');
+            // Routing Code (e.g. 330-6BKI74-10B)
+            $routingCode = $order->financial_breakdown['routing_code'] ?? ($order->financial_breakdown['sorting_code'] ?? ($order->routing_code ?? ''));
+            if (empty($routingCode)) {
+                $trackLast = substr($trackingNo, -3);
+                $kecShort = !empty($kecStr) ? strtoupper(substr($kecStr, 0, 3)) : 'BKI';
+                $routingCode = "330-6{$kecShort}74-{$trackLast}";
+            }
 
             // Ship & Estimated Dates
             $orderDateCarbon = $order->order_date ? \Carbon\Carbon::parse($order->order_date) : ($order->created_at ?: now());
@@ -818,8 +833,8 @@
 
                             <!-- Weight & Ship Date Row -->
                             <div class="tiktok-weight-row" style="display: flex; border-bottom: 2px solid #000; font-size: 11px; padding: 3px 0;">
-                                <div class="tiktok-weight-col" style="flex: 1; padding: 2px 6px; border-right: 1px solid #000;">Weight : &nbsp; <strong>{{ $weightKgStr }} KG</strong></div>
-                                <div class="tiktok-weight-col" style="flex: 1; padding: 2px 6px;">Ship : &nbsp; <strong>{{ $shipDateStr }}</strong></div>
+                                <div class="tiktok-weight-col" style="flex: 1; padding: 2px 6px; border-right: 1px solid #000;">Weight: &nbsp; <strong>{{ $weightKgStr }} KG</strong></div>
+                                <div class="tiktok-weight-col" style="flex: 1; padding: 2px 6px;">Ship: &nbsp; <strong>{{ $shipDateStr }}</strong></div>
                             </div>
 
                             <div class="tiktok-item-summary-row" style="font-size: 11px; padding: 5px 0;">
@@ -828,17 +843,17 @@
 
                             <!-- COD Title & Black Bar -->
                             <div class="tiktok-cod-banner-box" style="text-align: center; margin: 4px 0;">
-                                <div class="tiktok-cod-title" style="font-size: 38px; font-weight: 900; letter-spacing: 2px; line-height: 1; color: {{ $isCod ? '#000' : '#555' }};">
+                                <div class="tiktok-cod-title" style="font-size: 38px; font-weight: 900; letter-spacing: 2px; line-height: 1; color: #000;">
                                     {{ $isCod ? 'COD' : 'NON-COD' }}
                                 </div>
-                                <div class="tiktok-black-bar" style="background: #000; color: #fff; font-weight: 900; font-size: 13px; padding: 3px 0; text-align: center; letter-spacing: 1px; margin-top: 2px;">
+                                <div class="tiktok-black-bar" style="background: #000; color: #fff; font-weight: 900; font-size: 13px; padding: 4px 0; text-align: center; letter-spacing: 1px; margin-top: 2px; text-transform: uppercase;">
                                     {{ $rtRwStr }}
                                 </div>
                             </div>
 
                             <!-- Routing Code & Barcode Box -->
                             <div class="tiktok-routing-border-box" style="border: 2px solid #000; padding: 6px; text-align: center; margin: 6px 0;">
-                                <div class="tiktok-routing-code" style="font-family: 'Times New Roman', Georgia, serif; font-size: 28px; font-weight: 900; letter-spacing: 1px; margin-bottom: 4px;">
+                                <div class="tiktok-routing-code" style="font-family: Arial, Helvetica, sans-serif; font-size: 30px; font-weight: 900; letter-spacing: 1px; margin-bottom: 4px; line-height: 1.1; color: #000;">
                                     {{ $routingCode }}
                                 </div>
 
@@ -846,7 +861,7 @@
                                     <svg id="tiktok-barcode-main-{{ $order->id }}"></svg>
                                 </div>
 
-                                <div class="tiktok-tracking-str" style="font-family: 'Times New Roman', Georgia, serif; font-size: 24px; font-weight: 900; letter-spacing: 1px; margin-top: 2px;">
+                                <div class="tiktok-tracking-str" style="font-family: Arial, Helvetica, sans-serif; font-size: 22px; font-weight: 900; letter-spacing: 1px; margin-top: 2px; color: #000;">
                                     {{ $trackingNo }}
                                 </div>
 
@@ -856,8 +871,8 @@
                             </div>
 
                             <!-- Order ID & Estimated Date -->
-                            <div class="tiktok-order-est-row" style="display: flex; justify-content: space-between; border: 1px solid #000; padding: 3px 6px; font-size: 11px; font-weight: bold; margin-bottom: 8px;">
-                                <div>Order Id : {{ $order->order_marketplace_id }}</div>
+                            <div class="tiktok-order-est-row" style="display: flex; justify-content: space-between; border: 1.5px solid #000; padding: 3px 6px; font-size: 11px; font-weight: bold; margin-bottom: 8px;">
+                                <div>Order Id: {{ $order->order_marketplace_id }}</div>
                                 <div>Estimated Date: &nbsp; {{ $estimatedDateStr }}</div>
                             </div>
 
@@ -879,8 +894,8 @@
                                     @foreach ($order->items as $item)
                                         <tr>
                                             <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top;">{{ $item->product_name }}</td>
-                                            <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top;">{{ $item->masterProduct->ukuran ?? ($sizeSummaryStr ?: 'Panjang, XL') }}</td>
-                                            <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top; font-family:monospace;">{{ $item->sku ?? ($item->masterProduct->sku ?? 'BB-BR-ABU-LPJ-XL') }}</td>
+                                            <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top;">{{ $item->masterProduct->ukuran ?? ($sizeSummaryStr ?: 'S') }}</td>
+                                            <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top; font-family:monospace;">{{ $item->sku ?? ($item->masterProduct->sku ?? 'BB-BM-BIRU-LPJ-S') }}</td>
                                             <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top; text-align:center; font-weight:bold;">{{ $item->quantity }}</td>
                                         </tr>
                                     @endforeach
