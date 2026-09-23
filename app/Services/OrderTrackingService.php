@@ -52,6 +52,18 @@ class OrderTrackingService
                         $orderSn
                     );
                     $trackingNo = $response['tracking_number'] ?? $response['package_list'][0]['tracking_number'] ?? null;
+
+                    $fb = $order->financial_breakdown ?? [];
+                    if (!is_array($fb)) {
+                        $fb = json_decode($fb, true) ?? [];
+                    }
+                    if (!empty($response['first_mile_sorting_code']) || !empty($response['shopee_hub_code'])) {
+                        $fb['shopee_hub_code'] = $response['first_mile_sorting_code'] ?? $response['shopee_hub_code'];
+                    }
+                    if (!empty($response['last_mile_sorting_code']) || !empty($response['sorting_code'])) {
+                        $fb['shopee_sub_route'] = $response['last_mile_sorting_code'] ?? $response['sorting_code'];
+                    }
+                    $order->financial_breakdown = $fb;
                 } catch (\Throwable $e) {
                     Log::info("[OrderTrackingService] Shopee getTrackingNumber cek awal: " . $e->getMessage());
                 }
