@@ -747,6 +747,33 @@ class ShopeeService
         return $data['response'] ?? [];
     }
 
+    public function getShippingDocumentDataInfo(string $accessToken, int $shopId, string $orderSn): array
+    {
+        $path = '/api/v2/logistics/get_shipping_document_data_info';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        try {
+            $response = Http::get($this->baseUrl . $path, [
+                'partner_id' => $this->partnerId,
+                'timestamp' => $timestamp,
+                'sign' => $sign,
+                'access_token' => $accessToken,
+                'shop_id' => $shopId,
+                'order_sn' => $orderSn,
+            ]);
+
+            if ($response->failed()) {
+                return [];
+            }
+
+            $data = $response->json();
+            return $data['response']['shipping_document_info'] ?? $data['response'] ?? [];
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
     /**
      * Buat dokumen pengiriman (Airwaybill/Label Thermal) di Shopee.
      * Endpoint: POST /api/v2/logistics/create_shipping_document
