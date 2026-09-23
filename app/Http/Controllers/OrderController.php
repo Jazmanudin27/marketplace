@@ -876,6 +876,28 @@ class OrderController extends Controller
                 } catch (\Throwable $e) {
                     \Illuminate\Support\Facades\Log::warning("[OrderController] Official Shopee PDF fetch failed: " . $e->getMessage());
                 }
+
+                // Coba ambil info dokumen pengiriman jika PDF stream belum tersedia
+                try {
+                    $docInfo = $shopeeService->getShippingDocumentDataInfo(
+                        $store->getValidAccessToken(),
+                        (int) $store->marketplace_store_id,
+                        $order->order_marketplace_id
+                    );
+                    if (!empty($docInfo)) {
+                        $fb = $order->financial_breakdown ?? [];
+                        if (!empty($docInfo['first_mile_sorting_code']) || !empty($docInfo['hub_code'])) {
+                            $fb['shopee_hub_code'] = $docInfo['first_mile_sorting_code'] ?? $docInfo['hub_code'];
+                        }
+                        if (!empty($docInfo['last_mile_sorting_code']) || !empty($docInfo['sorting_code'])) {
+                            $fb['shopee_sub_route'] = $docInfo['last_mile_sorting_code'] ?? $docInfo['sorting_code'];
+                        }
+                        $order->financial_breakdown = $fb;
+                        $order->save();
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning("[OrderController] Shopee doc info fetch failed: " . $e->getMessage());
+                }
             } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
                 $pdfData = $tiktokService->getOfficialShippingLabelPdf(
                     $store->getValidAccessToken(),

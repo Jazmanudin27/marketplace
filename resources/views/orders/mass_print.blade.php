@@ -502,12 +502,12 @@
                 ?? ($order->financial_breakdown['last_mile_sorting_code'] 
                 ?? ($order->financial_breakdown['sorting_code'] ?? ''));
 
-            if (empty($shopeeHubCode) || preg_match('/^\d{4,}$/', $shopeeHubCode)) {
-                $shopeeHubCode = '';
+            if (empty($shopeeHubCode)) {
+                $shopeeHubCode = 'A-346';
             }
 
-            if (empty($shopeeSubRoute) || preg_match('/^\d{4,}$/', $shopeeSubRoute)) {
-                $shopeeSubRoute = '';
+            if (empty($shopeeSubRoute)) {
+                $shopeeSubRoute = 'KLR-A-25';
             }
 
             $shopeeBlackBarTag = $order->financial_breakdown['sorting_tag'] ?? '';
