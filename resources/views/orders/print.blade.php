@@ -469,9 +469,13 @@
         $cleanAddress = preg_replace('/\*{4,}/', '***', $rawAddress);
         $cleanAddress = rtrim(trim($cleanAddress), ', ');
 
-        // Clean Shopee Address: remove leading asterisks ***
-        $cleanShopeeAddress = preg_replace('/^[\*\s]+/', '', $rawAddress);
-        $cleanShopeeAddress = preg_replace('/\*{3,}/', '', $cleanShopeeAddress);
+        // Clean Shopee Address: remove leading asterisks *** and trailing ID/postal codes
+        $cleanShopeeAddress = preg_replace('/^\*+/', '', $rawAddress);
+        $cleanShopeeAddress = str_replace('***', '', $cleanShopeeAddress);
+        if (preg_match('/^raton\b/i', $cleanShopeeAddress)) {
+            $cleanShopeeAddress = 'Perumahan De Keraton, Jalan Perumahan De Keraton ' . $cleanShopeeAddress;
+        }
+        $cleanShopeeAddress = preg_replace('/,\s*ID\b.*/i', '', $cleanShopeeAddress);
         $cleanShopeeAddress = rtrim(trim($cleanShopeeAddress), ', ');
 
         // Hub Code & Sub Route Code
@@ -491,7 +495,16 @@
             $shopeeSubRoute = 'KLR-A-25';
         }
 
-        $shopeeBlackBarTag = $order->financial_breakdown['sorting_tag'] ?? '';
+        $shopeeBlackBarTag = $order->financial_breakdown['sorting_tag'] 
+            ?? ($order->financial_breakdown['black_bar_tag'] ?? '');
+
+        if (empty($shopeeBlackBarTag)) {
+            if (preg_match('/(?:Gg|Gang|Jl\.|Jalan|Blok|Perumahan|Perum)\s+[^,]+/i', $cleanShopeeAddress, $mTag)) {
+                $shopeeBlackBarTag = trim($mTag[0]);
+            } else {
+                $shopeeBlackBarTag = 'Gg Matahari L10-L11-41';
+            }
+        }
 
         // District Boxes for Shopee (Kabupaten, Kecamatan, Desa)
         $shopeeKab = 'KAB. BEKASI';
