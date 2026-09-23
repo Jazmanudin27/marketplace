@@ -84,7 +84,7 @@ class OrderPrintController extends Controller
                 $store = $stores->first();
                 $channelCode = strtolower($store->channel->code ?? '');
 
-                if ($channelCode === 'shopee' && !empty($store->access_token) && !$shopeeService->isSimulated()) {
+                if ($channelCode === 'shopee' && !empty($store->access_token)) {
                     try {
                         $orderSns = $orders->pluck('order_marketplace_id')->filter()->values()->toArray();
                         $pdfData = $shopeeService->getOfficialShippingLabelPdf(
@@ -155,18 +155,22 @@ class OrderPrintController extends Controller
         $channelCode = strtolower($store->channel->code ?? '');
 
         try {
-            if ($channelCode === 'shopee' && !empty($store->access_token) && !$shopeeService->isSimulated()) {
-                $pdfData = $shopeeService->getOfficialShippingLabelPdf(
-                    $store->getValidAccessToken(),
-                    (int) $store->marketplace_store_id,
-                    [$order->order_marketplace_id]
-                );
+            if ($channelCode === 'shopee' && !empty($store->access_token)) {
+                try {
+                    $pdfData = $shopeeService->getOfficialShippingLabelPdf(
+                        $store->getValidAccessToken(),
+                        (int) $store->marketplace_store_id,
+                        [$order->order_marketplace_id]
+                    );
 
-                if (!empty($pdfData)) {
-                    return response($pdfData, 200, [
-                        'Content-Type' => 'application/pdf',
-                        'Content-Disposition' => 'inline; filename="resi_shopee_' . $order->order_marketplace_id . '.pdf"',
-                    ]);
+                    if (!empty($pdfData)) {
+                        return response($pdfData, 200, [
+                            'Content-Type' => 'application/pdf',
+                            'Content-Disposition' => 'inline; filename="resi_shopee_' . $order->order_marketplace_id . '.pdf"',
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Shopee PDF fetch failed: " . $e->getMessage());
                 }
             } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
                 $pdfData = $tiktokService->getOfficialShippingLabelPdf(

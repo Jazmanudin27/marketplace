@@ -484,37 +484,11 @@
             ?? ($order->financial_breakdown['sorting_code'] ?? ''));
 
         if (empty($shopeeHubCode) || preg_match('/^\d{4,}$/', $shopeeHubCode)) {
-            if (preg_match('/KARAWANG/i', $cleanShopeeAddress)) {
-                $shopeeHubCode = 'KRW-A';
-            } elseif (preg_match('/BEKASI/i', $cleanShopeeAddress)) {
-                $shopeeHubCode = 'BKS-A';
-            } elseif (preg_match('/TASIKMALAYA/i', $cleanShopeeAddress)) {
-                $shopeeHubCode = 'TSM-A';
-            } elseif (preg_match('/BANDUNG/i', $cleanShopeeAddress)) {
-                $shopeeHubCode = 'BDG-A';
-            } elseif (preg_match('/JAKARTA/i', $cleanShopeeAddress)) {
-                $shopeeHubCode = 'JKT-A';
-            } elseif (preg_match('/BOGOR/i', $cleanShopeeAddress)) {
-                $shopeeHubCode = 'BGR-A';
-            } elseif (preg_match('/TANGERANG/i', $cleanShopeeAddress)) {
-                $shopeeHubCode = 'TNG-A';
-            } elseif (preg_match('/DEPOK/i', $cleanShopeeAddress)) {
-                $shopeeHubCode = 'DPK-A';
-            } elseif (preg_match('/SEMARANG/i', $cleanShopeeAddress)) {
-                $shopeeHubCode = 'SMG-A';
-            } elseif (preg_match('/SURABAYA/i', $cleanShopeeAddress)) {
-                $shopeeHubCode = 'SUB-A';
-            } else {
-                $shopeeHubCode = 'HUB-A';
-            }
+            $shopeeHubCode = '';
         }
 
         if (empty($shopeeSubRoute) || preg_match('/^\d{4,}$/', $shopeeSubRoute)) {
-            $kecShort = '01';
-            if (preg_match('/(?:KECAMATAN|KEC\.|KLARI|BABELAN|CIBEUREUM)[^,]*\b([A-Za-z]{3,})/i', $cleanShopeeAddress, $mSub)) {
-                $kecShort = strtoupper(substr(trim($mSub[1]), 0, 3));
-            }
-            $shopeeSubRoute = "302-{$kecShort}";
+            $shopeeSubRoute = '';
         }
 
         $shopeeBlackBarTag = $order->financial_breakdown['sorting_tag'] ?? '';
