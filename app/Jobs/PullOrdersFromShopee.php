@@ -264,6 +264,12 @@ class PullOrdersFromShopee implements ShouldQueue
                     if (($income['actual_shipping_fee'] ?? 0) > 0) {
                         $shopeeOrder['actual_shipping_fee'] = $income['actual_shipping_fee'];
                     }
+                    if (!empty($shopeeOrder['recipient_address']['address_detail'])) {
+                        $financialBreakdown['address_detail'] = $shopeeOrder['recipient_address']['address_detail'];
+                    }
+                    if (!empty($shopeeOrder['note'])) {
+                        $financialBreakdown['buyer_note'] = $shopeeOrder['note'];
+                    }
                 }
             } catch (\Throwable $e) {
                 // Ignore if escrow detail is not generated yet by Shopee API for very new UNPAID orders

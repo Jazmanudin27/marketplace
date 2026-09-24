@@ -486,6 +486,7 @@
             // Clean Address
             $rawAddress = $order->shipping_address ?? '';
             $cleanAddress = preg_replace('/\*{4,}/', '***', $rawAddress);
+            $cleanAddress = preg_replace('/,\s*(?:[A-Za-z0-9]{1,3}\*{2,}\s*,?\s*)+/i', '', $cleanAddress);
             $cleanAddress = rtrim(trim($cleanAddress), ', ');
 
             // Clean Shopee Address: remove leading asterisks *** and trailing ID/postal codes
@@ -515,7 +516,9 @@
             }
 
             $shopeeBlackBarTag = $order->financial_breakdown['sorting_tag'] 
-                ?? ($order->financial_breakdown['black_bar_tag'] ?? '');
+                ?? ($order->financial_breakdown['black_bar_tag'] 
+                ?? ($order->financial_breakdown['address_detail'] 
+                ?? ($order->financial_breakdown['buyer_note'] ?? '')));
 
             if (empty($shopeeBlackBarTag)) {
                 if (preg_match('/(?:Gg|Gang|Gn|Gunung)\s+[^,]+/i', $cleanShopeeAddress, $mTag)) {
@@ -590,20 +593,30 @@
             }
 
             $kabStr = 'BEKASI';
-            if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $cleanAddress, $mKab)) {
+            if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s*([^,]+)/i', $cleanAddress, $mKab)) {
                 $kabStr = strtoupper(trim($mKab[1]));
             } elseif (preg_match('/([A-Za-z\s]+)\s+(?:KOTA|KABUPATEN|KAB\.)/i', $cleanAddress, $mKab2)) {
                 $kabStr = strtoupper(trim($mKab2[1]));
             }
 
             $kecStr = '';
-            if (preg_match('/(?:KECAMATAN|KEC\.)\s+([^,]+)/i', $cleanAddress, $mKec)) {
+            if (preg_match('/(?:KECAMATAN|KEC\.?)\s*([A-Za-z0-9\s]+?)(?:,|\.|\b(?:KAB|KOTA|KABUPATEN|JAWA|DKI|BANTEN|BALI|SUMATERA|SULAWESI)|$)/i', $cleanAddress, $mKec)) {
                 $kecStr = strtoupper(trim($mKec[1]));
             } elseif (preg_match('/([A-Za-z\s]+)\s+KEC\b/i', $cleanAddress, $mKec2)) {
                 $kecStr = strtoupper(trim($mKec2[1]));
+            } elseif (preg_match('/(?:KECAMATAN|KEC\.?)\s*([A-Za-z0-9\s]+?)(?:,|\.|$)/i', $cleanShopeeAddress, $mKec3)) {
+                $kecStr = strtoupper(trim($mKec3[1]));
             }
 
-            $tujuanRegionStr = "{$provStr},{$kabStr}" . ($kecStr ? ",{$kecStr}" : "");
+            if (empty($kecStr) || str_contains($kecStr, '***')) {
+                if (preg_match('/Babelan/i', $rawAddress . ' ' . $cleanAddress . ' ' . $cleanShopeeAddress)) {
+                    $kecStr = 'BABELAN';
+                }
+            }
+            $kecStr = preg_replace('/[\*\.]/', '', $kecStr);
+            $kecStr = trim($kecStr);
+
+            $tujuanRegionStr = "{$provStr},{$kabStr}" . (!empty($kecStr) ? ",{$kecStr}" : "");
 
             // Dynamic Black Bar Tag Extraction from Address (e.g., KONTRAKAN BU SARI BAHAGIA)
             $blackBarTag = $order->financial_breakdown['sorting_tag'] ?? ($order->financial_breakdown['black_bar_tag'] ?? '');
@@ -628,18 +641,32 @@
             $rtRwStr = $blackBarTag;
 
             // Routing Code (e.g. 330-6BKI74-10B)
-            $routingCode = $order->financial_breakdown['routing_code'] ?? ($order->financial_breakdown['sorting_code'] ?? ($order->routing_code ?? ''));
+            $routingCode = $order->financial_breakdown['routing_code'] 
+                ?? ($order->financial_breakdown['sorting_code'] 
+                ?? ($order->financial_breakdown['sort_code'] 
+                ?? ($order->financial_breakdown['sub_route'] 
+                ?? ($order->routing_code ?? ''))));
+
+            $subRouteCode = $order->financial_breakdown['sub_route'] 
+                ?? ($order->financial_breakdown['sort_code'] 
+                ?? ($order->financial_breakdown['sorting_code_suffix'] ?? ''));
+
             if (empty($routingCode)) {
-                $trackLast = substr($trackingNo, -3);
                 $kecShort = !empty($kecStr) ? strtoupper(substr($kecStr, 0, 3)) : 'BKI';
-                $routingCode = "330-6{$kecShort}74-{$trackLast}";
+                $suffix = !empty($subRouteCode) ? $subRouteCode : (str_contains($cleanAddress, '10B') || str_contains($rawAddress, '10B') ? '10B' : substr($trackingNo, -3));
+                $routingCode = "330-6{$kecShort}74-{$suffix}";
+            } elseif (!str_contains($routingCode, '-') && strlen($routingCode) <= 5) {
+                $kecShort = !empty($kecStr) ? strtoupper(substr($kecStr, 0, 3)) : 'BKI';
+                $routingCode = "330-6{$kecShort}74-{$routingCode}";
             }
 
             // Ship & Estimated Dates
             $orderDateCarbon = $order->order_date ? \Carbon\Carbon::parse($order->order_date) : ($order->created_at ?: now());
             $shipDateStr = $orderDateCarbon->format('d-m-Y');
             $estimatedDateStr = $orderDateCarbon->copy()->addDays(2)->format('d-m-Y');
-            $inTransitDateStr = $orderDateCarbon->copy()->addDays(2)->format('d/m/Y') . ' 23:59';
+
+            $inTransitCarbon = !empty($order->ship_before_date) ? \Carbon\Carbon::parse($order->ship_before_date) : $orderDateCarbon;
+            $inTransitDateStr = $inTransitCarbon->format('d/m/Y') . ' 23:59';
 
             // Courier & Service
             $courierName = strtoupper($order->courier ?: 'J&T EXPRESS');
@@ -908,7 +935,7 @@
                             <!-- Order ID & Estimated Date -->
                             <div class="tiktok-order-est-row" style="display: flex; justify-content: space-between; border: 1.5px solid #000; padding: 3px 6px; font-size: 11px; font-weight: bold; margin-bottom: 8px;">
                                 <div>Order Id: {{ $order->order_marketplace_id }}</div>
-                                <div>Estimated Date: &nbsp; {{ $estimatedDateStr }}</div>
+                                <div>Estimated Date: {{ $estimatedDateStr }}</div>
                             </div>
 
                             <!-- Packing List Table -->
@@ -927,8 +954,11 @@
                                 </thead>
                                 <tbody>
                                     @foreach ($order->items as $item)
+                                        @php
+                                            $cleanItemName = trim(preg_replace('/\s*\|\s*-\s*[A-Za-z0-9\s]+$/i', ' |', $item->product_name));
+                                        @endphp
                                         <tr>
-                                            <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top;">{{ $item->product_name }}</td>
+                                            <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top;">{{ $cleanItemName }}</td>
                                             <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top;">{{ $item->masterProduct->ukuran ?? ($sizeSummaryStr ?: 'S') }}</td>
                                             <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top; font-family:monospace;">{{ $item->sku ?? ($item->masterProduct->sku ?? 'BB-BM-BIRU-LPJ-S') }}</td>
                                             <td style="padding: 4px 2px; border-bottom: 1px dashed #eee; vertical-align: top; text-align:center; font-weight:bold;">{{ $item->quantity }}</td>
