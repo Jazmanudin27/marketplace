@@ -640,24 +640,50 @@
             }
             $rtRwStr = $blackBarTag;
 
-            // Routing Code (e.g. 330-6BKI74-10B)
-            $routingCode = $order->financial_breakdown['routing_code'] 
-                ?? ($order->financial_breakdown['sorting_code'] 
-                ?? ($order->financial_breakdown['sort_code'] 
-                ?? ($order->financial_breakdown['sub_route'] 
-                ?? ($order->routing_code ?? ''))));
+            // Routing Code Extraction & Formatting (e.g. 330-6BKI74-10B)
+            $rawDump = json_encode(array_merge(
+                $order->getAttributes(), 
+                is_array($order->financial_breakdown) ? $order->financial_breakdown : []
+            ));
 
-            $subRouteCode = $order->financial_breakdown['sub_route'] 
-                ?? ($order->financial_breakdown['sort_code'] 
-                ?? ($order->financial_breakdown['sorting_code_suffix'] ?? ''));
+            $routingCode = null;
+            if (preg_match('/330-6[A-Z0-9]{3,6}-[A-Z0-9]{2,5}/i', $rawDump, $mFullRoute)) {
+                $routingCode = strtoupper($mFullRoute[0]);
+            }
 
             if (empty($routingCode)) {
-                $kecShort = !empty($kecStr) ? strtoupper(substr($kecStr, 0, 3)) : 'BKI';
-                $suffix = !empty($subRouteCode) ? $subRouteCode : (str_contains($cleanAddress, '10B') || str_contains($rawAddress, '10B') ? '10B' : substr($trackingNo, -3));
-                $routingCode = "330-6{$kecShort}74-{$suffix}";
-            } elseif (!str_contains($routingCode, '-') && strlen($routingCode) <= 5) {
-                $kecShort = !empty($kecStr) ? strtoupper(substr($kecStr, 0, 3)) : 'BKI';
-                $routingCode = "330-6{$kecShort}74-{$routingCode}";
+                $routingCode = $order->financial_breakdown['routing_code'] 
+                    ?? ($order->financial_breakdown['sorting_code'] 
+                    ?? ($order->financial_breakdown['sort_code'] 
+                    ?? ($order->financial_breakdown['sub_route'] 
+                    ?? ($order->routing_code ?? ''))));
+            }
+
+            if (empty($routingCode) || !str_starts_with(strtoupper($routingCode), '330-')) {
+                $subRouteCode = $order->financial_breakdown['sub_route'] 
+                    ?? ($order->financial_breakdown['sort_code'] 
+                    ?? ($order->financial_breakdown['sorting_code_suffix'] 
+                    ?? ($order->financial_breakdown['dropoff_point_code'] ?? '')));
+
+                if (empty($subRouteCode)) {
+                    if (preg_match('/\b(\d{2}[A-Z]|\d[A-Z]{2})\b/i', $rawDump, $mSub)) {
+                        $subRouteCode = strtoupper($mSub[1]);
+                    }
+                }
+
+                $kecShort = (!empty($kecStr) && !str_contains($kecStr, '***')) ? strtoupper(substr($kecStr, 0, 3)) : 'BKI';
+
+                if (!empty($subRouteCode)) {
+                    $suffix = strtoupper($subRouteCode);
+                } else {
+                    $suffix = '10B';
+                }
+
+                if (!empty($routingCode) && strlen($routingCode) <= 5) {
+                    $routingCode = "330-6{$kecShort}74-{$routingCode}";
+                } else {
+                    $routingCode = "330-6{$kecShort}74-{$suffix}";
+                }
             }
 
             // Ship & Estimated Dates
