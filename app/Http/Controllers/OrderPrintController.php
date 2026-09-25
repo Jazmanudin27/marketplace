@@ -101,19 +101,36 @@ class OrderPrintController extends Controller
                     } catch (\Throwable $e) {
                         \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Shopee mass print PDF API failed: " . $e->getMessage());
                     }
-                } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && $orders->count() === 1 && !empty($store->access_token)) {
-                    try {
-                        $order = $orders->first();
-                        $docData = $tiktokService->getShippingDocument(
-                            $store->getValidAccessToken(),
-                            $store->shop_cipher ?: $store->marketplace_store_id,
-                            $order->order_marketplace_id
-                        );
-                        if (!empty($docData['doc_url'])) {
-                            return redirect($docData['doc_url']);
+                } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
+                    if ($orders->count() === 1) {
+                        try {
+                            $order = $orders->first();
+                            $pdfData = $tiktokService->getOfficialShippingLabelPdf(
+                                $store->getValidAccessToken(),
+                                $store->shop_cipher ?: $store->marketplace_store_id,
+                                $order->order_marketplace_id,
+                                $order->package_id
+                            );
+
+                            if (!empty($pdfData)) {
+                                return response($pdfData, 200, [
+                                    'Content-Type' => 'application/pdf',
+                                    'Content-Disposition' => 'inline; filename="resi_tiktok_' . $order->order_marketplace_id . '.pdf"',
+                                ]);
+                            }
+
+                            $docData = $tiktokService->getShippingDocument(
+                                $store->getValidAccessToken(),
+                                $store->shop_cipher ?: $store->marketplace_store_id,
+                                $order->order_marketplace_id,
+                                $order->package_id
+                            );
+                            if (!empty($docData['doc_url'])) {
+                                return redirect($docData['doc_url']);
+                            }
+                        } catch (\Throwable $e) {
+                            \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok print PDF API failed: " . $e->getMessage());
                         }
-                    } catch (\Throwable $e) {
-                        \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok single print PDF API failed: " . $e->getMessage());
                     }
                 }
             }

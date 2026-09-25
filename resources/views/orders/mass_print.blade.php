@@ -441,20 +441,100 @@
             font-weight: 900;
         }
 
+        @page {
+            size: 100mm 150mm;
+            margin: 0;
+        }
+
         @media print {
-            body {
+            html, body {
+                width: 100mm;
+                margin: 0;
                 padding: 0;
                 background: #fff;
             }
 
+            .no-print {
+                display: none !important;
+            }
+
             .waybill-wrapper {
+                width: 100mm;
+                max-width: 100mm;
+                margin: 0 auto;
                 padding: 0;
+                page-break-after: always;
+                break-after: page;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                box-sizing: border-box;
+            }
+
+            .pick-list-page {
+                width: 100mm;
+                max-width: 100mm;
+                margin: 0 auto;
+                padding: 10px;
+                page-break-after: always;
+                break-after: page;
+                box-sizing: border-box;
             }
         }
     </style>
 </head>
 
 <body onload="initPrint()">
+
+    <!-- TOP BAR (SCREEN ONLY) -->
+    <div class="no-print" style="position: sticky; top: 0; background: #1e293b; color: #fff; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 99999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: sans-serif;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 16px; font-weight: 700;"><i class="fas fa-print me-2" style="color:#EE4D2D;"></i>Cetak Resi Massal</span>
+            <span style="background: #EE4D2D; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: bold;">
+                {{ $orders->count() }} Pesanan
+            </span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="window.print()" style="background: #EE4D2D; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                <i class="fas fa-print"></i> Cetak Sekarang
+            </button>
+            <button onclick="window.close()" style="background: #475569; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- PICK LIST SUMMARY SECTION -->
+    @if (!empty($pickList))
+        <div class="pick-list-page page-break" style="padding: 15px; font-family: Arial, sans-serif; background: #fff;">
+            <div class="pick-list-header" style="border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div class="pick-list-title" style="font-size: 16px; font-weight: 800; text-transform: uppercase;">PICK LIST / REKAP PENGAMBILAN BARANG</div>
+                    <div style="font-size: 11px; color: #333;">Tanggal Cetak: {{ now()->format('d/m/Y H:i') }} | Total Pesanan: {{ $orders->count() }}</div>
+                </div>
+            </div>
+            <table class="pick-list-table" style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                <thead>
+                    <tr style="background: #f0f0f0;">
+                        <th style="border: 1px solid #000; padding: 6px 8px; text-align: center; width: 40px;">No</th>
+                        <th style="border: 1px solid #000; padding: 6px 8px; text-align: left;">SKU / Kode Barang</th>
+                        <th style="border: 1px solid #000; padding: 6px 8px; text-align: left;">Nama Produk</th>
+                        <th style="border: 1px solid #000; padding: 6px 8px; text-align: center; width: 70px;">Total Qty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php $no = 1; @endphp
+                    @foreach ($pickList as $sku => $itemData)
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px 8px; text-align: center;">{{ $no++ }}</td>
+                            <td style="border: 1px solid #000; padding: 6px 8px; font-family: monospace; font-weight: bold;">{{ $sku }}</td>
+                            <td style="border: 1px solid #000; padding: 6px 8px;">{{ $itemData['name'] }}</td>
+                            <td style="border: 1px solid #000; padding: 6px 8px; text-align: center; font-weight: 900; font-size: 13px;">{{ $itemData['qty'] }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
 
     <!-- INDIVIDUAL THERMAL WAYBILLS -->
     @foreach ($orders as $index => $order)
@@ -1067,62 +1147,80 @@
         function initPrint() {
             @foreach ($orders as $order)
                 @php
-                    $channelCode = $order->store->channel->code ?? 'shopee';
-                    $trackingNo = $order->tracking_number ?? ($order->order_marketplace_id ?? 'NO-RESI');
+                    $channelCode = strtolower($order->store->channel->code ?? 'shopee');
+                    $trackingNo = (string) ($order->tracking_number ?? ($order->order_marketplace_id ?? 'NO-RESI'));
+                    $orderMktId = (string) ($order->order_marketplace_id ?? '');
                 @endphp
 
-                @if ($channelCode === 'shopee')
-                    try {
-                        JsBarcode("#shopee-barcode-main-{{ $order->id }}", "{{ $trackingNo }}", {
-                            format: "CODE128",
-                            width: 1.6,
-                            height: 44,
-                            displayValue: false,
-                            margin: 0
-                        });
+                try {
+                    @if ($channelCode === 'shopee')
+                        var shopeeMain = document.getElementById("shopee-barcode-main-{{ $order->id }}");
+                        if (shopeeMain) {
+                            JsBarcode(shopeeMain, {!! json_encode($trackingNo) !!}, {
+                                format: "CODE128",
+                                width: 1.6,
+                                height: 44,
+                                displayValue: false,
+                                margin: 0
+                            });
+                        }
 
-                        JsBarcode("#shopee-barcode-order-{{ $order->id }}", "{{ $order->order_marketplace_id }}", {
-                            format: "CODE128",
-                            width: 1.2,
-                            height: 30,
-                            displayValue: false,
-                            margin: 0
-                        });
+                        var shopeeOrder = document.getElementById("shopee-barcode-order-{{ $order->id }}");
+                        if (shopeeOrder) {
+                            JsBarcode(shopeeOrder, {!! json_encode($orderMktId) !!}, {
+                                format: "CODE128",
+                                width: 1.2,
+                                height: 30,
+                                displayValue: false,
+                                margin: 0
+                            });
+                        }
 
-                        new QRCode(document.getElementById("shopee-qrcode-{{ $order->id }}"), {
-                            text: "{{ $trackingNo }}",
-                            width: 90,
-                            height: 90,
-                            colorDark: "#000000",
-                            colorLight: "#ffffff",
-                            correctLevel: QRCode.CorrectLevel.L
-                        });
-                    } catch (e) {
-                        console.error("Error generating Shopee barcodes for order {{ $order->id }}", e);
-                    }
-                @else
-                    try {
-                        JsBarcode("#tiktok-barcode-main-{{ $order->id }}", "{{ $trackingNo }}", {
-                            format: "CODE128",
-                            width: 1.8,
-                            height: 52,
-                            displayValue: false,
-                            margin: 0
-                        });
+                        var shopeeQr = document.getElementById("shopee-qrcode-{{ $order->id }}");
+                        if (shopeeQr) {
+                            shopeeQr.innerHTML = '';
+                            new QRCode(shopeeQr, {
+                                text: {!! json_encode($trackingNo) !!},
+                                width: 90,
+                                height: 90,
+                                colorDark: "#000000",
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel.L
+                            });
+                        }
+                    @else
+                        var tiktokMain = document.getElementById("tiktok-barcode-main-{{ $order->id }}");
+                        if (tiktokMain) {
+                            JsBarcode(tiktokMain, {!! json_encode($trackingNo) !!}, {
+                                format: "CODE128",
+                                width: 1.8,
+                                height: 52,
+                                displayValue: false,
+                                margin: 0
+                            });
+                        }
 
-                        new QRCode(document.getElementById("tiktok-qrcode-top-{{ $order->id }}"), {
-                            text: "{{ $trackingNo }}",
-                            width: 75,
-                            height: 75,
-                            colorDark: "#000000",
-                            colorLight: "#ffffff",
-                            correctLevel: QRCode.CorrectLevel.L
-                        });
-                    } catch (e) {
-                        console.error("Error generating TikTok barcodes for order {{ $order->id }}", e);
-                    }
-                @endif
+                        var tiktokQr = document.getElementById("tiktok-qrcode-top-{{ $order->id }}");
+                        if (tiktokQr) {
+                            tiktokQr.innerHTML = '';
+                            new QRCode(tiktokQr, {
+                                text: {!! json_encode($trackingNo) !!},
+                                width: 75,
+                                height: 75,
+                                colorDark: "#000000",
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel.L
+                            });
+                        }
+                    @endif
+                } catch (e) {
+                    console.error("Error generating barcodes for order {{ $order->id }}", e);
+                }
             @endforeach
+
+            setTimeout(function() {
+                window.print();
+            }, 500);
         }
     </script>
 </body>
