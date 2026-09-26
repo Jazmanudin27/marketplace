@@ -77,66 +77,63 @@ class OrderPrintController extends Controller
             'printed_at' => now(),
         ]);
 
-        // Jika seluruh pesanan berasal dari 1 Toko Shopee yang sama dan terhubung API resmi, tarik PDF massal langsung dari Shopee API
-        if ($orders->count() >= 1) {
-            $stores = $orders->pluck('store')->filter()->unique('id');
-            if ($stores->count() === 1) {
-                $store = $stores->first();
-                $channelCode = strtolower($store->channel->code ?? '');
+        // Coba tarik PDF resmi marketplace (Shopee / TikTok) untuk seluruh pesanan dan gabungkan dengan FPDI jika terhubung API
+        $pdfBuffers = [];
+        $ordersByStore = $orders->groupBy('store_id');
 
-                if ($channelCode === 'shopee' && !empty($store->access_token)) {
+        foreach ($ordersByStore as $storeId => $storeOrders) {
+            $store = $storeOrders->first()->store;
+            if (!$store || empty($store->access_token)) {
+                continue;
+            }
+
+            $channelCode = strtolower($store->channel->code ?? '');
+
+            if ($channelCode === 'shopee') {
+                try {
+                    $orderSns = $storeOrders->pluck('order_marketplace_id')->filter()->values()->toArray();
+                    $pdfData = $shopeeService->getOfficialShippingLabelPdf(
+                        $store->getValidAccessToken(),
+                        (int) $store->marketplace_store_id,
+                        $orderSns
+                    );
+                    if (!empty($pdfData)) {
+                        $pdfBuffers[] = $pdfData;
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Shopee mass print PDF fetch failed for store #{$storeId}: " . $e->getMessage());
+                }
+            } elseif (in_array($channelCode, ['tiktok', 'tokopedia'])) {
+                foreach ($storeOrders as $order) {
                     try {
-                        $orderSns = $orders->pluck('order_marketplace_id')->filter()->values()->toArray();
-                        $pdfData = $shopeeService->getOfficialShippingLabelPdf(
+                        $pdfData = $tiktokService->getOfficialShippingLabelPdf(
                             $store->getValidAccessToken(),
-                            (int) $store->marketplace_store_id,
-                            $orderSns
+                            $store->shop_cipher ?: $store->marketplace_store_id,
+                            $order->order_marketplace_id,
+                            $order->package_id
                         );
                         if (!empty($pdfData)) {
-                            return response($pdfData, 200, [
-                                'Content-Type' => 'application/pdf',
-                                'Content-Disposition' => 'inline; filename="resi_shopee_massal.pdf"',
-                            ]);
+                            $pdfBuffers[] = $pdfData;
                         }
                     } catch (\Throwable $e) {
-                        \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Shopee mass print PDF API failed: " . $e->getMessage());
-                    }
-                } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
-                    if ($orders->count() === 1) {
-                        try {
-                            $order = $orders->first();
-                            $pdfData = $tiktokService->getOfficialShippingLabelPdf(
-                                $store->getValidAccessToken(),
-                                $store->shop_cipher ?: $store->marketplace_store_id,
-                                $order->order_marketplace_id,
-                                $order->package_id
-                            );
-
-                            if (!empty($pdfData)) {
-                                return response($pdfData, 200, [
-                                    'Content-Type' => 'application/pdf',
-                                    'Content-Disposition' => 'inline; filename="resi_tiktok_' . $order->order_marketplace_id . '.pdf"',
-                                ]);
-                            }
-
-                            $docData = $tiktokService->getShippingDocument(
-                                $store->getValidAccessToken(),
-                                $store->shop_cipher ?: $store->marketplace_store_id,
-                                $order->order_marketplace_id,
-                                $order->package_id
-                            );
-                            if (!empty($docData['doc_url'])) {
-                                return redirect($docData['doc_url']);
-                            }
-                        } catch (\Throwable $e) {
-                            \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok print PDF API failed: " . $e->getMessage());
-                        }
+                        \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok print PDF fetch failed for order #{$order->id}: " . $e->getMessage());
                     }
                 }
             }
         }
 
-        // Generate Pick List data (Summary of all items to pick)
+        // Jika kita berhasil menarik PDF resmi dari API, gabungkan menggunakan FPDI dan tampilkan langsung sebagai PDF
+        if (!empty($pdfBuffers)) {
+            $mergedPdf = $this->mergePdfBuffers($pdfBuffers);
+            if (!empty($mergedPdf)) {
+                return response($mergedPdf, 200, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="resi_massal_resmi.pdf"',
+                ]);
+            }
+        }
+
+        // Fallback: Generate Pick List data (Summary of all items to pick) jika API PDF tidak tersedia
         $pickList = [];
         foreach ($orders as $order) {
             foreach ($order->items as $item) {
@@ -228,5 +225,48 @@ class OrderPrintController extends Controller
 
         // Fallback to HTML label view with stored official API routing_code
         return view('orders.print', compact('order'));
+    }
+
+    /**
+     * Penggabung (Merger) PDF resmi marketplace menggunakan FPDI.
+     */
+    private function mergePdfBuffers(array $pdfBuffers): string
+    {
+        try {
+            $pdf = new \setasign\Fpdi\Fpdi();
+            $hasPages = false;
+
+            foreach ($pdfBuffers as $buffer) {
+                if (empty($buffer) || !is_string($buffer)) {
+                    continue;
+                }
+
+                try {
+                    $stream = \setasign\Fpdi\PdfParser\StreamReader::createByString($buffer);
+                    $pageCount = $pdf->setSourceFile($stream);
+
+                    for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                        $templateId = $pdf->importPage($pageNo);
+                        $size = $pdf->getTemplateSize($templateId);
+
+                        $orientation = ($size['width'] > $size['height']) ? 'L' : 'P';
+                        $pdf->AddPage($orientation, [$size['width'], $size['height']]);
+                        $pdf->useTemplate($templateId);
+                        $hasPages = true;
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning("[OrderPrintController] mergePdfBuffers inner page exception: " . $e->getMessage());
+                }
+            }
+
+            if (!$hasPages) {
+                return '';
+            }
+
+            return $pdf->Output('S');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("[OrderPrintController] mergePdfBuffers error: " . $e->getMessage());
+            return '';
+        }
     }
 }

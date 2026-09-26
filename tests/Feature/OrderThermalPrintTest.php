@@ -341,4 +341,76 @@ class OrderThermalPrintTest extends TestCase
         $response->assertHeader('Content-Type', 'application/pdf');
         $this->assertEquals($fakePdfContent, $response->getContent());
     }
+
+    public function test_mass_print_merges_official_tiktok_pdfs_into_single_pdf_document()
+    {
+        $tenant = Tenant::create([
+            'name' => 'Test Tenant',
+            'domain' => 'tiktok.local',
+        ]);
+
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'role' => 'admin',
+        ]);
+
+        $channel = Channel::create([
+            'code' => 'tiktok',
+            'name' => 'TikTok Shop',
+        ]);
+
+        $store = Store::create([
+            'tenant_id' => $tenant->id,
+            'channel_id' => $channel->id,
+            'store_name' => 'TikTok Official',
+            'marketplace_store_id' => '11223344',
+            'access_token' => 'real_tiktok_access_token',
+            'status' => 'active',
+        ]);
+
+        $order1 = Order::create([
+            'tenant_id' => $tenant->id,
+            'store_id' => $store->id,
+            'order_marketplace_id' => 'TT-ORDER-001',
+            'order_date' => now(),
+            'tracking_number' => 'RESI-TT-001',
+            'courier' => 'J&T Express',
+            'buyer_name' => 'Ani TikTok',
+            'total_amount' => 100000,
+            'order_status' => 'READY_TO_SHIP',
+        ]);
+
+        $order2 = Order::create([
+            'tenant_id' => $tenant->id,
+            'store_id' => $store->id,
+            'order_marketplace_id' => 'TT-ORDER-002',
+            'order_date' => now(),
+            'tracking_number' => 'RESI-TT-002',
+            'courier' => 'J&T Express',
+            'buyer_name' => 'Budi TikTok',
+            'total_amount' => 150000,
+            'order_status' => 'READY_TO_SHIP',
+        ]);
+
+        // Generate a valid PDF binary string using FPDI to test merging
+        $fpdf = new \setasign\Fpdi\Fpdi();
+        $fpdf->AddPage();
+        $fpdf->SetFont('Arial', 'B', 12);
+        $fpdf->Cell(40, 10, 'TikTok Official Resi Label');
+        $validPdf = $fpdf->Output('S');
+
+        $this->mock(\App\Services\TiktokService::class, function ($mock) use ($validPdf) {
+            $mock->shouldReceive('getOfficialShippingLabelPdf')
+                ->twice()
+                ->andReturn($validPdf);
+        });
+
+        $response = $this->actingAs($user)->post(route('orders.mass_print'), [
+            'order_ids' => [$order1->id, $order2->id],
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
 }

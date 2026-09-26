@@ -1448,17 +1448,12 @@
                                                 <td class="text-dark">{{ $dp->nama_pengambil }}</td>
                                                 <td class="text-muted small">{{ $dp->catatan ?: '-' }}</td>
                                                 <td class="text-center">
-                                                    <form action="{{ route('spks.pickups.destroy', $dp->id) }}"
-                                                        method="POST" class="d-inline"
-                                                        onsubmit="return confirm('Apakah Anda yakin ingin menghapus/membatalkan catatan pengambilan ini?')">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit"
-                                                            class="btn btn-outline-danger btn-sm py-0 px-2"
-                                                            title="Hapus">
-                                                            <i class="fas fa-trash-alt" style="font-size: 9px;"></i>
-                                                        </button>
-                                                    </form>
+                                                    <button type="button"
+                                                        class="btn btn-outline-danger btn-sm py-0 px-2"
+                                                        title="Hapus / Batalkan Penerimaan Ini"
+                                                        onclick="confirmDeletePickup('{{ route('spks.pickups.destroy', $dp->id) }}')">
+                                                        <i class="fas fa-trash-alt" style="font-size: 9px;"></i>
+                                                    </button>
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -1503,6 +1498,12 @@
             </div>
         </form>
     </div>
+
+    {{-- Standalone Form Hapus Pickup (di luar spkForm untuk mencegah nested form submission) --}}
+    <form id="formDeletePickup" method="POST" style="display: none;">
+        @csrf
+        @method('DELETE')
+    </form>
 
     {{-- POPUP MODAL 1: RINCIAN BAHAN & BARANG KOMPONEN --}}
     <div class="modal fade" id="modalBahanProduk" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
@@ -3535,5 +3536,13 @@
                 if (max > 0) document.getElementById('showModalInputAmount').value = max;
             });
         });
+
+        function confirmDeletePickup(url) {
+            if (confirm('Apakah Anda yakin ingin menghapus/membatalkan catatan pengambilan/penerimaan ini?')) {
+                const form = document.getElementById('formDeletePickup');
+                form.action = url;
+                form.submit();
+            }
+        }
     </script>
 @endpush

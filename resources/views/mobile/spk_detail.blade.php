@@ -361,9 +361,15 @@
                     <div class="d-flex flex-column gap-2">
                         @foreach($allPickups as $pickup)
                             <div class="p-2.5 bg-light rounded-3 border" style="font-size:0.72rem;">
-                                <div class="d-flex justify-content-between">
+                                <div class="d-flex justify-content-between align-items-center">
                                     <strong class="text-dark">{{ $pickup->nama_pengambil }}</strong>
-                                    <span class="text-muted">{{ \Carbon\Carbon::parse($pickup->tanggal_ambil)->format('d M Y') }}</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="text-muted">{{ \Carbon\Carbon::parse($pickup->tanggal_ambil)->format('d M Y H:i') }}</span>
+                                        <button type="button" class="btn btn-outline-danger btn-sm p-1 border-0" title="Hapus / Batalkan Catatan Ini"
+                                                onclick="deletePickupMobile({{ $pickup->id }})">
+                                            <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="text-muted mt-0.5">
                                     Mengambil <strong class="text-dark">{{ $pickup->qty_diambil }} pcs</strong> {{ $pickup->item->nama_produk ?? '' }} (Size: {{ $pickup->item->ukuran ?? '' }})
@@ -500,5 +506,26 @@
             btn.innerHTML = 'Simpan';
         });
     });
+
+    function deletePickupMobile(pickupId) {
+        if (!confirm('Apakah Anda yakin ingin membatalkan & menghapus catatan penerimaan ini?')) return;
+
+        fetch(`/spks/pickups/${pickupId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Gagal menghapus.');
+            }
+        })
+        .catch(err => alert('Terjadi kesalahan: ' + err.message));
+    }
 </script>
 @endsection

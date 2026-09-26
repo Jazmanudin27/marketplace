@@ -2486,8 +2486,11 @@ class SpkController extends Controller
 
     public function destroyPickup(\App\Models\SpkItemPickup $pickup)
     {
-        $spk = $pickup->item->spk;
-        abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
+        $tenantId = Auth::user()->tenant_id;
+        $spk = $pickup->item?->spk;
+        if ($spk) {
+            abort_unless($spk->tenant_id === $tenantId, 403);
+        }
 
         $pickup->delete();
 
