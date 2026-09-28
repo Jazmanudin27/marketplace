@@ -163,10 +163,16 @@ Route::get('/shopee/debug-sign', function () {
 // =========================================================================
 Route::middleware('auth')->group(function () {
 
-    // Dashboard V2 (Next-Gen UI Preview)
-    Route::get('/dashboard-v2', [DashboardController::class, 'v2'])->name('dashboard.v2');
+    // =========================================================================
+    // V2 NEXT-GEN ERP ROUTES (/v2/...)
+    // =========================================================================
+    Route::prefix('v2')->name('v2.')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\V2\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/produk', [\App\Http\Controllers\V2\ProdukController::class, 'index'])->name('produk.index');
+    });
 
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
 
     Route::post('/mobile/logout', [LoginController::class, 'mobileLogout'])->name('mobile.logout');
 

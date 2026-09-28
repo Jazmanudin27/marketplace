@@ -1,4 +1,4 @@
-@extends('layouts.app_v2')
+@extends('v2.layouts.app')
 
 @section('title', 'Dashboard V2 Next-Gen')
 
@@ -7,11 +7,11 @@
 <div class="v2-page-header">
     <div>
         <h1 class="v2-page-title">Dashboard Overview V2</h1>
-        <p class="v2-page-subtitle">Selamat datang di antarmuka ERP Next-Gen terbaru. Pantau ringkasan performa toko dan order real-time.</p>
+        <p class="v2-page-subtitle">Selamat datang di antarmuka ERP Next-Gen V2. Pantau ringkasan performa toko dan order real-time.</p>
     </div>
     <div class="d-flex align-items-center gap-2">
         <a href="{{ route('dashboard') }}" class="btn-v2-secondary">
-            <i class="bi bi-box-arrow-up-right"></i> Lihat Tampilan Lama (V1)
+            <i class="bi bi-box-arrow-up-right"></i> Tampilan Lama (V1)
         </a>
         <button class="btn-v2-primary" onclick="location.reload()">
             <i class="bi bi-arrow-repeat"></i> Refresh Data
@@ -25,11 +25,11 @@
         <div class="row align-items-center">
             <div class="col-lg-8">
                 <span class="badge bg-white bg-opacity-20 text-white mb-2 px-3 py-1 rounded-pill" style="font-size: 0.75rem;">
-                    <i class="bi bi-sparkles me-1 text-warning"></i> DESAIN UI BARU V2
+                    <i class="bi bi-sparkles me-1 text-warning"></i> STRUCTURE V2 ARCHITECTURE
                 </span>
-                <h3 class="fw-bold mb-2 text-white" style="font-family: 'Outfit', sans-serif;">Tampilan ERP Baru Dari Scratch</h3>
+                <h3 class="fw-bold mb-2 text-white" style="font-family: 'Outfit', sans-serif;">ERP V2 Clean Architecture</h3>
                 <p class="mb-0 text-white text-opacity-80" style="max-width: 620px; font-size: 0.9rem;">
-                    Tampilan ini dirancang ulang dari awal dengan sistem desain V2 yang modern, bersih, dan cepat. Seluruh file lama Anda tetap utuh 100% dan aman tanpa ada yang terhapus!
+                    URL rapi di <code>/v2/dashboard</code>, Controller di <code>App\Http\Controllers\V2</code>, dan Blade View di <code>resources/views/v2</code>.
                 </p>
             </div>
             <div class="col-lg-4 text-end d-none d-lg-block">
@@ -106,7 +106,7 @@
     </div>
 </div>
 
-<!-- Main Row: Quick Shortcuts & Stores Overview -->
+<!-- Main Row: Stores Overview & Quick Actions -->
 <div class="row g-4 mb-4">
     <!-- Active Channel Stores Overview -->
     <div class="col-lg-8">
@@ -117,7 +117,6 @@
             </div>
             <div class="v2-card-body">
                 <div class="row g-3">
-                    <!-- Shopee -->
                     <div class="col-md-4">
                         <div class="p-3 rounded-3 border h-100" style="background: var(--v2-bg-body);">
                             <div class="d-flex align-items-center justify-content-between mb-2">
@@ -129,7 +128,6 @@
                         </div>
                     </div>
 
-                    <!-- TikTok Shop -->
                     <div class="col-md-4">
                         <div class="p-3 rounded-3 border h-100" style="background: var(--v2-bg-body);">
                             <div class="d-flex align-items-center justify-content-between mb-2">
@@ -141,7 +139,6 @@
                         </div>
                     </div>
 
-                    <!-- Lazada -->
                     <div class="col-md-4">
                         <div class="p-3 rounded-3 border h-100" style="background: var(--v2-bg-body);">
                             <div class="d-flex align-items-center justify-content-between mb-2">
@@ -161,116 +158,25 @@
     <div class="col-lg-4">
         <div class="v2-card h-100">
             <div class="v2-card-header">
-                <h5 class="v2-card-title"><i class="bi bi-lightning-charge me-2 text-warning"></i> Akses Cepat</h5>
+                <h5 class="v2-card-title"><i class="bi bi-lightning-charge me-2 text-warning"></i> Akses V2</h5>
             </div>
             <div class="v2-card-body d-flex flex-column gap-2">
+                <a href="{{ url('/v2/produk') }}" class="btn btn-v2-secondary justify-content-start py-2">
+                    <i class="bi bi-box-seam text-primary fs-5"></i>
+                    <div class="text-start">
+                        <div class="fw-bold">Daftar Produk V2</div>
+                        <small class="text-muted">Kelola master produk di <code>/v2/produk</code></small>
+                    </div>
+                </a>
+
                 <a href="{{ route('orders.index') }}" class="btn btn-v2-secondary justify-content-start py-2">
-                    <i class="bi bi-cart-check text-primary fs-5"></i>
+                    <i class="bi bi-cart-check text-success fs-5"></i>
                     <div class="text-start">
                         <div class="fw-bold">Pesanan Marketplace</div>
                         <small class="text-muted">Cek & proses pesanan toko</small>
                     </div>
                 </a>
-
-                @if(Route::has('fulfillment.scan'))
-                <a href="{{ route('fulfillment.scan') }}" class="btn btn-v2-secondary justify-content-start py-2">
-                    <i class="bi bi-qr-code-scan text-success fs-5"></i>
-                    <div class="text-start">
-                        <div class="fw-bold">Scan Packing & Resi</div>
-                        <small class="text-muted">Fulfillment barcode scanner</small>
-                    </div>
-                </a>
-                @endif
-
-                @if(Route::has('inventory.mutations.index'))
-                <a href="{{ route('inventory.mutations.index') }}" class="btn btn-v2-secondary justify-content-start py-2">
-                    <i class="bi bi-boxes text-info fs-5"></i>
-                    <div class="text-start">
-                        <div class="fw-bold">Stok & Gudang</div>
-                        <small class="text-muted">Kelola mutasi & stok opname</small>
-                    </div>
-                </a>
-                @endif
-
-                <a href="{{ route('reports.index') }}" class="btn btn-v2-secondary justify-content-start py-2">
-                    <i class="bi bi-file-earmark-bar-graph text-warning fs-5"></i>
-                    <div class="text-start">
-                        <div class="fw-bold">Laporan Penjualan</div>
-                        <small class="text-muted">Ekspor data & rekapan keuangan</small>
-                    </div>
-                </a>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Orders Table -->
-<div class="v2-card">
-    <div class="v2-card-header">
-        <h5 class="v2-card-title"><i class="bi bi-clock-history me-2 text-info"></i> Pesanan Terbaru</h5>
-        <a href="{{ route('orders.index') }}" class="btn btn-sm btn-link text-primary text-decoration-none fw-semibold">Lihat Semua Order &rarr;</a>
-    </div>
-    <div class="v2-card-body p-0">
-        <div class="v2-table-responsive border-0">
-            <table class="v2-table">
-                <thead>
-                    <tr>
-                        <th>Channel & Order ID</th>
-                        <th>Tanggal</th>
-                        <th>Nama Pembeli</th>
-                        <th>Total Belanja</th>
-                        <th>Status Pesanan</th>
-                        <th class="text-end">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($recentOrders ?? [] as $order)
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    @if(strtolower($order->channel ?? '') == 'shopee')
-                                        <span class="badge bg-danger">Shopee</span>
-                                    @elseif(strtolower($order->channel ?? '') == 'tiktok')
-                                        <span class="badge bg-dark">TikTok</span>
-                                    @else
-                                        <span class="badge bg-primary">{{ ucfirst($order->channel ?? 'Marketplace') }}</span>
-                                    @endif
-                                    <span class="fw-bold">{{ $order->order_number ?? $order->order_id }}</span>
-                                </div>
-                            </td>
-                            <td class="text-muted">{{ \Carbon\Carbon::parse($order->created_at)->format('d M Y, H:i') }}</td>
-                            <td>
-                                <div class="fw-semibold">{{ $order->buyer_name ?? 'Pelanggan Marketplace' }}</div>
-                                <small class="text-muted">{{ $order->store->name ?? '-' }}</small>
-                            </td>
-                            <td class="fw-bold">Rp {{ number_format($order->total_amount ?? 0, 0, ',', '.') }}</td>
-                            <td>
-                                @if(in_array(strtolower($order->status ?? ''), ['completed', 'finished', 'selesai']))
-                                    <span class="v2-badge v2-badge-success"><i class="bi bi-check-circle"></i> Selesai</span>
-                                @elseif(in_array(strtolower($order->status ?? ''), ['unpaid', 'belum bayar']))
-                                    <span class="v2-badge v2-badge-warning"><i class="bi bi-clock"></i> Belum Bayar</span>
-                                @elseif(in_array(strtolower($order->status ?? ''), ['cancelled', 'batal']))
-                                    <span class="v2-badge v2-badge-danger"><i class="bi bi-x-circle"></i> Batal</span>
-                                @else
-                                    <span class="v2-badge v2-badge-primary"><i class="bi bi-truck"></i> {{ ucfirst($order->status ?? 'Diproses') }}</span>
-                                @endif
-                            </td>
-                            <td class="text-end">
-                                <a href="{{ route('orders.index', ['search' => $order->order_number ?? $order->order_id]) }}" class="btn btn-sm btn-outline-secondary rounded-pill">
-                                    <i class="bi bi-eye me-1"></i> Detail
-                                </a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">
-                                <i class="bi bi-inbox fs-3 d-block mb-1"></i>
-                                Belum ada pesanan terbaru saat ini.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
         </div>
     </div>
 </div>

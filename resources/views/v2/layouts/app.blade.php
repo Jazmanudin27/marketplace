@@ -32,7 +32,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Check saved theme from localStorage
         const savedTheme = localStorage.getItem('v2_theme') || 'light';
         document.documentElement.setAttribute('data-bs-theme', savedTheme);
     </script>
@@ -42,7 +41,7 @@
 
     <div class="v2-wrapper">
         <!-- Include V2 Sidebar -->
-        @include('layouts.sidebar_v2')
+        @include('v2.layouts.sidebar')
 
         <!-- Main Content Wrapper -->
         <main class="v2-main-content">
@@ -198,7 +197,6 @@
             }
         }
 
-        // Initialize Theme Icon
         document.addEventListener('DOMContentLoaded', () => {
             const currentTheme = document.documentElement.getAttribute('data-bs-theme');
             const icon = document.getElementById('themeIcon');
