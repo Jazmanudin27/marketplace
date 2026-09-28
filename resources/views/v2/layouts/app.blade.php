@@ -69,7 +69,7 @@
                     </div>
 
                     <!-- Sync Store Quick Button -->
-                    <a href="{{ route('stock_sync.index') }}" class="btn btn-sm btn-outline-secondary py-1 px-2 d-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                    <a href="{{ Route::has('stock_sync.index') ? route('stock_sync.index') : url('/v2/produk') }}" class="btn btn-sm btn-outline-secondary py-1 px-2 d-flex align-items-center gap-1" style="font-size: 0.75rem;">
                         <i class="bi bi-arrow-repeat text-primary"></i> Sync Toko
                     </a>
 
@@ -107,11 +107,11 @@
                             <i class="bi bi-chevron-down text-muted" style="font-size: 0.7rem;"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="font-size: 0.78rem; border-radius: 8px;">
-                            <li><a class="dropdown-item py-1.5" href="{{ route('settings.users.index') }}"><i class="bi bi-person me-2"></i>Pengaturan Akun</a></li>
+                            <li><a class="dropdown-item py-1.5" href="{{ Route::has('settings.users.index') ? route('settings.users.index') : (Route::has('users.index') ? route('users.index') : url('/settings')) }}"><i class="bi bi-person me-2"></i>Pengaturan Akun</a></li>
                             <li><a class="dropdown-item py-1.5" href="{{ url('/v2/produk') }}"><i class="bi bi-box-seam me-2"></i>Katalog Produk V2</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <form action="{{ route('logout') }}" method="POST" class="m-0">
+                                <form action="{{ Route::has('logout') ? route('logout') : url('/logout') }}" method="POST" class="m-0">
                                     @csrf
                                     <button type="submit" class="dropdown-item text-danger py-1.5">
                                         <i class="bi bi-box-arrow-right me-2"></i>Keluar (Logout)

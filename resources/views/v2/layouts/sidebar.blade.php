@@ -45,13 +45,13 @@
             </a>
         </div>
         <div class="v2-nav-item">
-            <a href="{{ route('categories.index') }}" class="v2-nav-link">
+            <a href="{{ Route::has('categories.index') ? route('categories.index') : url('/categories') }}" class="v2-nav-link">
                 <i class="bi bi-tags-fill"></i>
                 <span>Kategori & Brand</span>
             </a>
         </div>
         <div class="v2-nav-item">
-            <a href="{{ route('inventory_items.index') }}" class="v2-nav-link">
+            <a href="{{ Route::has('inventory_items.index') ? route('inventory_items.index') : url('/inventory-items') }}" class="v2-nav-link">
                 <i class="bi bi-building-fill-gear"></i>
                 <span>Stok & Gudang</span>
             </a>
@@ -60,7 +60,7 @@
         <!-- Marketplace & Sales -->
         <div class="v2-nav-section-title mt-2">MARKETPLACE & SALES</div>
         <div class="v2-nav-item">
-            <a href="{{ route('orders.index') }}" class="v2-nav-link d-flex align-items-center justify-content-between">
+            <a href="{{ Route::has('orders.index') ? route('orders.index') : url('/orders') }}" class="v2-nav-link d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-cart-check-fill"></i>
                     <span>Pesanan Masuk</span>
@@ -75,7 +75,7 @@
             </a>
         </div>
         <div class="v2-nav-item">
-            <a href="{{ route('stock_sync.index') }}" class="v2-nav-link">
+            <a href="{{ Route::has('stock_sync.index') ? route('stock_sync.index') : url('/v2/produk') }}" class="v2-nav-link">
                 <i class="bi bi-arrow-repeat"></i>
                 <span>Sinkronisasi Stok</span>
             </a>
@@ -84,13 +84,13 @@
         <!-- HRD & Keuangan -->
         <div class="v2-nav-section-title mt-2">KEUANGAN & HRD</div>
         <div class="v2-nav-item">
-            <a href="{{ route('reports.income_statement') }}" class="v2-nav-link">
+            <a href="{{ Route::has('reports.income_statement') ? route('reports.income_statement') : url('/reports') }}" class="v2-nav-link">
                 <i class="bi bi-bar-chart-line-fill"></i>
                 <span>Laba Rugi & Keuangan</span>
             </a>
         </div>
         <div class="v2-nav-item">
-            <a href="{{ route('hrd.employees.index') }}" class="v2-nav-link">
+            <a href="{{ Route::has('employees.index') ? route('employees.index') : (Route::has('hrd.employees.index') ? route('hrd.employees.index') : url('/employees')) }}" class="v2-nav-link">
                 <i class="bi bi-people-fill"></i>
                 <span>Karyawan & Payroll</span>
             </a>

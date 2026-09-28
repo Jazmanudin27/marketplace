@@ -15,7 +15,7 @@
         <a href="{{ url('/v2/dashboard') }}" class="btn btn-sm btn-v2-secondary py-1.5 px-2.5" title="Refresh Dashboard">
             <i class="bi bi-arrow-clockwise"></i>
         </a>
-        <a href="{{ route('orders.index') }}" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm">
+        <a href="{{ Route::has('orders.index') ? route('orders.index') : url('/orders') }}" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm">
             <i class="bi bi-cart-plus me-1"></i> Lihat Semua Pesanan
         </a>
     </div>
@@ -127,7 +127,7 @@
                 </div>
                 <div class="d-flex align-items-center justify-content-between border-top border-white border-opacity-20 pt-2 mt-1" style="font-size: 0.7rem;">
                     <span class="text-white-50">Stok Gudang:</span>
-                    <a href="{{ route('inventory_items.index') }}" class="text-white fw-bold text-decoration-underline">Cek Gudang &rarr;</a>
+                    <a href="{{ Route::has('inventory_items.index') ? route('inventory_items.index') : url('/inventory-items') }}" class="text-white fw-bold text-decoration-underline">Cek Gudang &rarr;</a>
                 </div>
             </div>
             <!-- Watermark Icon -->
@@ -198,7 +198,7 @@
                 <h6 class="v2-card-title d-flex align-items-center gap-2">
                     <i class="bi bi-receipt-cutoff text-primary"></i> Transaksi & Pesanan Masuk Terkini
                 </h6>
-                <a href="{{ route('orders.index') }}" class="btn btn-sm btn-v2-secondary py-0.5 px-2" style="font-size: 0.72rem;">Semua Order</a>
+                <a href="{{ Route::has('orders.index') ? route('orders.index') : url('/orders') }}" class="btn btn-sm btn-v2-secondary py-0.5 px-2" style="font-size: 0.72rem;">Semua Order</a>
             </div>
             <div class="v2-card-body p-0">
                 <div class="v2-table-responsive">
