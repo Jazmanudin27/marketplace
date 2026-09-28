@@ -127,6 +127,9 @@
                                 </td>
                                 <td class="text-center pe-4">
                                     <div class="btn-group btn-group-sm">
+                                        <a href="{{ route('supplier_consignments.print_labels', $item) }}" target="_blank" class="btn btn-outline-success" title="Cetak Barcode Label">
+                                            <i class="bi bi-upc-scan"></i>
+                                        </a>
                                         <a href="{{ route('supplier_consignments.show', $item) }}" class="btn btn-outline-primary" title="Lihat Detail">
                                             <i class="bi bi-eye"></i>
                                         </a>

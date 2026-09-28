@@ -396,6 +396,14 @@ class Order extends Model
                                 );
                             }
                         }
+
+                        // Kembalikan counter stok titipan jika item ini dipenuhi dari konsinyasi
+                        if ($item->supplier_consignment_item_id) {
+                            $consItem = \App\Models\SupplierConsignmentItem::find($item->supplier_consignment_item_id);
+                            if ($consItem && $consItem->qty_sold > 0) {
+                                $consItem->decrement('qty_sold', min((int)$item->quantity, (int)$consItem->qty_sold));
+                            }
+                        }
                     }
                 } else {
                     $allReturned = false;

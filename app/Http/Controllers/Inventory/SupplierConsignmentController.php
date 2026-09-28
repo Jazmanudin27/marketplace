@@ -202,9 +202,21 @@ class SupplierConsignmentController extends Controller
     {
         abort_unless($consignment->tenant_id === Auth::user()->tenant_id, 403);
 
-        $consignment->load(['supplier', 'items.masterProduct', 'creator', 'approver']);
+        $consignment->load(['supplier', 'items.masterProduct', 'creator', 'approver', 'items.deductions.order']);
 
         return view('inventory.supplier_consignments.show', compact('consignment'));
+    }
+
+    /**
+     * Cetak Label Stiker Barcode / QR Produk Barang Titipan Konsinyasi
+     */
+    public function printItemLabels(SupplierConsignment $consignment)
+    {
+        abort_unless($consignment->tenant_id === Auth::user()->tenant_id, 403);
+
+        $consignment->load(['supplier', 'items.masterProduct']);
+
+        return view('inventory.supplier_consignments.print_labels', compact('consignment'));
     }
 
     /**
@@ -464,11 +476,11 @@ class SupplierConsignmentController extends Controller
                       ->where('status', 'approved');
                 })->where('master_product_id', $productId)->sum('qty_settled');
 
-                // Hitung estimasi barang terjual berdasarkan pengurangan stok produk master sejak penerimaan disetujui,
-                // atau dengan memperhitungkan sisa stok saat ini.
+                // Hitung estimasi atau riil barang terjual berdasarkan hasil scan kemas riil
+                $actualQtySold = (int) $groupItems->sum('qty_sold');
                 $currentStock = $product->stock;
-                // Total Terjual (Estimasi dari penerimaan konsinyasi - sisa stok terkini yang tersedia, dibatasi minimal 0)
-                $qtySoldTotal = max(0, $qtyReceivedTotal - $currentStock);
+                // Total Terjual (Gunakan qty_sold riil dari scan barcode kemas, atau fallback ke estimasi jika belum ada scan)
+                $qtySoldTotal = $actualQtySold > 0 ? min($qtyReceivedTotal, $actualQtySold) : max(0, $qtyReceivedTotal - $currentStock);
                 if ($qtySoldTotal > $qtyReceivedTotal) {
                     $qtySoldTotal = $qtyReceivedTotal;
                 }
@@ -560,7 +572,8 @@ class SupplierConsignmentController extends Controller
 
                 $qtyReceived  = $item->qty_received;
                 $currentStock = $product->stock;
-                $qtySold      = max(0, $qtyReceived - $currentStock);
+                $actualSold   = (int) ($item->qty_sold ?? 0);
+                $qtySold      = $actualSold > 0 ? min($qtyReceived, $actualSold) : max(0, $qtyReceived - $currentStock);
 
                 $qtySettled = (int) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $item->id)
                     ->whereHas('settlement', function ($q) {
@@ -568,8 +581,10 @@ class SupplierConsignmentController extends Controller
                     })
                     ->sum('qty_settled');
 
-                // Qty yang belum disetorkan dihitung dari Total Diterima dikurangi Yang Sudah Disetorkan
-                $qtyUnsettled = max(0, $qtyReceived - $qtySettled);
+                // Qty yang belum disetorkan dihitung dari Terjual dikurangi Yang Sudah Disetorkan (jika ada scan kemas),
+                // atau dari Qty Received jika belum ada data scan
+                $basisQty     = $actualSold > 0 ? $qtySold : $qtyReceived;
+                $qtyUnsettled = max(0, $basisQty - $qtySettled);
 
                 if ($qtyUnsettled > 0) {
                     $availableItems[] = [

@@ -417,6 +417,7 @@
 
             let activeOrder = null;
             let scanCounts = {}; // order_item_id -> count of scans
+            let itemSources = {}; // order_item_id -> array of { source: 'warehouse'|'consignment'|'spk', consignment_item_id, consignment_ref, barcode }
 
             // Web Audio API Synthesis
             let audioCtx = null;
@@ -546,8 +547,10 @@
 
                 // Populate items list
                 scanCounts = {};
+                itemSources = {};
                 order.items.forEach(item => {
                     scanCounts[item.id] = 0;
+                    itemSources[item.id] = [];
                 });
                 renderItemsList(order.items, order);
 
@@ -608,6 +611,16 @@
                             <i class="fas fa-barcode me-1 text-muted"></i>${escapeHtml(item.barcode)}
                          </span>` : '';
 
+                    const titipanPill = (item.total_titipan_stock && item.total_titipan_stock > 0) ?
+                        `<span class="badge bg-info bg-opacity-15 text-primary border border-info border-opacity-25 py-1 px-2" style="font-size: 0.72rem;" title="Tersedia di Titipan Konsinyasi (${item.active_consignments ? item.active_consignments.map(c => c.reference_number + ': ' + c.sisa_stok + ' pcs').join(', ') : ''})">
+                            <i class="fas fa-hand-holding-box me-1"></i>Titipan: <strong>${item.total_titipan_stock} pcs</strong>
+                         </span>` : '';
+
+                    const gudangPill = typeof item.gudang_stock !== 'undefined' ?
+                        `<span class="badge bg-light text-secondary border py-1 px-2" style="font-size: 0.72rem;" title="Stok Gudang Fisik">
+                            <i class="fas fa-warehouse me-1 text-muted"></i>Gudang: <strong>${item.gudang_stock} pcs</strong>
+                         </span>` : '';
+
                     const substituteBadge = item.is_substituted ?
                         `<span class="badge bg-warning bg-opacity-20 text-dark border border-warning py-1 px-2.5" style="font-size: 0.75rem;" title="Alasan: ${escapeHtml(item.substitution_note || '')}">
                             <i class="fas fa-arrow-left-right text-warning me-1"></i>Diganti dari: <strong>${escapeHtml(item.original_sku || '-')}</strong>
@@ -639,7 +652,10 @@
                                     </span>
                                     ${barcodePill}
                                     ${substituteBadge}
+                                    ${titipanPill}
+                                    ${gudangPill}
                                 </div>
+                                <div id="sources-badge-container-${item.id}" class="mt-1.5 d-flex flex-wrap gap-1"></div>
                             </div>
                             
                             <!-- Quantitative Counter Box -->
@@ -649,7 +665,7 @@
                                     <span class="fs-6 fw-semibold text-muted ms-1"> / ${item.quantity}</span>
                                 </div>
                                 <div class="small fw-semibold mt-0.5 text-uppercase" id="scan-badge-${item.id}" style="font-size: 0.65rem; letter-spacing: 0.5px; color: #64748b;">
-                                    <i class="fas fa-barcode me-1"></i>Scan SKU
+                                    <i class="fas fa-barcode me-1"></i>Scan Barcode
                                 </div>
                             </div>
                         </div>
@@ -677,14 +693,76 @@
                 if (!activeOrder) return;
 
                 let matchedItem = null;
-                const cleanBarcode = barcode.trim().toLowerCase();
+                const rawBarcode = barcode.trim();
+                const cleanBarcode = rawBarcode.toLowerCase();
 
-                // 1. Cari item dengan SKU atau Barcode yang cocok (utamakan yang belum selesai di-scan)
+                let isTitipanScan = false;
+                let detectedConsignmentItemId = null;
+                let detectedConsignmentRef = null;
+                let cleanSku = cleanBarcode;
+
+                let isSpkScan = false;
+                let detectedSpkNo = null;
+
+                // 1. Deteksi Barcode Titipan (Konsinyasi)
+                // Format: KNS|{ref}|ITEM-{id}|{sku} atau KNS|... atau KNS-ITEM-{id}
+                if (cleanBarcode.startsWith('kns|') || (cleanBarcode.includes('|item-') && cleanBarcode.includes('kns')) || cleanBarcode.startsWith('kns-')) {
+                    isTitipanScan = true;
+                    const parts = rawBarcode.split('|');
+                    if (parts.length >= 2) {
+                        detectedConsignmentRef = parts[1].trim();
+                    }
+                    if (parts.length >= 3) {
+                        const m = parts[2].match(/item-(\d+)/i);
+                        if (m) detectedConsignmentItemId = parseInt(m[1]);
+                    }
+                    if (parts.length >= 4) {
+                        cleanSku = parts[3].trim().toLowerCase();
+                    }
+                    if (!detectedConsignmentItemId) {
+                        const m2 = rawBarcode.match(/(?:kns-)?item-(\d+)/i);
+                        if (m2) detectedConsignmentItemId = parseInt(m2[1]);
+                    }
+                } else if (cleanBarcode.startsWith('spk-') || (cleanBarcode.includes('spk') && cleanBarcode.includes('|'))) {
+                    // Deteksi Barcode SPK Produksi Gudang
+                    isSpkScan = true;
+                    const parts = rawBarcode.split('|');
+                    detectedSpkNo = parts[0].trim();
+                    if (parts.length >= 2) {
+                        const m = parts[1].match(/item-(\d+)/i);
+                        if (!m) cleanSku = parts[1].trim().toLowerCase();
+                    }
+                }
+
+                // 2. Cari item dalam pesanan yang cocok (utamakan yang belum selesai di-scan)
                 for (let i = 0; i < activeOrder.items.length; i++) {
                     const item = activeOrder.items[i];
-                    const skuMatch = item.sku && item.sku.trim().toLowerCase() === cleanBarcode;
-                    const barcodeMatch = item.barcode && item.barcode.trim().toLowerCase() === cleanBarcode;
-                    if (skuMatch || barcodeMatch) {
+                    const itemSku = (item.sku || '').trim().toLowerCase();
+                    const itemBarcode = (item.barcode || '').trim().toLowerCase();
+
+                    let isMatch = false;
+
+                    // Cocok SKU atau Barcode produk
+                    if ((itemSku && (itemSku === cleanSku || itemSku === cleanBarcode)) ||
+                        (itemBarcode && (itemBarcode === cleanSku || itemBarcode === cleanBarcode))) {
+                        isMatch = true;
+                    }
+
+                    // Cocok jika ID item titipan ada di active_consignments item ini
+                    if (!isMatch && detectedConsignmentItemId && item.active_consignments) {
+                        if (item.active_consignments.some(c => c.consignment_item_id === detectedConsignmentItemId)) {
+                            isMatch = true;
+                        }
+                    }
+
+                    // Cocok jika nomor referensi titipan cocok
+                    if (!isMatch && detectedConsignmentRef && item.active_consignments) {
+                        if (item.active_consignments.some(c => c.reference_number.toLowerCase() === detectedConsignmentRef.toLowerCase())) {
+                            isMatch = true;
+                        }
+                    }
+
+                    if (isMatch) {
                         matchedItem = item;
                         if (scanCounts[item.id] < item.quantity) {
                             break; // Stop pada item pertama yang belum lengkap scan-nya
@@ -692,7 +770,7 @@
                     }
                 }
 
-                // 2. Fallback: Jika operator scan SKU lama dari item yang sudah disubstitusi
+                // 3. Fallback: Jika operator scan SKU lama dari item yang sudah disubstitusi
                 if (!matchedItem) {
                     for (let i = 0; i < activeOrder.items.length; i++) {
                         const item = activeOrder.items[i];
@@ -706,7 +784,7 @@
                     }
                 }
 
-                // 3. Fallback: Jika barcode adalah suffix ukuran (misal SKU 'LPJ-M' di-scan 'm')
+                // 4. Fallback: Jika barcode adalah suffix ukuran (misal SKU 'LPJ-M' di-scan 'm')
                 if (!matchedItem) {
                     for (let i = 0; i < activeOrder.items.length; i++) {
                         const item = activeOrder.items[i];
@@ -725,6 +803,35 @@
                     // Cek apakah item sudah penuh dipindai
                     if (scanCounts[itemId] < matchedItem.quantity) {
                         scanCounts[itemId]++;
+                        itemSources[itemId] = itemSources[itemId] || [];
+
+                        let sourceEntry = {
+                            source: 'warehouse',
+                            barcode: rawBarcode
+                        };
+
+                        if (isTitipanScan) {
+                            let cId = detectedConsignmentItemId;
+                            let cRef = detectedConsignmentRef;
+                            if (!cId && matchedItem.active_consignments && matchedItem.active_consignments.length > 0) {
+                                cId = matchedItem.active_consignments[0].consignment_item_id;
+                                cRef = matchedItem.active_consignments[0].reference_number;
+                            }
+                            sourceEntry = {
+                                source: 'consignment',
+                                consignment_item_id: cId,
+                                consignment_ref: cRef,
+                                barcode: rawBarcode
+                            };
+                        } else if (isSpkScan) {
+                            sourceEntry = {
+                                source: 'spk',
+                                spk_no: detectedSpkNo,
+                                barcode: rawBarcode
+                            };
+                        }
+
+                        itemSources[itemId].push(sourceEntry);
 
                         // Mainkan bunyi bip sukses
                         playSuccess();
@@ -855,6 +962,58 @@
                         textProgress.className = 'font-monospace text-muted fw-bold flex-shrink-0';
                     }
                 }
+
+                // Render badge sumber barang yang discan (Titipan vs SPK vs Gudang)
+                const sourcesContainer = document.getElementById(`sources-badge-container-${item.id}`);
+                if (sourcesContainer) {
+                    const list = itemSources[item.id] || [];
+                    if (list.length === 0) {
+                        sourcesContainer.innerHTML = '';
+                    } else {
+                        let titipanCount = 0;
+                        let titipanRefs = [];
+                        let spkCount = 0;
+                        let spkNos = [];
+                        let warehouseCount = 0;
+
+                        list.forEach(s => {
+                            if (s.source === 'consignment') {
+                                titipanCount++;
+                                if (s.consignment_ref && !titipanRefs.includes(s.consignment_ref)) {
+                                    titipanRefs.push(s.consignment_ref);
+                                }
+                            } else if (s.source === 'spk') {
+                                spkCount++;
+                                if (s.spk_no && !spkNos.includes(s.spk_no)) {
+                                    spkNos.push(s.spk_no);
+                                }
+                            } else {
+                                warehouseCount++;
+                            }
+                        });
+
+                        let bHtml = '';
+                        if (titipanCount > 0) {
+                            const rStr = titipanRefs.length > 0 ? ` (${titipanRefs.join(', ')})` : '';
+                            bHtml += `<span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-25 py-0.5 px-2" style="font-size: 0.68rem;">
+                                <i class="fas fa-check-circle me-1"></i>${titipanCount}x Titipan${escapeHtml(rStr)}
+                            </span>`;
+                        }
+                        if (spkCount > 0) {
+                            const spkStr = spkNos.length > 0 ? ` (${spkNos.join(', ')})` : '';
+                            bHtml += `<span class="badge bg-primary bg-opacity-15 text-primary border border-primary py-0.5 px-2" style="font-size: 0.68rem;">
+                                <i class="fas fa-industry me-1"></i>${spkCount}x SPK${escapeHtml(spkStr)}
+                            </span>`;
+                        }
+                        if (warehouseCount > 0) {
+                            bHtml += `<span class="badge bg-secondary bg-opacity-15 text-secondary border py-0.5 px-2" style="font-size: 0.68rem;">
+                                <i class="fas fa-warehouse me-1"></i>${warehouseCount}x Gudang Reguler
+                            </span>`;
+                        }
+                        sourcesContainer.innerHTML = bHtml;
+                    }
+                }
+
                 updateCompletionProgress();
             }
 
@@ -901,7 +1060,8 @@
                             'X-CSRF-TOKEN': '{{ csrf_token() }}'
                         },
                         body: JSON.stringify({
-                            auto_ship: autoShip
+                            auto_ship: autoShip,
+                            item_sources: itemSources
                         })
                     })
                     .then(res => res.json())
@@ -930,6 +1090,7 @@
             function resetAll(clearInvoiceInput = true) {
                 activeOrder = null;
                 scanCounts = {};
+                itemSources = {};
 
                 emptyState.classList.remove('d-none');
                 orderCard.classList.add('d-none');

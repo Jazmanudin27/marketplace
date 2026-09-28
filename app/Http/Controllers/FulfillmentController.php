@@ -265,6 +265,30 @@ class FulfillmentController extends Controller
                     $sku = $item->sku ?? ($masterProduct->sku ?? ($item->marketplaceProduct->marketplace_sku ?? ''));
                     $name = $item->product_name ?? ($masterProduct->name ?? 'Produk Tanpa Nama');
                     $image = $item->product_image ?? ($masterProduct->image_url ?? ($item->marketplaceProduct->image_url ?? ''));
+                    $activeConsignments = [];
+                    if ($masterProduct) {
+                        $cItems = \App\Models\SupplierConsignmentItem::where('master_product_id', $masterProduct->id)
+                            ->whereHas('consignment', function ($q) use ($order) {
+                                $q->where('tenant_id', $order->tenant_id)->where('status', 'approved');
+                            })
+                            ->with('consignment.supplier')
+                            ->get();
+
+                        foreach ($cItems as $ci) {
+                            $sisa = max(0, (int) $ci->qty_received - (int) ($ci->qty_sold ?? 0));
+                            if ($sisa > 0) {
+                                $activeConsignments[] = [
+                                    'consignment_item_id' => $ci->id,
+                                    'consignment_id'      => $ci->supplier_consignment_id,
+                                    'reference_number'    => $ci->consignment ? $ci->consignment->reference_number : '-',
+                                    'supplier_name'       => ($ci->consignment && $ci->consignment->supplier) ? $ci->consignment->supplier->name : 'Supplier',
+                                    'sisa_stok'           => $sisa,
+                                ];
+                            }
+                        }
+                    }
+                    $totalTitipanStock = array_sum(array_column($activeConsignments, 'sisa_stok'));
+
                     $items[] = [
                         'id' => $item->id,
                         'sku' => $sku,
@@ -276,12 +300,41 @@ class FulfillmentController extends Controller
                         'original_sku' => $item->original_sku,
                         'original_product_name' => $item->original_product_name,
                         'substitution_note' => $item->substitution_note,
+                        'master_product_id' => $masterProduct ? $masterProduct->id : null,
+                        'active_consignments' => $activeConsignments,
+                        'total_titipan_stock' => $totalTitipanStock,
+                        'gudang_stock' => $masterProduct ? (int) $masterProduct->stock : 0,
                     ];
                 }
             } else {
                 $sku = $item->sku ?? ($masterProduct->sku ?? ($item->marketplaceProduct->marketplace_sku ?? ''));
                 $name = $item->product_name ?? ($masterProduct->name ?? 'Produk Tanpa Nama');
                 $image = $item->product_image ?? ($masterProduct->image_url ?? ($item->marketplaceProduct->image_url ?? ''));
+
+                $activeConsignments = [];
+                if ($masterProduct) {
+                    $cItems = \App\Models\SupplierConsignmentItem::where('master_product_id', $masterProduct->id)
+                        ->whereHas('consignment', function ($q) use ($order) {
+                            $q->where('tenant_id', $order->tenant_id)->where('status', 'approved');
+                        })
+                        ->with('consignment.supplier')
+                        ->get();
+
+                    foreach ($cItems as $ci) {
+                        $sisa = max(0, (int) $ci->qty_received - (int) ($ci->qty_sold ?? 0));
+                        if ($sisa > 0) {
+                            $activeConsignments[] = [
+                                'consignment_item_id' => $ci->id,
+                                'consignment_id'      => $ci->supplier_consignment_id,
+                                'reference_number'    => $ci->consignment ? $ci->consignment->reference_number : '-',
+                                'supplier_name'       => ($ci->consignment && $ci->consignment->supplier) ? $ci->consignment->supplier->name : 'Supplier',
+                                'sisa_stok'           => $sisa,
+                            ];
+                        }
+                    }
+                }
+                $totalTitipanStock = array_sum(array_column($activeConsignments, 'sisa_stok'));
+
                 $items[] = [
                     'id' => $item->id,
                     'sku' => $sku,
@@ -293,6 +346,10 @@ class FulfillmentController extends Controller
                     'original_sku' => $item->original_sku,
                     'original_product_name' => $item->original_product_name,
                     'substitution_note' => $item->substitution_note,
+                    'master_product_id' => $masterProduct ? $masterProduct->id : null,
+                    'active_consignments' => $activeConsignments,
+                    'total_titipan_stock' => $totalTitipanStock,
+                    'gudang_stock' => $masterProduct ? (int) $masterProduct->stock : 0,
                 ];
             }
         }
@@ -335,6 +392,66 @@ class FulfillmentController extends Controller
 
         // Potong stok lokal (jika belum dipotong sebelumnya)
         $order->processStockDeduction();
+
+        // Proses pengurangan stok khusus barang titipan (konsinyasi) jika discan dari barcode titipan
+        $itemSources = $request->input('item_sources', []);
+        if (is_array($itemSources) && !empty($itemSources)) {
+            foreach ($itemSources as $orderItemId => $sources) {
+                $orderItem = $order->items->firstWhere('id', (int) $orderItemId);
+                if (!$orderItem) continue;
+
+                if (is_array($sources)) {
+                    foreach ($sources as $source) {
+                        $srcType = $source['source'] ?? 'warehouse';
+                        $consignmentItemId = $source['consignment_item_id'] ?? null;
+                        $barcode = $source['barcode'] ?? null;
+
+                        if ($srcType === 'consignment' && $consignmentItemId) {
+                            $consItem = \App\Models\SupplierConsignmentItem::where('id', $consignmentItemId)
+                                ->whereHas('consignment', fn($q) => $q->where('tenant_id', $order->tenant_id))
+                                ->first();
+
+                            if ($consItem) {
+                                // Tambah counter barang titipan yang terjual/dikemas
+                                $consItem->increment('qty_sold', 1);
+
+                                // Update OrderItem
+                                $orderItem->update([
+                                    'supplier_consignment_item_id' => $consItem->id,
+                                    'fulfillment_source' => 'consignment',
+                                ]);
+
+                                // Catat audit potongan stok konsinyasi
+                                \App\Models\SupplierConsignmentDeduction::create([
+                                    'tenant_id' => $order->tenant_id,
+                                    'supplier_consignment_item_id' => $consItem->id,
+                                    'order_id' => $order->id,
+                                    'order_item_id' => $orderItem->id,
+                                    'quantity' => 1,
+                                    'scanned_barcode' => $barcode,
+                                    'user_id' => Auth::id(),
+                                ]);
+
+                                // Catat catatan pergerakan stok konsinyasi
+                                StockMovement::create([
+                                    'tenant_id'         => $order->tenant_id,
+                                    'master_product_id' => $consItem->master_product_id,
+                                    'user_id'           => Auth::id(),
+                                    'type'              => 'out',
+                                    'quantity'          => 1,
+                                    'balance_after'     => $consItem->masterProduct ? $consItem->masterProduct->stock : 0,
+                                    'reference'         => "Pengurangan Stok Titipan ({$consItem->consignment->reference_number}) - Order {$order->invoice_number}",
+                                ]);
+                            }
+                        } else {
+                            $orderItem->update([
+                                'fulfillment_source' => ($srcType === 'spk' ? 'spk' : 'warehouse'),
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
 
         $autoShip = $request->boolean('auto_ship');
         $shipped = false;

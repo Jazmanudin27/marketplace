@@ -29,6 +29,8 @@ class OrderItem extends Model
         'original_sku',
         'original_product_name',
         'substitution_note',
+        'supplier_consignment_item_id',
+        'fulfillment_source',
     ];
 
     protected $casts = [
@@ -55,5 +57,10 @@ class OrderItem extends Model
     public function masterProduct(): BelongsTo
     {
         return $this->belongsTo(MasterProduct::class);
+    }
+
+    public function consignmentItem(): BelongsTo
+    {
+        return $this->belongsTo(SupplierConsignmentItem::class, 'supplier_consignment_item_id');
     }
 }

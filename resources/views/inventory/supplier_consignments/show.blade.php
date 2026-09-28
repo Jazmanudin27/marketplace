@@ -32,7 +32,11 @@
                         <p class="text-muted small mb-0">Detail rincian penerimaan barang titipan dari supplier ke gudang master</p>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <a href="{{ route('supplier_consignments.print_labels', $consignment) }}" target="_blank" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm">
+                        <i class="bi bi-upc-scan me-1"></i> Cetak Barcode Produk
+                    </a>
+
                     <button type="button" onclick="window.print()" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                         <i class="bi bi-printer me-1"></i> Cetak Faktur
                     </button>
@@ -146,29 +150,42 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light text-uppercase small fw-bold text-muted">
                         <tr>
-                            <th class="ps-4 text-center" style="width: 50px;">NO</th>
-                            <th style="width: 15%;">SKU</th>
-                            <th style="width: 35%;">NAMA BARANG</th>
-                            <th class="text-center" style="width: 10%;">SATUAN</th>
-                            <th class="text-center" style="width: 10%;">QTY</th>
-                            <th class="text-end" style="width: 13%;">HARGA TITIP (HPP)</th>
-                            <th class="text-end" style="width: 13%;">HARGA JUAL TOKO</th>
+                            <th class="ps-4 text-center" style="width: 40px;">NO</th>
+                            <th style="width: 14%;">SKU</th>
+                            <th style="width: 26%;">NAMA BARANG</th>
+                            <th class="text-center" style="width: 10%;">QTY TITIP</th>
+                            <th class="text-center" style="width: 12%;">TERJUAL (SCAN KEMAS)</th>
+                            <th class="text-center" style="width: 11%;">SISA STOK</th>
+                            <th class="text-end" style="width: 13%;">HARGA TITIP</th>
                             <th class="text-end pe-4" style="width: 14%;">SUBTOTAL HPP</th>
                         </tr>
                     </thead>
                     <tbody>
                         @php
                             $grandTotalQty = 0;
+                            $grandTotalSold = 0;
+                            $grandTotalRemaining = 0;
                             $grandTotalHpp = 0;
                             $grandTotalProfit = 0;
+                            $allDeductions = collect();
                         @endphp
                         @foreach($consignment->items as $index => $item)
                             @php
-                                $subtotalHpp = $item->qty_received * $item->unit_cost_price;
-                                $potentialProfit = $item->qty_received * ($item->unit_selling_price - $item->unit_cost_price);
-                                $grandTotalQty += $item->qty_received;
+                                $qtyTitip = (int) $item->qty_received;
+                                $qtySold = (int) ($item->qty_sold ?? 0);
+                                $qtyRemaining = max(0, $qtyTitip - $qtySold);
+                                $subtotalHpp = $qtyTitip * $item->unit_cost_price;
+                                $potentialProfit = $qtyTitip * ($item->unit_selling_price - $item->unit_cost_price);
+                                
+                                $grandTotalQty += $qtyTitip;
+                                $grandTotalSold += $qtySold;
+                                $grandTotalRemaining += $qtyRemaining;
                                 $grandTotalHpp += $subtotalHpp;
                                 $grandTotalProfit += $potentialProfit;
+
+                                if ($item->deductions && $item->deductions->isNotEmpty()) {
+                                    $allDeductions = $allDeductions->concat($item->deductions);
+                                }
                             @endphp
                             <tr>
                                 <td class="ps-4 text-center text-muted fw-semibold">{{ $index + 1 }}</td>
@@ -181,18 +198,26 @@
                                     {{ $item->masterProduct ? $item->masterProduct->name : 'Produk Terhapus' }}
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                                        {{ $item->masterProduct && $item->masterProduct->unit ? strtoupper($item->masterProduct->unit) : 'PCS' }}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2.5 py-1 font-monospace fs-7">
+                                        {{ number_format($qtyTitip) }} PCS
                                     </span>
                                 </td>
-                                <td class="text-center fw-bold text-dark">
-                                    {{ number_format($item->qty_received) }}
+                                <td class="text-center">
+                                    @if($qtySold > 0)
+                                        <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 px-2.5 py-1 font-monospace fs-7">
+                                            <i class="bi bi-box-seam me-1"></i>{{ number_format($qtySold) }} PCS
+                                        </span>
+                                    @else
+                                        <span class="text-muted small font-monospace">0 PCS</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge {{ $qtyRemaining > 0 ? 'bg-warning bg-opacity-15 text-dark border border-warning' : 'bg-secondary bg-opacity-10 text-muted' }} px-2.5 py-1 font-monospace fs-7">
+                                        {{ number_format($qtyRemaining) }} PCS
+                                    </span>
                                 </td>
                                 <td class="text-end text-muted">
                                     Rp {{ number_format($item->unit_cost_price, 0, ',', '.') }}
-                                </td>
-                                <td class="text-end text-muted">
-                                    Rp {{ number_format($item->unit_selling_price, 0, ',', '.') }}
                                 </td>
                                 <td class="text-end pe-4 fw-bold text-dark">
                                     Rp {{ number_format($subtotalHpp, 0, ',', '.') }}
@@ -204,6 +229,70 @@
             </div>
         </div>
     </div>
+
+    @if($allDeductions->isNotEmpty())
+        <!-- Riwayat Potongan Stok Saat Scan Kemas -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-success text-uppercase small">
+                    <i class="bi bi-qr-code-scan me-2"></i>RIWAYAT PENGURANGAN STOK SAAT SCAN KEMAS PESANAN
+                </h6>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">
+                    {{ $allDeductions->count() }} Kali Terpotong Scan
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light text-muted small">
+                            <tr>
+                                <th class="ps-4" style="width: 50px;">NO</th>
+                                <th>WAKTU SCAN</th>
+                                <th>INVOICE / NO PESANAN</th>
+                                <th>PRODUK</th>
+                                <th class="text-center">JUMLAH POTONG</th>
+                                <th>KODE SCAN</th>
+                                <th>PETUGAS KEMAS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($allDeductions->sortByDesc('created_at') as $idx => $ded)
+                                <tr>
+                                    <td class="ps-4 text-muted">{{ $idx + 1 }}</td>
+                                    <td class="text-muted">{{ $ded->created_at->format('d/m/Y H:i:s') }}</td>
+                                    <td>
+                                        @if($ded->order)
+                                            <a href="{{ route('orders.show', $ded->order_id) }}" class="fw-bold text-primary text-decoration-none" target="_blank">
+                                                {{ $ded->order->invoice_number ?: $ded->order->order_marketplace_id }}
+                                            </a>
+                                            <small class="text-muted d-block">{{ $ded->order->store ? $ded->order->store->store_name : '' }}</small>
+                                        @else
+                                            <span class="text-muted">Order #{{ $ded->order_id }}</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <strong>{{ $ded->consignmentItem && $ded->consignmentItem->masterProduct ? $ded->consignmentItem->masterProduct->name : '-' }}</strong>
+                                        <small class="text-muted d-block font-monospace">{{ $ded->consignmentItem && $ded->consignmentItem->masterProduct ? $ded->consignmentItem->masterProduct->sku : '' }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 font-monospace">
+                                            -{{ $ded->quantity }} PCS
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <code class="small text-dark">{{ $ded->scanned_barcode ?: '-' }}</code>
+                                    </td>
+                                    <td class="text-muted">
+                                        {{ $ded->user ? $ded->user->name : '-' }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <!-- 4. RINCIAN PERHITUNGAN (Pure Bootstrap 5 Card - Right Aligned) -->
     <div class="row justify-content-end">

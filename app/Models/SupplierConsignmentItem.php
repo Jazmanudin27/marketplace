@@ -15,6 +15,7 @@ class SupplierConsignmentItem extends Model
         'supplier_consignment_id',
         'master_product_id',
         'qty_received',
+        'qty_sold',
         'unit_cost_price',
         'unit_selling_price',
         'notes',
@@ -23,6 +24,8 @@ class SupplierConsignmentItem extends Model
     protected $casts = [
         'unit_cost_price' => 'decimal:2',
         'unit_selling_price' => 'decimal:2',
+        'qty_sold' => 'integer',
+        'qty_received' => 'integer',
     ];
 
     public function consignment(): BelongsTo
@@ -40,6 +43,11 @@ class SupplierConsignmentItem extends Model
         return $this->hasMany(SupplierConsignmentSettlementItem::class, 'supplier_consignment_item_id');
     }
 
+    public function deductions(): HasMany
+    {
+        return $this->hasMany(SupplierConsignmentDeduction::class, 'supplier_consignment_item_id');
+    }
+
     public function getQtySettledAttribute(): int
     {
         return (int) $this->settlementItems()
@@ -47,6 +55,11 @@ class SupplierConsignmentItem extends Model
                 $q->where('status', 'approved');
             })
             ->sum('qty_settled');
+    }
+
+    public function getSisaStokAttribute(): int
+    {
+        return max(0, (int) $this->qty_received - (int) ($this->qty_sold ?? 0));
     }
 
     public function getSubtotalHppAttribute(): float
