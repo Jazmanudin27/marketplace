@@ -501,48 +501,93 @@ body.v2-layout {
     color: #ffffff;
 }
 
-/* Buttons Compact */
+/* Buttons Compact with Solid Visible Backgrounds */
 .btn-v2-primary {
-    background-color: #0284c7;
-    color: #ffffff;
-    border: none;
-    padding: 0.35rem 0.85rem;
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+    border: 1px solid #0284c7 !important;
+    padding: 0.32rem 0.8rem;
     border-radius: var(--v2-radius-sm);
     font-weight: 600;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
+    box-shadow: 0 1px 2px rgba(2, 132, 199, 0.2);
 }
 
-.btn-v2-primary:hover {
-    background-color: #0369a1;
-    color: #ffffff;
+.btn-v2-primary:hover,
+.btn-v2-primary:focus,
+.btn-v2-primary:active {
+    background-color: #0369a1 !important;
+    border-color: #0369a1 !important;
+    color: #ffffff !important;
 }
 
 .btn-v2-secondary {
-    background-color: var(--v2-bg-surface);
-    color: var(--v2-text-main);
-    border: 1px solid var(--v2-border);
-    padding: 0.35rem 0.85rem;
+    background-color: #e2e8f0 !important;
+    color: #1e293b !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 0.32rem 0.8rem;
     border-radius: var(--v2-radius-sm);
     font-weight: 600;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
 }
 
-.btn-v2-secondary:hover {
-    border-color: var(--v2-primary);
-    color: var(--v2-primary);
+.btn-v2-secondary:hover,
+.btn-v2-secondary:focus,
+.btn-v2-secondary:active {
+    background-color: #cbd5e1 !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
 }
 
-/* Form inputs small */
+/* Fix default outline button background colors so they're visible immediately */
+.btn-outline-secondary {
+    background-color: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    color: #334155 !important;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:active {
+    background-color: #e2e8f0 !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+.btn-outline-warning {
+    background-color: #fef3c7 !important;
+    color: #b45309 !important;
+    border-color: #fcd34d !important;
+}
+
+.btn-outline-warning:hover,
+.btn-outline-warning:active {
+    background-color: #fde68a !important;
+    color: #78350f !important;
+}
+
+.btn-outline-danger {
+    background-color: #fee2e2 !important;
+    color: #dc2626 !important;
+    border-color: #fca5a5 !important;
+}
+
+.btn-outline-danger:hover,
+.btn-outline-danger:active {
+    background-color: #fecaca !important;
+    color: #991b1b !important;
+}
+
+/* Form inputs small & Select2 Compact */
 .form-control-sm,
 .form-select-sm {
-    font-size: 0.76rem !important;
-    padding: 0.32rem 0.6rem !important;
+    font-size: 0.72rem !important;
+    padding: 0.3rem 0.55rem !important;
     border-radius: 6px !important;
     border-color: var(--v2-border);
     transition: var(--v2-transition);
@@ -552,6 +597,40 @@ body.v2-layout {
 .form-select-sm:focus {
     border-color: #0284c7;
     box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12) !important;
+}
+
+/* Select2 V2 Compact Styling */
+.select2-container--bootstrap-5 .select2-selection {
+    min-height: 29px !important;
+    padding: 0.18rem 0.45rem !important;
+    font-size: 0.72rem !important;
+    border-color: var(--v2-border) !important;
+    border-radius: 6px !important;
+    background-color: var(--v2-bg-surface) !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    padding-left: 0 !important;
+    line-height: 1.4 !important;
+    color: var(--v2-text-main) !important;
+    font-size: 0.72rem !important;
+}
+
+.select2-dropdown {
+    font-size: 0.72rem !important;
+    border-color: var(--v2-border) !important;
+    box-shadow: var(--v2-shadow-md) !important;
+}
+
+.select2-search__field {
+    font-size: 0.72rem !important;
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 4px !important;
+}
+
+.select2-results__option {
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.72rem !important;
 }
 
 /* Stat Mini Cards for Master Data Header */
