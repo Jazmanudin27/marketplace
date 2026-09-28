@@ -7,7 +7,6 @@ import {
   Bell, 
   Building, 
   LogOut, 
-  Search, 
   RotateCw, 
   ChevronDown, 
   Check, 
@@ -100,9 +99,9 @@ const Header = () => {
 
   return (
     <header className="v2-header">
-      {/* Left: Sidebar Toggle, Brand Pill & Search Bar */}
-      <div className="d-flex align-items-center gap-2.5">
-        {/* Toggle Sidebar Button (works for both desktop collapse and mobile drawer) */}
+      {/* Left: Sidebar Toggle & Realtime Clock */}
+      <div className="d-flex align-items-center gap-3">
+        {/* Toggle Sidebar Button */}
         <button 
           className="v2-header-toggle-btn"
           type="button"
@@ -118,33 +117,15 @@ const Header = () => {
           <Menu size={18} />
         </button>
 
-        {/* System & Environment Badge */}
-        <div className="v2-system-badge d-none d-sm-flex align-items-center gap-2">
-          <span className="v2-status-dot-pulse"></span>
-          <span className="v2-system-badge-title">ERP V2</span>
-          <span className="text-secondary opacity-50">/</span>
-          <span className="v2-system-badge-sub">Marketplace Hub</span>
-        </div>
-
-        {/* Global Quick Search Pill */}
-        <div className="v2-header-search d-none d-md-flex align-items-center">
-          <Search size={14} className="text-muted me-2" />
-          <input 
-            type="text" 
-            placeholder="Cari order, produk, toko..." 
-            className="v2-header-search-input"
-          />
-          <kbd className="v2-kbd-badge">Ctrl K</kbd>
+        {/* Realtime Live Clock */}
+        <div className="v2-time-indicator d-none d-sm-flex align-items-center gap-1.5">
+          <Clock size={13} className="text-primary" />
+          <span>{timeString || 'Memuat waktu...'}</span>
         </div>
       </div>
 
       {/* Right: Actions, Sync, Notifications & User Dropdown */}
       <div className="d-flex align-items-center gap-2.5">
-        {/* Realtime Live Clock */}
-        <div className="v2-time-indicator d-none d-lg-flex align-items-center gap-1.5">
-          <Clock size={13} className="text-primary" />
-          <span>{timeString || 'Memuat waktu...'}</span>
-        </div>
 
         {/* Quick Sync Button */}
         <button 
