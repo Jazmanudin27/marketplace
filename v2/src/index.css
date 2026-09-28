@@ -30,6 +30,7 @@ body {
   min-height: 100vh;
 }
 
+/* Sidebar Exact Match */
 .v2-sidebar {
   width: var(--v2-sidebar-width);
   background-color: var(--v2-bg-sidebar);
@@ -52,8 +53,8 @@ body {
 }
 
 .v2-brand-icon {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 6px;
   background: #0284c7;
   color: #ffffff;
@@ -61,6 +62,8 @@ body {
   align-items: center;
   justify-content: center;
   font-weight: 800;
+  font-size: 1.15rem;
+  font-family: 'Outfit', sans-serif;
 }
 
 .v2-brand-name {
@@ -69,6 +72,7 @@ body {
   font-size: 0.95rem;
   color: #ffffff;
   line-height: 1.1;
+  letter-spacing: 0.5px;
 }
 
 .v2-brand-subtitle {
@@ -76,6 +80,7 @@ body {
   text-transform: uppercase;
   color: #64748b;
   font-weight: 600;
+  letter-spacing: 0.8px;
 }
 
 .v2-sidebar-nav {
@@ -84,24 +89,43 @@ body {
   overflow-y: auto;
 }
 
+.v2-sidebar-nav::-webkit-scrollbar {
+  width: 3px;
+}
+.v2-sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
 .v2-nav-section-title {
   font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
   color: #475569;
   padding: 0.6rem 0.6rem 0.25rem;
+  letter-spacing: 0.5px;
+}
+
+.v2-nav-item {
+  margin-bottom: 0.15rem;
 }
 
 .v2-nav-link {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: space-between;
   padding: 0.45rem 0.65rem;
   color: #cbd5e1;
   text-decoration: none;
   border-radius: 4px;
   font-size: 0.78rem;
   transition: all 0.15s ease-in-out;
+}
+
+.v2-nav-link-content {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .v2-nav-link:hover {
@@ -123,6 +147,7 @@ body {
   min-height: 100vh;
 }
 
+/* Header */
 .v2-header {
   height: 52px;
   background-color: var(--v2-bg-header);
@@ -141,6 +166,108 @@ body {
   flex: 1;
 }
 
+/* Page Title Exact Match */
+.v2-page-title-simple {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 1.25rem;
+}
+
+/* Top Stat Cards Exact Match (Blue, Orange, Green, Rose) */
+.stat-card-gradient {
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.stat-card-blue {
+  background: linear-gradient(135deg, #0284c7 0%, #0284c7 100%);
+}
+
+.stat-card-orange {
+  background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%);
+}
+
+.stat-card-green {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+
+.stat-card-rose {
+  background: linear-gradient(135deg, #e11d48 0%, #f43f5e 100%);
+}
+
+.stat-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.stat-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #ffffff;
+}
+
+.stat-icon-topright {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.stat-watermark-icon {
+  position: absolute;
+  right: -10px;
+  bottom: -15px;
+  font-size: 5.5rem;
+  color: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+  line-height: 1;
+}
+
+.stat-number-box {
+  margin-top: 1rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.stat-number-large {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.stat-number-unit {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Card Container */
 .v2-card {
   background-color: var(--v2-bg-surface);
   border: 1px solid var(--v2-border);
@@ -149,94 +276,53 @@ body {
   margin-bottom: 1rem;
 }
 
-.v2-table-responsive {
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.v2-table {
+/* Multi-level Hierarchical Table */
+.v2-table-rekap {
   width: 100%;
   border-collapse: collapse;
-  color: var(--v2-text-main);
-}
-
-.v2-table th {
-  background-color: #f8fafc;
-  color: #475569;
-  font-weight: 700;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--v2-border);
-  border-top: 1px solid var(--v2-border);
-}
-
-.v2-table td {
-  padding: 0.45rem 0.75rem;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--v2-border-subtle);
   font-size: 0.78rem;
+  text-align: center;
 }
 
-.v2-table tbody tr:nth-child(even) {
+.v2-table-rekap th {
   background-color: #f8fafc;
+  color: #334155;
+  font-weight: 700;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  vertical-align: middle;
 }
 
-.v2-table tbody tr:hover {
-  background-color: #e2e8f0;
+.v2-table-rekap td {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  vertical-align: middle;
+  background-color: #ffffff;
 }
 
-.btn-action-icon {
+.v2-table-rekap tr:hover td {
+  background-color: #f1f5f9;
+}
+
+/* Square Icon Action Button (Blue bullet list button in screenshot) */
+.btn-action-icon-blue {
   width: 26px;
   height: 26px;
   padding: 0;
   border-radius: 4px;
+  background-color: #0284c7;
+  color: #ffffff;
+  border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
-  border: none;
+  font-size: 0.8rem;
   cursor: pointer;
 }
 
-.btn-action-edit {
-  background-color: #0284c7;
+.btn-action-icon-blue:hover {
+  background-color: #0369a1;
   color: #ffffff;
-}
-
-.btn-action-delete {
-  background-color: #ef4444;
-  color: #ffffff;
-}
-
-.btn-v2-primary {
-  background-color: #0284c7;
-  color: #ffffff;
-  border: none;
-  padding: 0.35rem 0.85rem;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 0.78rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.btn-v2-secondary {
-  background-color: var(--v2-bg-surface);
-  color: var(--v2-text-main);
-  border: 1px solid var(--v2-border);
-  padding: 0.35rem 0.85rem;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 0.78rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
-  text-decoration: none;
 }
 
 .v2-footer {
