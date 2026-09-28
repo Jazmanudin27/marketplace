@@ -164,6 +164,9 @@
             $('.select2, .v2-select2, select.form-select-sm, select.form-select').each(function() {
                 var $select = $(this);
                 var $container = $select.parent();
+                if ($container.css('position') === 'static') {
+                    $container.css('position', 'relative');
+                }
                 $select.select2({
                     theme: 'bootstrap-5',
                     width: '100%',
