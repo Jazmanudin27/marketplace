@@ -13,6 +13,31 @@ import {
 } from 'lucide-react';
 
 const Sidebar = () => {
+  const [user, setUser] = React.useState({
+    name: 'Ruang Seragam Admin',
+    email: 'admin@ruangseragam.com',
+    tenant_name: 'Ruang Seragam',
+    role: 'ADMIN'
+  });
+
+  React.useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem('v2_user');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const initials = (user.tenant_name || user.name || 'RS')
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
   return (
     <aside className="v2-sidebar">
       {/* Brand Header Exact Match to Screenshot */}
@@ -26,16 +51,18 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Tenant Card Exact Match (SMK ARTANITA / Ruang Seragam) */}
+      {/* Tenant Card Exact Match */}
       <div className="px-2 pt-2 pb-1">
         <div className="p-2 rounded-2 d-flex align-items-center gap-2" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <div className="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold" style={{ width: '28px', height: '28px', fontSize: '0.75rem', flexShrink: 0 }}>
             <Building size={14} />
           </div>
           <div className="overflow-hidden">
-            <div className="text-white text-truncate fw-bold" style={{ fontSize: '0.75rem' }}>Ruang Seragam</div>
+            <div className="text-white text-truncate fw-bold" style={{ fontSize: '0.75rem' }}>
+              {user.tenant_name || user.name || 'Ruang Seragam'}
+            </div>
             <span className="badge bg-primary text-uppercase" style={{ fontSize: '0.6rem', padding: '0.1rem 0.35rem' }}>
-              ADMIN
+              {user.role || 'ADMIN'}
             </span>
           </div>
         </div>
@@ -114,12 +141,12 @@ const Sidebar = () => {
       {/* Sidebar Footer */}
       <div className="v2-sidebar-footer">
         <div className="d-flex align-items-center gap-2">
-          <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style={{ width: '28px', height: '28px', fontSize: '0.75rem' }}>
-            RS
+          <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style={{ width: '28px', height: '28px', fontSize: '0.75rem', flexShrink: 0 }}>
+            {initials}
           </div>
           <div className="overflow-hidden">
-            <div className="text-white fw-semibold" style={{ fontSize: '0.75rem' }}>Ruang Seragam</div>
-            <div className="text-muted" style={{ fontSize: '0.68rem' }}>admin@ruangseragam.com</div>
+            <div className="text-white fw-semibold text-truncate" style={{ fontSize: '0.75rem' }}>{user.name || 'User'}</div>
+            <div className="text-muted text-truncate" style={{ fontSize: '0.68rem' }}>{user.email || ''}</div>
           </div>
         </div>
       </div>
