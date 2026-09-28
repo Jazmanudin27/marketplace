@@ -247,7 +247,7 @@ const Produk = () => {
 
               <div className="col-md-2">
                 <label className="form-label form-label-sm fw-semibold mb-1" style={{ fontSize: '0.72rem' }}>
-                  <Cubes size={12} className="text-muted me-1" />Tipe Produk
+                  <Boxes size={12} className="text-muted me-1" />Tipe Produk
                 </label>
                 <select className="form-select form-select-sm" value={isBundle} onChange={(e) => setIsBundle(e.target.value)}>
                   <option value="">-- Semua Tipe --</option>
