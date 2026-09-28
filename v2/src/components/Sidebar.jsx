@@ -43,7 +43,7 @@ const Sidebar = () => {
 
         <div className="v2-nav-section-title">DATA MASTER</div>
         <div className="v2-nav-item">
-          <NavLink to="/v2/produk" className={({ isActive }) => `v2-nav-link ${isActive ? 'active' : ''}`}>
+          <NavLink to="/produk" className={({ isActive }) => `v2-nav-link ${isActive ? 'active' : ''}`}>
             <Box size={16} />
             <span>Data Produk</span>
           </NavLink>

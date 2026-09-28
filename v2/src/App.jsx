@@ -7,7 +7,7 @@ import Produk from './pages/Produk';
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/v2">
       <div className="v2-wrapper">
         <Sidebar />
         <main className="v2-main-content">
@@ -15,8 +15,8 @@ function App() {
           <div className="v2-body-content">
             <Routes>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/v2/dashboard" element={<Dashboard />} />
-              <Route path="/v2/produk" element={<Produk />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/produk" element={<Produk />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>

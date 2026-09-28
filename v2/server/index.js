@@ -17,12 +17,14 @@ const PORT = process.env.PORT || 5008;
 app.use(cors());
 app.use(express.json());
 
-// API Endpoints: /api/... and alias /api/v2/...
+// API Endpoints: /api, /api/v2, /v2/api
 app.use('/api', apiRouter);
 app.use('/api/v2', apiRouter);
+app.use('/v2/api', apiRouter);
 
-// Serve static React SPA bundle
+// Serve static React SPA bundle for both /v2 and root
 const distPath = path.resolve(__dirname, '../dist');
+app.use('/v2', express.static(distPath));
 app.use(express.static(distPath));
 
 // Catch-all SPA route
