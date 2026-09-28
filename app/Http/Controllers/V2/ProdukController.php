@@ -136,6 +136,8 @@ class ProdukController extends Controller
             'cost_price' => 'nullable|numeric|min:0',
             'stock' => 'nullable|integer|min:0',
             'min_stock' => 'nullable|integer|min:0',
+            'est_kain' => 'nullable|numeric|min:0',
+            'est_biaya_produksi' => 'nullable|numeric|min:0',
             'category_id' => 'nullable',
             'brand_id' => 'nullable',
         ]);
@@ -150,11 +152,12 @@ class ProdukController extends Controller
             'stock' => $request->stock ?? 0,
             'min_stock' => $request->min_stock ?? 5,
             'unit' => $request->unit ?? 'pcs',
+            'est_kain' => $request->est_kain ?? 0,
+            'est_biaya_produksi' => $request->est_biaya_produksi ?? 0,
             'category_id' => $request->category_id ?: null,
             'brand_id' => $request->brand_id ?: null,
             'is_bundle' => $request->filled('is_bundle') ? (bool)$request->is_bundle : false,
             'is_preorder' => $request->filled('is_preorder') ? (bool)$request->is_preorder : false,
-            'description' => $request->description,
         ]);
 
         return redirect()->route('v2.produk.index')->with('success', 'Master produk berhasil diperbarui!');
