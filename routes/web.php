@@ -163,7 +163,11 @@ Route::get('/shopee/debug-sign', function () {
 // =========================================================================
 Route::middleware('auth')->group(function () {
 
+    // Dashboard V2 (Next-Gen UI Preview)
+    Route::get('/dashboard-v2', [DashboardController::class, 'v2'])->name('dashboard.v2');
+
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
     Route::post('/mobile/logout', [LoginController::class, 'mobileLogout'])->name('mobile.logout');
 
     // =========================================================================
