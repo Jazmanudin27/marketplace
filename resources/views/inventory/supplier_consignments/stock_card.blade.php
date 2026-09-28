@@ -1,57 +1,357 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid py-3">
-    <!-- Top Header Banner (Compact Portal Style) -->
-    <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white">
-        <div class="card-body p-3">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-2.5">
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; min-width: 44px;">
-                        <i class="bi bi-card-checklist fs-4"></i>
-                    </div>
-                    <div>
-                        <h5 class="fw-bold mb-0.5 text-dark" style="letter-spacing: -0.2px;">Kartu Stok & Persediaan Konsinyasi</h5>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5 small fw-semibold" style="font-size: 0.7rem;">
-                                <i class="bi bi-circle-fill me-1" style="font-size: 0.45rem;"></i> Laporan Persediaan & Mutasi
-                            </span>
-                            <span class="text-muted small" style="font-size: 0.78rem;">Laporan mutasi persediaan barang titipan, sisa stok, setoran, dan profit toko</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-1.5">
-                    <button type="button" onclick="window.print()" class="btn btn-outline-secondary btn-sm rounded-pill px-3 d-flex align-items-center gap-1">
-                        <i class="bi bi-printer"></i> Cetak
-                    </button>
-                    <a href="{{ route('supplier_consignments.index') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 d-flex align-items-center gap-1">
-                        <i class="bi bi-box-seam"></i> Penerimaan
-                    </a>
-                    @if($selectedSupplierId)
-                        <a href="{{ route('supplier_consignments.settlement.create', ['supplier_id' => $selectedSupplierId]) }}" class="btn btn-success btn-sm rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center gap-1">
-                            <i class="bi bi-cash-stack"></i> Form Setoran
-                        </a>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
+<style>
+    /* Custom Portal Reference Styling matching sekolah.aspartech.com */
+    .portal-stat-card {
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+        padding: 1.35rem 1.5rem;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
 
+    .portal-stat-label {
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #64748b;
+        text-transform: uppercase;
+        margin-bottom: 0.35rem;
+    }
+
+    .portal-stat-value {
+        font-size: 2.1rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.1;
+        margin-bottom: 0.35rem;
+    }
+
+    .portal-stat-sub {
+        font-size: 0.82rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    /* Icon Box Styles - Solid Colored Icon Containers */
+    .icon-box-blue {
+        width: 54px;
+        height: 54px;
+        min-width: 54px;
+        border-radius: 14px;
+        background: #0284c7;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        box-shadow: 0 6px 14px rgba(2, 132, 199, 0.28);
+    }
+
+    .icon-box-green {
+        width: 54px;
+        height: 54px;
+        min-width: 54px;
+        border-radius: 14px;
+        background: #10b981;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        box-shadow: 0 6px 14px rgba(16, 185, 129, 0.28);
+    }
+
+    .icon-box-orange {
+        width: 54px;
+        height: 54px;
+        min-width: 54px;
+        border-radius: 14px;
+        background: #f59e0b;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        box-shadow: 0 6px 14px rgba(245, 158, 11, 0.28);
+    }
+
+    .icon-box-red {
+        width: 54px;
+        height: 54px;
+        min-width: 54px;
+        border-radius: 14px;
+        background: #ef4444;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        box-shadow: 0 6px 14px rgba(239, 68, 68, 0.28);
+    }
+
+    /* Main Section Card */
+    .portal-main-card {
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        padding: 1.75rem;
+    }
+
+    .portal-section-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .portal-status-tag {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #d97706;
+    }
+
+    /* Action Buttons */
+    .btn-outline-portal-green {
+        border: 1.5px solid #10b981;
+        color: #10b981;
+        background: #ffffff;
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 0.5rem 1.15rem;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-outline-portal-green:hover {
+        background: #10b981;
+        color: #ffffff;
+    }
+
+    .btn-portal-blue {
+        background: #0284c7;
+        border: 1.5px solid #0284c7;
+        color: #ffffff;
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 0.5rem 1.25rem;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
+        transition: all 0.2s ease;
+    }
+
+    .btn-portal-blue:hover {
+        background: #0369a1;
+        border-color: #0369a1;
+        color: #ffffff;
+    }
+
+    /* Filter Box Container */
+    .portal-filter-box {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 1.1rem 1.25rem;
+        margin-top: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .portal-form-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.45rem;
+        display: block;
+    }
+
+    .portal-input {
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.875rem;
+        color: #0f172a;
+        background-color: #ffffff;
+        height: 40px;
+        width: 100%;
+    }
+
+    .portal-input:focus {
+        border-color: #0284c7;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+
+    /* Table Design */
+    .portal-table-wrapper {
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .portal-table {
+        margin-bottom: 0;
+        width: 100%;
+    }
+
+    .portal-table thead th {
+        background-color: #f1f5f9;
+        color: #334155;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid #cbd5e1;
+        vertical-align: middle;
+    }
+
+    .portal-table tbody td {
+        padding: 0.95rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: middle;
+        font-size: 0.875rem;
+        color: #1e293b;
+    }
+
+    .portal-table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+</style>
+
+<div class="container-fluid py-4">
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show shadow-sm rounded-3 mb-3 py-2 px-3 small" role="alert">
-            <i class="bi bi-check-circle-fill me-1.5"></i>{{ session('success') }}
-            <button type="button" class="btn-close py-2.5" data-bs-dismiss="alert"></button>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm rounded-3 mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
 
-    <!-- Supplier Filter Card -->
-    <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white">
-        <div class="card-body p-3">
+    @if($selectedSupplierId)
+        <!-- Top Row: 4 Summary Cards (Exact Replica of sekolah.aspartech.com) -->
+        <div class="row g-3 mb-4">
+            <!-- Card 1: Blue Theme -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="portal-stat-card">
+                    <div>
+                        <div class="portal-stat-label">TOTAL BARANG MASUK</div>
+                        <div class="portal-stat-value">{{ number_format($totalReceivedAll) }}</div>
+                        <div class="portal-stat-sub">
+                            <span class="text-primary fw-bold">•</span> Pcs Total Diterima
+                        </div>
+                    </div>
+                    <div class="icon-box-blue">
+                        <i class="bi bi-box-arrow-in-down"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Green Theme -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="portal-stat-card">
+                    <div>
+                        <div class="portal-stat-label">SISA STOK GUDANG</div>
+                        <div class="portal-stat-value text-success">{{ number_format($totalRemainingAll) }}</div>
+                        <div class="portal-stat-sub">
+                            <span class="text-success fw-bold">•</span> Tersedia Siap Jual
+                        </div>
+                    </div>
+                    <div class="icon-box-green">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Orange Theme -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="portal-stat-card">
+                    <div>
+                        <div class="portal-stat-label">TOTAL TERJUAL</div>
+                        <div class="portal-stat-value" style="color: #d97706;">{{ number_format($totalSoldAll) }}</div>
+                        <div class="portal-stat-sub">
+                            <span style="color: #d97706;" class="fw-bold">•</span> Disetor: {{ number_format($totalSettledAll) }} Pcs
+                        </div>
+                    </div>
+                    <div class="icon-box-orange">
+                        <i class="bi bi-bag-check-fill"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: Red Theme -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="portal-stat-card">
+                    <div>
+                        <div class="portal-stat-label">PROFIT TOKO</div>
+                        <div class="portal-stat-value text-danger" style="font-size: 1.6rem; font-family: monospace;">
+                            Rp {{ number_format($totalProfitAll, 0, ',', '.') }}
+                        </div>
+                        <div class="portal-stat-sub">
+                            <span class="text-danger fw-bold">•</span> Margin Keuntungan
+                        </div>
+                    </div>
+                    <div class="icon-box-red">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Main Section Card Container -->
+    <div class="portal-main-card">
+        <!-- Top Section Header Row -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <div class="portal-section-title">
+                    <i class="bi bi-card-checklist text-primary fs-4"></i>
+                    <span>Kartu Stok & Mutasi Persediaan Konsinyasi</span>
+                </div>
+                <div class="mt-1 ms-1">
+                    <span class="text-muted small">Status: </span>
+                    <span class="portal-status-tag">Laporan Persediaan Gudang Master</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" onclick="window.print()" class="btn-outline-portal-green">
+                    <i class="bi bi-printer"></i> Cetak Laporan
+                </button>
+                <a href="{{ route('supplier_consignments.index') }}" class="btn-portal-blue">
+                    <i class="bi bi-box-seam"></i> Penerimaan Barang
+                </a>
+                @if($selectedSupplierId)
+                    <a href="{{ route('supplier_consignments.settlement.create', ['supplier_id' => $selectedSupplierId]) }}" class="btn-outline-portal-green" style="border-color: #10b981; background: #10b981; color: white;">
+                        <i class="bi bi-cash-stack"></i> Form Setoran Supplier
+                    </a>
+                @endif
+            </div>
+        </div>
+
+        <!-- Supplier Filter Box Container -->
+        <div class="portal-filter-box">
             <form method="GET" action="{{ route('supplier_consignments.stock_card') }}">
-                <div class="row g-2 align-items-center">
-                    <div class="col-md-5">
-                        <label class="form-label fw-bold small text-muted text-uppercase mb-1" style="font-size: 0.68rem;">Pilih Supplier Penitip Barang:</label>
-                        <select name="supplier_id" class="form-select form-select-sm rounded-2" onchange="this.form.submit()">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-6">
+                        <label class="portal-form-label">Pilih Supplier Penitip Barang:</label>
+                        <select name="supplier_id" class="portal-input" onchange="this.form.submit()">
                             <option value="">-- Pilih Supplier --</option>
                             @foreach($suppliers as $supplier)
                                 <option value="{{ $supplier->id }}" {{ $selectedSupplierId == $supplier->id ? 'selected' : '' }}>
@@ -60,14 +360,14 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-7 text-md-end pt-1 pt-md-0">
+                    <div class="col-md-6 text-md-end pt-2 pt-md-0">
                         @if($selectedSupplier)
-                            <div class="d-inline-flex align-items-center gap-1.5">
-                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill small" style="font-size: 0.76rem;">
+                            <div class="d-inline-flex align-items-center gap-2">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 px-3 py-2 rounded-pill">
                                     <i class="bi bi-shop me-1"></i> {{ $selectedSupplier->name }}
                                 </span>
                                 @if($selectedSupplier->phone)
-                                    <span class="badge bg-light text-muted border px-2.5 py-1 rounded-pill small" style="font-size: 0.76rem;">
+                                    <span class="badge bg-light text-muted border fs-6 px-3 py-2 rounded-pill">
                                         <i class="bi bi-telephone me-1"></i> {{ $selectedSupplier->phone }}
                                     </span>
                                 @endif
@@ -77,167 +377,63 @@
                 </div>
             </form>
         </div>
-    </div>
 
-    @if($selectedSupplierId)
-        <!-- KPI Metrics Grid (Compact 4 Card Layout) -->
-        <div class="row g-2.5 mb-3">
-            <!-- Card 1: Total Masuk -->
-            <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card border-0 shadow-sm rounded-3 bg-white h-100 p-2.5" style="border: 1px solid #e2e8f0;">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-uppercase fw-bold small text-muted mb-0.5" style="font-size: 0.68rem; letter-spacing: 0.4px;">
-                                TOTAL BARANG MASUK
-                            </div>
-                            <div class="fs-4 fw-bolder text-dark line-height-1" style="font-size: 1.35rem;">
-                                {{ number_format($totalReceivedAll) }}
-                            </div>
-                            <div class="text-muted small mt-1 d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                <span class="text-primary font-weight-bold">•</span>
-                                <span>Pcs Total Diterima</span>
-                            </div>
-                        </div>
-                        <div class="bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; min-width: 40px;">
-                            <i class="bi bi-box-arrow-in-down fs-5"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card 2: Sisa Stok Gudang -->
-            <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card border-0 shadow-sm rounded-3 bg-white h-100 p-2.5" style="border: 1px solid #e2e8f0;">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-uppercase fw-bold small text-muted mb-0.5" style="font-size: 0.68rem; letter-spacing: 0.4px;">
-                                SISA STOK GUDANG
-                            </div>
-                            <div class="fs-4 fw-bolder text-success line-height-1" style="font-size: 1.35rem;">
-                                {{ number_format($totalRemainingAll) }}
-                            </div>
-                            <div class="text-muted small mt-1 d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                <span class="text-success font-weight-bold">•</span>
-                                <span>Tersedia Siap Jual</span>
-                            </div>
-                        </div>
-                        <div class="bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; min-width: 40px;">
-                            <i class="bi bi-check-circle-fill fs-5"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card 3: Total Terjual -->
-            <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card border-0 shadow-sm rounded-3 bg-white h-100 p-2.5" style="border: 1px solid #e2e8f0;">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-uppercase fw-bold small text-muted mb-0.5" style="font-size: 0.68rem; letter-spacing: 0.4px;">
-                                TOTAL TERJUAL
-                            </div>
-                            <div class="fs-4 fw-bolder text-warning line-height-1" style="font-size: 1.35rem; color: #d97706 !important;">
-                                {{ number_format($totalSoldAll) }}
-                            </div>
-                            <div class="text-muted small mt-1 d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                <span class="text-warning font-weight-bold" style="color: #d97706 !important;">•</span>
-                                <span>Sudah Disetor: {{ number_format($totalSettledAll) }} Pcs</span>
-                            </div>
-                        </div>
-                        <div class="bg-warning bg-opacity-15 rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; min-width: 40px;">
-                            <i class="bi bi-bag-check-fill fs-5" style="color: #ea580c;"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card 4: Profit Toko -->
-            <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card border-0 shadow-sm rounded-3 bg-white h-100 p-2.5" style="border: 1px solid #e2e8f0;">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <div class="text-uppercase fw-bold small text-muted mb-0.5" style="font-size: 0.68rem; letter-spacing: 0.4px;">
-                                PROFIT TOKO
-                            </div>
-                            <div class="fs-5 fw-bolder text-danger font-monospace line-height-1" style="font-size: 1.15rem;">
-                                Rp {{ number_format($totalProfitAll, 0, ',', '.') }}
-                            </div>
-                            <div class="text-muted small mt-1 d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                <span class="text-danger font-weight-bold">•</span>
-                                <span>Margin Keuntungan</span>
-                            </div>
-                        </div>
-                        <div class="bg-danger bg-opacity-10 text-danger rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; min-width: 40px;">
-                            <i class="bi bi-graph-up-arrow fs-5"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Table Kartu Stok & Persediaan per Produk -->
-        <div class="card border-0 shadow-sm rounded-3 bg-white">
-            <div class="card-header bg-white p-3 border-bottom" style="border-color: #f1f5f9 !important;">
-                <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.9rem;">
-                    <i class="bi bi-box text-primary me-1.5"></i>MUTASI & STOK PERSEDIAAN PRODUK SUPPLIER {{ $selectedSupplier ? strtoupper($selectedSupplier->name) : '' }}
-                </h6>
-            </div>
-            <div class="card-body p-3">
-                <div class="table-responsive rounded-2 border" style="border-color: #e2e8f0 !important;">
-                    <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
-                        <thead style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+        @if($selectedSupplierId)
+            <!-- Table Mutasi & Persediaan -->
+            <div class="portal-table-wrapper">
+                <table class="table portal-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>SKU & NAMA PRODUK</th>
+                            <th class="text-end">HARGA TITIP (HPP)</th>
+                            <th class="text-end">HARGA JUAL</th>
+                            <th class="text-center">TOTAL MASUK</th>
+                            <th class="text-center">TERJUAL</th>
+                            <th class="text-center">STOK GUDANG</th>
+                            <th class="text-center">SUDAH DISETOR</th>
+                            <th class="text-center">BELUM DISETOR</th>
+                            <th class="text-end">HAK SUPPLIER</th>
+                            <th class="text-end pe-3">PROFIT TOKO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($reportData as $row)
                             <tr>
-                                <th class="ps-2.5 text-muted fw-bold text-uppercase py-2" style="font-size: 0.68rem; letter-spacing: 0.4px;">SKU & NAMA PRODUK</th>
-                                <th class="text-end text-muted fw-bold text-uppercase py-2" style="font-size: 0.68rem; letter-spacing: 0.4px;">HARGA TITIP (HPP)</th>
-                                <th class="text-end text-muted fw-bold text-uppercase py-2" style="font-size: 0.68rem; letter-spacing: 0.4px;">HARGA JUAL</th>
-                                <th class="text-center text-muted fw-bold text-uppercase py-2" style="font-size: 0.68rem; letter-spacing: 0.4px;">TOTAL MASUK</th>
-                                <th class="text-center text-muted fw-bold text-uppercase py-2" style="font-size: 0.68rem; letter-spacing: 0.4px;">TERJUAL</th>
-                                <th class="text-center text-muted fw-bold text-uppercase py-2" style="font-size: 0.68rem; letter-spacing: 0.4px;">STOK GUDANG</th>
-                                <th class="text-center text-muted fw-bold text-uppercase py-2" style="font-size: 0.68rem; letter-spacing: 0.4px;">SUDAH DISETOR</th>
-                                <th class="text-center text-muted fw-bold text-uppercase py-2" style="font-size: 0.68rem; letter-spacing: 0.4px;">BELUM DISETOR</th>
-                                <th class="text-end text-muted fw-bold text-uppercase py-2" style="font-size: 0.68rem; letter-spacing: 0.4px;">HAK SUPPLIER</th>
-                                <th class="text-end pe-2.5 text-muted fw-bold text-uppercase py-2" style="font-size: 0.68rem; letter-spacing: 0.4px;">PROFIT TOKO</th>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ $row['name'] }}</div>
+                                    <span class="badge bg-light text-dark border font-monospace mt-1">SKU: {{ $row['sku'] }}</span>
+                                </td>
+                                <td class="text-end font-monospace text-muted">Rp {{ number_format($row['unit_cost'], 0, ',', '.') }}</td>
+                                <td class="text-end font-monospace text-muted">Rp {{ number_format($row['unit_selling'], 0, ',', '.') }}</td>
+                                <td class="text-center font-monospace fw-semibold">{{ number_format($row['qty_received']) }} {{ $row['unit'] }}</td>
+                                <td class="text-center font-monospace fw-bold text-info">{{ number_format($row['qty_sold']) }} {{ $row['unit'] }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-3 py-1.5 font-monospace fw-bold">
+                                        {{ number_format($row['current_stock']) }} {{ $row['unit'] }}
+                                    </span>
+                                </td>
+                                <td class="text-center font-monospace fw-bold text-success">{{ number_format($row['qty_settled']) }} {{ $row['unit'] }}</td>
+                                <td class="text-center font-monospace fw-bold text-danger">{{ number_format($row['qty_unsettled']) }} {{ $row['unit'] }}</td>
+                                <td class="text-end fw-semibold text-dark font-monospace">Rp {{ number_format($row['nominal_paid'], 0, ',', '.') }}</td>
+                                <td class="text-end pe-3 fw-bold text-success font-monospace">+Rp {{ number_format($row['profit_total'], 0, ',', '.') }}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($reportData as $row)
-                                <tr>
-                                    <td class="ps-2.5 py-1.5">
-                                        <div class="fw-bold text-dark" style="font-size: 0.82rem;">{{ $row['name'] }}</div>
-                                        <span class="badge bg-light text-dark border font-monospace mt-0.5" style="font-size: 0.7rem;">SKU: {{ $row['sku'] }}</span>
-                                    </td>
-                                    <td class="text-end font-monospace text-muted py-1.5" style="font-size: 0.8rem;">Rp {{ number_format($row['unit_cost'], 0, ',', '.') }}</td>
-                                    <td class="text-end font-monospace text-muted py-1.5" style="font-size: 0.8rem;">Rp {{ number_format($row['unit_selling'], 0, ',', '.') }}</td>
-                                    <td class="text-center font-monospace fw-semibold py-1.5" style="font-size: 0.8rem;">{{ number_format($row['qty_received']) }} {{ $row['unit'] }}</td>
-                                    <td class="text-center font-monospace fw-bold text-info py-1.5" style="font-size: 0.8rem;">{{ number_format($row['qty_sold']) }} {{ $row['unit'] }}</td>
-                                    <td class="text-center py-1.5">
-                                        <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2 py-0.5 font-monospace fw-bold" style="font-size: 0.76rem;">
-                                            {{ number_format($row['current_stock']) }} {{ $row['unit'] }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center font-monospace fw-bold text-success py-1.5" style="font-size: 0.8rem;">{{ number_format($row['qty_settled']) }} {{ $row['unit'] }}</td>
-                                    <td class="text-center font-monospace fw-bold text-danger py-1.5" style="font-size: 0.8rem;">{{ number_format($row['qty_unsettled']) }} {{ $row['unit'] }}</td>
-                                    <td class="text-end fw-semibold text-dark font-monospace py-1.5" style="font-size: 0.8rem;">Rp {{ number_format($row['nominal_paid'], 0, ',', '.') }}</td>
-                                    <td class="text-end pe-2.5 fw-bold text-success font-monospace py-1.5" style="font-size: 0.8rem;">+Rp {{ number_format($row['profit_total'], 0, ',', '.') }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="10" class="text-center py-4 text-muted small">
-                                        <i class="bi bi-inbox fs-3 d-block mb-1 text-secondary"></i>
-                                        Belum ada data barang konsinyasi untuk supplier ini.
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                        @empty
+                            <tr>
+                                <td colspan="10" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+                                    Belum ada data barang konsinyasi untuk supplier ini.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
-        </div>
-    @else
-        <div class="card border-0 shadow-sm rounded-3 p-4 text-center text-muted bg-white">
-            <i class="bi bi-building fs-2 d-block mb-2 text-secondary"></i>
-            <h6 class="fw-semibold">Silakan Pilih Supplier di atas untuk Melihat Kartu Stok & Mutasi</h6>
-        </div>
-    @endif
+        @else
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-building fs-1 d-block mb-2 text-secondary"></i>
+                <h6>Silakan Pilih Supplier di atas untuk Melihat Kartu Stok & Mutasi</h6>
+            </div>
+        @endif
+    </div>
 </div>
 @endsection
