@@ -142,7 +142,7 @@
         <h6 class="v2-card-title d-flex align-items-center gap-2">
             <i class="bi bi-shop text-primary"></i> Status Hub Integrasi Toko Marketplace
         </h6>
-        <a href="{{ route('marketplace.stores.index') }}" class="btn btn-sm btn-link p-0 text-decoration-none" style="font-size: 0.75rem;">Kelola Toko &rarr;</a>
+        <a href="{{ Route::has('stores.index') ? route('stores.index') : url('/marketplace/stores') }}" class="btn btn-sm btn-link p-0 text-decoration-none" style="font-size: 0.75rem;">Kelola Toko &rarr;</a>
     </div>
     <div class="v2-card-body p-2">
         <div class="row g-2">
@@ -182,7 +182,7 @@
                 </div>
             @empty
                 <div class="col-12 text-center py-2 text-muted" style="font-size: 0.78rem;">
-                    Belum ada toko marketplace terhubung. <a href="{{ route('marketplace.stores.index') }}" class="text-primary fw-bold">Hubungkan Toko Sekarang</a>
+                    Belum ada toko marketplace terhubung. <a href="{{ Route::has('stores.index') ? route('stores.index') : url('/marketplace/stores') }}" class="text-primary fw-bold">Hubungkan Toko Sekarang</a>
                 </div>
             @endforelse
         </div>
