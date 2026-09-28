@@ -1,39 +1,88 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Clock, Bell, Building, LogOut, UserCheck } from 'lucide-react';
+import { useLayout } from '../context/LayoutContext';
+import { 
+  Menu, 
+  Clock, 
+  Bell, 
+  Building, 
+  LogOut, 
+  Search, 
+  RotateCw, 
+  ChevronDown, 
+  Check, 
+  ExternalLink,
+  Shield,
+  User as UserIcon,
+  Sparkles,
+  Store,
+  CheckCircle2,
+  AlertTriangle
+} from 'lucide-react';
 
 const Header = () => {
-  const [timeString, setTimeString] = useState('');
-  const [user, setUser] = useState({
-    name: 'Admin',
-    email: 'admin@aspartech.com',
-    tenant_name: 'Marketplace Store',
-    role: 'admin'
-  });
-
+  const { toggleSidebar, toggleMobileSidebar } = useLayout();
   const navigate = useNavigate();
 
+  const [timeString, setTimeString] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+
+  const profileRef = useRef(null);
+  const notifRef = useRef(null);
+
+  const [user, setUser] = useState({
+    name: 'Ruang Seragam Admin',
+    email: 'admin@ruangseragam.com',
+    tenant_name: 'Ruang Seragam',
+    role: 'ADMIN'
+  });
+
+  // Realtime clock
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
-      const options = { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+      const options = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
       setTimeString(now.toLocaleDateString('id-ID', options).replace(/\./g, ':'));
     };
     updateClock();
     const interval = setInterval(updateClock, 1000);
 
-    // Load user data from localStorage
+    // Read stored user
     try {
       const savedUser = localStorage.getItem('v2_user');
       if (savedUser) {
         setUser(JSON.parse(savedUser));
       }
     } catch (e) {
-      console.error('Failed to parse v2_user:', e);
+      console.error(e);
     }
 
     return () => clearInterval(interval);
   }, []);
+
+  // Click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileDropdownOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSyncNow = () => {
+    setIsSyncing(true);
+    setTimeout(() => {
+      setIsSyncing(false);
+    }, 1200);
+  };
 
   const handleLogout = (e) => {
     e.preventDefault();
@@ -42,56 +91,234 @@ const Header = () => {
     navigate('/login', { replace: true });
   };
 
+  const initials = (user.tenant_name || user.name || 'RS')
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
   return (
     <header className="v2-header">
-      <div className="d-flex align-items-center gap-3">
-        <button className="btn btn-sm btn-outline-secondary py-1 px-2 d-lg-none" type="button">
-          <Menu size={16} />
+      {/* Left: Sidebar Toggle, Brand Pill & Search Bar */}
+      <div className="d-flex align-items-center gap-2.5">
+        {/* Toggle Sidebar Button (works for both desktop collapse and mobile drawer) */}
+        <button 
+          className="v2-header-toggle-btn"
+          type="button"
+          onClick={() => {
+            if (window.innerWidth < 992) {
+              toggleMobileSidebar();
+            } else {
+              toggleSidebar();
+            }
+          }}
+          title="Toggle Navigasi Sidebar"
+        >
+          <Menu size={18} />
         </button>
 
-        {/* Realtime Date & Time Indicator */}
-        <div className="text-muted d-none d-md-flex align-items-center gap-2 fw-medium" style={{ fontSize: '0.78rem' }}>
-          <Clock size={14} />
-          <span>{timeString || '28 September 2026 • 14:49:27'}</span>
+        {/* System & Environment Badge */}
+        <div className="v2-system-badge d-none d-sm-flex align-items-center gap-2">
+          <span className="v2-status-dot-pulse"></span>
+          <span className="v2-system-badge-title">ERP V2</span>
+          <span className="text-secondary opacity-50">/</span>
+          <span className="v2-system-badge-sub">Marketplace Hub</span>
+        </div>
+
+        {/* Global Quick Search Pill */}
+        <div className="v2-header-search d-none d-md-flex align-items-center">
+          <Search size={14} className="text-muted me-2" />
+          <input 
+            type="text" 
+            placeholder="Cari order, produk, toko..." 
+            className="v2-header-search-input"
+          />
+          <kbd className="v2-kbd-badge">Ctrl K</kbd>
         </div>
       </div>
 
-      {/* Header Actions */}
-      <div className="v2-header-actions d-flex align-items-center gap-2">
-        {/* Notification Bell */}
-        <div className="dropdown">
-          <button className="v2-icon-btn position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifikasi">
-            <Bell size={15} />
-            <span className="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
-          </button>
+      {/* Right: Actions, Sync, Notifications & User Dropdown */}
+      <div className="d-flex align-items-center gap-2.5">
+        {/* Realtime Live Clock */}
+        <div className="v2-time-indicator d-none d-lg-flex align-items-center gap-1.5">
+          <Clock size={13} className="text-primary" />
+          <span>{timeString || 'Memuat waktu...'}</span>
         </div>
 
-        {/* School / Tenant Badge Pill */}
-        <div className="dropdown">
-          <button className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 py-1 px-2 rounded-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style={{ fontSize: '0.78rem', background: '#ffffff' }}>
-            <div className="bg-success text-white rounded d-flex align-items-center justify-content-center fw-bold" style={{ width: '20px', height: '20px', fontSize: '0.65rem' }}>
-              <Building size={12} />
-            </div>
-            <span className="fw-bold text-dark">{user.tenant_name || user.name || 'Ruang Seragam'}</span>
+        {/* Quick Sync Button */}
+        <button 
+          type="button" 
+          onClick={handleSyncNow}
+          className="v2-header-action-btn"
+          title="Sinkronisasi Marketplace Sekarang"
+        >
+          <RotateCw size={15} className={isSyncing ? 'spin text-primary' : 'text-secondary'} />
+          <span className="d-none d-xl-inline ms-1 fw-medium" style={{ fontSize: '0.75rem' }}>
+            {isSyncing ? 'Menyinkron...' : 'Sync Toko'}
+          </span>
+        </button>
+
+        {/* Notification Bell Dropdown */}
+        <div className="position-relative" ref={notifRef}>
+          <button 
+            type="button" 
+            className="v2-header-action-btn position-relative"
+            onClick={() => setNotifDropdownOpen(prev => !prev)}
+            title="Notifikasi Sistem"
+          >
+            <Bell size={16} />
+            <span className="v2-notif-pill">3</span>
           </button>
-          <ul className="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-1" style={{ fontSize: '0.78rem' }}>
-            <li className="px-3 py-1 border-bottom">
-              <div className="fw-bold text-dark">{user.name || 'User'}</div>
-              <div className="text-muted" style={{ fontSize: '0.7rem' }}>{user.email || ''}</div>
-              <span className="badge bg-primary-subtle text-primary text-uppercase mt-1" style={{ fontSize: '0.6rem' }}>
-                {user.role || 'user'}
-              </span>
-            </li>
-            <li>
-              <button 
-                type="button" 
-                onClick={handleLogout} 
-                className="dropdown-item text-danger fw-semibold py-1 d-flex align-items-center"
-              >
-                <LogOut size={14} className="me-2" /> Keluar / Logout
-              </button>
-            </li>
-          </ul>
+
+          {/* Interactive Notifications Popup Menu */}
+          {notifDropdownOpen && (
+            <div className="v2-dropdown-panel v2-notif-dropdown animate-fade-in">
+              <div className="v2-dropdown-header d-flex align-items-center justify-content-between">
+                <span className="fw-bold text-dark" style={{ fontSize: '0.82rem' }}>Pemberitahuan Sistem</span>
+                <span className="badge bg-primary rounded-pill px-2 py-0.5" style={{ fontSize: '0.62rem' }}>3 Baru</span>
+              </div>
+              <div className="v2-notif-list">
+                <div className="v2-notif-item unread">
+                  <div className="v2-notif-icon bg-danger-subtle text-danger">
+                    <Store size={14} />
+                  </div>
+                  <div className="v2-notif-content">
+                    <div className="v2-notif-title">Pesanan Baru Masuk (Shopee)</div>
+                    <div className="v2-notif-desc">Pesanan #SP-8821 senilai Rp 185.000 siap diproses.</div>
+                    <div className="v2-notif-time">2 menit lalu</div>
+                  </div>
+                </div>
+
+                <div className="v2-notif-item unread">
+                  <div className="v2-notif-icon bg-warning-subtle text-warning">
+                    <AlertTriangle size={14} />
+                  </div>
+                  <div className="v2-notif-content">
+                    <div className="v2-notif-title">Peringatan Stok Menipis</div>
+                    <div className="v2-notif-desc">Produk 'Seragam Putih OSIS L' sisa 2 pcs di gudang.</div>
+                    <div className="v2-notif-time">15 menit lalu</div>
+                  </div>
+                </div>
+
+                <div className="v2-notif-item">
+                  <div className="v2-notif-icon bg-success-subtle text-success">
+                    <CheckCircle2 size={14} />
+                  </div>
+                  <div className="v2-notif-content">
+                    <div className="v2-notif-title">Sinkronisasi Toko Sukses</div>
+                    <div className="v2-notif-desc">3 Channel toko aktif (Shopee, TikTok, Lazada) terhubung.</div>
+                    <div className="v2-notif-time">1 jam lalu</div>
+                  </div>
+                </div>
+              </div>
+              <div className="v2-dropdown-footer text-center">
+                <button 
+                  type="button" 
+                  className="btn btn-sm btn-link text-decoration-none text-primary fw-semibold p-0"
+                  style={{ fontSize: '0.74rem' }}
+                  onClick={() => setNotifDropdownOpen(false)}
+                >
+                  Tandai semua sudah dibaca
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* User Profile & Tenant Pill with Interactive Dropdown */}
+        <div className="position-relative" ref={profileRef}>
+          <button 
+            type="button" 
+            className="v2-profile-pill-btn"
+            onClick={() => setProfileDropdownOpen(prev => !prev)}
+            aria-expanded={profileDropdownOpen}
+          >
+            <div className="v2-profile-avatar-gradient">
+              {initials}
+              <span className="v2-avatar-online-dot"></span>
+            </div>
+            <div className="d-none d-md-flex flex-column text-start">
+              <span className="v2-profile-name">{user.name || 'User'}</span>
+              <span className="v2-profile-tenant">{user.tenant_name || 'Ruang Seragam'}</span>
+            </div>
+            <ChevronDown 
+              size={14} 
+              className={`v2-profile-chevron ${profileDropdownOpen ? 'rotate-180' : ''}`} 
+            />
+          </button>
+
+          {/* Interactive Profile Dropdown Menu */}
+          {profileDropdownOpen && (
+            <div className="v2-dropdown-panel v2-profile-dropdown animate-fade-in">
+              {/* User Header Details */}
+              <div className="v2-profile-dropdown-header">
+                <div className="d-flex align-items-center gap-2.5">
+                  <div className="v2-profile-avatar-large">
+                    {initials}
+                  </div>
+                  <div className="overflow-hidden">
+                    <div className="fw-bold text-dark text-truncate" style={{ fontSize: '0.85rem' }}>
+                      {user.name || 'User'}
+                    </div>
+                    <div className="text-muted text-truncate" style={{ fontSize: '0.72rem' }}>
+                      {user.email || 'user@aspartech.com'}
+                    </div>
+                    <div className="d-flex align-items-center gap-1 mt-1">
+                      <span className="badge bg-primary text-uppercase" style={{ fontSize: '0.58rem', padding: '0.15rem 0.4rem' }}>
+                        {user.role || 'ADMIN'}
+                      </span>
+                      <span className="badge bg-success-subtle text-success" style={{ fontSize: '0.58rem' }}>
+                        {user.tenant_name || 'Toko Utama'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Menu Links */}
+              <div className="v2-dropdown-menu-list">
+                <a 
+                  href="#profile" 
+                  className="v2-dropdown-item"
+                  onClick={(e) => { e.preventDefault(); setProfileDropdownOpen(false); }}
+                >
+                  <UserIcon size={14} className="text-secondary" />
+                  <span>Profil Akun Saya</span>
+                </a>
+                <a 
+                  href="#toko" 
+                  className="v2-dropdown-item"
+                  onClick={(e) => { e.preventDefault(); setProfileDropdownOpen(false); }}
+                >
+                  <Store size={14} className="text-secondary" />
+                  <span>Kelola Toko Marketplace</span>
+                </a>
+                <a 
+                  href="/dashboard" 
+                  className="v2-dropdown-item text-warning-emphasis"
+                  onClick={() => setProfileDropdownOpen(false)}
+                >
+                  <ExternalLink size={14} className="text-warning" />
+                  <span>Buka Portal ERP V1</span>
+                </a>
+              </div>
+
+              <div className="v2-dropdown-divider"></div>
+
+              {/* Logout Button */}
+              <div className="p-1">
+                <button 
+                  type="button" 
+                  onClick={handleLogout} 
+                  className="v2-dropdown-item text-danger fw-semibold w-100"
+                >
+                  <LogOut size={14} className="text-danger" />
+                  <span>Keluar / Logout</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

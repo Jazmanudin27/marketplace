@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard';
 import Produk from './pages/Produk';
 import Login from './pages/Login';
 
+import { LayoutProvider, useLayout } from './context/LayoutContext';
+
 // Protected Route Component: checks for v2_token in localStorage
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('v2_token');
@@ -15,10 +17,20 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Main Layout for authenticated pages
-const AppLayout = ({ children }) => {
+// Internal Layout Component consuming context
+const LayoutInner = ({ children }) => {
+  const { sidebarCollapsed, mobileSidebarOpen, closeMobileSidebar } = useLayout();
+
   return (
-    <div className="v2-wrapper">
+    <div className={`v2-wrapper ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {/* Mobile Drawer Backdrop */}
+      {mobileSidebarOpen && (
+        <div 
+          className="v2-sidebar-backdrop" 
+          onClick={closeMobileSidebar}
+          aria-hidden="true"
+        />
+      )}
       <Sidebar />
       <main className="v2-main-content">
         <Header />
@@ -36,6 +48,17 @@ const AppLayout = ({ children }) => {
         </footer>
       </main>
     </div>
+  );
+};
+
+// Main Layout for authenticated pages
+const AppLayout = ({ children }) => {
+  return (
+    <LayoutProvider>
+      <LayoutInner>
+        {children}
+      </LayoutInner>
+    </LayoutProvider>
   );
 };
 
