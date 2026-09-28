@@ -166,9 +166,16 @@ Route::middleware('auth')->group(function () {
  
 
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-
-
     Route::post('/mobile/logout', [LoginController::class, 'mobileLogout'])->name('mobile.logout');
+
+    // =========================================================================
+    // V2 ADMIN TEMPLATE & DASHBOARD (Bootstrap 5 + jQuery + Blade)
+    // =========================================================================
+    Route::prefix('v2')->name('v2.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\V2\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard', [\App\Http\Controllers\V2\DashboardController::class, 'index']);
+        Route::get('/produk', [\App\Http\Controllers\V2\ProdukController::class, 'index'])->name('produk.index');
+    });
 
     // =========================================================================
     // Master Data & Pengaturan Hak Akses
