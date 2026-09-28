@@ -74,7 +74,7 @@
                     </div>
 
                     <!-- Sync Store Quick Button -->
-                    <a href="{{ Route::has('stock_sync.index') ? route('stock_sync.index') : url('/v2/produk') }}" class="btn btn-sm btn-outline-secondary py-1 px-2 d-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                    <a href="{{ Route::has('stock_sync.index') ? route('stock_sync.index') : url('/v2/produk') }}" class="btn btn-sm btn-v2-secondary py-1 px-2.5 d-flex align-items-center gap-1" style="font-size: 0.75rem;">
                         <i class="bi bi-arrow-repeat text-primary"></i> Sync Toko
                     </a>
 
@@ -159,14 +159,17 @@
             $('#realtimeClock').text(timeStr);
         }, 1000);
 
-        // Auto initialize Select2 for all select fields
+        // Auto initialize Select2 for all select fields with relative dropdownParent for perfect alignment
         $(document).ready(function() {
             $('.select2, .v2-select2, select.form-select-sm, select.form-select').each(function() {
-                $(this).select2({
+                var $select = $(this);
+                var $container = $select.parent();
+                $select.select2({
                     theme: 'bootstrap-5',
                     width: '100%',
-                    placeholder: $(this).data('placeholder') || '-- Pilih --',
-                    allowClear: true
+                    placeholder: $select.data('placeholder') || '-- Pilih --',
+                    allowClear: true,
+                    dropdownParent: $container
                 });
             });
         });

@@ -571,16 +571,70 @@ body.v2-layout {
     color: #78350f !important;
 }
 
-.btn-outline-danger {
-    background-color: #fee2e2 !important;
-    color: #dc2626 !important;
-    border-color: #fca5a5 !important;
+.btn-v2-danger {
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    border: 1px solid #ef4444 !important;
+    padding: 0.32rem 0.8rem;
+    border-radius: var(--v2-radius-sm);
+    font-weight: 600;
+    font-size: 0.72rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    box-shadow: 0 1px 2px rgba(239, 68, 68, 0.2);
 }
 
-.btn-outline-danger:hover,
-.btn-outline-danger:active {
-    background-color: #fecaca !important;
-    color: #991b1b !important;
+.btn-v2-danger:hover,
+.btn-v2-danger:focus,
+.btn-v2-danger:active {
+    background-color: #dc2626 !important;
+    border-color: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+.btn-v2-warning {
+    background-color: #f59e0b !important;
+    color: #ffffff !important;
+    border: 1px solid #f59e0b !important;
+    padding: 0.32rem 0.8rem;
+    border-radius: var(--v2-radius-sm);
+    font-weight: 600;
+    font-size: 0.72rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    box-shadow: 0 1px 2px rgba(245, 158, 11, 0.2);
+}
+
+.btn-v2-warning:hover,
+.btn-v2-warning:focus,
+.btn-v2-warning:active {
+    background-color: #d97706 !important;
+    border-color: #d97706 !important;
+    color: #ffffff !important;
+}
+
+.btn-v2-success {
+    background-color: #10b981 !important;
+    color: #ffffff !important;
+    border: 1px solid #10b981 !important;
+    padding: 0.32rem 0.8rem;
+    border-radius: var(--v2-radius-sm);
+    font-weight: 600;
+    font-size: 0.72rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    box-shadow: 0 1px 2px rgba(16, 185, 129, 0.2);
+}
+
+.btn-v2-success:hover,
+.btn-v2-success:focus,
+.btn-v2-success:active {
+    background-color: #059669 !important;
+    border-color: #059669 !important;
+    color: #ffffff !important;
 }
 
 /* Form inputs small & Select2 Compact */

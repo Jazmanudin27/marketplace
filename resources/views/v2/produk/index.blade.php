@@ -149,7 +149,7 @@
             </span>
         </h6>
         <div class="d-flex align-items-center gap-2">
-            <a href="{{ url('/v2/produk?link_status=unlinked') }}" class="btn btn-sm btn-outline-danger py-0.5 px-2" style="font-size: 0.7rem;">
+            <a href="{{ url('/v2/produk?link_status=unlinked') }}" class="btn btn-sm btn-v2-danger py-0.5 px-2" style="font-size: 0.7rem;">
                 <i class="bi bi-exclamation-circle me-1"></i> Filter Belum Linked ({{ $counts['unlinked'] }})
             </a>
         </div>
@@ -277,12 +277,16 @@
                             </td>
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-1">
-                                    <button class="btn-action-icon btn-action-edit" title="Edit Produk" onclick="alert('Fitur Edit Master Produk V2!')">
+                                    <a href="{{ Route::has('products.edit') ? route('products.edit', $prod->id) : url('/products/'.$prod->id.'/edit') }}" class="btn-action-icon btn-action-edit" title="Edit Master Produk">
                                         <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn-action-icon btn-action-delete" title="Hapus Produk" onclick="alert('Hapus produk master!')">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                    </a>
+                                    <form action="{{ Route::has('products.destroy') ? route('products.destroy', $prod->id) : url('/products/'.$prod->id) }}" method="POST" class="d-inline m-0 p-0">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button" class="btn-action-icon btn-action-delete confirm-delete" title="Hapus Produk" data-name="{{ $prod->name }}">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -311,4 +315,28 @@
         </div>
     @endif
 </div>
+
+@push('scripts')
+<script>
+    $(document).on('click', '.confirm-delete', function(e) {
+        e.preventDefault();
+        var form = $(this).closest('form');
+        var name = $(this).data('name') || 'Produk';
+        Swal.fire({
+            title: 'Hapus Master Produk?',
+            text: 'Apakah Anda yakin ingin menghapus master produk "' + name + '"?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    });
+</script>
+@endpush
 @endsection
