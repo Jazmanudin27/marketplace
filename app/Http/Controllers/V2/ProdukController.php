@@ -112,4 +112,62 @@ class ProdukController extends Controller
             'counts'
         ));
     }
+
+    public function edit($id)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $product = MasterProduct::where('tenant_id', $tenantId)->findOrFail($id);
+
+        $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
+
+        return view('v2.produk.edit', compact('product', 'categories', 'brands'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $product = MasterProduct::where('tenant_id', $tenantId)->findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'sku' => 'required|string|max:100',
+            'price' => 'nullable|numeric|min:0',
+            'cost_price' => 'nullable|numeric|min:0',
+            'stock' => 'nullable|integer|min:0',
+            'min_stock' => 'nullable|integer|min:0',
+            'category_id' => 'nullable',
+            'brand_id' => 'nullable',
+        ]);
+
+        $product->update([
+            'name' => $request->name,
+            'sku' => $request->sku,
+            'sku_induk' => $request->sku_induk ?? $request->sku,
+            'price' => $request->price ?? 0,
+            'selling_price' => $request->price ?? 0,
+            'cost_price' => $request->cost_price ?? 0,
+            'stock' => $request->stock ?? 0,
+            'min_stock' => $request->min_stock ?? 5,
+            'unit' => $request->unit ?? 'pcs',
+            'category_id' => $request->category_id ?: null,
+            'brand_id' => $request->brand_id ?: null,
+            'is_bundle' => $request->filled('is_bundle') ? (bool)$request->is_bundle : false,
+            'is_preorder' => $request->filled('is_preorder') ? (bool)$request->is_preorder : false,
+            'description' => $request->description,
+        ]);
+
+        return redirect()->route('v2.produk.index')->with('success', 'Master produk berhasil diperbarui!');
+    }
+
+    public function destroy($id)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $product = MasterProduct::where('tenant_id', $tenantId)->findOrFail($id);
+
+        $productName = $product->name;
+        $product->delete();
+
+        return redirect()->route('v2.produk.index')->with('success', "Master produk \"{$productName}\" berhasil dihapus!");
+    }
 }

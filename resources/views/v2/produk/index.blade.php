@@ -277,10 +277,10 @@
                             </td>
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-1">
-                                    <a href="{{ Route::has('products.edit') ? route('products.edit', $prod->id) : url('/products/'.$prod->id.'/edit') }}" class="btn-action-icon btn-action-edit" title="Edit Master Produk">
+                                    <a href="{{ route('v2.produk.edit', $prod->id) }}" class="btn-action-icon btn-action-edit" title="Edit Master Produk V2">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <form action="{{ Route::has('products.destroy') ? route('products.destroy', $prod->id) : url('/products/'.$prod->id) }}" method="POST" class="d-inline m-0 p-0">
+                                    <form action="{{ route('v2.produk.destroy', $prod->id) }}" method="POST" class="d-inline m-0 p-0">
                                         @csrf
                                         @method('DELETE')
                                         <button type="button" class="btn-action-icon btn-action-delete confirm-delete" title="Hapus Produk" data-name="{{ $prod->name }}">
