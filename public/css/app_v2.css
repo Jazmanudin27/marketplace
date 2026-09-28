@@ -40,7 +40,7 @@
     --v2-radius-md: 6px;
     --v2-radius-lg: 8px;
 
-    --v2-sidebar-width: 250px;
+    --v2-sidebar-width: 230px;
     --v2-transition: all 0.15s ease-in-out;
 }
 
@@ -61,15 +61,16 @@
     --v2-primary-text: #38bdf8;
 }
 
-/* Base Body Styles - Compact Font Sizing */
+/* Base Body Styles - Compact Font Sizing (Dense 90% Scale) */
 body.v2-layout {
     font-family: var(--v2-font);
     background-color: var(--v2-bg-body);
     color: var(--v2-text-main);
     overflow-x: hidden;
-    font-size: 0.8rem !important;
-    line-height: 1.4;
+    font-size: 0.72rem !important;
+    line-height: 1.35;
     -webkit-font-smoothing: antialiased;
+    zoom: 0.90;
 }
 
 /* Layout Container */
@@ -97,37 +98,37 @@ body.v2-layout {
 }
 
 .v2-sidebar-brand {
-    padding: 1rem 1rem 0.85rem;
+    padding: 0.85rem 0.85rem 0.75rem;
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.55rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .v2-brand-icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: var(--v2-radius-md);
     background: #0284c7;
     color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 800;
 }
 
 .v2-brand-name {
     font-family: 'Outfit', sans-serif;
     font-weight: 800;
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     color: #ffffff;
     letter-spacing: 0.5px;
     line-height: 1.1;
 }
 
 .v2-brand-subtitle {
-    font-size: 0.625rem;
+    font-size: 0.58rem;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: #64748b;
@@ -136,7 +137,7 @@ body.v2-layout {
 
 /* Navigation List Compact */
 .v2-sidebar-nav {
-    padding: 0.75rem 0.5rem;
+    padding: 0.6rem 0.4rem;
     flex: 1;
     overflow-y: auto;
 }
@@ -150,28 +151,28 @@ body.v2-layout {
 }
 
 .v2-nav-section-title {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
     color: #475569;
-    padding: 0.6rem 0.6rem 0.25rem;
+    padding: 0.5rem 0.5rem 0.2rem;
 }
 
 .v2-nav-item {
-    margin-bottom: 0.15rem;
+    margin-bottom: 0.12rem;
 }
 
 .v2-nav-link {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.45rem 0.65rem;
+    gap: 0.55rem;
+    padding: 0.38rem 0.55rem;
     color: #cbd5e1;
     text-decoration: none;
     border-radius: var(--v2-radius-sm);
     font-weight: 500;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     transition: var(--v2-transition);
 }
 
