@@ -35,10 +35,27 @@ class ProdukController extends Controller
             $query->where('brand_id', $request->brand_id);
         }
 
-        $products = $query->orderBy('name')->paginate(15);
+        if ($request->filled('status') && $request->status !== '') {
+            $query->where('is_active', $request->status == '1');
+        }
+
+        $products = $query->orderBy('name')->paginate(15)->withQueryString();
         $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
         $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
 
-        return view('v2.produk.index', compact('products', 'categories', 'brands'));
+        $totalProducts = MasterProduct::where('tenant_id', $tenantId)->count();
+        $activeProducts = MasterProduct::where('tenant_id', $tenantId)->where('is_active', true)->count();
+        $lowStockProducts = MasterProduct::where('tenant_id', $tenantId)->whereColumn('stock', '<=', 'min_stock')->count();
+        $preorderProducts = MasterProduct::where('tenant_id', $tenantId)->where('is_preorder', true)->count();
+
+        $stats = [
+            'total' => $totalProducts,
+            'active' => $activeProducts,
+            'low_stock' => $lowStockProducts,
+            'preorder' => $preorderProducts,
+        ];
+
+        return view('v2.produk.index', compact('products', 'categories', 'brands', 'stats'));
     }
 }
+
