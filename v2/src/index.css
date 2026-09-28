@@ -1168,3 +1168,229 @@ input:-webkit-autofill:active {
   }
 }
 
+/* ==========================================================================
+   Master Product & Compact UI Styles
+   ========================================================================== */
+.form-control-sm,
+.form-select-sm {
+    font-size: 0.76rem !important;
+    padding: 0.32rem 0.6rem !important;
+    border-radius: 6px !important;
+    border-color: var(--v2-border);
+    transition: all 0.15s ease-in-out;
+}
+
+.form-control-sm:focus,
+.form-select-sm:focus {
+    border-color: #0284c7;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12) !important;
+}
+
+/* Stat Mini Cards */
+.v2-stat-widget {
+    background-color: var(--v2-bg-surface);
+    border: 1px solid var(--v2-border-subtle);
+    border-radius: 8px;
+    padding: 0.65rem 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.15s ease-in-out;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.v2-stat-widget:hover {
+    border-color: var(--v2-border);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.v2-stat-icon-wrapper {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.v2-stat-icon-wrapper.blue { background-color: #e0f2fe; color: #0284c7; }
+.v2-stat-icon-wrapper.green { background-color: #d1fae5; color: #10b981; }
+.v2-stat-icon-wrapper.amber { background-color: #fef3c7; color: #d97706; }
+.v2-stat-icon-wrapper.purple { background-color: #f3e8ff; color: #9333ea; }
+
+.v2-stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.v2-stat-num {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1.1;
+    color: var(--v2-text-main);
+}
+
+.v2-stat-lbl {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--v2-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-top: 0.15rem;
+}
+
+/* Product Avatar Icon & SKU Styling */
+.product-avatar-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    color: #0284c7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    font-weight: 700;
+    border: 1px solid #bae6fd;
+}
+
+.sku-badge {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.68rem;
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    padding: 0.08rem 0.4rem;
+    border-radius: 4px;
+    letter-spacing: 0.2px;
+}
+
+/* Status Indicator Dot */
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+}
+
+.status-dot.active {
+    background-color: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.status-dot.inactive {
+    background-color: #94a3b8;
+}
+
+/* Action Icon Buttons */
+.btn-action-icon {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    border: 1px solid transparent;
+    transition: all 0.15s ease-in-out;
+    cursor: pointer;
+}
+
+.btn-action-edit {
+    background-color: #e0f2fe;
+    color: #0284c7;
+    border-color: #bae6fd;
+}
+
+.btn-action-edit:hover {
+    background-color: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+}
+
+.btn-action-delete {
+    background-color: #fee2e2;
+    color: #ef4444;
+    border-color: #fca5a5;
+}
+
+.btn-action-delete:hover {
+    background-color: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+}
+
+.btn-v2-primary {
+    background-color: #0284c7;
+    color: #ffffff;
+    border: none;
+    padding: 0.35rem 0.85rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.btn-v2-primary:hover {
+    background-color: #0369a1;
+    color: #ffffff;
+}
+
+.btn-v2-secondary {
+    background-color: var(--v2-bg-surface);
+    color: var(--v2-text-main);
+    border: 1px solid var(--v2-border);
+    padding: 0.35rem 0.85rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.btn-v2-secondary:hover {
+    border-color: var(--v2-primary);
+    color: var(--v2-primary);
+}
+
+.v2-table {
+    width: 100%;
+    margin-bottom: 0;
+    border-collapse: collapse;
+    color: var(--v2-text-main);
+}
+
+.v2-table th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--v2-border);
+    border-top: 1px solid var(--v2-border);
+}
+
+.v2-table td {
+    padding: 0.45rem 0.75rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--v2-border-subtle);
+    font-size: 0.78rem;
+}
+
+.v2-table tbody tr:hover {
+    background-color: rgba(2, 132, 199, 0.04) !important;
+}
+
+

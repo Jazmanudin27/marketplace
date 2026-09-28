@@ -66,7 +66,7 @@ const Produk = () => {
             <div className="v2-stat-icon-wrapper blue">
               <Boxes size={18} />
             </div>
-            <div className="v2-stat-info">
+            <div className="v2-stat-info d-flex flex-column">
               <span className="v2-stat-num">{totalCount}</span>
               <span className="v2-stat-lbl">Total Produk</span>
             </div>
@@ -77,7 +77,7 @@ const Produk = () => {
             <div className="v2-stat-icon-wrapper green">
               <CheckCircle2 size={18} />
             </div>
-            <div className="v2-stat-info">
+            <div className="v2-stat-info d-flex flex-column">
               <span className="v2-stat-num">{activeCount}</span>
               <span className="v2-stat-lbl">Produk Aktif</span>
             </div>
@@ -88,7 +88,7 @@ const Produk = () => {
             <div className="v2-stat-icon-wrapper amber">
               <AlertTriangle size={18} />
             </div>
-            <div className="v2-stat-info">
+            <div className="v2-stat-info d-flex flex-column">
               <span className="v2-stat-num">{lowStockCount}</span>
               <span className="v2-stat-lbl">Stok Menipis / Out</span>
             </div>
@@ -99,7 +99,7 @@ const Produk = () => {
             <div className="v2-stat-icon-wrapper purple">
               <Clock size={18} />
             </div>
-            <div className="v2-stat-info">
+            <div className="v2-stat-info d-flex flex-column">
               <span className="v2-stat-num">{preorderCount}</span>
               <span className="v2-stat-lbl">Pre-Order System</span>
             </div>
@@ -109,11 +109,11 @@ const Produk = () => {
 
       {/* Filter Bar Compact */}
       <div className="v2-card mb-3">
-        <div className="v2-card-body p-2.5">
+        <div className="v2-card-body p-2">
           <form onSubmit={handleSearchSubmit} className="row g-2 align-items-center">
-            <div className="col-md-4">
+            <div className="col-lg-4 col-md-4 col-12">
               <div className="position-relative">
-                <Search size={14} className="position-absolute top-50 start-0 translate-middle-y ms-2.5 text-muted" />
+                <Search size={14} className="position-absolute top-50 start-0 translate-middle-y ms-2 text-muted" />
                 <input
                   type="text"
                   className="form-control form-control-sm ps-4"
@@ -123,27 +123,27 @@ const Produk = () => {
                 />
               </div>
             </div>
-            <div className="col-md-2.5 col-6">
+            <div className="col-lg-2 col-md-2 col-6">
               <select className="form-select form-select-sm" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                 <option value="">Semua Kategori</option>
                 {data?.categories?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-            <div className="col-md-2.5 col-6">
+            <div className="col-lg-2 col-md-2 col-6">
               <select className="form-select form-select-sm" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
                 <option value="">Semua Brand</option>
                 {data?.brands?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
             </div>
-            <div className="col-md-1.5 col-6">
+            <div className="col-lg-2 col-md-2 col-6">
               <select className="form-select form-select-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="">Status</option>
+                <option value="">Semua Status</option>
                 <option value="1">Aktif</option>
                 <option value="0">Nonaktif</option>
               </select>
             </div>
-            <div className="col-md-1.5 col-6 d-flex gap-1 justify-content-end">
-              <button type="submit" className="btn btn-sm btn-v2-primary py-1 px-3 w-100">
+            <div className="col-lg-2 col-md-2 col-6 d-flex gap-1 justify-content-end">
+              <button type="submit" className="btn btn-sm btn-v2-primary py-1 px-2.5 flex-fill text-nowrap">
                 <Filter size={12} className="me-1" /> Filter
               </button>
               <button type="button" onClick={handleReset} className="btn btn-sm btn-v2-secondary py-1 px-2" title="Reset Filter">
@@ -153,6 +153,7 @@ const Produk = () => {
           </form>
         </div>
       </div>
+
 
       {/* Data Table Compact */}
       <div className="v2-card shadow-sm border">

@@ -163,20 +163,7 @@ Route::get('/shopee/debug-sign', function () {
 // =========================================================================
 Route::middleware('auth')->group(function () {
 
-    // =========================================================================
-    // V2 NEXT-GEN ERP ROUTES & API (/v2/...)
-    // =========================================================================
-    Route::get('/v2', fn() => redirect('/v2/dashboard'));
-    Route::prefix('v2')->name('v2.')->group(function () {
-        Route::get('/dashboard', [\App\Http\Controllers\V2\DashboardController::class, 'index'])->name('dashboard');
-        Route::get('/produk', [\App\Http\Controllers\V2\ProdukController::class, 'index'])->name('produk.index');
-    });
-
-    Route::prefix('api/v2')->group(function () {
-        Route::get('/dashboard', [\App\Http\Controllers\Api\V2\ApiController::class, 'dashboard']);
-        Route::get('/produk', [\App\Http\Controllers\Api\V2\ApiController::class, 'produk']);
-    });
-
+ 
 
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
