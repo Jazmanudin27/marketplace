@@ -91,14 +91,14 @@
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-1">
                                     <!-- Edit Square Icon Button (Blue) -->
-                                    <a href="{{ route('master.products.edit', $product->id) }}" class="btn-action-icon btn-action-edit" title="Edit">
+                                    <a href="{{ Route::has('products.edit') ? route('products.edit', $product->id) : url('/products/'.$product->id.'/edit') }}" class="btn-action-icon btn-action-edit" title="Edit">
                                         <i class="bi bi-pencil-fill"></i>
                                     </a>
                                     <!-- Delete Square Icon Button (Red) -->
                                     <button type="button" class="btn-action-icon btn-action-delete" title="Hapus" onclick="if(confirm('Hapus produk ini?')) { document.getElementById('delete-prod-{{ $product->id }}').submit(); }">
                                         <i class="bi bi-trash-fill"></i>
                                     </button>
-                                    <form id="delete-prod-{{ $product->id }}" action="{{ route('master.products.destroy', $product->id) }}" method="POST" class="d-none">
+                                    <form id="delete-prod-{{ $product->id }}" action="{{ Route::has('products.destroy') ? route('products.destroy', $product->id) : url('/products/'.$product->id) }}" method="POST" class="d-none">
                                         @csrf
                                         @method('DELETE')
                                     </form>

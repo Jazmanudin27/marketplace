@@ -51,7 +51,7 @@
         </div>
 
         <div class="v2-nav-item">
-            <a href="{{ route('master.products.index') }}" class="v2-subnav-link text-white-50 px-3 py-1" style="font-size: 0.725rem;">
+            <a href="{{ Route::has('products.index') ? route('products.index') : url('/products') }}" class="v2-subnav-link text-white-50 px-3 py-1" style="font-size: 0.725rem;">
                 <i class="bi bi-circle me-1" style="font-size: 0.5rem;"></i> Master Produk (V1)
             </a>
         </div>
