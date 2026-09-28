@@ -159,14 +159,20 @@
             $('#realtimeClock').text(timeStr);
         }, 1000);
 
-        // Auto initialize Select2 for all select fields
+        // Auto initialize Select2 with tight wrapper for 100% position accuracy
         $(document).ready(function() {
             $('.select2, .v2-select2, select.form-select-sm, select.form-select').each(function() {
-                $(this).select2({
+                var $select = $(this);
+                if (!$select.parent().hasClass('select2-wrapper')) {
+                    $select.wrap('<div class="select2-wrapper position-relative d-block w-100"></div>');
+                }
+                var $wrapper = $select.parent();
+                $select.select2({
                     theme: 'bootstrap-5',
                     width: '100%',
-                    placeholder: $(this).data('placeholder') || '-- Pilih --',
-                    allowClear: true
+                    placeholder: $select.data('placeholder') || '-- Pilih --',
+                    allowClear: true,
+                    dropdownParent: $wrapper
                 });
             });
         });

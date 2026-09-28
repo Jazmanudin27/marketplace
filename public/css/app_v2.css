@@ -680,7 +680,12 @@ body.v2-layout {
     box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12) !important;
 }
 
-/* Select2 V2 Compact Styling */
+/* Select2 V2 Compact Styling & Absolute Alignment Fix */
+.select2-container {
+    width: 100% !important;
+    display: block !important;
+}
+
 .select2-container--bootstrap-5 .select2-selection {
     min-height: 29px !important;
     padding: 0.18rem 0.45rem !important;
@@ -697,10 +702,22 @@ body.v2-layout {
     font-size: 0.72rem !important;
 }
 
-.select2-dropdown {
+.select2-dropdown,
+.select2-container--open .select2-dropdown,
+.select2-container--open .select2-dropdown--below,
+.select2-container--open .select2-dropdown--above {
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
     font-size: 0.72rem !important;
     border-color: var(--v2-border) !important;
     box-shadow: var(--v2-shadow-md) !important;
+    z-index: 1060 !important;
+    margin-top: 1px !important;
 }
 
 .select2-search__field {
