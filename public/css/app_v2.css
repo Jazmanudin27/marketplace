@@ -6,7 +6,7 @@
 
 :root {
     --v2-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    
+
     --v2-bg-body: #f1f5f9;
     --v2-bg-surface: #ffffff;
     --v2-bg-surface-elevated: #ffffff;
@@ -145,6 +145,7 @@ body.v2-layout {
 .v2-sidebar-nav::-webkit-scrollbar {
     width: 3px;
 }
+
 .v2-sidebar-nav::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.15);
     border-radius: 3px;
@@ -408,9 +409,20 @@ body.v2-layout {
     font-size: 1.1rem;
 }
 
-.v2-stat-icon.primary { background-color: var(--v2-primary-light); color: var(--v2-primary); }
-.v2-stat-icon.success { background-color: var(--v2-success-light); color: var(--v2-success); }
-.v2-stat-icon.warning { background-color: var(--v2-warning-light); color: var(--v2-warning); }
+.v2-stat-icon.primary {
+    background-color: var(--v2-primary-light);
+    color: var(--v2-primary);
+}
+
+.v2-stat-icon.success {
+    background-color: var(--v2-success-light);
+    color: var(--v2-success);
+}
+
+.v2-stat-icon.warning {
+    background-color: var(--v2-warning-light);
+    color: var(--v2-warning);
+}
 
 /* Table Styling - Compact (.table-sm density) */
 .v2-table-responsive {
@@ -463,10 +475,25 @@ body.v2-layout {
     gap: 0.25rem;
 }
 
-.v2-badge-primary { background-color: var(--v2-primary-light); color: var(--v2-primary-text); }
-.v2-badge-success { background-color: var(--v2-success-light); color: var(--v2-success); }
-.v2-badge-warning { background-color: var(--v2-warning-light); color: #b45309; }
-.v2-badge-danger { background-color: var(--v2-danger-light); color: var(--v2-danger); }
+.v2-badge-primary {
+    background-color: var(--v2-primary-light);
+    color: var(--v2-primary-text);
+}
+
+.v2-badge-success {
+    background-color: var(--v2-success-light);
+    color: var(--v2-success);
+}
+
+.v2-badge-warning {
+    background-color: var(--v2-warning-light);
+    color: #b45309;
+}
+
+.v2-badge-danger {
+    background-color: var(--v2-danger-light);
+    color: var(--v2-danger);
+}
 
 /* Compact Square Action Buttons (like in image 2) */
 .btn-action-icon {
@@ -684,7 +711,6 @@ body.v2-layout {
 /* Open dropdown container locks 2px below selection trigger */
 .select2-wrapper .select2-container--open {
     position: absolute !important;
-    top: 100% !important;
     left: 0 !important;
     width: 100% !important;
     margin-top: 2px !important;
@@ -767,10 +793,25 @@ body.v2-layout {
     flex-shrink: 0;
 }
 
-.v2-stat-icon-wrapper.blue { background-color: #e0f2fe; color: #0284c7; }
-.v2-stat-icon-wrapper.green { background-color: #d1fae5; color: #10b981; }
-.v2-stat-icon-wrapper.amber { background-color: #fef3c7; color: #d97706; }
-.v2-stat-icon-wrapper.purple { background-color: #f3e8ff; color: #9333ea; }
+.v2-stat-icon-wrapper.blue {
+    background-color: #e0f2fe;
+    color: #0284c7;
+}
+
+.v2-stat-icon-wrapper.green {
+    background-color: #d1fae5;
+    color: #10b981;
+}
+
+.v2-stat-icon-wrapper.amber {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+.v2-stat-icon-wrapper.purple {
+    background-color: #f3e8ff;
+    color: #9333ea;
+}
 
 .v2-stat-info {
     display: flex;
@@ -901,4 +942,3 @@ body.v2-layout {
     justify-content: space-between;
     background-color: var(--v2-bg-surface);
 }
-
