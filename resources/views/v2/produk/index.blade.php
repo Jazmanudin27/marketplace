@@ -246,34 +246,30 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="d-flex flex-wrap gap-1 align-items-center">
-                                    @forelse($prod->marketplaceProducts as $mp)
-                                        @php
-                                            $chCode = strtolower($mp->store->channel->code ?? '');
-                                        @endphp
-                                        @if(str_contains($chCode, 'shopee'))
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0.5" style="font-size: 0.65rem;" title="{{ $mp->store->store_name ?? 'Shopee' }}">
-                                                <i class="bi bi-bag-fill me-0.5"></i>{{ $mp->store->store_name ?? 'Shopee' }}
-                                            </span>
-                                        @elseif(str_contains($chCode, 'tiktok'))
-                                            <span class="badge bg-dark-subtle text-dark border border-dark-subtle px-1.5 py-0.5" style="font-size: 0.65rem;" title="{{ $mp->store->store_name ?? 'TikTok' }}">
-                                                <i class="bi bi-tiktok me-0.5"></i>{{ $mp->store->store_name ?? 'TikTok' }}
-                                            </span>
-                                        @elseif(str_contains($chCode, 'lazada'))
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-1.5 py-0.5" style="font-size: 0.65rem;" title="{{ $mp->store->store_name ?? 'Lazada' }}">
-                                                <i class="bi bi-shop me-0.5"></i>{{ $mp->store->store_name ?? 'Lazada' }}
-                                            </span>
-                                        @else
-                                            <span class="badge bg-secondary-subtle text-secondary border px-1.5 py-0.5" style="font-size: 0.65rem;" title="{{ $mp->store->store_name ?? 'Marketplace' }}">
-                                                <i class="bi bi-store me-0.5"></i>{{ $mp->store->store_name ?? 'Toko' }}
-                                            </span>
-                                        @endif
-                                    @empty
-                                        <span class="text-muted fst-italic" style="font-size: 0.68rem;">
-                                            <i class="bi bi-exclamation-triangle text-warning me-1"></i>Belum terhubung toko
-                                        </span>
-                                    @endforelse
-                                </div>
+                                @php
+                                    $linkedStoresCount = $prod->marketplaceProducts->count();
+                                @endphp
+                                @if($linkedStoresCount > 0)
+                                    <button type="button" class="btn btn-sm btn-v2-success py-0.5 px-2 text-nowrap show-store-modal"
+                                            style="font-size: 0.68rem;"
+                                            data-name="{{ $prod->name }}"
+                                            data-sku="{{ $prod->sku }}"
+                                            data-stores='@json($prod->marketplaceProducts->map(function($mp) {
+                                                return [
+                                                    "store_name" => $mp->store->store_name ?? "Toko Marketplace",
+                                                    "channel_name" => $mp->store->channel->name ?? "Marketplace",
+                                                    "channel_code" => strtolower($mp->store->channel->code ?? ""),
+                                                    "marketplace_sku" => $mp->marketplace_sku ?? $mp->sku ?? "-",
+                                                    "status" => $mp->status ?? "active"
+                                                ];
+                                            }))'>
+                                        <i class="bi bi-check-circle-fill me-1"></i>Terhubung ({{ $linkedStoresCount }} Toko)
+                                    </button>
+                                @else
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size: 0.68rem;">
+                                        <i class="bi bi-x-circle me-1"></i>Belum Terhubung
+                                    </span>
+                                @endif
                             </td>
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-1">
@@ -316,8 +312,87 @@
     @endif
 </div>
 
+<!-- Modal Detail Toko Terhubung -->
+<div class="modal fade" id="storeDetailModal" tabindex="-1" aria-labelledby="storeDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light py-2.5 border-bottom">
+                <h6 class="modal-title fw-bold d-flex align-items-center gap-2 m-0" id="storeDetailModalLabel">
+                    <i class="bi bi-shop text-primary"></i> Detail Integrasi Toko Marketplace
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="p-3 bg-primary-subtle border-bottom border-primary-subtle">
+                <div class="fw-bold text-primary" id="modalProductName" style="font-size: 0.88rem;"></div>
+                <div class="text-muted font-monospace mt-0.5" id="modalProductSku" style="font-size: 0.72rem;"></div>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.75rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3 py-2">TOKO MARKETPLACE</th>
+                                <th class="py-2">CHANNEL</th>
+                                <th class="py-2">SKU MARKETPLACE</th>
+                                <th class="text-center py-2 pe-3">STATUS INTEGRASI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalStoreTableBody">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-sm btn-v2-secondary" data-bs-dismiss="modal">Tutup Modal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
+    // Show Store Detail Modal
+    $(document).on('click', '.show-store-modal', function() {
+        var name = $(this).data('name');
+        var sku = $(this).data('sku');
+        var stores = $(this).data('stores');
+
+        $('#modalProductName').text(name);
+        $('#modalProductSku').text('SKU Master: ' + sku);
+
+        var html = '';
+        if (stores && stores.length > 0) {
+            stores.forEach(function(st) {
+                var chCode = (st.channel_code || '').toLowerCase();
+                var chBadge = '';
+
+                if (chCode.indexOf('shopee') !== -1) {
+                    chBadge = '<span class="badge bg-danger text-white"><i class="bi bi-bag-fill me-1"></i>Shopee</span>';
+                } else if (chCode.indexOf('tiktok') !== -1) {
+                    chBadge = '<span class="badge bg-dark text-white"><i class="bi bi-tiktok me-1"></i>TikTok Shop</span>';
+                } else if (chCode.indexOf('lazada') !== -1) {
+                    chBadge = '<span class="badge bg-primary text-white"><i class="bi bi-shop me-1"></i>Lazada</span>';
+                } else {
+                    chBadge = '<span class="badge bg-secondary text-white"><i class="bi bi-store me-1"></i>' + (st.channel_name || 'Marketplace') + '</span>';
+                }
+
+                html += '<tr>' +
+                    '<td class="ps-3 py-2.5"><div class="fw-bold text-dark">' + st.store_name + '</div></td>' +
+                    '<td class="py-2.5">' + chBadge + '</td>' +
+                    '<td class="py-2.5"><code class="text-primary font-monospace">' + st.marketplace_sku + '</code></td>' +
+                    '<td class="text-center py-2.5 pe-3"><span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Connected</span></td>' +
+                    '</tr>';
+            });
+        } else {
+            html = '<tr><td colspan="4" class="text-center py-3 text-muted">Belum ada toko terhubung.</td></tr>';
+        }
+
+        $('#modalStoreTableBody').html(html);
+        var storeModal = new bootstrap.Modal(document.getElementById('storeDetailModal'));
+        storeModal.show();
+    });
+
     $(document).on('click', '.confirm-delete', function(e) {
         e.preventDefault();
         var form = $(this).closest('form');
