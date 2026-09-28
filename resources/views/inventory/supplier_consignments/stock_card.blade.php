@@ -1,5 +1,243 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+    /* Custom Portal Reference Styling matching sekolah.aspartech.com */
+    .portal-stat-card {
+        background: #ffffff !important;
+        border-radius: 16px !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03) !important;
+        padding: 1.35rem 1.5rem !important;
+        height: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+
+    .portal-stat-label {
+        font-size: 0.76rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.5px !important;
+        color: #64748b !important;
+        text-transform: uppercase !important;
+        margin-bottom: 0.35rem !important;
+    }
+
+    .portal-stat-value {
+        font-size: 2.1rem !important;
+        font-weight: 800 !important;
+        color: #0f172a !important;
+        line-height: 1.1 !important;
+        margin-bottom: 0.35rem !important;
+    }
+
+    .portal-stat-sub {
+        font-size: 0.82rem !important;
+        color: #64748b !important;
+        font-weight: 500 !important;
+    }
+
+    /* Icon Box Styles - Solid Colored Icon Containers */
+    .icon-box-blue {
+        width: 54px !important;
+        height: 54px !important;
+        min-width: 54px !important;
+        border-radius: 14px !important;
+        background: #0284c7 !important;
+        color: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.6rem !important;
+        box-shadow: 0 6px 14px rgba(2, 132, 199, 0.28) !important;
+    }
+
+    .icon-box-green {
+        width: 54px !important;
+        height: 54px !important;
+        min-width: 54px !important;
+        border-radius: 14px !important;
+        background: #10b981 !important;
+        color: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.6rem !important;
+        box-shadow: 0 6px 14px rgba(16, 185, 129, 0.28) !important;
+    }
+
+    .icon-box-orange {
+        width: 54px !important;
+        height: 54px !important;
+        min-width: 54px !important;
+        border-radius: 14px !important;
+        background: #f59e0b !important;
+        color: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.6rem !important;
+        box-shadow: 0 6px 14px rgba(245, 158, 11, 0.28) !important;
+    }
+
+    .icon-box-red {
+        width: 54px !important;
+        height: 54px !important;
+        min-width: 54px !important;
+        border-radius: 14px !important;
+        background: #ef4444 !important;
+        color: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.6rem !important;
+        box-shadow: 0 6px 14px rgba(239, 68, 68, 0.28) !important;
+    }
+
+    /* Main Section Card */
+    .portal-main-card {
+        background: #ffffff !important;
+        border-radius: 16px !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+        padding: 1.75rem !important;
+    }
+
+    .portal-section-title {
+        font-size: 1.15rem !important;
+        font-weight: 700 !important;
+        color: #0f172a !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.6rem !important;
+    }
+
+    .portal-status-tag {
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        color: #d97706 !important;
+    }
+
+    /* Action Buttons */
+    .btn-outline-portal-green {
+        border: 1.5px solid #10b981 !important;
+        color: #10b981 !important;
+        background: #ffffff !important;
+        font-weight: 600 !important;
+        border-radius: 10px !important;
+        padding: 0.5rem 1.15rem !important;
+        font-size: 0.875rem !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.4rem !important;
+        text-decoration: none !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .btn-outline-portal-green:hover {
+        background: #10b981 !important;
+        color: #ffffff !important;
+    }
+
+    .btn-portal-blue {
+        background: #0284c7 !important;
+        border: 1.5px solid #0284c7 !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        border-radius: 10px !important;
+        padding: 0.5rem 1.25rem !important;
+        font-size: 0.875rem !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.4rem !important;
+        text-decoration: none !important;
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25) !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .btn-portal-blue:hover {
+        background: #0369a1 !important;
+        border-color: #0369a1 !important;
+        color: #ffffff !important;
+    }
+
+    /* Filter Box Container */
+    .portal-filter-box {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 12px !important;
+        padding: 1.1rem 1.25rem !important;
+        margin-top: 1.25rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+
+    .portal-form-label {
+        font-size: 0.75rem !important;
+        font-weight: 700 !important;
+        color: #475569 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        margin-bottom: 0.45rem !important;
+        display: block !important;
+    }
+
+    .portal-input {
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        padding: 0.45rem 0.75rem !important;
+        font-size: 0.875rem !important;
+        color: #0f172a !important;
+        background-color: #ffffff !important;
+        height: 40px !important;
+        width: 100% !important;
+    }
+
+    .portal-input:focus {
+        border-color: #0284c7 !important;
+        outline: none !important;
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+    }
+
+    /* Table Design */
+    .portal-table-wrapper {
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 10px !important;
+        overflow: hidden !important;
+    }
+
+    .portal-table {
+        margin-bottom: 0 !important;
+        width: 100% !important;
+    }
+
+    .portal-table thead th {
+        background-color: #f1f5f9 !important;
+        color: #334155 !important;
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        padding: 0.9rem 1rem !important;
+        border-bottom: 1px solid #cbd5e1 !important;
+        vertical-align: middle !important;
+    }
+
+    .portal-table tbody td {
+        padding: 0.95rem 1rem !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        vertical-align: middle !important;
+        font-size: 0.875rem !important;
+        color: #1e293b !important;
+    }
+
+    .portal-table tbody tr:hover {
+        background-color: #f8fafc !important;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid py-4">
     @if(session('success'))
@@ -49,9 +287,9 @@
                 <div class="portal-stat-card">
                     <div>
                         <div class="portal-stat-label">TOTAL TERJUAL</div>
-                        <div class="portal-stat-value" style="color: #d97706;">{{ number_format($totalSoldAll) }}</div>
+                        <div class="portal-stat-value" style="color: #d97706 !important;">{{ number_format($totalSoldAll) }}</div>
                         <div class="portal-stat-sub">
-                            <span style="color: #d97706;" class="fw-bold">•</span> Disetor: {{ number_format($totalSettledAll) }} Pcs
+                            <span style="color: #d97706 !important;" class="fw-bold">•</span> Disetor: {{ number_format($totalSettledAll) }} Pcs
                         </div>
                     </div>
                     <div class="icon-box-orange">
@@ -102,7 +340,7 @@
                     <i class="bi bi-box-seam"></i> Penerimaan Barang
                 </a>
                 @if($selectedSupplierId)
-                    <a href="{{ route('supplier_consignments.settlement.create', ['supplier_id' => $selectedSupplierId]) }}" class="btn-outline-portal-green" style="border-color: #10b981; background: #10b981; color: white;">
+                    <a href="{{ route('supplier_consignments.settlement.create', ['supplier_id' => $selectedSupplierId]) }}" class="btn-outline-portal-green" style="border-color: #10b981 !important; background: #10b981 !important; color: white !important;">
                         <i class="bi bi-cash-stack"></i> Form Setoran Supplier
                     </a>
                 @endif
