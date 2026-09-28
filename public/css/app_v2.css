@@ -654,6 +654,12 @@ body.v2-layout {
 }
 
 /* Select2 V2 Compact Styling & Absolute Alignment Fix */
+.select2-wrapper {
+    position: relative !important;
+    width: 100% !important;
+    display: block !important;
+}
+
 .select2-container {
     position: relative !important;
     width: 100% !important;
@@ -676,6 +682,7 @@ body.v2-layout {
     font-size: 0.72rem !important;
 }
 
+.select2-wrapper .select2-dropdown,
 .select2-dropdown,
 .select2-container--open .select2-dropdown,
 .select2-container--open .select2-dropdown--below,
@@ -690,7 +697,7 @@ body.v2-layout {
     font-size: 0.72rem !important;
     border-color: var(--v2-border) !important;
     box-shadow: var(--v2-shadow-md) !important;
-    z-index: 1060 !important;
+    z-index: 1080 !important;
     margin-top: 1px !important;
 }
 
