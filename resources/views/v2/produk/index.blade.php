@@ -1,129 +1,114 @@
 @extends('v2.layouts.app')
 
-@section('title', 'Master Produk V2')
+@section('title', 'Data Master Produk')
 
 @section('content')
-<!-- Page Header -->
-<div class="v2-page-header">
+<!-- Page Header Compact (Like Reference Image 2) -->
+<div class="v2-page-header align-items-start">
     <div>
-        <h1 class="v2-page-title">Master Produk V2</h1>
-        <p class="v2-page-subtitle">Kelola katalog master produk perusahaan dengan tampilan V2 yang bersih & responsif.</p>
+        <h1 class="v2-page-title d-flex align-items-center gap-2">
+            <i class="bi bi-box-seam text-primary fs-5"></i> Data Master Produk & Barang
+        </h1>
+        <p class="v2-page-subtitle">Total {{ $products->total() ?? 0 }} produk terdaftar dalam sistem</p>
     </div>
     <div class="d-flex align-items-center gap-2">
-        <a href="{{ route('master.products.index') }}" class="btn-v2-secondary">
-            <i class="bi bi-box-arrow-up-right"></i> Tampilan Produk V1
-        </a>
         <button class="btn-v2-primary">
-            <i class="bi bi-plus-lg"></i> Tambah Produk Baru
+            <i class="bi bi-plus-lg me-1"></i> Tambah Produk Baru
         </button>
     </div>
 </div>
 
-<!-- Search & Filter Card -->
-<div class="v2-card mb-4">
-    <div class="v2-card-body p-3">
+<!-- Compact Filter Bar (Like Image 2 Filter Bar) -->
+<div class="v2-card mb-3">
+    <div class="v2-card-body p-2">
         <form action="{{ url('/v2/produk') }}" method="GET" class="row g-2 align-items-center">
-            <div class="col-md-5">
-                <div class="input-group">
-                    <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-search"></i></span>
-                    <input type="text" name="search" class="form-control border-start-0" placeholder="Cari nama produk, SKU, barcode..." value="{{ request('search') }}">
+            <div class="col-md-7">
+                <div class="position-relative">
+                    <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-2 text-muted" style="font-size: 0.8rem;"></i>
+                    <input type="text" name="search" class="form-control form-control-sm ps-4" placeholder="Cari berdasarkan nama produk, SKU, atau barcode..." value="{{ request('search') }}">
                 </div>
             </div>
             <div class="col-md-3">
-                <select name="category_id" class="form-select">
-                    <option value="">Semua Kategori</option>
-                    @foreach($categories ?? [] as $cat)
-                        <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-                    @endforeach
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">Semua Status</option>
+                    <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Aktif</option>
+                    <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Nonaktif</option>
                 </select>
             </div>
-            <div class="col-md-2">
-                <select name="brand_id" class="form-select">
-                    <option value="">Semua Brand</option>
-                    @foreach($brands ?? [] as $brand)
-                        <option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-2 d-flex gap-2">
-                <button type="submit" class="btn btn-v2-primary w-100 justify-content-center">Filter</button>
-                @if(request()->hasAny(['search', 'category_id', 'brand_id']))
-                    <a href="{{ url('/v2/produk') }}" class="btn btn-v2-secondary" title="Reset Filter"><i class="bi bi-x-circle"></i></a>
-                @endif
+            <div class="col-md-2 d-flex gap-1 justify-content-end">
+                <button type="submit" class="btn btn-sm btn-v2-primary py-1 px-3">Filter</button>
+                <a href="{{ url('/v2/produk') }}" class="btn btn-sm btn-v2-secondary py-1 px-2" title="Refresh / Reset"><i class="bi bi-arrow-clockwise"></i></a>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Products Table Card -->
+<!-- Data Master Table (Like Reference Image 2 Table) -->
 <div class="v2-card">
-    <div class="v2-card-header">
-        <h5 class="v2-card-title"><i class="bi bi-box-seam me-2 text-primary"></i> Daftar Master Produk</h5>
-        <span class="badge bg-indigo-subtle text-indigo fw-bold px-3 py-1">Total {{ $products->total() ?? 0 }} Produk</span>
-    </div>
     <div class="v2-card-body p-0">
-        <div class="v2-table-responsive border-0">
+        <div class="v2-table-responsive">
             <table class="v2-table">
                 <thead>
                     <tr>
-                        <th>SKU & Info Produk</th>
-                        <th>Kategori / Brand</th>
-                        <th>Harga Modal (HPP)</th>
-                        <th>Harga Jual</th>
-                        <th>Stok Gudang</th>
-                        <th>Status</th>
-                        <th class="text-end">Aksi</th>
+                        <th class="text-center" style="width: 50px;">NO</th>
+                        <th>NAMA PRODUK & SKU</th>
+                        <th>KATEGORI / BRAND</th>
+                        <th class="text-end">HARGA MODAL (HPP)</th>
+                        <th class="text-end">HARGA JUAL</th>
+                        <th class="text-center">STOK</th>
+                        <th class="text-center">STATUS</th>
+                        <th class="text-center" style="width: 80px;">AKSI</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($products as $product)
+                    @forelse($products as $index => $product)
                         <tr>
+                            <td class="text-center text-muted fw-bold">{{ $products->firstItem() + $index }}</td>
                             <td>
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="rounded-3 bg-body-secondary d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; flex-shrink: 0;">
-                                        @if($product->image)
-                                            <img src="{{ asset('storage/' . $product->image) }}" class="rounded-3 object-fit-cover" style="width: 44px; height: 44px;">
-                                        @else
-                                            <i class="bi bi-box-seam text-secondary fs-5"></i>
-                                        @endif
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold text-body" style="font-size: 0.9rem;">{{ $product->name }}</div>
-                                        <small class="text-muted font-monospace">SKU: {{ $product->sku ?? '-' }}</small>
-                                    </div>
-                                </div>
+                                <div class="fw-bold text-dark">{{ $product->name }}</div>
+                                <div class="text-muted" style="font-size: 0.725rem;">SKU: {{ $product->sku ?? '-' }}</div>
                             </td>
                             <td>
-                                <div class="fw-semibold">{{ $product->category->name ?? '-' }}</div>
-                                <small class="text-muted">{{ $product->brand->name ?? '-' }}</small>
+                                <div class="fw-semibold text-body">{{ $product->category->name ?? '-' }}</div>
+                                <div class="text-muted" style="font-size: 0.725rem;">{{ $product->brand->name ?? '-' }}</div>
                             </td>
-                            <td class="text-muted">Rp {{ number_format($product->cost_price ?? 0, 0, ',', '.') }}</td>
-                            <td class="fw-bold text-primary">Rp {{ number_format($product->price ?? 0, 0, ',', '.') }}</td>
-                            <td>
+                            <td class="text-end text-muted">Rp {{ number_format($product->cost_price ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-end fw-bold text-primary">Rp {{ number_format($product->price ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-center">
                                 @if(($product->stock ?? 0) <= ($product->min_stock ?? 5))
-                                    <span class="v2-badge v2-badge-danger"><i class="bi bi-exclamation-triangle"></i> {{ $product->stock ?? 0 }} {{ $product->unit ?? 'pcs' }}</span>
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.68rem;">{{ $product->stock ?? 0 }} {{ $product->unit ?? 'pcs' }}</span>
                                 @else
-                                    <span class="v2-badge v2-badge-success"><i class="bi bi-check-circle"></i> {{ $product->stock ?? 0 }} {{ $product->unit ?? 'pcs' }}</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.68rem;">{{ $product->stock ?? 0 }} {{ $product->unit ?? 'pcs' }}</span>
                                 @endif
                             </td>
-                            <td>
+                            <td class="text-center">
                                 @if($product->is_active ?? true)
-                                    <span class="v2-badge v2-badge-success">Aktif</span>
+                                    <span class="text-success fw-semibold" style="font-size: 0.75rem;">Aktif</span>
                                 @else
-                                    <span class="v2-badge v2-badge-warning">Nonaktif</span>
+                                    <span class="text-muted fw-semibold" style="font-size: 0.75rem;">Nonaktif</span>
                                 @endif
                             </td>
-                            <td class="text-end">
-                                <a href="{{ route('master.products.edit', $product->id) }}" class="btn btn-sm btn-outline-secondary rounded-pill me-1">
-                                    <i class="bi bi-pencil"></i> Edit
-                                </a>
+                            <td class="text-center">
+                                <div class="d-flex align-items-center justify-content-center gap-1">
+                                    <!-- Edit Square Icon Button (Blue) -->
+                                    <a href="{{ route('master.products.edit', $product->id) }}" class="btn-action-icon btn-action-edit" title="Edit">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </a>
+                                    <!-- Delete Square Icon Button (Red) -->
+                                    <button type="button" class="btn-action-icon btn-action-delete" title="Hapus" onclick="if(confirm('Hapus produk ini?')) { document.getElementById('delete-prod-{{ $product->id }}').submit(); }">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                    <form id="delete-prod-{{ $product->id }}" action="{{ route('master.products.destroy', $product->id) }}" method="POST" class="d-none">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-box-seam fs-2 d-block mb-2 text-secondary"></i>
-                                Belum ada data produk master yang ditemukan.
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                Belum ada data produk terdaftar.
                             </td>
                         </tr>
                     @endforelse
@@ -132,7 +117,7 @@
         </div>
     </div>
     @if(method_exists($products, 'hasPages') && $products->hasPages())
-        <div class="v2-card-footer p-3 border-top">
+        <div class="p-2 border-top d-flex justify-content-end">
             {{ $products->links() }}
         </div>
     @endif
