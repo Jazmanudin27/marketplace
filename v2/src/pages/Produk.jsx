@@ -111,7 +111,7 @@ const Produk = () => {
       <div className="v2-card mb-3">
         <div className="v2-card-body p-2">
           <form onSubmit={handleSearchSubmit} className="row g-2 align-items-center">
-            <div className="col-lg-4 col-md-4 col-12">
+            <div className="col-lg-7 col-md-6 col-12">
               <div className="position-relative">
                 <Search size={14} className="position-absolute top-50 start-0 translate-middle-y ms-2 text-muted" />
                 <input
@@ -123,26 +123,14 @@ const Produk = () => {
                 />
               </div>
             </div>
-            <div className="col-lg-2 col-md-2 col-6">
-              <select className="form-select form-select-sm" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-                <option value="">Semua Kategori</option>
-                {data?.categories?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div className="col-lg-2 col-md-2 col-6">
-              <select className="form-select form-select-sm" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
-                <option value="">Semua Brand</option>
-                {data?.brands?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-            </div>
-            <div className="col-lg-2 col-md-2 col-6">
+            <div className="col-lg-3 col-md-3 col-6">
               <select className="form-select form-select-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="">Semua Status</option>
                 <option value="1">Aktif</option>
                 <option value="0">Nonaktif</option>
               </select>
             </div>
-            <div className="col-lg-2 col-md-2 col-6 d-flex gap-1 justify-content-end">
+            <div className="col-lg-2 col-md-3 col-6 d-flex gap-1 justify-content-end">
               <button type="submit" className="btn btn-sm btn-v2-primary py-1 px-2.5 flex-fill text-nowrap">
                 <Filter size={12} className="me-1" /> Filter
               </button>
@@ -154,7 +142,6 @@ const Produk = () => {
         </div>
       </div>
 
-
       {/* Data Table Compact */}
       <div className="v2-card shadow-sm border">
         <div className="v2-card-body p-0">
@@ -164,7 +151,6 @@ const Produk = () => {
                 <tr>
                   <th className="text-center" style={{ width: '45px' }}>NO</th>
                   <th>INFORMASI PRODUK & SKU</th>
-                  <th style={{ minWidth: '130px' }}>KATEGORI & BRAND</th>
                   <th className="text-end" style={{ minWidth: '120px' }}>HPP (MODAL)</th>
                   <th className="text-end" style={{ minWidth: '120px' }}>HARGA JUAL</th>
                   <th className="text-center" style={{ minWidth: '90px' }}>STOK</th>
@@ -175,7 +161,7 @@ const Produk = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="8" className="text-center py-5 text-muted">
+                    <td colSpan="7" className="text-center py-5 text-muted">
                       <RotateCw size={20} className="spin me-2 text-primary" /> Memuat data produk...
                     </td>
                   </tr>
@@ -193,7 +179,7 @@ const Produk = () => {
                             </div>
                           )}
                           <div className="overflow-hidden">
-                            <div className="fw-bold text-dark text-truncate" style={{ maxWidth: '380px', fontSize: '0.8rem' }} title={prod.name}>
+                            <div className="fw-bold text-dark text-truncate" style={{ maxWidth: '420px', fontSize: '0.8rem' }} title={prod.name}>
                               {prod.name}
                             </div>
                             <div className="d-flex align-items-center gap-1 mt-0.5">
@@ -203,16 +189,6 @@ const Produk = () => {
                               )}
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="mb-0.5">
-                          <span className="badge bg-light text-dark border fw-medium" style={{ fontSize: '0.7rem' }}>
-                            {prod.category?.name || 'Tanpa Kategori'}
-                          </span>
-                        </div>
-                        <div className="text-muted" style={{ fontSize: '0.7rem' }}>
-                          {prod.brand?.name || '-'}
                         </div>
                       </td>
                       <td className="text-end">
@@ -247,7 +223,7 @@ const Produk = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" className="text-center py-5 text-muted">
+                    <td colSpan="7" className="text-center py-5 text-muted">
                       <div className="py-3">
                         <Box size={32} className="d-block mx-auto text-secondary mb-2 opacity-50" />
                         <p className="mb-1 fw-bold text-dark" style={{ fontSize: '0.88rem' }}>Belum ada data produk terdaftar</p>
@@ -261,6 +237,7 @@ const Produk = () => {
           </div>
         </div>
       </div>
+
     </div>
   );
 };
