@@ -25,7 +25,7 @@ class SupplierConsignmentController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
-        $query = SupplierConsignment::with(['supplier', 'creator', 'approver', 'items'])
+        $query = SupplierConsignment::with(['supplier', 'creator', 'approver'])
             ->where('tenant_id', $tenantId)
             ->orderByDesc('consignment_date')
             ->orderByDesc('id');
@@ -46,35 +46,10 @@ class SupplierConsignmentController extends Controller
             $query->whereDate('consignment_date', '<=', $request->date_to);
         }
 
-        // Hitung Ringkasan Statistik untuk 4 Summary Cards di bagian Atas Tampilan (Persis seperti UI Portal)
-        $summaryQuery = clone $query;
-        $allMatchingConsignments = $summaryQuery->get();
-
-        $totalConsignments = $allMatchingConsignments->count();
-        $totalQtyReceived = $allMatchingConsignments->sum('total_qty_received');
-        $totalAmountHpp = $allMatchingConsignments->sum('total_amount_hpp');
-
-        $totalQtySold = 0;
-        $totalSisaStok = 0;
-        foreach ($allMatchingConsignments as $cons) {
-            foreach ($cons->items as $item) {
-                $totalQtySold += (int) ($item->qty_sold ?? 0);
-                $totalSisaStok += max(0, (int) $item->qty_received - (int) ($item->qty_sold ?? 0));
-            }
-        }
-
         $consignments = $query->paginate(20)->withQueryString();
         $suppliers    = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
 
-        return view('inventory.supplier_consignments.index', compact(
-            'consignments',
-            'suppliers',
-            'totalConsignments',
-            'totalQtyReceived',
-            'totalAmountHpp',
-            'totalQtySold',
-            'totalSisaStok'
-        ));
+        return view('inventory.supplier_consignments.index', compact('consignments', 'suppliers'));
     }
 
     /**
