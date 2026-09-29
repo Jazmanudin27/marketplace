@@ -124,12 +124,18 @@
         <div class="col-6 col-md-3">
             <label class="form-label small fw-semibold text-muted mb-1">Tujuan Departemen</label>
             <select name="to_department_id" class="form-select form-select-sm">
-                <option value="all">Semua Departemen</option>
+                <option value="all" {{ request('to_department_id') === 'all' || !request('to_department_id') ? 'selected' : '' }}>Semua Departemen</option>
+                <option value="produksi" {{ request('to_department_id') === 'produksi' ? 'selected' : '' }}>Departemen Produksi</option>
+                <option value="percetakan" {{ request('to_department_id') === 'percetakan' ? 'selected' : '' }}>Departemen Percetakan / Printing</option>
+                <option value="retur" {{ request('to_department_id') === 'retur' ? 'selected' : '' }}>Retur / Pengembalian Barang</option>
                 @foreach($departments as $dept)
-                    <option value="{{ $dept->id }}" {{ request('to_department_id') == $dept->id ? 'selected' : '' }}>
-                        {{ $dept->name }}
-                    </option>
+                    @if (!in_array(strtolower($dept->name), ['produksi', 'percetakan', 'retur', 'lain-lain', 'lain_lain']))
+                        <option value="{{ $dept->id }}" {{ request('to_department_id') == $dept->id ? 'selected' : '' }}>
+                            Departemen {{ $dept->name }}
+                        </option>
+                    @endif
                 @endforeach
+                <option value="lain_lain" {{ request('to_department_id') === 'lain_lain' ? 'selected' : '' }}>Lain-lain / Pemakaian Bebas</option>
             </select>
         </div>
 

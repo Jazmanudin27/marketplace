@@ -49,7 +49,29 @@ class BarangKeluarController extends Controller
         }
 
         if ($request->filled('to_department_id') && $request->to_department_id !== 'all') {
-            $query->where('to_department_id', $request->to_department_id);
+            $val = $request->to_department_id;
+            if ($val === 'produksi') {
+                $query->whereHas('toDepartment', function ($q) {
+                    $q->where('name', 'like', '%produksi%');
+                });
+            } elseif ($val === 'percetakan') {
+                $query->whereHas('toDepartment', function ($q) {
+                    $q->where('name', 'like', '%percetakan%');
+                });
+            } elseif ($val === 'retur') {
+                $query->whereHas('toDepartment', function ($q) {
+                    $q->where('name', 'like', '%retur%');
+                });
+            } elseif ($val === 'lain_lain') {
+                $query->where(function ($q) {
+                    $q->whereNull('to_department_id')
+                      ->orWhereHas('toDepartment', function ($sq) {
+                          $sq->where('name', 'like', '%lain%');
+                      });
+                });
+            } else {
+                $query->where('to_department_id', $val);
+            }
         }
 
         if ($request->filled('date_from')) {
