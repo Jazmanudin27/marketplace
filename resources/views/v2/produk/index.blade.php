@@ -248,21 +248,25 @@
                             <td>
                                 @php
                                     $linkedStoresCount = $prod->marketplaceProducts->count();
+                                    $storeData = [];
+                                    if ($linkedStoresCount > 0) {
+                                        foreach ($prod->marketplaceProducts as $mp) {
+                                            $storeData[] = [
+                                                'store_name' => $mp->store->store_name ?? 'Toko Marketplace',
+                                                'channel_name' => $mp->store->channel->name ?? 'Marketplace',
+                                                'channel_code' => strtolower($mp->store->channel->code ?? ''),
+                                                'marketplace_sku' => $mp->marketplace_sku ?? $mp->sku ?? '-',
+                                                'status' => $mp->status ?? 'active'
+                                            ];
+                                        }
+                                    }
                                 @endphp
                                 @if($linkedStoresCount > 0)
                                     <button type="button" class="btn btn-sm btn-v2-success py-0.5 px-2 text-nowrap show-store-modal"
                                             style="font-size: 0.68rem;"
                                             data-name="{{ $prod->name }}"
                                             data-sku="{{ $prod->sku }}"
-                                            data-stores='@json($prod->marketplaceProducts->map(function($mp) {
-                                                return [
-                                                    "store_name" => $mp->store->store_name ?? "Toko Marketplace",
-                                                    "channel_name" => $mp->store->channel->name ?? "Marketplace",
-                                                    "channel_code" => strtolower($mp->store->channel->code ?? ""),
-                                                    "marketplace_sku" => $mp->marketplace_sku ?? $mp->sku ?? "-",
-                                                    "status" => $mp->status ?? "active"
-                                                ];
-                                            }))'>
+                                            data-stores="{{ json_encode($storeData) }}">
                                         <i class="bi bi-check-circle-fill me-1"></i>Terhubung ({{ $linkedStoresCount }} Toko)
                                     </button>
                                 @else
