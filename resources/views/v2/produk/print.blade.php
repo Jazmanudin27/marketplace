@@ -28,7 +28,7 @@
         .text-end { text-align: right; }
         .fw-bold { font-weight: bold; }
 
-        /* Report Header Styling matching screenshot */
+        /* Report Header Styling matching sample screenshot */
         .report-header {
             text-align: center;
             margin-bottom: 20px;
@@ -51,7 +51,7 @@
             text-transform: uppercase;
         }
 
-        /* Report Table Styling matching screenshot */
+        /* Report Table Styling matching sample screenshot */
         .report-table {
             width: 100%;
             border-collapse: collapse;
@@ -75,53 +75,7 @@
             color: #000000;
         }
 
-        /* Action Toolbar for screen viewing */
-        .no-print-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background-color: #f8fafc;
-            border: 1px solid #cbd5e1;
-            padding: 10px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-        }
-
-        .btn-print {
-            background-color: #0284c7;
-            color: #ffffff;
-            border: none;
-            padding: 8px 18px;
-            font-size: 12px;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-print:hover {
-            background-color: #0369a1;
-        }
-
-        .btn-close-window {
-            background-color: #64748b;
-            color: #ffffff;
-            border: none;
-            padding: 8px 14px;
-            font-size: 12px;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-        }
-
         @media print {
-            .no-print-bar {
-                display: none !important;
-            }
-
             body {
                 padding: 0;
             }
@@ -135,22 +89,6 @@
     </style>
 </head>
 <body>
-
-    <!-- Print Action Bar (Hidden on print) -->
-    <div class="no-print-bar">
-        <div>
-            <strong>Pratinjau Cetak Laporan Master Produk</strong>
-            <span style="color: #64748b; font-size: 11px; margin-left: 8px;">(Total: {{ $products->count() }} Item Data)</span>
-        </div>
-        <div>
-            <button type="button" class="btn-print" onclick="window.print()">
-                🖨️ Cetak / Print Laporan
-            </button>
-            <button type="button" class="btn-close-window" onclick="window.close()">
-                Tutup
-            </button>
-        </div>
-    </div>
 
     <!-- Main Report Header -->
     <div class="report-header">
@@ -211,13 +149,5 @@
         </tbody>
     </table>
 
-    <script>
-        // Automatic print prompt on load
-        window.onload = function() {
-            setTimeout(function() {
-                window.print();
-            }, 400);
-        };
-    </script>
 </body>
 </html>
