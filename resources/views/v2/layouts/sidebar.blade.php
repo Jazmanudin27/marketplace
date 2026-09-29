@@ -74,8 +74,8 @@
                     </a>
                     <a href="{{ Route::has('inventory_items.index') ? route('inventory_items.index') : url('/inventory-items') }}"
                         class="v2-submenu-link {{ request()->is('inventory-items*') ? 'active' : '' }}">
-                        <i class="bi bi-building-gear me-1.5"></i>
-                        <span>Stok & Gudang</span>
+                        <i class="bi bi-boxes me-1.5"></i>
+                        <span>Data Barang (Bahan & Kemasan)</span>
                     </a>
                 </div>
             </div>
