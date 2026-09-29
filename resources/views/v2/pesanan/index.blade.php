@@ -242,27 +242,6 @@
     border-bottom: 1px solid #bfdbfe;
 }
 
-/* KPI mini strip */
-.psr-kpi-strip {
-    display: flex;
-    gap: 0;
-    border-bottom: 1px solid #e5e7eb;
-    background: #fff;
-}
-.psr-kpi-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 6px;
-    border-right: 1px solid #f3f4f6;
-    gap: 2px;
-}
-.psr-kpi-item:last-child { border-right: none; }
-.psr-kpi-num { font-size: 1.15rem; font-weight: 700; color: #111827; font-family: 'Outfit', sans-serif; }
-.psr-kpi-lbl { font-size: 0.68rem; color: #9ca3af; font-weight: 500; text-align: center; }
-.psr-kpi-accent { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 3px; }
 </style>
 @endpush
 
@@ -291,44 +270,6 @@
     </div>
 </div>
 
-{{-- ── KPI Mini Strip ── --}}
-@php
-    $toShipCount  = $tabCounts['READY_TO_SHIP'] ?? 0;
-    $shippedCount = $tabCounts['SHIPPED'] ?? 0;
-    $doneCount    = $tabCounts['COMPLETED'] ?? 0;
-    $totalCount   = $tabCounts['__all__'] ?? 0;
-@endphp
-<div class="v2-card mb-3 p-0 shadow-sm">
-    <div class="psr-kpi-strip">
-        <div class="psr-kpi-item">
-            <span class="psr-kpi-num" style="color:#d97706;">{{ number_format($toShipCount) }}</span>
-            <span class="psr-kpi-lbl"><span class="psr-kpi-accent" style="background:#d97706;"></span>Perlu Dikirim</span>
-        </div>
-        <div class="psr-kpi-item">
-            <span class="psr-kpi-num" style="color:#2563eb;">{{ number_format($shippedCount) }}</span>
-            <span class="psr-kpi-lbl"><span class="psr-kpi-accent" style="background:#2563eb;"></span>Dalam Pengiriman</span>
-        </div>
-        <div class="psr-kpi-item">
-            <span class="psr-kpi-num" style="color:#15803d;">{{ number_format($doneCount) }}</span>
-            <span class="psr-kpi-lbl"><span class="psr-kpi-accent" style="background:#15803d;"></span>Selesai</span>
-        </div>
-        <div class="psr-kpi-item">
-            <span class="psr-kpi-num" style="color:#111827;">{{ number_format($totalCount) }}</span>
-            <span class="psr-kpi-lbl"><span class="psr-kpi-accent" style="background:#6b7280;"></span>Total Pesanan</span>
-        </div>
-        <div class="psr-kpi-item">
-            <span class="psr-kpi-num" style="color:{{ $toProcessCount > 0 ? '#dc2626' : '#15803d' }};">{{ number_format($toProcessCount) }}</span>
-            <span class="psr-kpi-lbl">
-                @if($toProcessCount > 0)
-                    <span class="psr-kpi-accent" style="background:#dc2626;"></span>
-                @else
-                    <span class="psr-kpi-accent" style="background:#15803d;"></span>
-                @endif
-                Perlu Diproses
-            </span>
-        </div>
-    </div>
-</div>
 
 {{-- ── Urgent Banner ── --}}
 @if($toProcessCount > 0)
