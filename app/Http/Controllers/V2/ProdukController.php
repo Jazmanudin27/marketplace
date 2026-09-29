@@ -279,10 +279,11 @@ class ProdukController extends Controller
 
         $callback = function () use ($columns, $sampleRow1, $sampleRow2) {
             $file = fopen('php://output', 'w');
+            // UTF-8 BOM for Excel
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            fputcsv($file, $columns);
-            fputcsv($file, $sampleRow1);
-            fputcsv($file, $sampleRow2);
+            fputcsv($file, $columns, ';');
+            fputcsv($file, $sampleRow1, ';');
+            fputcsv($file, $sampleRow2, ';');
             fclose($file);
         };
 
@@ -310,8 +311,25 @@ class ProdukController extends Controller
                 rewind($handle);
             }
 
-            $header = fgetcsv($handle, 1000, ',');
+            // Detect delimiter (; or ,) from first line
+            $firstLine = fgets($handle);
+            if ($firstLine === false) {
+                fclose($handle);
+                return redirect()->back()->with('error', 'File CSV kosong.');
+            }
+
+            $delimiter = (substr_count($firstLine, ';') >= substr_count($firstLine, ',')) ? ';' : ',';
+
+            // Rewind & skip BOM again
+            rewind($handle);
+            $bom = fread($handle, 3);
+            if ($bom !== "\xEF\xBB\xBF") {
+                rewind($handle);
+            }
+
+            $header = fgetcsv($handle, 2000, $delimiter);
             if (!$header) {
+                fclose($handle);
                 return redirect()->back()->with('error', 'File CSV kosong atau format tidak valid.');
             }
 
@@ -321,7 +339,7 @@ class ProdukController extends Controller
                 $headerMap[$clean] = $idx;
             }
 
-            while (($row = fgetcsv($handle, 2000, ',')) !== FALSE) {
+            while (($row = fgetcsv($handle, 2000, $delimiter)) !== FALSE) {
                 if (count($row) < 2) continue;
 
                 $getValue = function($keyNames) use ($headerMap, $row) {
