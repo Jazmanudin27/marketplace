@@ -233,6 +233,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/retur/sync', [\App\Http\Controllers\V2\ReturController::class, 'sync'])->name('retur.sync');
         Route::post('/retur/{returnOrder}/restock', [\App\Http\Controllers\V2\ReturController::class, 'restock'])->name('retur.restock');
         Route::post('/retur/{returnOrder}/replacement', [\App\Http\Controllers\V2\ReturController::class, 'createReplacementOrder'])->name('retur.replacement');
+
+        // Mutasi Keuangan V2
+        Route::get('/mutasi-keuangan', [\App\Http\Controllers\V2\MutasiKeuanganController::class, 'index'])->name('mutasi_keuangan.index');
+        Route::get('/mutasi-keuangan/export', [\App\Http\Controllers\V2\MutasiKeuanganController::class, 'export'])->name('mutasi_keuangan.export');
+        Route::get('/mutasi-keuangan/print', [\App\Http\Controllers\V2\MutasiKeuanganController::class, 'print'])->name('mutasi_keuangan.print');
     });
 
     // =========================================================================

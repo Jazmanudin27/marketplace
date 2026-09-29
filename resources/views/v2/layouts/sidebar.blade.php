@@ -127,6 +127,13 @@
         <!-- HRD & Keuangan -->
         <div class="v2-nav-section-title mt-2">KEUANGAN & HRD</div>
         <div class="v2-nav-item">
+            <a href="{{ route('v2.mutasi_keuangan.index') }}"
+                class="v2-nav-link {{ request()->is('v2/mutasi-keuangan*') ? 'active' : '' }}">
+                <i class="bi bi-journal-text"></i>
+                <span>Mutasi Keuangan</span>
+            </a>
+        </div>
+        <div class="v2-nav-item">
             <a href="{{ Route::has('reports.income_statement') ? route('reports.income_statement') : url('/reports') }}"
                 class="v2-nav-link">
                 <i class="bi bi-bar-chart-line-fill"></i>
