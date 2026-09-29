@@ -178,67 +178,42 @@
     }
 </style>
 
-<div class="container-fluid px-3 px-md-4 py-3">
-
-    {{-- Alert Messages --}}
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3 py-2.5" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close py-2.5" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3 py-2.5" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
-            <button type="button" class="btn-close py-2.5" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    {{-- Top Header Bar --}}
-    <div class="rtr-header-bar">
-        <div>
-            <h5 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2" style="font-size: 1.1rem;">
-                <i class="bi bi-arrow-counterclockwise text-primary"></i>
-                Pesanan Retur
-            </h5>
-            <p class="text-muted mb-0" style="font-size: 0.78rem;">
-                Kelola retur barang dari marketplace, inspek fisik gudang, dan buat pesanan pengganti.
-            </p>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <form action="{{ route('v2.retur.sync') }}" method="POST" class="d-inline">
-                @csrf
-                <button type="submit" class="rtr-btn rtr-btn-outline" onclick="this.innerHTML='<span class=\'spinner-border spinner-border-sm me-1\'></span>Menarik Retur...'; this.disabled=true; this.form.submit();">
-                    <i class="bi bi-arrow-repeat text-primary"></i> Sinkronkan Retur
-                </button>
-            </form>
-            <a href="{{ route('v2.retur.export', request()->query()) }}" class="rtr-btn rtr-btn-outline">
-                <i class="bi bi-download text-success"></i> Export CSV
-            </a>
-        </div>
+{{-- Alert Messages --}}
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3 py-2.5" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close py-2.5" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
+@endif
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3 py-2.5" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
+        <button type="button" class="btn-close py-2.5" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
 
-    {{-- Top Reason Stats Banner (If Available) --}}
-    @if(isset($reasonsStats) && $reasonsStats->count() > 0)
-        <div class="v2-card p-3 mb-3 shadow-sm" style="border-left: 4px solid #2563eb;">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-pie-chart-fill text-primary fs-5"></i>
-                    <span class="fw-bold text-dark" style="font-size: 0.8rem;">Top Alasan Retur Pembeli:</span>
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                    @foreach($reasonsStats as $stat)
-                        <div class="reason-chip">
-                            <span>{{ Str::limit($stat->reason, 35) }}</span>
-                            <span class="badge bg-primary rounded-pill">{{ $stat->count }}</span>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    @endif
+{{-- ── Page Header ── --}}
+<div class="v2-page-header align-items-center mb-3">
+    <div>
+        <h1 class="v2-page-title d-flex align-items-center gap-2">
+            <i class="bi bi-arrow-counterclockwise text-primary fs-5"></i> Pesanan Retur
+        </h1>
+        <p class="v2-page-subtitle mb-0">Kelola retur barang dari marketplace, inspek fisik gudang, dan buat pesanan pengganti.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <form action="{{ route('v2.retur.sync') }}" method="POST" class="d-inline">
+            @csrf
+            <button type="submit" class="btn btn-sm btn-v2-secondary py-1 px-3" onclick="this.innerHTML='<span class=\'spinner-border spinner-border-sm me-1\'></span>Menarik Retur...'; this.disabled=true; this.form.submit();">
+                <i class="bi bi-arrow-repeat text-primary me-1"></i> Sinkronkan Retur
+            </button>
+        </form>
+        <a href="{{ route('v2.retur.export', request()->query()) }}" class="btn btn-sm btn-v2-secondary py-1 px-3">
+            <i class="bi bi-file-earmark-excel text-success me-1"></i> Export CSV
+        </a>
+    </div>
+</div>
 
-    {{-- Main Card --}}
+{{-- Main Card --}}
     <div class="v2-card p-0 shadow-sm overflow-hidden">
 
         {{-- Status Tabs --}}
@@ -731,6 +706,5 @@
         @endif
 
     </div>
-</div>
 
 @endsection
