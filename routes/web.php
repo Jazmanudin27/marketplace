@@ -178,6 +178,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/produk/create', [\App\Http\Controllers\V2\ProdukController::class, 'create'])->name('produk.create');
         Route::post('/produk', [\App\Http\Controllers\V2\ProdukController::class, 'store'])->name('produk.store');
         Route::post('/produk/auto-bundle', [\App\Http\Controllers\V2\ProdukController::class, 'storeAutoBundle'])->name('produk.auto_bundle');
+        Route::get('/produk/import-template', [\App\Http\Controllers\V2\ProdukController::class, 'downloadImportTemplate'])->name('produk.import_template');
+        Route::post('/produk/import', [\App\Http\Controllers\V2\ProdukController::class, 'importProduct'])->name('produk.import');
         Route::get('/produk/print', [\App\Http\Controllers\V2\ProdukController::class, 'print'])->name('produk.print');
         Route::get('/produk/{id}', [\App\Http\Controllers\V2\ProdukController::class, 'show'])->name('produk.show');
         Route::get('/produk/{id}/edit', [\App\Http\Controllers\V2\ProdukController::class, 'edit'])->name('produk.edit');

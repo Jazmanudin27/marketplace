@@ -18,6 +18,9 @@
         <a href="{{ route('v2.produk.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-v2-secondary py-1.5 px-3 shadow-sm" title="Cetak Laporan Produk">
             <i class="bi bi-printer me-1"></i> Cetak Laporan
         </a>
+        <button type="button" class="btn btn-sm btn-v2-success py-1.5 px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importProdukModal">
+            <i class="bi bi-file-earmark-excel me-1"></i> Import Produk
+        </button>
         <a href="{{ route('v2.produk.create') }}" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm">
             <i class="bi bi-plus-lg me-1"></i> Tambah Produk Master
         </a>
@@ -428,6 +431,54 @@
                     <button type="button" class="btn btn-sm btn-v2-secondary" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-sm btn-v2-primary" style="background-color: #7c3aed !important; border-color: #7c3aed !important; color: #ffffff !important;">
                         <i class="bi bi-diagram-3-fill me-1"></i> Simpan Set / Bundle Otomatis
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Import Produk CSV / Excel -->
+<div class="modal fade" id="importProdukModal" tabindex="-1" aria-labelledby="importProdukModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ route('v2.produk.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-header bg-light py-2.5 border-bottom">
+                    <h6 class="modal-title fw-bold d-flex align-items-center gap-2 m-0" id="importProdukModalLabel">
+                        <i class="bi bi-file-earmark-excel-fill text-success"></i> Import Master Produk (CSV / Excel)
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3.5">
+                    <div class="alert alert-info bg-info-subtle border-info-subtle text-info py-2 px-3 mb-3" style="font-size: 0.75rem;">
+                        <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill me-1"></i> Panduan Format File Import:</div>
+                        <ul class="mb-0 ps-3">
+                            <li>Format file disarankan <strong>.CSV</strong> (Comma Separated Values) / Excel.</li>
+                            <li>Sistem akan menggunakan kolom <strong>SKU</strong> sebagai penanda unik. Jika SKU sudah ada di database, data produk akan otomatis diperbarui.</li>
+                            <li>Kategori & Brand akan otomatis terbuat di database jika belum ada.</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label form-label-sm fw-semibold">Pilih File Import (.csv) <span class="text-danger">*</span></label>
+                        <input type="file" name="file" class="form-control form-control-sm" accept=".csv, .txt, .xlsx, .xls" required>
+                    </div>
+
+                    <div class="p-2.5 bg-light border rounded-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="fw-bold text-dark" style="font-size: 0.78rem;">Belum punya format file?</div>
+                            <div class="text-muted" style="font-size: 0.68rem;">Unduh template CSV sesuai struktur database.</div>
+                        </div>
+                        <a href="{{ route('v2.produk.import_template') }}" class="btn btn-sm btn-outline-success py-1 px-2.5" style="font-size: 0.72rem;">
+                            <i class="bi bi-download me-1"></i> Download Template
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-sm btn-v2-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-v2-success">
+                        <i class="bi bi-upload me-1"></i> Upload & Process Import
                     </button>
                 </div>
             </form>

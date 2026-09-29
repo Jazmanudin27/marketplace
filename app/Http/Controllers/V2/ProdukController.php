@@ -219,6 +219,207 @@ class ProdukController extends Controller
         return redirect()->route('v2.produk.index')->with('success', "Set Bundle Paket \"{$bundle->name}\" berhasil dibuat dari " . count($request->components) . " produk komponen!");
     }
 
+    public function downloadImportTemplate()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="Template_Import_Master_Produk.csv"',
+        ];
+
+        $columns = [
+            'sku',
+            'nama_produk',
+            'sku_induk',
+            'kategori',
+            'brand_merek',
+            'harga_jual',
+            'hpp_harga_beli',
+            'stok',
+            'min_stok',
+            'satuan',
+            'est_kain',
+            'est_biaya_produksi',
+            'is_bundle',
+            'is_preorder'
+        ];
+
+        $sampleRow1 = [
+            'SMP-PJG-L',
+            'Seragam SMP Lengan Panjang Size L',
+            'SMP-PJG',
+            'Seragam Sekolah',
+            'Lengan Panjang',
+            '109000',
+            '75000',
+            '50',
+            '5',
+            'pcs',
+            '1.50',
+            '25000',
+            '0',
+            '0'
+        ];
+
+        $sampleRow2 = [
+            'SMA-PDK-M',
+            'Seragam SMA Lengan Pendek Size M',
+            'SMA-PDK',
+            'Seragam Sekolah',
+            'Lengan Pendek',
+            '98000',
+            '68000',
+            '35',
+            '5',
+            'pcs',
+            '1.20',
+            '22000',
+            '0',
+            '0'
+        ];
+
+        $callback = function () use ($columns, $sampleRow1, $sampleRow2) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($file, $columns);
+            fputcsv($file, $sampleRow1);
+            fputcsv($file, $sampleRow2);
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function importProduct(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'file' => 'required|file|max:10240',
+        ]);
+
+        $file = $request->file('file');
+        $filePath = $file->getRealPath();
+
+        $insertedCount = 0;
+        $updatedCount = 0;
+        $skippedCount = 0;
+
+        if (($handle = fopen($filePath, 'r')) !== FALSE) {
+            $bom = fread($handle, 3);
+            if ($bom !== "\xEF\xBB\xBF") {
+                rewind($handle);
+            }
+
+            $header = fgetcsv($handle, 1000, ',');
+            if (!$header) {
+                return redirect()->back()->with('error', 'File CSV kosong atau format tidak valid.');
+            }
+
+            $headerMap = [];
+            foreach ($header as $idx => $colName) {
+                $clean = strtolower(trim(str_replace([' ', '_', '-'], '', $colName)));
+                $headerMap[$clean] = $idx;
+            }
+
+            while (($row = fgetcsv($handle, 2000, ',')) !== FALSE) {
+                if (count($row) < 2) continue;
+
+                $getValue = function($keyNames) use ($headerMap, $row) {
+                    if (!is_array($keyNames)) $keyNames = [$keyNames];
+                    foreach ($keyNames as $k) {
+                        $cleanKey = strtolower(trim(str_replace([' ', '_', '-'], '', $k)));
+                        if (isset($headerMap[$cleanKey]) && isset($row[$headerMap[$cleanKey]])) {
+                            return trim($row[$headerMap[$cleanKey]]);
+                        }
+                    }
+                    return '';
+                };
+
+                $sku = strtoupper($getValue(['sku', 'kodesku']));
+                $name = $getValue(['namaproduk', 'nama', 'productname']);
+
+                if (empty($sku) || empty($name)) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                $skuInduk = $getValue(['skuinduk', 'parentsku']);
+                $skuInduk = !empty($skuInduk) ? strtoupper($skuInduk) : $sku;
+
+                $price = floatval($getValue(['hargajual', 'harga', 'price', 'sellingprice']));
+                $costPrice = floatval($getValue(['hpphargabeli', 'hpp', 'costprice', 'hargabeli']));
+                $stock = intval($getValue(['stok', 'stock', 'qty']));
+                $minStock = intval($getValue(['minstok', 'minstock', 'warningstok']));
+                if ($minStock <= 0) $minStock = 5;
+
+                $unit = $getValue(['satuan', 'unit']) ?: 'pcs';
+                $estKain = floatval($getValue(['estkain', 'estimasikain']));
+                $estBiayaProduksi = floatval($getValue(['estbiayaproduksi', 'biayaproduksi', 'estproduksi']));
+                
+                $isBundleVal = strtolower($getValue(['isbundle', 'bundle', 'paket']));
+                $isBundle = in_array($isBundleVal, ['1', 'true', 'yes', 'ya', 'paket', 'bundle']) ? 1 : 0;
+
+                $isPreorderVal = strtolower($getValue(['ispreorder', 'preorder', 'po']));
+                $isPreorder = in_array($isPreorderVal, ['1', 'true', 'yes', 'ya', 'po']) ? 1 : 0;
+
+                // Process Category
+                $categoryId = null;
+                $catName = $getValue(['kategori', 'category']);
+                if (!empty($catName)) {
+                    $category = Category::firstOrCreate(
+                        ['tenant_id' => $tenantId, 'name' => $catName],
+                        ['slug' => \Illuminate\Support\Str::slug($catName)]
+                    );
+                    $categoryId = $category->id;
+                }
+
+                // Process Brand / Model
+                $brandId = null;
+                $brandName = $getValue(['brandmerek', 'brand', 'merek', 'model']);
+                if (!empty($brandName)) {
+                    $brand = Brand::firstOrCreate(
+                        ['tenant_id' => $tenantId, 'name' => $brandName],
+                        ['slug' => \Illuminate\Support\Str::slug($brandName)]
+                    );
+                    $brandId = $brand->id;
+                }
+
+                $existingProduct = MasterProduct::where('tenant_id', $tenantId)->where('sku', $sku)->first();
+
+                $productData = [
+                    'tenant_id' => $tenantId,
+                    'name' => $name,
+                    'sku' => $sku,
+                    'sku_induk' => $skuInduk,
+                    'price' => $price,
+                    'selling_price' => $price,
+                    'cost_price' => $costPrice,
+                    'stock' => $stock,
+                    'min_stock' => $minStock,
+                    'unit' => $unit,
+                    'est_kain' => $estKain,
+                    'est_biaya_produksi' => $estBiayaProduksi,
+                    'category_id' => $categoryId,
+                    'brand_id' => $brandId,
+                    'is_bundle' => (bool)$isBundle,
+                    'is_preorder' => (bool)$isPreorder,
+                    'is_active' => true,
+                ];
+
+                if ($existingProduct) {
+                    $existingProduct->update($productData);
+                    $updatedCount++;
+                } else {
+                    MasterProduct::create($productData);
+                    $insertedCount++;
+                }
+            }
+            fclose($handle);
+        }
+
+        return redirect()->route('v2.produk.index')->with('success', "Import produk berhasil! {$insertedCount} produk baru ditambahkan, {$updatedCount} produk diperbarui" . ($skippedCount > 0 ? ", {$skippedCount} baris dilewati (SKU/Nama kosong)." : "."));
+    }
+
     public function show($id)
     {
         $tenantId = Auth::user()->tenant_id;
