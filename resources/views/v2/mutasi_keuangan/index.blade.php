@@ -195,11 +195,11 @@
 <div class="v2-card p-3 mb-3 shadow-sm">
     <form method="GET" action="{{ route('v2.mutasi_keuangan.index') }}">
         <div class="row g-2 align-items-end">
-            <div class="col-12 col-sm-6 col-md-3">
+            <div class="col-12 col-sm-6 col-md-2">
                 <label class="v2-form-label">Dari Tanggal</label>
                 <input type="date" name="date_from" value="{{ $dateFrom }}" class="form-control form-control-sm v2-input">
             </div>
-            <div class="col-12 col-sm-6 col-md-3">
+            <div class="col-12 col-sm-6 col-md-2">
                 <label class="v2-form-label">Sampai Tanggal</label>
                 <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control form-control-sm v2-input">
             </div>
@@ -219,7 +219,7 @@
                     @endif
                 </select>
             </div>
-            <div class="col-12 col-sm-6 col-md-3">
+            <div class="col-12 col-sm-6 col-md-2">
                 <label class="v2-form-label">Arah Mutasi</label>
                 <select name="direction" class="form-select form-select-sm v2-input">
                     <option value="all" {{ $direction === 'all' ? 'selected' : '' }}>Semua (Masuk & Keluar)</option>
@@ -227,20 +227,13 @@
                     <option value="out" {{ $direction === 'out' ? 'selected' : '' }}>Uang Keluar (-)</option>
                 </select>
             </div>
-        </div>
-
-        <div class="d-flex justify-content-between align-items-center mt-3 pt-2.5 border-top flex-wrap gap-2">
-            <div class="text-muted small d-flex align-items-center gap-1.5" style="font-size:0.76rem;">
-                <i class="bi bi-info-circle text-primary fs-6"></i>
-                <span>Menampilkan mutasi untuk: <strong class="text-dark">{{ $selectedAccountLabel }}</strong></span>
-            </div>
-            <div class="d-flex gap-2">
-                <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm py-1.5 px-3 fw-semibold" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
-                </a>
-                <button type="submit" class="btn btn-sm btn-v2-primary py-1.5 px-3.5 shadow-sm fw-semibold">
+            <div class="col-12 col-md-3 d-flex gap-2 align-items-center">
+                <button type="submit" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm fw-semibold flex-fill">
                     <i class="bi bi-funnel me-1"></i> Terapkan Filter
                 </button>
+                <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm py-1.5 px-2.5 fw-semibold" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;" title="Reset Filter">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                </a>
             </div>
         </div>
     </form>
