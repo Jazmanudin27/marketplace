@@ -223,6 +223,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/marketplace-produk/auto-link', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'autoLink'])->name('marketplace_produk.auto_link');
         Route::post('/marketplace-produk/bulk-promote', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'bulkPromote'])->name('marketplace_produk.bulk_promote');
         Route::delete('/marketplace-produk/{product}', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'destroy'])->name('marketplace_produk.destroy');
+
+        // Pesanan Masuk V2
+        Route::get('/pesanan', [\App\Http\Controllers\V2\PesananController::class, 'index'])->name('pesanan.index');
     });
 
     // =========================================================================

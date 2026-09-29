@@ -15,7 +15,7 @@
         <a href="{{ url('/v2/dashboard') }}" class="btn btn-sm btn-v2-secondary py-1.5 px-2.5" title="Refresh Dashboard">
             <i class="bi bi-arrow-clockwise"></i>
         </a>
-        <a href="{{ Route::has('orders.index') ? route('orders.index') : url('/orders') }}" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm">
+        <a href="{{ Route::has('v2.pesanan.index') ? route('v2.pesanan.index') : (Route::has('orders.index') ? route('orders.index') : url('/orders')) }}" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm">
             <i class="bi bi-cart-plus me-1"></i> Lihat Semua Pesanan
         </a>
     </div>

@@ -84,8 +84,8 @@
         <!-- Marketplace & Sales -->
         <div class="v2-nav-section-title mt-2">MARKETPLACE & SALES</div>
         <div class="v2-nav-item">
-            <a href="{{ Route::has('orders.index') ? route('orders.index') : url('/orders') }}"
-                class="v2-nav-link d-flex align-items-center justify-content-between">
+            <a href="{{ Route::has('v2.pesanan.index') ? route('v2.pesanan.index') : (Route::has('orders.index') ? route('orders.index') : url('/orders')) }}"
+                class="v2-nav-link d-flex align-items-center justify-content-between {{ request()->is('v2/pesanan*') ? 'active' : '' }}">
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-cart-check-fill"></i>
                     <span>Pesanan Masuk</span>
