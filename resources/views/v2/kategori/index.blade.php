@@ -33,7 +33,7 @@
 @endif
 
 <!-- Summary KPI Cards -->
-<div class="row g-2 mb-3">
+<div class="row g-2 mb-4">
     <div class="col-12 col-sm-6 col-md-3">
         <div class="v2-stat-widget p-3 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%); border: 1px solid #bfdbfe;">
             <div class="v2-stat-icon-wrapper" style="background-color: #dbeafe; color: #1d4ed8; width: 40px; height: 40px; font-size: 1.1rem;">
@@ -82,16 +82,16 @@
 
 <!-- Main Content Container with Card & Header Tabs -->
 <div class="v2-card mb-4 shadow-sm border">
-    <div class="v2-card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
-        <ul class="nav nav-pills card-header-pills gap-1" id="masterTabs" role="tablist">
+    <div class="v2-card-header bg-light py-2.5 px-3.5 border-bottom d-flex align-items-center justify-content-between">
+        <ul class="nav nav-pills card-header-pills gap-2" id="masterTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link btn-sm py-1 px-3 fw-bold {{ $activeTab === 'category' ? 'active' : '' }}" id="category-tab" data-bs-toggle="tab" data-bs-target="#category-pane" type="button" role="tab" aria-controls="category-pane" aria-selected="{{ $activeTab === 'category' ? 'true' : 'false' }}" style="font-size: 0.76rem;">
-                    <i class="bi bi-folder2 me-1"></i> Kategori ({{ $counts['total_categories'] }})
+                <button class="nav-link btn-sm py-1.5 px-3.5 fw-bold {{ $activeTab === 'category' ? 'active' : '' }}" id="category-tab" data-bs-toggle="tab" data-bs-target="#category-pane" type="button" role="tab" aria-controls="category-pane" aria-selected="{{ $activeTab === 'category' ? 'true' : 'false' }}" style="font-size: 0.78rem;">
+                    <i class="bi bi-folder2 me-1.5"></i> Kategori ({{ $counts['total_categories'] }})
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link btn-sm py-1 px-3 fw-bold {{ $activeTab === 'brand' ? 'active' : '' }}" id="brand-tab" data-bs-toggle="tab" data-bs-target="#brand-pane" type="button" role="tab" aria-controls="brand-pane" aria-selected="{{ $activeTab === 'brand' ? 'true' : 'false' }}" style="font-size: 0.76rem;">
-                    <i class="bi bi-sliders me-1"></i> Model & Varian ({{ $counts['total_brands'] }})
+                <button class="nav-link btn-sm py-1.5 px-3.5 fw-bold {{ $activeTab === 'brand' ? 'active' : '' }}" id="brand-tab" data-bs-toggle="tab" data-bs-target="#brand-pane" type="button" role="tab" aria-controls="brand-pane" aria-selected="{{ $activeTab === 'brand' ? 'true' : 'false' }}" style="font-size: 0.78rem;">
+                    <i class="bi bi-sliders me-1.5"></i> Model & Varian ({{ $counts['total_brands'] }})
                 </button>
             </li>
         </ul>
@@ -101,7 +101,7 @@
             <!-- TAB 1: KATEGORI -->
             <div class="tab-pane fade {{ $activeTab === 'category' ? 'show active' : '' }}" id="category-pane" role="tabpanel" aria-labelledby="category-tab">
                 <!-- Filter Box Kategori -->
-                <div class="p-2.5 bg-light border-bottom">
+                <div class="p-3.5 bg-light border-bottom">
                     <form method="GET" action="{{ url('/v2/kategori-brand') }}" class="row g-2 align-items-center">
                         <input type="hidden" name="tab" value="category">
                         <div class="col-12 col-md-5 col-lg-4">
@@ -206,7 +206,7 @@
             <!-- TAB 2: MODEL & VARIAN -->
             <div class="tab-pane fade {{ $activeTab === 'brand' ? 'show active' : '' }}" id="brand-pane" role="tabpanel" aria-labelledby="brand-tab">
                 <!-- Filter Box Model & Varian -->
-                <div class="p-2.5 bg-light border-bottom">
+                <div class="p-3.5 bg-light border-bottom">
                     <form method="GET" action="{{ url('/v2/kategori-brand') }}" class="row g-2 align-items-center">
                         <input type="hidden" name="tab" value="brand">
                         <div class="col-12 col-md-5 col-lg-4">
