@@ -211,6 +211,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/toko/{id}/edit', [\App\Http\Controllers\V2\TokoController::class, 'edit'])->name('toko.edit');
         Route::put('/toko/{id}', [\App\Http\Controllers\V2\TokoController::class, 'update'])->name('toko.update');
         Route::delete('/toko/{id}', [\App\Http\Controllers\V2\TokoController::class, 'destroy'])->name('toko.destroy');
+
+        // Produk Marketplace V2
+        Route::get('/marketplace-produk', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'index'])->name('marketplace_produk.index');
+        Route::get('/produk-marketplace', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'index']);
+        Route::get('/marketplace-produk/print-report', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'printReport'])->name('marketplace_produk.print_report');
+        Route::post('/marketplace-produk/{product}/promote', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'promote'])->name('marketplace_produk.promote');
+        Route::post('/marketplace-produk/{product}/link', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'link'])->name('marketplace_produk.link');
+        Route::post('/marketplace-produk/{product}/unlink', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'unlink'])->name('marketplace_produk.unlink');
+        Route::put('/marketplace-produk/{product}/update-settings', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'updateSettings'])->name('marketplace_produk.update_settings');
+        Route::post('/marketplace-produk/auto-link', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'autoLink'])->name('marketplace_produk.auto_link');
+        Route::post('/marketplace-produk/bulk-promote', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'bulkPromote'])->name('marketplace_produk.bulk_promote');
+        Route::delete('/marketplace-produk/{product}', [\App\Http\Controllers\V2\MarketplaceProdukController::class, 'destroy'])->name('marketplace_produk.destroy');
     });
 
     // =========================================================================

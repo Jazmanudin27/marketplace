@@ -163,14 +163,14 @@
                     <div class="row g-1.5 p-2 bg-light rounded-3 border mb-3">
                         <div class="col-4 border-end text-center">
                             <div class="text-muted" style="font-size: 0.62rem;">PRODUK LINKED</div>
-                            <div class="fw-bold text-dark font-monospace" style="font-size: 0.8rem;">
-                                <i class="bi bi-box-seam text-primary me-0.5"></i>{{ number_format($store->marketplace_products_count ?? 0) }}
+                            <div class="fw-bold text-dark font-monospace" style="font-size: 0.85rem;">
+                                {{ number_format($store->marketplace_products_count ?? 0) }}
                             </div>
                         </div>
                         <div class="col-4 border-end text-center">
                             <div class="text-muted" style="font-size: 0.62rem;">ORDER MASUK</div>
-                            <div class="fw-bold text-dark font-monospace" style="font-size: 0.8rem;">
-                                <i class="bi bi-cart-check text-success me-0.5"></i>{{ number_format($store->orders_count ?? 0) }}
+                            <div class="fw-bold text-dark font-monospace" style="font-size: 0.85rem;">
+                                {{ number_format($store->orders_count ?? 0) }}
                             </div>
                         </div>
                         <div class="col-4 text-center">
@@ -194,7 +194,7 @@
                     </div>
 
                     <!-- Action Buttons Footer with Spacing & Margins -->
-                    <div class="pt-2.5 mt-1 border-top d-flex align-items-center justify-content-between gap-2">
+                    <div class="pt-2.5 mt-1 border-top d-flex align-items-center justify-content-between gap-2.5 px-0.5">
                         @if ($store->status === 'connected')
                             @php
                                 $syncProductRoute = match($chCode) {
@@ -217,7 +217,7 @@
                                 @if ($syncProductRoute)
                                     <form action="{{ $syncProductRoute }}" method="POST" class="flex-fill m-0">
                                         @csrf
-                                        <button type="submit" class="btn btn-sm btn-v2-primary w-100 py-1.5 px-2 justify-content-center rounded-2 shadow-xs" style="font-size: 0.72rem;" title="Tarik Produk dari Toko Ini">
+                                        <button type="submit" class="btn btn-sm btn-v2-primary w-100 py-1.5 px-2.5 justify-content-center rounded-2 shadow-xs" style="font-size: 0.72rem;" title="Tarik Produk dari Toko Ini">
                                             <i class="bi bi-box-arrow-in-down me-1"></i>Tarik Produk
                                         </button>
                                     </form>
@@ -226,7 +226,7 @@
                                 @if ($syncOrderRoute)
                                     <form action="{{ $syncOrderRoute }}" method="POST" class="flex-fill m-0">
                                         @csrf
-                                        <button type="submit" class="btn btn-sm btn-v2-success w-100 py-1.5 px-2 justify-content-center rounded-2 shadow-xs" style="font-size: 0.72rem; background-color: #10b981 !important; border-color: #10b981 !important; color: #ffffff !important;" title="Tarik Pesanan dari Toko Ini">
+                                        <button type="submit" class="btn btn-sm btn-v2-success w-100 py-1.5 px-2.5 justify-content-center rounded-2 shadow-xs" style="font-size: 0.72rem; background-color: #10b981 !important; border-color: #10b981 !important; color: #ffffff !important;" title="Tarik Pesanan dari Toko Ini">
                                             <i class="bi bi-cart-download me-1"></i>Tarik Order
                                         </button>
                                     </form>
@@ -249,7 +249,7 @@
                             @endif
                         @endif
 
-                        <div class="d-flex align-items-center gap-1.5 flex-shrink-0 ms-1">
+                        <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-2">
                             <a href="{{ url('/v2/toko/' . $store->id . '/edit') }}" class="btn-action-icon btn-action-edit rounded-2" title="Edit Pengaturan Toko">
                                 <i class="bi bi-gear text-white"></i>
                             </a>

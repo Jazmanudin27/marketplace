@@ -101,6 +101,13 @@
             </a>
         </div>
         <div class="v2-nav-item">
+            <a href="{{ url('/v2/marketplace-produk') }}"
+                class="v2-nav-link {{ request()->is('v2/marketplace-produk*') || request()->is('v2/produk-marketplace*') || request()->is('marketplace-products*') ? 'active' : '' }}">
+                <i class="bi bi-tags-fill"></i>
+                <span>Produk Marketplace</span>
+            </a>
+        </div>
+        <div class="v2-nav-item">
             <a href="{{ Route::has('stock_sync.index') ? route('stock_sync.index') : url('/v2/produk') }}"
                 class="v2-nav-link">
                 <i class="bi bi-arrow-repeat"></i>
