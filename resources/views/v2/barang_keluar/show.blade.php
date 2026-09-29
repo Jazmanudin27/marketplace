@@ -31,7 +31,7 @@
 
 <div class="row g-3">
     {{-- Kiri: Detail Metadata Transaksi --}}
-    <div class="col-12 col-lg-4">
+    <div class="col-12 col-lg-3">
         <div class="v2-card p-3 shadow-sm mb-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold text-dark mb-0">Status Transaction</h6>
@@ -85,7 +85,7 @@
     </div>
 
     {{-- Kanan: Rincian Barang Dikeluarkan --}}
-    <div class="col-12 col-lg-8">
+    <div class="col-12 col-lg-9">
         <div class="v2-card p-3 shadow-sm h-100 d-flex flex-column">
             <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
                 <i class="bi bi-boxes text-danger me-1.5"></i> Rincian Barang Dikeluarkan ({{ $warehouseMutation->items->count() }} Varian)
