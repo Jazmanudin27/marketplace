@@ -27,9 +27,8 @@
     margin-bottom: 4px;
 }
 .mks-kpi-value {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 700;
-    font-family: 'Courier New', monospace;
     line-height: 1.2;
 }
 .mks-kpi-sub {
@@ -79,7 +78,6 @@
 }
 
 .ref-code {
-    font-family: 'Courier New', monospace;
     font-weight: 700;
     color: #2563eb;
     background: #eff6ff;
@@ -90,19 +88,16 @@
 }
 
 .amount-inflow {
-    font-family: 'Courier New', monospace;
     font-weight: 700;
     color: #16a34a;
 }
 
 .amount-outflow {
-    font-family: 'Courier New', monospace;
     font-weight: 700;
     color: #dc2626;
 }
 
 .amount-balance {
-    font-family: 'Courier New', monospace;
     font-weight: 700;
     color: #0f172a;
 }
@@ -114,25 +109,24 @@
 {{-- ── Page Header ── --}}
 <div class="v2-page-header align-items-center mb-3">
     <div>
-        <h1 class="v2-page-title d-flex align-items-center gap-2 mb-1">
+        <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0">
             <i class="bi bi-journal-text text-primary fs-5"></i> Mutasi Keuangan
         </h1>
-        <p class="v2-page-subtitle mb-0">Monitor arus kas masuk, keluar, dan saldo berjalan seluruh rekening kas & bank secara real-time</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
-        <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm btn-v2-secondary py-1 px-2.5" title="Refresh Data">
+        <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1;" title="Refresh Data">
             <i class="bi bi-arrow-clockwise me-1"></i> Refresh
         </a>
-        <a href="{{ route('v2.mutasi_keuangan.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-v2-secondary py-1 px-3">
+        <a href="{{ route('v2.mutasi_keuangan.print', request()->query()) }}" target="_blank" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#1e293b; border:none;">
             <i class="bi bi-printer me-1"></i> Cetak Laporan
         </a>
-        <button type="button" class="btn btn-sm btn-success py-1 px-3 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+        <button type="button" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#16a34a; border:none;" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
             <i class="bi bi-plus-circle me-1"></i> Input Pemasukan
         </button>
-        <button type="button" class="btn btn-sm btn-danger py-1 px-3 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+        <button type="button" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#dc2626; border:none;" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
             <i class="bi bi-dash-circle me-1"></i> Input Pengeluaran
         </button>
-        <button type="button" class="btn btn-sm btn-warning text-dark py-1 px-3 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#addTransferModal">
+        <button type="button" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#d97706; border:none;" data-bs-toggle="modal" data-bs-target="#addTransferModal">
             <i class="bi bi-arrow-left-right me-1"></i> Transfer Dana
         </button>
     </div>
@@ -254,10 +248,10 @@
                 <span>Menampilkan mutasi untuk: <strong class="text-dark">{{ $selectedAccountLabel }}</strong></span>
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm btn-v2-secondary py-1 px-3">
+                <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm py-1.5 px-3 fw-semibold" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                 </a>
-                <button type="submit" class="btn btn-sm btn-v2-primary py-1 px-3.5">
+                <button type="submit" class="btn btn-sm btn-v2-primary py-1.5 px-3.5 shadow-sm fw-semibold">
                     <i class="bi bi-funnel me-1"></i> Terapkan Filter
                 </button>
             </div>
@@ -338,7 +332,8 @@
                         <td class="text-center">
                             <div class="btn-group btn-group-sm" role="group">
                                 @if($row['model_type'] === 'income')
-                                    <button type="button" class="btn btn-outline-primary btn-sm px-1.5 py-0 edit-income-btn"
+                                    <button type="button" class="btn btn-sm px-2 py-0.5 edit-income-btn"
+                                        style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;"
                                         title="Edit Pemasukan"
                                         data-bs-toggle="modal" data-bs-target="#editIncomeModal"
                                         data-id="{{ $row['id'] }}"
@@ -354,12 +349,13 @@
                                         @csrf
                                         @method('DELETE')
                                         <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm px-1.5 py-0" title="Hapus Pemasukan">
+                                        <button type="submit" class="btn btn-sm px-2 py-0.5" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;" title="Hapus Pemasukan">
                                             <i class="bi bi-trash" style="font-size:0.72rem;"></i>
                                         </button>
                                     </form>
                                 @elseif($row['model_type'] === 'expense')
-                                    <button type="button" class="btn btn-outline-primary btn-sm px-1.5 py-0 edit-expense-btn"
+                                    <button type="button" class="btn btn-sm px-2 py-0.5 edit-expense-btn"
+                                        style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;"
                                         title="Edit Pengeluaran"
                                         data-bs-toggle="modal" data-bs-target="#editExpenseModal"
                                         data-id="{{ $row['id'] }}"
@@ -376,12 +372,13 @@
                                         @csrf
                                         @method('DELETE')
                                         <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm px-1.5 py-0" title="Hapus Pengeluaran">
+                                        <button type="submit" class="btn btn-sm px-2 py-0.5" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;" title="Hapus Pengeluaran">
                                             <i class="bi bi-trash" style="font-size:0.72rem;"></i>
                                         </button>
                                     </form>
                                 @elseif($row['model_type'] === 'transfer')
-                                    <button type="button" class="btn btn-outline-primary btn-sm px-1.5 py-0 edit-transfer-btn"
+                                    <button type="button" class="btn btn-sm px-2 py-0.5 edit-transfer-btn"
+                                        style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;"
                                         title="Edit Transfer"
                                         data-bs-toggle="modal" data-bs-target="#editTransferModal"
                                         data-id="{{ $row['id'] }}"
@@ -396,7 +393,7 @@
                                         @csrf
                                         @method('DELETE')
                                         <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm px-1.5 py-0" title="Hapus Transfer">
+                                        <button type="submit" class="btn btn-sm px-2 py-0.5" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;" title="Hapus Transfer">
                                             <i class="bi bi-trash" style="font-size:0.72rem;"></i>
                                         </button>
                                     </form>
