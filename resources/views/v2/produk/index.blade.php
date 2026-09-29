@@ -284,8 +284,8 @@
                             </td>
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-1">
-                                    <button type="button" class="btn-action-icon btn-action-view show-detail-btn" title="Detail Master Produk" data-id="{{ $prod->id }}">
-                                        <i class="bi bi-eye"></i>
+                                    <button type="button" class="btn-action-icon btn-action-view show-detail-btn" title="Detail Master Produk" data-id="{{ $prod->id }}" style="background-color: #059669; color: #ffffff;">
+                                        <i class="bi bi-eye text-white"></i>
                                     </button>
                                     <a href="{{ route('v2.produk.edit', $prod->id) }}" class="btn-action-icon btn-action-edit" title="Edit Master Produk V2">
                                         <i class="bi bi-pencil"></i>

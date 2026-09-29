@@ -25,7 +25,7 @@
         href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
 
     <!-- Design System V2 CSS -->
-    <link rel="stylesheet" href="{{ asset('css/app_v2.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/app_v2.css') }}?v={{ file_exists(public_path('css/app_v2.css')) ? filemtime(public_path('css/app_v2.css')) : time() }}">
 
     @stack('styles')
 

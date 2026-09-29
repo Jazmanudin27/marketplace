@@ -43,10 +43,17 @@
         <!-- Data Master -->
         <div class="v2-nav-section-title mt-2">DATA MASTER</div>
         @php
-            $isDataMasterActive = request()->is('v2/produk*') || request()->is('v2/kategori*') || request()->is('v2/brand*') || request()->is('inventory-items*');
+            $isDataMasterActive =
+                request()->is('v2/produk*') ||
+                request()->is('v2/kategori*') ||
+                request()->is('v2/brand*') ||
+                request()->is('inventory-items*');
         @endphp
         <div class="v2-nav-item v2-nav-dropdown {{ $isDataMasterActive ? 'show' : '' }}">
-            <a href="javascript:void(0)" class="v2-nav-link v2-dropdown-toggle d-flex align-items-center justify-content-between {{ $isDataMasterActive ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#dataMasterSubmenu" aria-expanded="{{ $isDataMasterActive ? 'true' : 'false' }}">
+            <a href="javascript:void(0)"
+                class="v2-nav-link v2-dropdown-toggle d-flex align-items-center justify-content-between {{ $isDataMasterActive ? 'active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#dataMasterSubmenu"
+                aria-expanded="{{ $isDataMasterActive ? 'true' : 'false' }}">
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-folder-fill"></i>
                     <span>Data Master</span>
@@ -55,15 +62,18 @@
             </a>
             <div class="collapse v2-submenu {{ $isDataMasterActive ? 'show' : '' }}" id="dataMasterSubmenu">
                 <div class="v2-submenu-inner">
-                    <a href="{{ url('/v2/produk') }}" class="v2-submenu-link {{ request()->is('v2/produk*') ? 'active' : '' }}">
+                    <a href="{{ url('/v2/produk') }}"
+                        class="v2-submenu-link {{ request()->is('v2/produk*') ? 'active' : '' }}">
                         <i class="bi bi-box-seam me-1.5"></i>
                         <span>Master Produk</span>
                     </a>
-                    <a href="{{ url('/v2/kategori-brand') }}" class="v2-submenu-link {{ request()->is('v2/kategori*') || request()->is('v2/brand*') ? 'active' : '' }}">
+                    <a href="{{ url('/v2/kategori-brand') }}"
+                        class="v2-submenu-link {{ request()->is('v2/kategori*') || request()->is('v2/brand*') ? 'active' : '' }}">
                         <i class="bi bi-tags me-1.5"></i>
                         <span>Kategori & Varian</span>
                     </a>
-                    <a href="{{ Route::has('inventory_items.index') ? route('inventory_items.index') : url('/inventory-items') }}" class="v2-submenu-link {{ request()->is('inventory-items*') ? 'active' : '' }}">
+                    <a href="{{ Route::has('inventory_items.index') ? route('inventory_items.index') : url('/inventory-items') }}"
+                        class="v2-submenu-link {{ request()->is('inventory-items*') ? 'active' : '' }}">
                         <i class="bi bi-building-gear me-1.5"></i>
                         <span>Stok & Gudang</span>
                     </a>
