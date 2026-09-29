@@ -94,6 +94,15 @@
             </a>
         </div>
         <div class="v2-nav-item">
+            <a href="{{ Route::has('v2.retur.index') ? route('v2.retur.index') : (Route::has('returns.index') ? route('returns.index') : url('/returns')) }}"
+                class="v2-nav-link d-flex align-items-center justify-content-between {{ request()->is('v2/retur*') || request()->is('returns*') ? 'active' : '' }}">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    <span>Pesanan Retur</span>
+                </div>
+            </a>
+        </div>
+        <div class="v2-nav-item">
             <a href="{{ url('/v2/toko') }}"
                 class="v2-nav-link {{ request()->is('v2/toko*') || request()->is('stores*') ? 'active' : '' }}">
                 <i class="bi bi-shop"></i>

@@ -226,6 +226,13 @@ Route::middleware('auth')->group(function () {
 
         // Pesanan Masuk V2
         Route::get('/pesanan', [\App\Http\Controllers\V2\PesananController::class, 'index'])->name('pesanan.index');
+
+        // Pesanan Retur V2
+        Route::get('/retur', [\App\Http\Controllers\V2\ReturController::class, 'index'])->name('retur.index');
+        Route::get('/retur/export', [\App\Http\Controllers\V2\ReturController::class, 'export'])->name('retur.export');
+        Route::post('/retur/sync', [\App\Http\Controllers\V2\ReturController::class, 'sync'])->name('retur.sync');
+        Route::post('/retur/{returnOrder}/restock', [\App\Http\Controllers\V2\ReturController::class, 'restock'])->name('retur.restock');
+        Route::post('/retur/{returnOrder}/replacement', [\App\Http\Controllers\V2\ReturController::class, 'createReplacementOrder'])->name('retur.replacement');
     });
 
     // =========================================================================
