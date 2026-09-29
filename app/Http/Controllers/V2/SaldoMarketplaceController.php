@@ -55,10 +55,17 @@ class SaldoMarketplaceController extends Controller
                 Cache::forget("store_shopee_fee_ratio_v3_{$s->id}");
                 Cache::forget("store_tiktok_fee_ratio_v3_{$s->id}");
 
+                // Jalankan sinkronisasi cepat per toko
                 try {
                     if ($s->status === 'connected') {
-                        $accessToken = $s->getValidAccessToken();
+                        // Sync wallet transactions via Artisan for both Shopee & TikTok
+                        Artisan::call('marketplace:sync-wallets', [
+                            '--store_id' => $s->id,
+                            '--days'     => 30,
+                        ]);
+
                         if ($s->channel->code === 'shopee') {
+                            $accessToken = $s->getValidAccessToken();
                             $shopId = (int) $s->marketplace_store_id;
                             $res = $this->shopeeService->getWalletBalance($accessToken, $shopId);
                             if (is_array($res) && (isset($res['current_balance']) || isset($res['withdraw_balance']))) {
@@ -71,11 +78,6 @@ class SaldoMarketplaceController extends Controller
                                     'error_message'    => null,
                                 ], now()->addMinutes(15));
                             }
-                        } elseif ($s->channel->code === 'tiktok') {
-                            Artisan::call('marketplace:sync-wallets', [
-                                '--store_id' => $s->id,
-                                '--days'     => 30,
-                            ]);
                         }
                     }
                 } catch (\Throwable $e) {
@@ -96,59 +98,55 @@ class SaldoMarketplaceController extends Controller
             $walletCacheKey  = "store_wallet_balance_v5_{$store->id}";
             $pendingCacheKey = "store_pending_balance_v5_{$store->id}";
             
-            // 1. Saldo Dompet (Dapat Ditarik)
+            // 1. Saldo Dompet (Dapat Ditarik) - Fast Retrieval with Instant DB Fallback
             $balanceData = Cache::remember($walletCacheKey, now()->addMinutes(15), function () use ($store) {
                 try {
                     $currentBalance  = null;
                     $withdrawBalance = null;
                     $apiSuccess      = false;
-                    $errorMessage    = null;
 
-                    if ($store->status === 'connected') {
-                        $accessToken = $store->getValidAccessToken();
-                        if ($store->channel->code === 'shopee') {
+                    // A. Prioritas 1: Ambil transaksi dompet terbaru di DB lokal
+                    $latestTx = MarketplaceWalletTransaction::where('store_id', $store->id)
+                        ->whereNotNull('current_balance')
+                        ->orderBy('transaction_date', 'desc')
+                        ->orderBy('id', 'desc')
+                        ->first();
+
+                    if ($latestTx) {
+                        $currentBalance  = (float) $latestTx->current_balance;
+                        $withdrawBalance = $currentBalance;
+                        $apiSuccess      = true;
+                    }
+
+                    // B. Jika belum ada di DB dan Shopee connected, coba 1 call cepat ke API
+                    if (!$apiSuccess && $store->channel->code === 'shopee' && $store->status === 'connected') {
+                        try {
+                            $accessToken = $store->getValidAccessToken();
                             $shopId = (int) $store->marketplace_store_id;
                             $res = $this->shopeeService->getWalletBalance($accessToken, $shopId);
                             if (is_array($res) && (isset($res['current_balance']) || isset($res['withdraw_balance']))) {
                                 $currentBalance  = (float) ($res['current_balance'] ?? 0);
                                 $withdrawBalance = isset($res['withdraw_balance']) ? (float) $res['withdraw_balance'] : $currentBalance;
                                 $apiSuccess      = true;
-                            } else {
-                                $errorMessage = $res['message'] ?? 'Respon API Shopee tidak valid';
                             }
-                        } elseif ($store->channel->code === 'tiktok') {
-                            $latestTx = MarketplaceWalletTransaction::where('store_id', $store->id)
-                                ->orderBy('transaction_date', 'desc')
-                                ->orderBy('id', 'desc')
-                                ->first();
-
-                            if ($latestTx && $latestTx->current_balance !== null) {
-                                $currentBalance  = (float) $latestTx->current_balance;
-                                $withdrawBalance = $currentBalance;
-                                $apiSuccess      = true;
-                            } else {
-                                $errorMessage = 'Belum ada transaksi mutasi dompet TikTok terdata';
-                            }
+                        } catch (\Throwable $e) {
+                            Log::info("Shopee fast getWalletBalance notice for {$store->store_name}: " . $e->getMessage());
                         }
-                    } else {
-                        $errorMessage = 'Toko belum terhubung ke API Marketplace';
                     }
 
-                    if (!$apiSuccess && $currentBalance === null) {
-                        $latestTx = MarketplaceWalletTransaction::where('store_id', $store->id)
-                            ->orderBy('transaction_date', 'desc')
-                            ->first();
-                        $currentBalance  = $latestTx ? (float) ($latestTx->current_balance ?? 0) : 0.0;
-                        $withdrawBalance = $currentBalance;
+                    if ($currentBalance === null) {
+                        $currentBalance  = 0.0;
+                        $withdrawBalance = 0.0;
                     }
 
                     return [
-                        'success'          => $apiSuccess,
-                        'current_balance'  => $currentBalance ?? 0.0,
-                        'withdraw_balance' => $withdrawBalance ?? 0.0,
-                        'error_message'    => $errorMessage,
+                        'success'          => true,
+                        'current_balance'  => $currentBalance,
+                        'withdraw_balance' => $withdrawBalance,
+                        'error_message'    => null,
                     ];
                 } catch (\Throwable $e) {
+                    Log::error("Failed to retrieve wallet balance for {$store->store_name}: " . $e->getMessage());
                     return [
                         'success'          => false,
                         'current_balance'  => 0.0,
