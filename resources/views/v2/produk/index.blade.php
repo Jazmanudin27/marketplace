@@ -172,7 +172,7 @@
                         </th>
                         <th style="width: 35px;" class="text-center">#</th>
                         <th>NAMA PRODUK / MASTER</th>
-                        <th>SKU & KODE</th>
+                        <th>KATEGORI</th>
                         <th class="text-end">HARGA (HPP / JUAL)</th>
                         <th class="text-center">STOK GUDANG</th>
                         <th class="text-center">TIPE / STATUS</th>
@@ -207,10 +207,10 @@
                                         <div class="fw-bold text-dark text-truncate" style="font-size: 0.8rem; line-height: 1.25; max-width: 280px;" title="{{ $prod->name }}">
                                             {{ \Illuminate\Support\Str::limit($prod->name, 45) }}
                                         </div>
-                                        <div class="text-muted d-flex align-items-center gap-2 mt-0.5" style="font-size: 0.68rem;">
-                                            <span><i class="bi bi-folder2 me-1"></i>{{ $prod->category->name ?? 'Tanpa Kategori' }}</span>
-                                            @if($prod->brand)
-                                                <span>• <i class="bi bi-tag me-1"></i>{{ $prod->brand->name }}</span>
+                                        <div class="d-flex align-items-center gap-1.5 mt-1">
+                                            <span class="sku-badge py-0 px-1.5" style="font-size: 0.65rem;">{{ $prod->sku ?: ($prod->sku_induk ?: '-') }}</span>
+                                            @if($prod->sku_induk && $prod->sku_induk !== $prod->sku)
+                                                <span class="text-muted" style="font-size: 0.65rem;">Induk: <code class="text-secondary">{{ $prod->sku_induk }}</code></span>
                                             @endif
                                         </div>
                                     </div>
@@ -218,10 +218,12 @@
                             </td>
                             <td>
                                 <div>
-                                    <span class="sku-badge">{{ $prod->sku ?: ($prod->sku_induk ?: '-') }}</span>
-                                    @if($prod->sku_induk && $prod->sku_induk !== $prod->sku)
-                                        <div class="text-muted mt-0.5" style="font-size: 0.65rem;">
-                                            Induk: <code class="text-secondary">{{ $prod->sku_induk }}</code>
+                                    <div class="fw-medium text-dark" style="font-size: 0.78rem;">
+                                        <i class="bi bi-folder2 text-primary me-1"></i>{{ $prod->category->name ?? 'Tanpa Kategori' }}
+                                    </div>
+                                    @if($prod->brand)
+                                        <div class="text-muted mt-0.5" style="font-size: 0.68rem;">
+                                            <i class="bi bi-tag me-1"></i>{{ $prod->brand->name }}
                                         </div>
                                     @endif
                                 </div>
