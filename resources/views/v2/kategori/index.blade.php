@@ -1,6 +1,6 @@
 @extends('v2.layouts.app')
 
-@section('title', 'Kategori & Model & Varian V2')
+@section('title', 'Kategori dan Model & Varian V2')
 
 @section('content')
 <!-- Page Header Compact -->
@@ -9,7 +9,7 @@
         <h1 class="v2-page-title d-flex align-items-center gap-2">
             <i class="bi bi-tags-fill text-primary fs-5"></i> Manajemen Kategori dan Model & Varian
         </h1>
-        <p class="v2-page-subtitle mb-0">Kelola pengelompokan kategori utama dan model/varian produk master (Lengan Panjang/Pendek, Jenjang SD/SMP/SMA, dll)</p>
+        <p class="v2-page-subtitle mb-0">Kelola pengelompokan kategori utama dan model/variasi produk master (Lengan Panjang/Pendek, Jenjang SD/SMP/SMA, dll)</p>
     </div>
     <div class="d-flex align-items-center gap-2">
         <a href="{{ url('/v2/kategori-brand') }}" class="btn btn-sm btn-v2-secondary py-1.5 px-2.5" title="Refresh Page">
@@ -32,107 +32,120 @@
     </div>
 @endif
 
-<!-- Summary KPI Cards -->
-<div class="row g-2 mb-4">
+<!-- Header Summary Widgets (KPI Cards) -->
+<div class="row g-2 mb-3">
     <div class="col-12 col-sm-6 col-md-3">
-        <div class="v2-stat-widget p-3 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%); border: 1px solid #bfdbfe;">
-            <div class="v2-stat-icon-wrapper" style="background-color: #dbeafe; color: #1d4ed8; width: 40px; height: 40px; font-size: 1.1rem;">
+        <div class="v2-stat-widget">
+            <div class="v2-stat-icon-wrapper blue">
                 <i class="bi bi-folder2-open"></i>
             </div>
             <div class="v2-stat-info">
-                <span class="v2-stat-num" style="color: #1e40af; font-size: 1.35rem; font-weight: 800;">{{ number_format($counts['total_categories']) }}</span>
-                <span class="v2-stat-lbl text-primary fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.3px;">TOTAL KATEGORI</span>
+                <span class="v2-stat-num">{{ number_format($counts['total_categories']) }}</span>
+                <span class="v2-stat-lbl">Total Kategori</span>
             </div>
         </div>
     </div>
     <div class="col-12 col-sm-6 col-md-3">
-        <div class="v2-stat-widget p-3 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #faf5ff 0%, #ffffff 100%); border: 1px solid #e9d5ff;">
-            <div class="v2-stat-icon-wrapper" style="background-color: #f3e8ff; color: #7e22ce; width: 40px; height: 40px; font-size: 1.1rem;">
+        <div class="v2-stat-widget">
+            <div class="v2-stat-icon-wrapper purple">
                 <i class="bi bi-sliders"></i>
             </div>
             <div class="v2-stat-info">
-                <span class="v2-stat-num" style="color: #6b21a8; font-size: 1.35rem; font-weight: 800;">{{ number_format($counts['total_brands']) }}</span>
-                <span class="v2-stat-lbl fw-semibold" style="color: #7e22ce; font-size: 0.72rem; letter-spacing: 0.3px;">MODEL & VARIAN</span>
+                <span class="v2-stat-num">{{ number_format($counts['total_brands']) }}</span>
+                <span class="v2-stat-lbl">Model & Varian</span>
             </div>
         </div>
     </div>
     <div class="col-12 col-sm-6 col-md-3">
-        <div class="v2-stat-widget p-3 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%); border: 1px solid #a7f3d0;">
-            <div class="v2-stat-icon-wrapper" style="background-color: #d1fae5; color: #047857; width: 40px; height: 40px; font-size: 1.1rem;">
+        <div class="v2-stat-widget">
+            <div class="v2-stat-icon-wrapper green">
                 <i class="bi bi-box-seam"></i>
             </div>
             <div class="v2-stat-info">
-                <span class="v2-stat-num" style="color: #065f46; font-size: 1.35rem; font-weight: 800;">{{ number_format($counts['categorized_products']) }}</span>
-                <span class="v2-stat-lbl text-success fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.3px;">PRODUK TERKATEGORI</span>
+                <span class="v2-stat-num">{{ number_format($counts['categorized_products']) }}</span>
+                <span class="v2-stat-lbl">Produk Terkategori</span>
             </div>
         </div>
     </div>
     <div class="col-12 col-sm-6 col-md-3">
-        <div class="v2-stat-widget p-3 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%); border: 1px solid #fde68a;">
-            <div class="v2-stat-icon-wrapper" style="background-color: #fef3c7; color: #b45309; width: 40px; height: 40px; font-size: 1.1rem;">
+        <div class="v2-stat-widget">
+            <div class="v2-stat-icon-wrapper amber">
                 <i class="bi bi-tags"></i>
             </div>
             <div class="v2-stat-info">
-                <span class="v2-stat-num" style="color: #92400e; font-size: 1.35rem; font-weight: 800;">{{ number_format($counts['branded_products']) }}</span>
-                <span class="v2-stat-lbl text-warning fw-semibold" style="color: #b45309; font-size: 0.72rem; letter-spacing: 0.3px;">PRODUK TER-MODEL</span>
+                <span class="v2-stat-num">{{ number_format($counts['branded_products']) }}</span>
+                <span class="v2-stat-lbl">Produk Ter-Model</span>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Main Content Container with Card & Header Tabs -->
-<div class="v2-card mb-4 shadow-sm border">
-    <div class="v2-card-header bg-light py-2.5 px-3.5 border-bottom d-flex align-items-center justify-content-between">
-        <ul class="nav nav-pills card-header-pills gap-2" id="masterTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link btn-sm py-1.5 px-3.5 fw-bold {{ $activeTab === 'category' ? 'active' : '' }}" id="category-tab" data-bs-toggle="tab" data-bs-target="#category-pane" type="button" role="tab" aria-controls="category-pane" aria-selected="{{ $activeTab === 'category' ? 'true' : 'false' }}" style="font-size: 0.78rem;">
-                    <i class="bi bi-folder2 me-1.5"></i> Kategori ({{ $counts['total_categories'] }})
+<!-- Filter Box Compact -->
+<div class="v2-card mb-3">
+    <div class="v2-card-body p-2.5">
+        <form method="GET" action="{{ url('/v2/kategori-brand') }}" class="row g-2 align-items-center">
+            <input type="hidden" name="tab" id="activeTabFilterInput" value="{{ $activeTab }}">
+            <div class="col-12 col-md-4">
+                @if($activeTab === 'brand')
+                    <input type="text" name="brand_name" class="form-control form-control-sm" placeholder="Cari model & varian (Lengan Panjang, SD...)" value="{{ request('brand_name') }}">
+                @else
+                    <input type="text" name="cat_name" class="form-control form-control-sm" placeholder="Cari nama kategori..." value="{{ request('cat_name') }}">
+                @endif
+            </div>
+            <div class="col-6 col-md-1.5 col-lg-1">
+                <button type="submit" class="btn btn-sm btn-v2-primary w-100 justify-content-center py-1">
+                    <i class="bi bi-search me-1"></i> Cari
                 </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link btn-sm py-1.5 px-3.5 fw-bold {{ $activeTab === 'brand' ? 'active' : '' }}" id="brand-tab" data-bs-toggle="tab" data-bs-target="#brand-pane" type="button" role="tab" aria-controls="brand-pane" aria-selected="{{ $activeTab === 'brand' ? 'true' : 'false' }}" style="font-size: 0.78rem;">
-                    <i class="bi bi-sliders me-1.5"></i> Model & Varian ({{ $counts['total_brands'] }})
-                </button>
-            </li>
-        </ul>
+            </div>
+            @if(request()->anyFilled(['cat_name', 'brand_name']))
+                <div class="col-auto">
+                    <a href="{{ url('/v2/kategori-brand?tab=' . $activeTab) }}" class="btn btn-sm btn-v2-secondary py-1" title="Reset Filter">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            @endif
+        </form>
+    </div>
+</div>
+
+<!-- Main Table Card -->
+<div class="v2-card mb-3">
+    <div class="v2-card-header bg-light py-2">
+        <h6 class="v2-card-title d-flex align-items-center gap-2">
+            <i class="bi bi-list-columns-reverse text-primary"></i> Daftar {{ $activeTab === 'brand' ? 'Model & Varian' : 'Kategori' }}
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.65rem;">
+                {{ $activeTab === 'brand' ? $brands->total() : $categories->total() }} Item
+            </span>
+        </h6>
+        <div class="d-flex align-items-center gap-2">
+            <ul class="nav nav-pills card-header-pills gap-1" id="masterTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link btn-sm py-1 px-3 fw-bold {{ $activeTab === 'category' ? 'active' : '' }}" id="category-tab" data-bs-toggle="tab" data-bs-target="#category-pane" type="button" role="tab" aria-controls="category-pane" aria-selected="{{ $activeTab === 'category' ? 'true' : 'false' }}" style="font-size: 0.72rem;">
+                        <i class="bi bi-folder2 me-1"></i> Kategori ({{ $counts['total_categories'] }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link btn-sm py-1 px-3 fw-bold {{ $activeTab === 'brand' ? 'active' : '' }}" id="brand-tab" data-bs-toggle="tab" data-bs-target="#brand-pane" type="button" role="tab" aria-controls="brand-pane" aria-selected="{{ $activeTab === 'brand' ? 'true' : 'false' }}" style="font-size: 0.72rem;">
+                        <i class="bi bi-sliders me-1"></i> Model & Varian ({{ $counts['total_brands'] }})
+                    </button>
+                </li>
+            </ul>
+        </div>
     </div>
     <div class="v2-card-body p-0">
         <div class="tab-content" id="masterTabsContent">
             <!-- TAB 1: KATEGORI -->
             <div class="tab-pane fade {{ $activeTab === 'category' ? 'show active' : '' }}" id="category-pane" role="tabpanel" aria-labelledby="category-tab">
-                <!-- Filter Box Kategori -->
-                <div class="p-3.5 bg-light border-bottom">
-                    <form method="GET" action="{{ url('/v2/kategori-brand') }}" class="row g-2 align-items-center">
-                        <input type="hidden" name="tab" value="category">
-                        <div class="col-12 col-md-5 col-lg-4">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                                <input type="text" name="cat_name" class="form-control border-start-0 ps-0" placeholder="Cari nama kategori..." value="{{ request('cat_name') }}">
-                            </div>
-                        </div>
-                        <div class="col-auto d-flex align-items-center gap-1.5">
-                            <button type="submit" class="btn btn-sm btn-v2-primary py-1 px-3">
-                                <i class="bi bi-search me-1"></i> Cari
-                            </button>
-                            @if(request('cat_name'))
-                                <a href="{{ url('/v2/kategori-brand?tab=category') }}" class="btn btn-sm btn-v2-secondary py-1" title="Reset Search">
-                                    <i class="bi bi-x-lg"></i>
-                                </a>
-                            @endif
-                        </div>
-                    </form>
-                </div>
-
                 <!-- Table Kategori -->
                 <div class="v2-table-responsive">
-                    <table class="v2-table align-middle mb-0">
+                    <table class="v2-table align-middle">
                         <thead>
                             <tr>
-                                <th style="width: 45px;" class="text-center">#</th>
+                                <th style="width: 35px;" class="text-center">#</th>
                                 <th>NAMA KATEGORI</th>
                                 <th class="text-center">JUMLAH PRODUK MASTER</th>
                                 <th>TANGGAL DIBUAT</th>
-                                <th class="text-center" style="width: 100px;">AKSI</th>
+                                <th class="text-center" style="width: 90px;">AKSI</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -142,25 +155,23 @@
                                         {{ $categories->firstItem() + $index }}
                                     </td>
                                     <td>
-                                        <div class="d-flex align-items-center gap-2.5 py-0.5">
-                                            <div class="v2-stat-icon-wrapper blue rounded-circle" style="width: 30px; height: 30px; font-size: 0.85rem;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="v2-stat-icon-wrapper blue" style="width: 26px; height: 26px; font-size: 0.75rem;">
                                                 <i class="bi bi-folder2"></i>
                                             </div>
-                                            <div>
-                                                <span class="fw-bold text-dark d-block" style="font-size: 0.82rem;">{{ $cat->name }}</span>
-                                            </div>
+                                            <span class="fw-bold text-dark" style="font-size: 0.78rem;">{{ $cat->name }}</span>
                                         </div>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill font-monospace" style="font-size: 0.7rem;">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill font-monospace" style="font-size: 0.68rem;">
                                             <i class="bi bi-box-seam me-1"></i>{{ number_format($cat->products_count) }} Produk
                                         </span>
                                     </td>
                                     <td class="text-muted" style="font-size: 0.72rem;">
-                                        <i class="bi bi-calendar3 me-1 text-secondary"></i>{{ $cat->created_at ? $cat->created_at->format('d M Y, H:i') : '-' }}
+                                        {{ $cat->created_at ? $cat->created_at->format('d M Y, H:i') : '-' }}
                                     </td>
                                     <td class="text-center">
-                                        <div class="d-flex align-items-center justify-content-center gap-1.5">
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
                                             <button type="button" class="btn-action-icon btn-action-edit edit-category-btn"
                                                     data-id="{{ $cat->id }}"
                                                     data-name="{{ $cat->name }}"
@@ -182,8 +193,8 @@
                             @empty
                                 <tr>
                                     <td colspan="5" class="text-center py-4 text-muted" style="font-size: 0.78rem;">
-                                        <i class="bi bi-folder-x fs-2 d-block mb-1 text-secondary"></i>
-                                        Tidak ditemukan data kategori.
+                                        <i class="bi bi-folder-x fs-3 d-block mb-1 text-secondary"></i>
+                                        Tidak ditemukan data kategori yang sesuai.
                                     </td>
                                 </tr>
                             @endforelse
@@ -192,12 +203,14 @@
                 </div>
 
                 @if($categories->hasPages())
-                    <div class="v2-card-footer bg-light p-2.5 border-top d-flex align-items-center justify-content-between">
-                        <div class="text-muted" style="font-size: 0.72rem;">
-                            Menampilkan {{ $categories->firstItem() ?? 0 }} - {{ $categories->lastItem() ?? 0 }} dari {{ $categories->total() }} kategori
-                        </div>
-                        <div>
-                            {{ $categories->links('pagination::bootstrap-5') }}
+                    <div class="v2-card-footer bg-light p-2 border-top">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="text-muted" style="font-size: 0.72rem;">
+                                Menampilkan {{ $categories->firstItem() ?? 0 }} - {{ $categories->lastItem() ?? 0 }} dari {{ $categories->total() }} kategori
+                            </div>
+                            <div>
+                                {{ $categories->links('pagination::bootstrap-5') }}
+                            </div>
                         </div>
                     </div>
                 @endif
@@ -205,39 +218,16 @@
 
             <!-- TAB 2: MODEL & VARIAN -->
             <div class="tab-pane fade {{ $activeTab === 'brand' ? 'show active' : '' }}" id="brand-pane" role="tabpanel" aria-labelledby="brand-tab">
-                <!-- Filter Box Model & Varian -->
-                <div class="p-3.5 bg-light border-bottom">
-                    <form method="GET" action="{{ url('/v2/kategori-brand') }}" class="row g-2 align-items-center">
-                        <input type="hidden" name="tab" value="brand">
-                        <div class="col-12 col-md-5 col-lg-4">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                                <input type="text" name="brand_name" class="form-control border-start-0 ps-0" placeholder="Cari model & varian (Lengan Panjang, SD...)" value="{{ request('brand_name') }}">
-                            </div>
-                        </div>
-                        <div class="col-auto d-flex align-items-center gap-1.5">
-                            <button type="submit" class="btn btn-sm text-white py-1 px-3" style="background-color: #7c3aed !important; border-color: #7c3aed !important;">
-                                <i class="bi bi-search me-1"></i> Cari
-                            </button>
-                            @if(request('brand_name'))
-                                <a href="{{ url('/v2/kategori-brand?tab=brand') }}" class="btn btn-sm btn-v2-secondary py-1" title="Reset Search">
-                                    <i class="bi bi-x-lg"></i>
-                                </a>
-                            @endif
-                        </div>
-                    </form>
-                </div>
-
                 <!-- Table Model & Varian -->
                 <div class="v2-table-responsive">
-                    <table class="v2-table align-middle mb-0">
+                    <table class="v2-table align-middle">
                         <thead>
                             <tr>
-                                <th style="width: 45px;" class="text-center">#</th>
+                                <th style="width: 35px;" class="text-center">#</th>
                                 <th>NAMA MODEL & VARIAN PRODUK</th>
                                 <th class="text-center">JUMLAH PRODUK MASTER</th>
                                 <th>TANGGAL DIBUAT</th>
-                                <th class="text-center" style="width: 100px;">AKSI</th>
+                                <th class="text-center" style="width: 90px;">AKSI</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -247,25 +237,23 @@
                                         {{ $brands->firstItem() + $index }}
                                     </td>
                                     <td>
-                                        <div class="d-flex align-items-center gap-2.5 py-0.5">
-                                            <div class="v2-stat-icon-wrapper purple rounded-circle" style="width: 30px; height: 30px; font-size: 0.85rem; background-color: #f3e8ff; color: #7e22ce;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="v2-stat-icon-wrapper purple" style="width: 26px; height: 26px; font-size: 0.75rem;">
                                                 <i class="bi bi-sliders"></i>
                                             </div>
-                                            <div>
-                                                <span class="fw-bold text-dark d-block" style="font-size: 0.82rem;">{{ $b->name }}</span>
-                                            </div>
+                                            <span class="fw-bold text-dark" style="font-size: 0.78rem;">{{ $b->name }}</span>
                                         </div>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge px-2.5 py-1 rounded-pill font-monospace" style="font-size: 0.7rem; background-color: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff;">
+                                        <span class="badge px-2 py-0.5 rounded-pill font-monospace" style="font-size: 0.68rem; background-color: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff;">
                                             <i class="bi bi-box-seam me-1"></i>{{ number_format($b->products_count) }} Produk
                                         </span>
                                     </td>
                                     <td class="text-muted" style="font-size: 0.72rem;">
-                                        <i class="bi bi-calendar3 me-1 text-secondary"></i>{{ $b->created_at ? $b->created_at->format('d M Y, H:i') : '-' }}
+                                        {{ $b->created_at ? $b->created_at->format('d M Y, H:i') : '-' }}
                                     </td>
                                     <td class="text-center">
-                                        <div class="d-flex align-items-center justify-content-center gap-1.5">
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
                                             <button type="button" class="btn-action-icon btn-action-edit edit-brand-btn"
                                                     data-id="{{ $b->id }}"
                                                     data-name="{{ $b->name }}"
@@ -287,8 +275,8 @@
                             @empty
                                 <tr>
                                     <td colspan="5" class="text-center py-4 text-muted" style="font-size: 0.78rem;">
-                                        <i class="bi bi-sliders fs-2 d-block mb-1 text-secondary"></i>
-                                        Tidak ditemukan data model & varian.
+                                        <i class="bi bi-sliders fs-3 d-block mb-1 text-secondary"></i>
+                                        Tidak ditemukan data model & varian yang sesuai.
                                     </td>
                                 </tr>
                             @endforelse
@@ -297,12 +285,14 @@
                 </div>
 
                 @if($brands->hasPages())
-                    <div class="v2-card-footer bg-light p-2.5 border-top d-flex align-items-center justify-content-between">
-                        <div class="text-muted" style="font-size: 0.72rem;">
-                            Menampilkan {{ $brands->firstItem() ?? 0 }} - {{ $brands->lastItem() ?? 0 }} dari {{ $brands->total() }} model & varian
-                        </div>
-                        <div>
-                            {{ $brands->links('pagination::bootstrap-5') }}
+                    <div class="v2-card-footer bg-light p-2 border-top">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="text-muted" style="font-size: 0.72rem;">
+                                Menampilkan {{ $brands->firstItem() ?? 0 }} - {{ $brands->lastItem() ?? 0 }} dari {{ $brands->total() }} model & varian
+                            </div>
+                            <div>
+                                {{ $brands->links('pagination::bootstrap-5') }}
+                            </div>
                         </div>
                     </div>
                 @endif
@@ -314,7 +304,7 @@
 <!-- Modal Tambah Kategori -->
 <div class="modal fade" id="createCategoryModal" tabindex="-1" aria-labelledby="createCategoryModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-0 shadow-lg">
+        <div class="modal-content border-0 shadow">
             <form action="{{ route('v2.kategori.store') }}" method="POST">
                 @csrf
                 <div class="modal-header bg-light py-2.5 border-bottom">
@@ -341,7 +331,7 @@
 <!-- Modal Edit Kategori -->
 <div class="modal fade" id="editCategoryModal" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-0 shadow-lg">
+        <div class="modal-content border-0 shadow">
             <form id="editCategoryForm" method="POST">
                 @csrf
                 @method('PUT')
@@ -369,7 +359,7 @@
 <!-- Modal Tambah Brand / Model -->
 <div class="modal fade" id="createBrandModal" tabindex="-1" aria-labelledby="createBrandModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-0 shadow-lg">
+        <div class="modal-content border-0 shadow">
             <form action="{{ route('v2.brand.store') }}" method="POST">
                 @csrf
                 <div class="modal-header bg-light py-2.5 border-bottom">
@@ -396,7 +386,7 @@
 <!-- Modal Edit Brand / Model -->
 <div class="modal fade" id="editBrandModal" tabindex="-1" aria-labelledby="editBrandModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-0 shadow-lg">
+        <div class="modal-content border-0 shadow">
             <form id="editBrandForm" method="POST">
                 @csrf
                 @method('PUT')
@@ -423,6 +413,15 @@
 
 @push('scripts')
 <script>
+    // Tab Change handler to keep activeTab input updated
+    $('#category-tab').on('click', function() {
+        $('#activeTabFilterInput').val('category');
+    });
+
+    $('#brand-tab').on('click', function() {
+        $('#activeTabFilterInput').val('brand');
+    });
+
     // Edit Category Modal Trigger
     $(document).on('click', '.edit-category-btn', function() {
         var id = $(this).data('id');
