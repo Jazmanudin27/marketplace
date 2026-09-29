@@ -285,8 +285,22 @@
                         <select name="status" class="form-select">
                             <option value="">Semua Status</option>
                             @foreach($statuses as $st)
+                                @php
+                                    $stOptIndo = match(strtoupper((string)$st)) {
+                                        'REQUESTED', 'NEW_REQUEST' => 'Pengajuan Baru',
+                                        'PROCESSING', 'IN_PROCESSING', 'IN_PROCESS' => 'Sedang Diproses',
+                                        'BUYER_SHIPPED_ITEM', 'SHIPPED', 'TO_RECEIVED' => 'Dikirim Pembeli',
+                                        'CLOSED' => 'Retur Selesai',
+                                        'COMPLETED', 'SUCCESS', 'FINISHED' => 'Selesai',
+                                        'REFUNDED', 'REFUND_SUCCESS' => 'Dana Dikembalikan',
+                                        'CANCELLED', 'REJECTED', 'REFUND_REJECTED', 'CANCEL' => 'Ditolak / Dibatalkan',
+                                        'ACCEPTED', 'APPROVED', 'SELLER_AGREE' => 'Disetujui',
+                                        'JUDGING' => 'Dalam Penilaian MP',
+                                        default => str_replace('_', ' ', (string)$st)
+                                    };
+                                @endphp
                                 <option value="{{ $st }}" {{ request('status') === $st ? 'selected' : '' }}>
-                                    {{ $st }}
+                                    {{ $stOptIndo }}
                                 </option>
                             @endforeach
                         </select>
@@ -323,7 +337,7 @@
                 <thead>
                     <tr>
                         <th style="width: 42%;">PRODUK DIRETUR &amp; ALASAN</th>
-                        <th style="width: 18%; text-align: center;">REFUND &amp; STATUS</th>
+                        <th style="width: 18%; text-align: center;">REFUND &amp; STATUS MARKETPLACE</th>
                         <th style="width: 24%; text-align: center;">INSPEKSI GUDANG (QC)</th>
                         <th style="width: 16%; text-align: center;">AKSI</th>
                     </tr>
@@ -348,15 +362,35 @@
                                 $isFallback = true;
                             }
 
-                            // Human friendly reason format
+                            // Indonesian reason format
                             $reasonRaw = $ret->reason;
-                            $reasonText = match(strtoupper($reasonRaw ?? '')) {
-                                'CHANGE_MIND' => 'Berubah Pikiran',
-                                'WRONG_ITEM' => 'Salah Kirim Barang',
-                                'ITEM_MISSING' => 'Barang Kurang / Hilang',
-                                'DIFFERENT_DESCRIPTION' => 'Tidak Sesuai Deskripsi',
-                                'DEFECTIVE_ITEM', 'DAMAGED_ITEM', 'DAMAGE_ITEM' => 'Barang Cacat / Rusak',
-                                default => str_replace(['_', '-'], ' ', $reasonRaw ?? '')
+                            $reasonText = match(strtoupper(trim((string)$reasonRaw))) {
+                                'CHANGE_MIND', 'CHANGE_OF_MIND' => 'Berubah Pikiran',
+                                'WRONG_ITEM', 'WRONG_PRODUCT', 'WRONG_SPEC' => 'Salah Kirim Produk',
+                                'ITEM_MISSING', 'MISSING_ITEM', 'MISSING_QUANTITY' => 'Barang / Komponen Kurang',
+                                'DIFFERENT_DESCRIPTION', 'PRODUCT DOESN\'T MATCH DESCRIPTION', 'PRODUCT DOESNT MATCH DESCRIPTION', 'NOT_AS_DESCRIBED' => 'Tidak Sesuai Deskripsi',
+                                'DEFECTIVE_ITEM', 'DAMAGED_ITEM', 'DAMAGE_ITEM', 'DAMAGED', 'PHYSICAL_DAMAGE' => 'Barang Cacat / Rusak',
+                                'NOT_RECEIVED', 'PARCEL_NOT_RECEIVED' => 'Barang Tidak Diterima',
+                                'EXPIRED' => 'Barang Kadaluwarsa',
+                                'MUTUAL_AGREE' => 'Kesepakatan Bersama',
+                                'SUSPECT_FAKE', 'FAKE_ITEM' => 'Dugaan Produk Palsu',
+                                'FUNCTIONAL_DEFECT' => 'Fungsi Produk Bermasalah',
+                                default => str_replace(['_', '-'], ' ', (string)$reasonRaw ?? '-')
+                            };
+
+                            // Indonesian marketplace status format
+                            $statusRaw = strtoupper((string)($ret->status ?? 'REQUESTED'));
+                            $statusIndo = match($statusRaw) {
+                                'REQUESTED', 'NEW_REQUEST' => 'Pengajuan Baru',
+                                'PROCESSING', 'IN_PROCESSING', 'IN_PROCESS' => 'Sedang Diproses',
+                                'BUYER_SHIPPED_ITEM', 'SHIPPED', 'TO_RECEIVED' => 'Dikirim Pembeli',
+                                'CLOSED' => 'Retur Selesai',
+                                'COMPLETED', 'SUCCESS', 'FINISHED' => 'Selesai',
+                                'REFUNDED', 'REFUND_SUCCESS' => 'Dana Dikembalikan',
+                                'CANCELLED', 'REJECTED', 'REFUND_REJECTED', 'CANCEL' => 'Ditolak / Dibatalkan',
+                                'ACCEPTED', 'APPROVED', 'SELLER_AGREE' => 'Disetujui',
+                                'JUDGING' => 'Dalam Penilaian MP',
+                                default => str_replace('_', ' ', $statusRaw)
                             };
                         @endphp
 
@@ -450,7 +484,7 @@
                                                         </span>
                                                     @endif
                                                     @if($isFallback)
-                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-1.5 py-0.5" title="Diambil dari data pesanan asli">Pesanan</span>
+                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-1.5 py-0.5" title="Diambil dari data pesanan asli">Item Pesanan</span>
                                                     @endif
                                                 </div>
                                             </div>
@@ -468,9 +502,6 @@
                                         <div class="overflow-hidden" style="font-size: 0.72rem;">
                                             <span class="text-danger fw-bold">Alasan Retur:</span>
                                             <span class="text-dark fw-semibold me-1">{{ $reasonText }}</span>
-                                            @if($reasonText !== $reasonRaw)
-                                                <span class="text-muted font-monospace" style="font-size: 0.65rem;">({{ $reasonRaw }})</span>
-                                            @endif
                                         </div>
                                     </div>
                                 @endif
@@ -482,8 +513,8 @@
                                     Rp {{ number_format($ret->refund_amount ?? 0, 0, ',', '.') }}
                                 </div>
                                 <div>
-                                    <span class="rtr-badge rtr-badge-status" title="Status Marketplace">
-                                        {{ $ret->status ?? 'REQUESTED' }}
+                                    <span class="rtr-badge rtr-badge-status" title="Status Marketplace: {{ $statusRaw }}">
+                                        {{ $statusIndo }}
                                     </span>
                                 </div>
                             </td>
@@ -493,7 +524,7 @@
                                 @if($ret->is_restocked)
                                     @if($ret->inspection_status === 'GOOD')
                                         <span class="rtr-badge rtr-badge-qc-good mb-1">
-                                            <i class="bi bi-check-circle-fill"></i> Layak Jual (Restocked)
+                                            <i class="bi bi-check-circle-fill"></i> Layak Jual (Masuk Stok)
                                         </span>
                                     @else
                                         <span class="rtr-badge rtr-badge-qc-defective mb-1">
@@ -514,7 +545,7 @@
                                 @if($ret->replacement_order_id)
                                     <div class="mt-1.5">
                                         <span class="badge bg-info text-white" style="font-size: 0.65rem;">
-                                            <i class="bi bi-arrow-repeat me-1"></i>Barang Pengganti Dikirim
+                                            <i class="bi bi-arrow-repeat me-1"></i>Pesanan Pengganti Dikirim
                                         </span>
                                     </div>
                                 @endif
