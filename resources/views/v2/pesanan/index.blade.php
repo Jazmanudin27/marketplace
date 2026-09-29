@@ -741,58 +741,63 @@ document.addEventListener('DOMContentLoaded', function () {
             .forEach(el => new bootstrap.Tooltip(el));
 
     /* ── Modal Detail Pesanan ── */
-    const detailModal    = new bootstrap.Modal(document.getElementById('psrDetailModal'));
-    const detailBody     = document.getElementById('psrDetailBody');
-    const detailTitle    = document.getElementById('psrDetailTitle');
-    const detailSpinner  = document.getElementById('psrDetailSpinner');
+    const detailModalEl = document.getElementById('psrDetailModal');
+    const detailContent = document.getElementById('psrDetailContent');
+    const detailModal   = new bootstrap.Modal(detailModalEl);
+
+    const loadingTemplate = `
+        <div class="modal-header py-2.5 px-3" style="background:linear-gradient(135deg,#1e3a5f,#2563eb); border:none;">
+            <h6 class="modal-title text-white fw-bold d-flex align-items-center gap-2 mb-0" style="font-size:0.88rem;">
+                <i class="bi bi-receipt"></i>
+                <span>Memuat Detail Pesanan...</span>
+            </h6>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-0" style="min-height:200px;">
+            <div class="d-flex align-items-center justify-content-center py-5">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width:2rem;height:2rem;"></div>
+                    <div class="text-muted" style="font-size:0.8rem;">Memuat detail pesanan...</div>
+                </div>
+            </div>
+        </div>
+    `;
 
     document.addEventListener('click', function (e) {
         const trigger = e.target.closest('.psr-detail-trigger');
         if (!trigger) return;
         e.preventDefault();
 
-        const url   = trigger.dataset.url;
-        const label = trigger.textContent.trim();
+        const url = trigger.dataset.url;
 
-        detailTitle.textContent = label;
-        detailBody.innerHTML    = '';
-        detailSpinner.classList.remove('d-none');
+        detailContent.innerHTML = loadingTemplate;
         detailModal.show();
 
         fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(r => r.text())
             .then(html => {
-                detailSpinner.classList.add('d-none');
-                detailBody.innerHTML = html;
+                detailContent.innerHTML = html;
             })
             .catch(() => {
-                detailSpinner.classList.add('d-none');
-                detailBody.innerHTML = '<div class="text-center text-danger py-4"><i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>Gagal memuat detail pesanan.</div>';
+                detailContent.innerHTML = `
+                    <div class="modal-header py-2 px-3 bg-danger text-white border-none">
+                        <h6 class="modal-title fw-bold mb-0">Error</h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center text-danger py-4">
+                        <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>Gagal memuat detail pesanan.
+                    </div>
+                `;
             });
     });
 });
 </script>
 
 {{-- ── Modal Detail Pesanan ── --}}
-<div class="modal fade" id="psrDetailModal" tabindex="-1" aria-labelledby="psrDetailTitle" aria-hidden="true">
+<div class="modal fade" id="psrDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content" style="border-radius:10px; overflow:hidden;">
-            <div class="modal-header py-2 px-3" style="background:linear-gradient(135deg,#1e3a5f,#2563eb); border:none;">
-                <h6 class="modal-title text-white fw-bold d-flex align-items-center gap-2 mb-0" style="font-size:0.88rem;">
-                    <i class="bi bi-receipt"></i>
-                    <span id="psrDetailTitle">Detail Pesanan</span>
-                </h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0" style="min-height:200px;">
-                <div id="psrDetailSpinner" class="d-flex align-items-center justify-content-center py-5">
-                    <div class="text-center">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width:2rem;height:2rem;"></div>
-                        <div class="text-muted" style="font-size:0.8rem;">Memuat detail pesanan...</div>
-                    </div>
-                </div>
-                <div id="psrDetailBody"></div>
-            </div>
+        <div class="modal-content border-0 shadow-lg" id="psrDetailContent" style="border-radius:10px; overflow:hidden;">
+            {{-- Content loaded dynamically via AJAX --}}
         </div>
     </div>
 </div>
