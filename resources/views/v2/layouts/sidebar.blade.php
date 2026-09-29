@@ -72,10 +72,10 @@
                         <i class="bi bi-tags me-1.5"></i>
                         <span>Kategori & Varian</span>
                     </a>
-                    <a href="{{ Route::has('inventory_items.index') ? route('inventory_items.index') : url('/inventory-items') }}"
-                        class="v2-submenu-link {{ request()->is('inventory-items*') ? 'active' : '' }}">
+                    <a href="{{ url('/v2/barang') }}"
+                        class="v2-submenu-link {{ request()->is('v2/barang*') || request()->is('inventory-items*') ? 'active' : '' }}">
                         <i class="bi bi-boxes me-1.5"></i>
-                        <span>Data Barang (Bahan & Kemasan)</span>
+                        <span>Data Barang</span>
                     </a>
                 </div>
             </div>

@@ -195,6 +195,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/brand', [\App\Http\Controllers\V2\KategoriBrandController::class, 'storeBrand'])->name('brand.store');
         Route::put('/brand/{id}', [\App\Http\Controllers\V2\KategoriBrandController::class, 'updateBrand'])->name('brand.update');
         Route::delete('/brand/{id}', [\App\Http\Controllers\V2\KategoriBrandController::class, 'destroyBrand'])->name('brand.destroy');
+
+        // Data Barang V2
+        Route::get('/barang', [\App\Http\Controllers\V2\BarangController::class, 'index'])->name('barang.index');
+        Route::post('/barang', [\App\Http\Controllers\V2\BarangController::class, 'store'])->name('barang.store');
+        Route::get('/barang/{id}', [\App\Http\Controllers\V2\BarangController::class, 'show'])->name('barang.show');
+        Route::put('/barang/{id}', [\App\Http\Controllers\V2\BarangController::class, 'update'])->name('barang.update');
+        Route::delete('/barang/{id}', [\App\Http\Controllers\V2\BarangController::class, 'destroy'])->name('barang.destroy');
+        Route::post('/barang/{id}/adjust', [\App\Http\Controllers\V2\BarangController::class, 'adjust'])->name('barang.adjust');
     });
 
     // =========================================================================
