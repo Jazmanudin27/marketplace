@@ -943,19 +943,31 @@ body.v2-layout {
     background-color: var(--v2-bg-surface);
 }
 
+/* Select2 Wrapper & Dropdown Width & Absolute Floating Fix */
+.select2-wrapper {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+}
+
 .select2-container {
     width: 100% !important;
     display: block !important;
 }
 
-/* Memaksa lebar dropdown agar PERSIS sama dengan lebar input box-nya */
-.select2-container--bootstrap-5 .select2-dropdown,
-.select2-dropdown {
+.select2-wrapper .select2-dropdown,
+.select2-container--bootstrap-5 .select2-dropdown {
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
     width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
     box-sizing: border-box !important;
-}
-
-/* Mencegah dropdown terpotong atau tertutup elemen lain */
-.select2-container--open {
     z-index: 9999 !important;
+    margin-top: 2px !important;
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
 }
