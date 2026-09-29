@@ -205,11 +205,11 @@
                             </td>
                             <td class="text-end">
                                 <div class="fw-bold text-primary font-monospace" style="font-size: 0.78rem;">
-                                    Rp {{ number_format($prod->selling_price ?? $prod->price ?? 0, 0, ',', '.') }}
+                                    {{ number_format($prod->selling_price ?? $prod->price ?? 0, 0, ',', '.') }}
                                 </div>
                                 @if(isset($prod->cost_price) && $prod->cost_price > 0)
                                     <div class="text-muted" style="font-size: 0.65rem;">
-                                        HPP: Rp {{ number_format($prod->cost_price, 0, ',', '.') }}
+                                        HPP: {{ number_format($prod->cost_price, 0, ',', '.') }}
                                     </div>
                                 @endif
                             </td>
