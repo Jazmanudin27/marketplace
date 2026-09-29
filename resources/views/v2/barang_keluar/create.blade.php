@@ -66,8 +66,9 @@
                                 Produksi</option>
                             <option value="percetakan" {{ old('tujuan') === 'percetakan' ? 'selected' : '' }}>Departemen
                                 Percetakan / Printing</option>
+                            <option value="retur" {{ old('tujuan') === 'retur' ? 'selected' : '' }}>Retur / Pengembalian Barang</option>
                             @foreach ($departments as $dept)
-                                @if (!in_array(strtolower($dept->name), ['produksi', 'percetakan']))
+                                @if (!in_array(strtolower($dept->name), ['produksi', 'percetakan', 'retur']))
                                     <option value="{{ $dept->id }}" {{ old('tujuan') == $dept->id ? 'selected' : '' }}>
                                         Departemen {{ $dept->name }}</option>
                                 @endif

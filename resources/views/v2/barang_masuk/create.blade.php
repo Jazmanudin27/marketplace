@@ -73,19 +73,6 @@
                     </select>
                 </div>
 
-                <!-- Departemen Tujuan -->
-                <div class="mb-1">
-                    <label class="form-label small fw-semibold text-dark mb-1">Departemen Tujuan Stok</label>
-                    <select name="department_id" class="form-select form-select-sm @error('department_id') is-invalid @enderror">
-                        <option value="">-- Gudang Utama / Umum --</option>
-                        @foreach($departments as $dept)
-                            <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
-                                {{ $dept->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
                 <!-- Catatan -->
                 <div class="mb-2">
                     <label class="form-label small fw-semibold text-dark mb-1">Catatan / No. Surat Jalan</label>

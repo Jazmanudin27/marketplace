@@ -160,7 +160,9 @@ class BarangKeluarController extends Controller
                 $toDeptId = $this->getDepartmentIdByName('Produksi');
             } elseif ($request->tujuan === 'percetakan') {
                 $toDeptId = $this->getDepartmentIdByName('Percetakan');
-            } elseif (numeric($request->tujuan)) {
+            } elseif ($request->tujuan === 'retur') {
+                $toDeptId = $this->getDepartmentIdByName('Retur / Pengembalian');
+            } elseif (is_numeric($request->tujuan)) {
                 $toDeptId = (int) $request->tujuan;
             } else {
                 $toDeptId = $this->getDepartmentIdByName('Lain-lain');
