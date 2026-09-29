@@ -195,15 +195,15 @@
 <div class="v2-card p-3 mb-3 shadow-sm">
     <form method="GET" action="{{ route('v2.mutasi_keuangan.index') }}">
         <div class="row g-2 align-items-end">
-            <div class="col-12 col-sm-6 col-md-2">
+            <div class="col-12 col-sm-6 col-md-3">
                 <label class="v2-form-label">Dari Tanggal</label>
                 <input type="date" name="date_from" value="{{ $dateFrom }}" class="form-control form-control-sm v2-input">
             </div>
-            <div class="col-12 col-sm-6 col-md-2">
+            <div class="col-12 col-sm-6 col-md-3">
                 <label class="v2-form-label">Sampai Tanggal</label>
                 <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control form-control-sm v2-input">
             </div>
-            <div class="col-12 col-sm-6 col-md-2">
+            <div class="col-12 col-sm-6 col-md-3">
                 <label class="v2-form-label">Akun Kas / Bank</label>
                 <select name="account" class="form-select form-select-sm v2-input">
                     <option value="all" {{ $account === 'all' ? 'selected' : '' }}>Semua Akun Kas / Bank</option>
@@ -219,26 +219,13 @@
                     @endif
                 </select>
             </div>
-            <div class="col-12 col-sm-6 col-md-2">
+            <div class="col-12 col-sm-6 col-md-3">
                 <label class="v2-form-label">Arah Mutasi</label>
                 <select name="direction" class="form-select form-select-sm v2-input">
                     <option value="all" {{ $direction === 'all' ? 'selected' : '' }}>Semua (Masuk & Keluar)</option>
                     <option value="in" {{ $direction === 'in' ? 'selected' : '' }}>Uang Masuk (+)</option>
                     <option value="out" {{ $direction === 'out' ? 'selected' : '' }}>Uang Keluar (-)</option>
                 </select>
-            </div>
-            <div class="col-12 col-sm-6 col-md-2">
-                <label class="v2-form-label">Jenis Sumber</label>
-                <select name="source_type" class="form-select form-select-sm v2-input">
-                    <option value="all" {{ $sourceType === 'all' ? 'selected' : '' }}>Semua Sumber</option>
-                    <option value="income" {{ $sourceType === 'income' ? 'selected' : '' }}>Pemasukan Lain</option>
-                    <option value="expense" {{ $sourceType === 'expense' ? 'selected' : '' }}>Pengeluaran Operasional</option>
-                    <option value="transfer" {{ $sourceType === 'transfer' ? 'selected' : '' }}>Transfer Antar Kas</option>
-                </select>
-            </div>
-            <div class="col-12 col-sm-6 col-md-2">
-                <label class="v2-form-label">Pencarian</label>
-                <input type="text" name="search" value="{{ $search }}" class="form-control form-control-sm v2-input" placeholder="No. ref / keterangan...">
             </div>
         </div>
 
