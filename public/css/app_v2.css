@@ -945,9 +945,17 @@ body.v2-layout {
 
 .select2-container {
     width: 100% !important;
+    display: block !important;
 }
 
-/* Memperbaiki posisi z-index dan tampilan dropdown */
-.select2-container--open .select2-dropdown {
+/* Memaksa lebar dropdown agar PERSIS sama dengan lebar input box-nya */
+.select2-container--bootstrap-5 .select2-dropdown,
+.select2-dropdown {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Mencegah dropdown terpotong atau tertutup elemen lain */
+.select2-container--open {
     z-index: 9999 !important;
 }

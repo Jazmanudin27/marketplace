@@ -164,14 +164,11 @@
             $('.select2, .v2-select2, select.form-select-sm:not(.no-select2), select.form-select:not(.no-select2)').each(function() {
                 var $select = $(this);
                 
-                // Inisialisasi Select2
                 $select.select2({
                     theme: 'bootstrap-5',
                     width: '100%',
                     placeholder: $select.data('placeholder') || '-- Pilih --',
-                    allowClear: true,
-                    // Opsi 1: Menggunakan body agar posisi dihitung absolute terhadap layar (paling aman untuk filter/form biasa)
-                    dropdownParent: $(document.body) 
+                    allowClear: true
                 });
             });
         });
