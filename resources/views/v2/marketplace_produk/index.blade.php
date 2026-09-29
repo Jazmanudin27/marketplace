@@ -17,14 +17,6 @@
             <i class="bi bi-printer me-1"></i> Cetak Laporan
         </a>
 
-        <form action="{{ route('v2.marketplace_produk.auto_link') }}" method="POST" class="d-inline m-0"
-            onsubmit="return confirm('Tautkan semua produk marketplace secara otomatis berdasarkan kesamaan SKU?');">
-            @csrf
-            <button type="submit" class="btn btn-sm btn-v2-success py-1.5 px-3 text-white shadow-xs" style="background-color: #10b981 !important; border-color: #10b981 !important;">
-                <i class="bi bi-magic me-1"></i> Tautkan Otomatis (Masal)
-            </button>
-        </form>
-
         <form action="{{ route('v2.marketplace_produk.bulk_promote') }}" method="POST" class="d-inline m-0"
             onsubmit="return confirm('Jadikan semua produk marketplace yang belum ditautkan sebagai Master Product baru? (SKU kosong akan otomatis dibuatkan acak)');">
             @csrf
@@ -331,100 +323,28 @@
                         <!-- Aksi -->
                         <td class="text-center">
                             @if (!$product->masterProduct)
-                                @php
-                                    $matchingMaster = $product->marketplace_sku
-                                        ? $masterProducts->firstWhere('sku', trim($product->marketplace_sku))
-                                        : null;
-                                @endphp
-
-                                @if ($matchingMaster)
-                                    <div class="d-flex flex-column align-items-center gap-1">
-                                        <form action="{{ route('v2.marketplace_produk.link', $product->id) }}" method="POST" class="m-0">
-                                            @csrf
-                                            <input type="hidden" name="master_product_id" value="{{ $matchingMaster->id }}">
-                                            <button type="submit" class="btn btn-sm btn-v2-success py-1 px-2 fw-bold text-white shadow-xs rounded-2"
-                                                style="font-size: 0.7rem; background-color: #10b981 !important; border-color: #10b981 !important;"
-                                                title="Tautkan otomatis ke Master: {{ $matchingMaster->name }}">
-                                                <i class="bi bi-link-45deg me-0.5"></i>Tautkan
-                                            </button>
-                                        </form>
-                                        <span class="text-muted text-truncate" style="font-size: 0.62rem; max-width: 110px;" title="SKU cocok: {{ $matchingMaster->name }}">
-                                            {{ $matchingMaster->name }}
-                                        </span>
-                                    </div>
-                                @else
-                                    <div class="d-flex align-items-center justify-content-center gap-1.5">
-                                        <form action="{{ route('v2.marketplace_produk.promote', $product->id) }}" method="POST" class="d-inline m-0">
-                                            @csrf
-                                            <button type="submit" class="btn-action-icon btn-action-view rounded-2"
-                                                onclick="return confirm('Jadikan produk ini sebagai Master Product baru?');"
-                                                title="Jadikan Master Product">
-                                                <i class="bi bi-star-fill text-white"></i>
-                                            </button>
-                                        </form>
-
-                                        <button type="button" class="btn-action-icon btn-action-edit rounded-2"
-                                            data-bs-toggle="modal" data-bs-target="#linkModal-{{ $product->id }}"
-                                            title="Tautkan Manual ke Master">
-                                            <i class="bi bi-link-45deg text-white"></i>
+                                <div class="d-flex align-items-center justify-content-center gap-1.5">
+                                    <form action="{{ route('v2.marketplace_produk.promote', $product->id) }}" method="POST" class="d-inline m-0">
+                                        @csrf
+                                        <button type="submit" class="btn-action-icon btn-action-view rounded-2"
+                                            onclick="return confirm('Jadikan produk ini sebagai Master Product baru?');"
+                                            title="Jadikan Master Product">
+                                            <i class="bi bi-star-fill text-white"></i>
                                         </button>
+                                    </form>
 
-                                        <form action="{{ route('v2.marketplace_produk.destroy', $product->id) }}" method="POST" class="d-inline m-0">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn-action-icon btn-action-delete rounded-2"
-                                                onclick="return confirm('Hapus produk marketplace ini dari daftar ERP?');"
-                                                title="Hapus Produk">
-                                                <i class="bi bi-trash text-white"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-
-                                    <!-- Modal Tautkan Manual -->
-                                    <div class="modal fade" id="linkModal-{{ $product->id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content text-start">
-                                                <div class="modal-header py-2.5 px-3 bg-light">
-                                                    <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 0.85rem;">
-                                                        <i class="bi bi-link-45deg text-primary fs-5"></i> Tautkan ke Master Product
-                                                    </h6>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <form action="{{ route('v2.marketplace_produk.link', $product->id) }}" method="POST">
-                                                    @csrf
-                                                    <div class="modal-body p-3">
-                                                        <p class="text-muted mb-2" style="font-size: 0.75rem;">
-                                                            Pilih Master Product yang sesuai untuk produk: <br>
-                                                            <strong class="text-dark">{{ $product->name }}</strong>
-                                                        </p>
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-bold text-dark" style="font-size: 0.75rem;">Pilih Master Product:</label>
-                                                            <select name="master_product_id" class="form-select form-select-sm" required style="font-size: 0.78rem;">
-                                                                <option value="">-- Pilih Master Product --</option>
-                                                                @foreach ($masterProducts as $master)
-                                                                    <option value="{{ $master->id }}">{{ $master->name }} (SKU: {{ $master->sku }})</option>
-                                                                @endforeach
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer py-2 px-3 bg-light d-flex justify-content-end gap-2">
-                                                        <button type="button" class="btn btn-sm btn-v2-secondary py-1 px-3" data-bs-dismiss="modal">Batal</button>
-                                                        <button type="submit" class="btn btn-sm btn-v2-primary py-1 px-3">Simpan Tautan</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
+                                    <form action="{{ route('v2.marketplace_produk.destroy', $product->id) }}" method="POST" class="d-inline m-0">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn-action-icon btn-action-delete rounded-2"
+                                            onclick="return confirm('Hapus produk marketplace ini dari daftar ERP?');"
+                                            title="Hapus Produk">
+                                            <i class="bi bi-trash text-white"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             @else
                                 <div class="d-flex align-items-center justify-content-center gap-1.5">
-                                    <button type="button" class="btn-action-icon btn-action-edit rounded-2"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#settingsModal-{{ $product->id }}"
-                                        title="Pengaturan Sinkronisasi">
-                                        <i class="bi bi-gear text-white"></i>
-                                    </button>
-
                                     @if(Route::has('products.publish'))
                                         <a href="{{ route('products.publish', $product->masterProduct->id) }}"
                                             class="btn-action-icon btn-action-view rounded-2" title="Salin ke Toko Lain">
@@ -439,73 +359,6 @@
                                             <i class="bi bi-link-45deg text-white"></i>
                                         </button>
                                     </form>
-                                </div>
-
-                                <!-- Modal Pengaturan Sinkronisasi -->
-                                <div class="modal fade" id="settingsModal-{{ $product->id }}" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content text-start">
-                                            <div class="modal-header py-2.5 px-3 bg-light">
-                                                <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 0.85rem;">
-                                                    <i class="bi bi-gear text-primary fs-5"></i> Pengaturan Sinkronisasi Stok & Harga
-                                                </h6>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <form action="{{ route('v2.marketplace_produk.update_settings', $product->id) }}" method="POST">
-                                                @csrf
-                                                @method('PUT')
-                                                <div class="modal-body p-3">
-                                                    <div class="fw-semibold text-dark mb-2" style="font-size: 0.8rem;">{{ $product->name }}</div>
-                                                    <div class="text-muted mb-3" style="font-size: 0.72rem;">
-                                                        Master Product: <strong class="text-dark">{{ $product->masterProduct->name }}</strong>
-                                                    </div>
-
-                                                    <div class="p-2.5 bg-light rounded-3 border mb-3">
-                                                        <div class="form-check form-switch mb-2">
-                                                            <input class="form-check-input" type="checkbox"
-                                                                name="sync_stock"
-                                                                id="syncStock-{{ $product->id }}" value="1"
-                                                                {{ $product->sync_stock ? 'checked' : '' }}>
-                                                            <label class="form-check-label fw-bold text-dark" style="font-size: 0.75rem;" for="syncStock-{{ $product->id }}">
-                                                                Sinkronisasi Stok Otomatis
-                                                            </label>
-                                                        </div>
-                                                        <p class="text-muted mb-0" style="font-size: 0.68rem;">
-                                                            Jika aktif, perubahan stok di Master Product otomatis dipush ke toko ini.
-                                                        </p>
-                                                    </div>
-
-                                                    <div class="p-2.5 bg-light rounded-3 border mb-3">
-                                                        <div class="form-check form-switch mb-2">
-                                                            <input class="form-check-input" type="checkbox"
-                                                                name="sync_price"
-                                                                id="syncPrice-{{ $product->id }}" value="1"
-                                                                {{ $product->sync_price ? 'checked' : '' }}>
-                                                            <label class="form-check-label fw-bold text-dark" style="font-size: 0.75rem;" for="syncPrice-{{ $product->id }}">
-                                                                Sinkronisasi Harga Otomatis
-                                                            </label>
-                                                        </div>
-                                                        <p class="text-muted mb-0" style="font-size: 0.68rem;">
-                                                            Jika aktif, perubahan harga di Master Product otomatis dipush ke toko ini.
-                                                        </p>
-                                                    </div>
-
-                                                    <div class="mb-2">
-                                                        <label class="form-label fw-bold text-dark" style="font-size: 0.75rem;">Safety Stock (Cadangan):</label>
-                                                        <input type="number" name="safety_stock" class="form-control form-control-sm"
-                                                            value="{{ $product->safety_stock ?? 0 }}" min="0" required style="font-size: 0.78rem;">
-                                                        <div class="text-muted mt-1" style="font-size: 0.65rem;">
-                                                            Stok di marketplace akan dikurangi sebesar safety stock ini agar toko tidak mengalami overselling.
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer py-2 px-3 bg-light d-flex justify-content-end gap-2">
-                                                    <button type="button" class="btn btn-sm btn-v2-secondary py-1 px-3" data-bs-dismiss="modal">Batal</button>
-                                                    <button type="submit" class="btn btn-sm btn-v2-primary py-1 px-3">Simpan Pengaturan</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
                                 </div>
                             @endif
                         </td>
