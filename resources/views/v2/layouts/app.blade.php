@@ -172,7 +172,7 @@
                     width: '100%',
                     placeholder: $select.data('placeholder') || '-- Pilih --',
                     allowClear: true,
-                    dropdownParent: $select.closest('.modal').length ? $select.closest('.modal') : $(document.body)
+                    dropdownParent: $wrapper
                 });
             });
         });
