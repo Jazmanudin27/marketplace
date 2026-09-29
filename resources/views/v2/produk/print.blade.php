@@ -107,6 +107,7 @@
                 <th>Model / Brand</th>
                 <th style="width: 80px;" class="text-end">HPP (Rp)</th>
                 <th style="width: 85px;" class="text-end">Harga Jual</th>
+                <th style="width: 85px;" class="text-end">Harga Dropship</th>
                 <th style="width: 70px;" class="text-end">Est. Kain</th>
                 <th style="width: 90px;" class="text-end">Est. Produksi</th>
                 <th style="width: 55px;" class="text-center">Stok</th>
@@ -129,6 +130,7 @@
                     <td>{{ $prod->brand->name ?? '-' }}</td>
                     <td class="text-end">{{ isset($prod->cost_price) && $prod->cost_price > 0 ? number_format($prod->cost_price, 0, ',', '.') : '-' }}</td>
                     <td class="text-end fw-bold">{{ number_format($prod->selling_price ?? $prod->price ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-end fw-bold" style="color: #6b21a8;">{{ isset($prod->reseller_price) && $prod->reseller_price > 0 ? number_format($prod->reseller_price, 0, ',', '.') : '-' }}</td>
                     <td class="text-end">{{ $prod->est_kain > 0 ? number_format($prod->est_kain, 2, ',', '.') . ' m' : '-' }}</td>
                     <td class="text-end">{{ $prod->est_biaya_produksi > 0 ? 'Rp ' . number_format($prod->est_biaya_produksi, 0, ',', '.') : '-' }}</td>
                     <td class="text-center fw-bold">{{ number_format($prod->stock ?? 0) }} {{ $prod->unit ?? 'pcs' }}</td>
@@ -137,7 +139,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="12" class="text-center py-3">Tidak ada data produk master yang sesuai dengan filter.</td>
+                    <td colspan="13" class="text-center py-3">Tidak ada data produk master yang sesuai dengan filter.</td>
                 </tr>
             @endforelse
         </tbody>

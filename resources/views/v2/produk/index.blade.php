@@ -232,6 +232,11 @@
                                 <div class="fw-bold text-primary font-monospace" style="font-size: 0.78rem;">
                                     {{ number_format($prod->selling_price ?? $prod->price ?? 0, 0, ',', '.') }}
                                 </div>
+                                @if(isset($prod->reseller_price) && $prod->reseller_price > 0)
+                                    <div class="fw-semibold" style="font-size: 0.65rem; color: #7c3aed;">
+                                        Dropship: {{ number_format($prod->reseller_price, 0, ',', '.') }}
+                                    </div>
+                                @endif
                                 @if(isset($prod->cost_price) && $prod->cost_price > 0)
                                     <div class="text-muted" style="font-size: 0.65rem;">
                                         HPP: {{ number_format($prod->cost_price, 0, ',', '.') }}
@@ -514,28 +519,34 @@
                     </div>
                 </div>
 
-                <div class="row g-3 mb-3">
-                    <div class="col-6 col-md-3">
-                        <div class="p-2.5 border rounded-3 bg-white text-center">
-                            <div class="text-muted" style="font-size: 0.7rem;">HARGA JUAL</div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6 col-md-2.4 col-lg">
+                        <div class="p-2 border rounded-3 bg-white text-center">
+                            <div class="text-muted" style="font-size: 0.68rem;">HARGA JUAL</div>
                             <div class="fw-bold text-primary font-monospace fs-6" id="showDetailPrice">Rp 0</div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-2.5 border rounded-3 bg-white text-center">
-                            <div class="text-muted" style="font-size: 0.7rem;">HARGA HPP</div>
+                    <div class="col-6 col-md-2.4 col-lg">
+                        <div class="p-2 border rounded-3 bg-white text-center">
+                            <div class="text-muted" style="font-size: 0.68rem; color: #7c3aed;">HARGA DROPSHIP</div>
+                            <div class="fw-bold font-monospace fs-6" style="color: #7c3aed;" id="showDetailResellerPrice">Rp 0</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-2.4 col-lg">
+                        <div class="p-2 border rounded-3 bg-white text-center">
+                            <div class="text-muted" style="font-size: 0.68rem;">HARGA HPP</div>
                             <div class="fw-bold text-dark font-monospace fs-6" id="showDetailCostPrice">Rp 0</div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-2.5 border rounded-3 bg-white text-center">
-                            <div class="text-muted" style="font-size: 0.7rem;">STOK GUDANG</div>
+                    <div class="col-6 col-md-2.4 col-lg">
+                        <div class="p-2 border rounded-3 bg-white text-center">
+                            <div class="text-muted" style="font-size: 0.68rem;">STOK GUDANG</div>
                             <div class="fw-bold text-success font-monospace fs-6" id="showDetailStock">0 pcs</div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-2.5 border rounded-3 bg-white text-center">
-                            <div class="text-muted" style="font-size: 0.7rem;">MIN. STOK</div>
+                    <div class="col-6 col-md-2.4 col-lg">
+                        <div class="p-2 border rounded-3 bg-white text-center">
+                            <div class="text-muted" style="font-size: 0.68rem;">MIN. STOK</div>
                             <div class="fw-bold text-warning font-monospace fs-6" id="showDetailMinStock">5 pcs</div>
                         </div>
                     </div>
@@ -755,12 +766,14 @@
             $('#showDetailSkuInduk').text('Induk: ' + (prod.sku_induk || prod.sku || '-'));
             
             var price = prod.selling_price || prod.price || 0;
+            var resellerPrice = prod.reseller_price || 0;
             var costPrice = prod.cost_price || 0;
             var stock = prod.stock || 0;
             var minStock = prod.min_stock || 5;
             var unit = prod.unit || 'pcs';
 
             $('#showDetailPrice').text('Rp ' + new Intl.NumberFormat('id-ID').format(price));
+            $('#showDetailResellerPrice').text(resellerPrice > 0 ? 'Rp ' + new Intl.NumberFormat('id-ID').format(resellerPrice) : '-');
             $('#showDetailCostPrice').text('Rp ' + new Intl.NumberFormat('id-ID').format(costPrice));
             $('#showDetailStock').text(new Intl.NumberFormat('id-ID').format(stock) + ' ' + unit);
             $('#showDetailMinStock').text(new Intl.NumberFormat('id-ID').format(minStock) + ' ' + unit);

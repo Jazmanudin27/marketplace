@@ -28,6 +28,7 @@ class MasterProduct extends Model
         'description',
         'cost_price',
         'price',
+        'reseller_price',
         'stock',
         'min_stock',
         'safety_stock',
@@ -44,6 +45,7 @@ class MasterProduct extends Model
     protected $casts = [
         'cost_price' => 'decimal:2',
         'price' => 'decimal:2',
+        'reseller_price' => 'decimal:2',
         'stock' => 'integer',
         'min_stock' => 'integer',
         'safety_stock' => 'integer',

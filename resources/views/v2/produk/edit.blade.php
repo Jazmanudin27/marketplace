@@ -101,19 +101,26 @@
                 </div>
                 <div class="v2-card-body p-3">
                     <div class="row g-3">
-                        <!-- Harga Beli (HPP) & Harga Jual -->
-                        <div class="col-12 col-md-6">
+                        <!-- Harga Beli (HPP), Harga Jual & Harga Dropship -->
+                        <div class="col-12 col-md-4">
                             <label class="form-label fw-bold" style="font-size: 0.78rem;">Harga Beli / HPP (Rp)</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light text-muted">Rp</span>
                                 <input type="number" name="cost_price" class="form-control font-monospace" value="{{ old('cost_price', (int)($product->cost_price ?? 0)) }}" min="0">
                             </div>
                         </div>
-                        <div class="col-12 col-md-6">
+                        <div class="col-12 col-md-4">
                             <label class="form-label fw-bold" style="font-size: 0.78rem;">Harga Jual Acuan (Rp)</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light text-muted">Rp</span>
                                 <input type="number" name="price" class="form-control font-monospace fw-bold text-primary" value="{{ old('price', (int)($product->selling_price ?? $product->price ?? 0)) }}" min="0">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-bold" style="font-size: 0.78rem;">Harga Dropship (Rp)</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light text-muted">Rp</span>
+                                <input type="number" name="reseller_price" class="form-control font-monospace fw-bold" style="color: #7c3aed;" value="{{ old('reseller_price', (int)($product->reseller_price ?? 0)) }}" min="0">
                             </div>
                         </div>
 

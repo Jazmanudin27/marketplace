@@ -135,6 +135,7 @@ class ProdukController extends Controller
             'name' => 'required|string|max:255',
             'sku' => 'required|string|max:100',
             'price' => 'nullable|numeric|min:0',
+            'reseller_price' => 'nullable|numeric|min:0',
             'cost_price' => 'nullable|numeric|min:0',
             'stock' => 'nullable|integer|min:0',
             'min_stock' => 'nullable|integer|min:0',
@@ -151,6 +152,7 @@ class ProdukController extends Controller
             'sku_induk' => $request->sku_induk ? strtoupper(trim($request->sku_induk)) : strtoupper(trim($request->sku)),
             'price' => $request->price ?? 0,
             'selling_price' => $request->price ?? 0,
+            'reseller_price' => $request->reseller_price ?? 0,
             'cost_price' => $request->cost_price ?? 0,
             'stock' => $request->stock ?? 0,
             'min_stock' => $request->min_stock ?? 5,
@@ -175,6 +177,7 @@ class ProdukController extends Controller
             'name' => 'required|string|max:255',
             'sku' => 'required|string|max:100',
             'price' => 'nullable|numeric|min:0',
+            'reseller_price' => 'nullable|numeric|min:0',
             'cost_price' => 'nullable|numeric|min:0',
             'category_id' => 'nullable',
             'brand_id' => 'nullable',
@@ -195,6 +198,7 @@ class ProdukController extends Controller
             'sku_induk' => $request->sku_induk ? strtoupper(trim($request->sku_induk)) : $sku,
             'price' => $request->price ?? 0,
             'selling_price' => $request->price ?? 0,
+            'reseller_price' => $request->reseller_price ?? 0,
             'cost_price' => $request->cost_price ?? 0,
             'stock' => 0,
             'min_stock' => $request->min_stock ?? 5,
@@ -233,6 +237,7 @@ class ProdukController extends Controller
             'kategori',
             'brand_merek',
             'harga_jual',
+            'harga_dropship',
             'hpp_harga_beli',
             'stok',
             'min_stok',
@@ -250,6 +255,7 @@ class ProdukController extends Controller
             'Seragam Sekolah',
             'Lengan Panjang',
             '109000',
+            '95000',
             '75000',
             '50',
             '5',
@@ -267,6 +273,7 @@ class ProdukController extends Controller
             'Seragam Sekolah',
             'Lengan Pendek',
             '98000',
+            '85000',
             '68000',
             '35',
             '5',
@@ -365,6 +372,7 @@ class ProdukController extends Controller
                 $skuInduk = !empty($skuInduk) ? strtoupper($skuInduk) : $sku;
 
                 $price = floatval($getValue(['hargajual', 'harga', 'price', 'sellingprice']));
+                $resellerPrice = floatval($getValue(['hargadropship', 'dropship', 'hargareseller', 'resellerprice']));
                 $costPrice = floatval($getValue(['hpphargabeli', 'hpp', 'costprice', 'hargabeli']));
                 $stock = intval($getValue(['stok', 'stock', 'qty']));
                 $minStock = intval($getValue(['minstok', 'minstock', 'warningstok']));
@@ -411,6 +419,7 @@ class ProdukController extends Controller
                     'sku_induk' => $skuInduk,
                     'price' => $price,
                     'selling_price' => $price,
+                    'reseller_price' => $resellerPrice,
                     'cost_price' => $costPrice,
                     'stock' => $stock,
                     'min_stock' => $minStock,
@@ -468,6 +477,7 @@ class ProdukController extends Controller
             'name' => 'required|string|max:255',
             'sku' => 'required|string|max:100',
             'price' => 'nullable|numeric|min:0',
+            'reseller_price' => 'nullable|numeric|min:0',
             'cost_price' => 'nullable|numeric|min:0',
             'stock' => 'nullable|integer|min:0',
             'min_stock' => 'nullable|integer|min:0',
@@ -483,6 +493,7 @@ class ProdukController extends Controller
             'sku_induk' => $request->sku_induk ?? $request->sku,
             'price' => $request->price ?? 0,
             'selling_price' => $request->price ?? 0,
+            'reseller_price' => $request->reseller_price ?? 0,
             'cost_price' => $request->cost_price ?? 0,
             'stock' => $request->stock ?? 0,
             'min_stock' => $request->min_stock ?? 5,
