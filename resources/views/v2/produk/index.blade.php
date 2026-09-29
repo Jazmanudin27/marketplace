@@ -82,7 +82,7 @@
         </div>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <div class="v2-stat-widget">
+        <div class="v2-stat-widget red-theme">
             <div class="v2-stat-icon-wrapper amber" style="background-color: #fee2e2; color: #ef4444;">
                 <i class="bi bi-link-45deg"></i>
             </div>
@@ -189,7 +189,7 @@
                                             {{ \Illuminate\Support\Str::limit($prod->name, 45) }}
                                         </div>
                                         <div class="text-muted d-flex align-items-center gap-2 mt-0.5" style="font-size: 0.68rem;">
-                                            <span><i class="bi bi-folder2 me-1"></i>{{ $prod->category->name ?? 'Uncategorized' }}</span>
+                                            <span><i class="bi bi-folder2 me-1"></i>{{ $prod->category->name ?? 'Tanpa Kategori' }}</span>
                                             @if($prod->brand)
                                                 <span>• <i class="bi bi-tag me-1"></i>{{ $prod->brand->name }}</span>
                                             @endif
@@ -199,7 +199,7 @@
                             </td>
                             <td>
                                 <div>
-                                    <span class="sku-badge">{{ $prod->sku }}</span>
+                                    <span class="sku-badge">{{ $prod->sku ?: ($prod->sku_induk ?: '-') }}</span>
                                     @if($prod->sku_induk && $prod->sku_induk !== $prod->sku)
                                         <div class="text-muted mt-0.5" style="font-size: 0.65rem;">
                                             Induk: <code class="text-secondary">{{ $prod->sku_induk }}</code>
