@@ -18,7 +18,7 @@
         <a href="{{ route('v2.produk.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-v2-secondary py-1.5 px-3 shadow-sm" title="Cetak Laporan Produk">
             <i class="bi bi-printer me-1"></i> Cetak Laporan
         </a>
-        <button type="button" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm" onclick="alert('Fitur Tambah Produk Master akan segera dibuka!')">
+        <button type="button" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#tambahProdukModal">
             <i class="bi bi-plus-lg me-1"></i> Tambah Produk Master
         </button>
     </div>
@@ -145,23 +145,21 @@
 <!-- Main Table Card -->
 <div class="v2-card mb-3">
     <div class="v2-card-header bg-light py-2">
-        <h6 class="v2-card-title d-flex align-items-center gap-2">
+        <h6 class="v2-card-title d-flex align-items-center gap-2 m-0">
             <i class="bi bi-list-columns-reverse text-primary"></i> Daftar Master Produk
             <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.65rem;">
                 {{ $products->total() }} Item
             </span>
         </h6>
-        <div class="d-flex align-items-center gap-2">
-            <a href="{{ url('/v2/produk?link_status=unlinked') }}" class="btn btn-sm btn-v2-danger py-0.5 px-2" style="font-size: 0.7rem;">
-                <i class="bi bi-exclamation-circle me-1"></i> Filter Belum Linked ({{ $counts['unlinked'] }})
-            </a>
-        </div>
     </div>
     <div class="v2-card-body p-0">
         <div class="v2-table-responsive">
             <table class="v2-table align-middle">
                 <thead>
                     <tr>
+                        <th style="width: 32px;" class="text-center pe-0">
+                            <input type="checkbox" class="form-check-input no-select2" id="selectAllProducts" style="cursor: pointer;">
+                        </th>
                         <th style="width: 35px;" class="text-center">#</th>
                         <th>NAMA PRODUK / MASTER</th>
                         <th>SKU & KODE</th>
@@ -169,12 +167,15 @@
                         <th class="text-center">STOK GUDANG</th>
                         <th class="text-center">TIPE / STATUS</th>
                         <th>INTEGRASI TOKO MARKETPLACE</th>
-                        <th class="text-center" style="width: 90px;">AKSI</th>
+                        <th class="text-center" style="width: 105px;">AKSI</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($products as $index => $prod)
                         <tr>
+                            <td class="text-center pe-0">
+                                <input type="checkbox" class="form-check-input product-checkbox no-select2" value="{{ $prod->id }}" style="cursor: pointer;">
+                            </td>
                             <td class="text-center text-muted" style="font-size: 0.72rem;">
                                 {{ $products->firstItem() + $index }}
                             </td>
@@ -184,8 +185,8 @@
                                         <i class="bi bi-box-seam"></i>
                                     </div>
                                     <div class="overflow-hidden">
-                                        <div class="fw-bold text-dark" style="font-size: 0.8rem; line-height: 1.25;" title="{{ $prod->name }}">
-                                            {{ $prod->name }}
+                                        <div class="fw-bold text-dark text-truncate" style="font-size: 0.8rem; line-height: 1.25; max-width: 280px;" title="{{ $prod->name }}">
+                                            {{ \Illuminate\Support\Str::limit($prod->name, 45) }}
                                         </div>
                                         <div class="text-muted d-flex align-items-center gap-2 mt-0.5" style="font-size: 0.68rem;">
                                             <span><i class="bi bi-folder2 me-1"></i>{{ $prod->category->name ?? 'Uncategorized' }}</span>
@@ -283,6 +284,9 @@
                             </td>
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-1">
+                                    <button type="button" class="btn-action-icon btn-action-view show-detail-btn" title="Detail Master Produk" data-id="{{ $prod->id }}">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
                                     <a href="{{ route('v2.produk.edit', $prod->id) }}" class="btn-action-icon btn-action-edit" title="Edit Master Produk V2">
                                         <i class="bi bi-pencil"></i>
                                     </a>
@@ -298,7 +302,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4 text-muted" style="font-size: 0.78rem;">
+                            <td colspan="9" class="text-center py-4 text-muted" style="font-size: 0.78rem;">
                                 <i class="bi bi-inbox fs-3 d-block mb-1 text-secondary"></i>
                                 Tidak ditemukan data master produk yang sesuai dengan filter.
                             </td>
@@ -320,6 +324,213 @@
             </div>
         </div>
     @endif
+</div>
+
+<!-- Modal Tambah Produk Master -->
+<div class="modal fade" id="tambahProdukModal" tabindex="-1" aria-labelledby="tambahProdukModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ route('v2.produk.store') }}" method="POST">
+                @csrf
+                <div class="modal-header bg-light py-2.5 border-bottom">
+                    <h6 class="modal-title fw-bold d-flex align-items-center gap-2 m-0" id="tambahProdukModalLabel">
+                        <i class="bi bi-box-seam-fill text-primary"></i> Tambah Master Produk Baru
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3.5">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-8">
+                            <label class="form-label form-label-sm fw-semibold">Nama Produk Master <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control form-control-sm" placeholder="Contoh: Seragam SMP Lengan Panjang Size L" required>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">SKU Master <span class="text-danger">*</span></label>
+                            <input type="text" name="sku" class="form-control form-control-sm font-monospace" placeholder="Contoh: SMP-PJG-L" required>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">SKU Induk</label>
+                            <input type="text" name="sku_induk" class="form-control form-control-sm font-monospace" placeholder="Kosongkan jika sama">
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">Kategori</label>
+                            <select name="category_id" class="form-select form-select-sm">
+                                <option value="">-- Pilih Kategori --</option>
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">Model & Varian / Brand</label>
+                            <select name="brand_id" class="form-select form-select-sm">
+                                <option value="">-- Pilih Model / Brand --</option>
+                                @foreach($brands as $b)
+                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label form-label-sm fw-semibold">Harga Jual (Rp)</label>
+                            <input type="number" name="price" class="form-control form-control-sm" placeholder="0" min="0">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label form-label-sm fw-semibold">Harga HPP (Rp)</label>
+                            <input type="number" name="cost_price" class="form-control form-control-sm" placeholder="0" min="0">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label form-label-sm fw-semibold">Stok Awal</label>
+                            <input type="number" name="stock" class="form-control form-control-sm" placeholder="0" min="0">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label form-label-sm fw-semibold">Satuan</label>
+                            <input type="text" name="unit" class="form-control form-control-sm" value="pcs" placeholder="pcs, set, meter">
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">Estimasi Kain (Meter)</label>
+                            <input type="number" step="0.01" name="est_kain" class="form-control form-control-sm" placeholder="0.00" min="0">
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">Estimasi Biaya Produksi (Rp)</label>
+                            <input type="number" name="est_biaya_produksi" class="form-control form-control-sm" placeholder="0" min="0">
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">Min. Stok Warning</label>
+                            <input type="number" name="min_stock" class="form-control form-control-sm" value="5" min="0">
+                        </div>
+                        <div class="col-6 col-md-6">
+                            <label class="form-label form-label-sm fw-semibold">Jenis Produk</label>
+                            <select name="is_bundle" class="form-select form-select-sm no-select2">
+                                <option value="0">Single (Biasa)</option>
+                                <option value="1">Paket (Bundle)</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-6">
+                            <label class="form-label form-label-sm fw-semibold">Tipe Stok</label>
+                            <select name="is_preorder" class="form-select form-select-sm no-select2">
+                                <option value="0">Ready Stock</option>
+                                <option value="1">Pre-Order (PO)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-sm btn-v2-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-v2-primary">
+                        <i class="bi bi-save me-1"></i> Simpan Master Produk
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detail / Show Produk -->
+<div class="modal fade" id="detailProdukModal" tabindex="-1" aria-labelledby="detailProdukModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light py-2.5 border-bottom">
+                <h6 class="modal-title fw-bold d-flex align-items-center gap-2 m-0" id="detailProdukModalLabel">
+                    <i class="bi bi-box-seam text-primary"></i> Detail Master Produk
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3.5">
+                <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3 mb-3 border">
+                    <div class="rounded-3 bg-primary text-white d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0" id="showDetailName">-</h5>
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <span class="badge bg-secondary-subtle text-secondary border font-monospace" id="showDetailSku">SKU: -</span>
+                            <span class="badge bg-light text-dark border font-monospace" id="showDetailSkuInduk">Induk: -</span>
+                            <span id="showDetailBadgeJenis"></span>
+                            <span id="showDetailBadgeTipe"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="p-2.5 border rounded-3 bg-white text-center">
+                            <div class="text-muted" style="font-size: 0.7rem;">HARGA JUAL</div>
+                            <div class="fw-bold text-primary font-monospace fs-6" id="showDetailPrice">Rp 0</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-2.5 border rounded-3 bg-white text-center">
+                            <div class="text-muted" style="font-size: 0.7rem;">HARGA HPP</div>
+                            <div class="fw-bold text-dark font-monospace fs-6" id="showDetailCostPrice">Rp 0</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-2.5 border rounded-3 bg-white text-center">
+                            <div class="text-muted" style="font-size: 0.7rem;">STOK GUDANG</div>
+                            <div class="fw-bold text-success font-monospace fs-6" id="showDetailStock">0 pcs</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-2.5 border rounded-3 bg-white text-center">
+                            <div class="text-muted" style="font-size: 0.7rem;">MIN. STOK</div>
+                            <div class="fw-bold text-warning font-monospace fs-6" id="showDetailMinStock">5 pcs</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-md-6">
+                        <div class="p-3 border rounded-3 bg-white">
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2" style="font-size: 0.8rem;"><i class="bi bi-scissors text-primary me-1"></i> Estimasi Produksi & Bahan</h6>
+                            <div class="d-flex justify-content-between mb-1.5" style="font-size: 0.78rem;">
+                                <span class="text-muted">Estimasi Kain / Bahan:</span>
+                                <span class="fw-bold font-monospace text-dark" id="showDetailEstKain">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between" style="font-size: 0.78rem;">
+                                <span class="text-muted">Estimasi Biaya Produksi:</span>
+                                <span class="fw-bold font-monospace text-dark" id="showDetailEstProduksi">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="p-3 border rounded-3 bg-white">
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-2" style="font-size: 0.8rem;"><i class="bi bi-tags text-primary me-1"></i> Taksonomi & Klasifikasi</h6>
+                            <div class="d-flex justify-content-between mb-1.5" style="font-size: 0.78rem;">
+                                <span class="text-muted">Kategori:</span>
+                                <span class="fw-bold text-dark" id="showDetailCategory">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between" style="font-size: 0.78rem;">
+                                <span class="text-muted">Model & Varian / Brand:</span>
+                                <span class="fw-bold text-dark" id="showDetailBrand">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h6 class="fw-bold text-dark mb-2" style="font-size: 0.8rem;"><i class="bi bi-shop text-primary me-1"></i> Integrasi Toko Marketplace Terhubung</h6>
+                    <div class="table-responsive border rounded-3">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.75rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3 py-2">TOKO MARKETPLACE</th>
+                                    <th class="py-2">CHANNEL</th>
+                                    <th class="py-2">SKU MARKETPLACE</th>
+                                    <th class="text-center py-2 pe-3">STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="showDetailStoreTableBody">
+                                <!-- JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-sm btn-v2-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Detail Toko Terhubung -->
@@ -362,6 +573,82 @@
 
 @push('scripts')
 <script>
+    // Select All Checkboxes
+    $('#selectAllProducts').on('change', function() {
+        var isChecked = $(this).is(':checked');
+        $('.product-checkbox').prop('checked', isChecked);
+    });
+
+    $(document).on('change', '.product-checkbox', function() {
+        var total = $('.product-checkbox').length;
+        var checked = $('.product-checkbox:checked').length;
+        $('#selectAllProducts').prop('checked', total === checked && total > 0);
+    });
+
+    // Show Product Detail Modal via AJAX
+    $(document).on('click', '.show-detail-btn', function() {
+        var productId = $(this).data('id');
+        
+        $.get('/v2/produk/' + productId, function(prod) {
+            $('#showDetailName').text(prod.name || '-');
+            $('#showDetailSku').text('SKU: ' + (prod.sku || '-'));
+            $('#showDetailSkuInduk').text('Induk: ' + (prod.sku_induk || prod.sku || '-'));
+            
+            var price = prod.selling_price || prod.price || 0;
+            var costPrice = prod.cost_price || 0;
+            var stock = prod.stock || 0;
+            var minStock = prod.min_stock || 5;
+            var unit = prod.unit || 'pcs';
+
+            $('#showDetailPrice').text('Rp ' + new Intl.NumberFormat('id-ID').format(price));
+            $('#showDetailCostPrice').text('Rp ' + new Intl.NumberFormat('id-ID').format(costPrice));
+            $('#showDetailStock').text(new Intl.NumberFormat('id-ID').format(stock) + ' ' + unit);
+            $('#showDetailMinStock').text(new Intl.NumberFormat('id-ID').format(minStock) + ' ' + unit);
+
+            $('#showDetailEstKain').text(prod.est_kain > 0 ? prod.est_kain + ' m' : '-');
+            $('#showDetailEstProduksi').text(prod.est_biaya_produksi > 0 ? 'Rp ' + new Intl.NumberFormat('id-ID').format(prod.est_biaya_produksi) : '-');
+
+            $('#showDetailCategory').text(prod.category ? prod.category.name : 'Uncategorized');
+            $('#showDetailBrand').text(prod.brand ? prod.brand.name : '-');
+
+            if (prod.is_bundle) {
+                $('#showDetailBadgeJenis').html('<span class="badge bg-warning text-dark border"><i class="bi bi-diagram-3 me-1"></i>Bundle</span>');
+            } else {
+                $('#showDetailBadgeJenis').html('<span class="badge bg-primary-subtle text-primary border"><i class="bi bi-box me-1"></i>Single</span>');
+            }
+
+            if (prod.is_preorder) {
+                $('#showDetailBadgeTipe').html('<span class="badge bg-secondary-subtle text-secondary border">PO</span>');
+            } else {
+                $('#showDetailBadgeTipe').html('<span class="badge bg-success-subtle text-success border">Ready Stock</span>');
+            }
+
+            var html = '';
+            if (prod.marketplace_products && prod.marketplace_products.length > 0) {
+                prod.marketplace_products.forEach(function(mp) {
+                    var storeName = mp.store ? mp.store.store_name : 'Toko Marketplace';
+                    var channelName = mp.store && mp.store.channel ? mp.store.channel.name : 'Marketplace';
+                    var mpSku = mp.marketplace_sku || mp.sku || '-';
+                    
+                    html += '<tr>' +
+                        '<td class="ps-3 py-2"><div class="fw-bold text-dark">' + storeName + '</div></td>' +
+                        '<td class="py-2"><span class="badge bg-secondary text-white">' + channelName + '</span></td>' +
+                        '<td class="py-2"><code class="text-primary font-monospace">' + mpSku + '</code></td>' +
+                        '<td class="text-center py-2 pe-3"><span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Connected</span></td>' +
+                        '</tr>';
+                });
+            } else {
+                html = '<tr><td colspan="4" class="text-center py-3 text-muted">Belum ada toko marketplace terhubung.</td></tr>';
+            }
+            $('#showDetailStoreTableBody').html(html);
+
+            var detailModal = new bootstrap.Modal(document.getElementById('detailProdukModal'));
+            detailModal.show();
+        }).fail(function() {
+            Swal.fire('Error', 'Gagal mengambil detail produk', 'error');
+        });
+    });
+
     // Show Store Detail Modal
     $(document).on('click', '.show-store-modal', function() {
         var name = $(this).data('name');

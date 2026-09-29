@@ -565,6 +565,16 @@ body.v2-layout {
     border: none;
 }
 
+.btn-action-view {
+    background-color: #059669;
+    color: #ffffff;
+}
+
+.btn-action-view:hover {
+    background-color: #047857;
+    color: #ffffff;
+}
+
 .btn-action-edit {
     background-color: #0284c7;
     color: #ffffff;
