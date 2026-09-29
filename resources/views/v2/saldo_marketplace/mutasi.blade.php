@@ -8,14 +8,14 @@
 .smk-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
 }
 .smk-table thead tr {
     background: #f8fafc;
     border-bottom: 1px solid #e2e8f0;
 }
 .smk-table thead th {
-    padding: 10px 12px;
+    padding: 12px 14px;
     font-size: 0.72rem;
     font-weight: 700;
     color: #475569;
@@ -31,7 +31,7 @@
     background: #f0f7ff;
 }
 .smk-table td {
-    padding: 10px 12px;
+    padding: 12px 14px;
     vertical-align: middle;
     color: #334155;
 }
@@ -48,8 +48,8 @@
     font-weight: 700;
     color: #2563eb;
     background: #eff6ff;
-    padding: 2px 7px;
-    border-radius: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
     font-size: 0.78rem;
     display: inline-block;
 }
@@ -72,32 +72,32 @@
         </div>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
-        <a href="{{ route('v2.saldo_marketplace.sync', [$store, 'days' => 60]) }}" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#16a34a; border:none;" onclick="return confirm('Tarik data mutasi terbaru dari marketplace?')">
-            <i class="bi bi-arrow-repeat me-1"></i> Tarik Data Baru
+        <a href="{{ route('v2.saldo_marketplace.sync', [$store, 'days' => 60]) }}" class="btn btn-sm py-2 px-3 shadow-sm fw-semibold text-white" style="background:#16a34a; border:none; border-radius:8px;" onclick="return confirm('Tarik data mutasi terbaru dari marketplace?')">
+            <i class="bi bi-arrow-repeat me-1.5"></i> Tarik Data Baru
         </a>
-        <a href="{{ route('v2.saldo_marketplace.index') }}" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#1e293b; border:none;">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Dompet
+        <a href="{{ route('v2.saldo_marketplace.index') }}" class="btn btn-sm py-2 px-3 shadow-sm fw-semibold text-white" style="background:#1e293b; border:none; border-radius:8px;">
+            <i class="bi bi-arrow-left me-1.5"></i> Kembali ke Dompet
         </a>
     </div>
 </div>
 
 {{-- ── Filter Card ── --}}
-<div class="v2-card p-3 mb-3 shadow-sm">
+<div class="v2-card p-3.5 mb-3 shadow-sm" style="padding: 16px;">
     <form action="{{ route('v2.saldo_marketplace.mutasi', $store) }}" method="GET">
         <div class="row g-2 align-items-end">
             <div class="col-12 col-sm-6 col-md-3">
-                <label class="v2-form-label">Mulai Tanggal</label>
+                <label class="v2-form-label mb-1 fw-semibold text-muted small">Mulai Tanggal</label>
                 <input type="date" name="date_from" value="{{ $dateFrom }}" class="form-control form-control-sm v2-input" required>
             </div>
             <div class="col-12 col-sm-6 col-md-3">
-                <label class="v2-form-label">Sampai Tanggal</label>
+                <label class="v2-form-label mb-1 fw-semibold text-muted small">Sampai Tanggal</label>
                 <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control form-control-sm v2-input" required>
             </div>
             <div class="col-12 col-md-6 d-flex gap-2 align-items-center">
-                <button type="submit" class="btn btn-sm btn-v2-primary py-1.5 px-3.5 shadow-sm fw-semibold">
+                <button type="submit" class="btn btn-sm btn-v2-primary py-1.5 px-3.5 shadow-sm fw-semibold" style="border-radius:6px;">
                     <i class="bi bi-funnel me-1"></i> Filter
                 </button>
-                <a href="{{ route('v2.saldo_marketplace.mutasi', $store) }}" class="btn btn-sm py-1.5 px-3 fw-semibold" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;">
+                <a href="{{ route('v2.saldo_marketplace.mutasi', $store) }}" class="btn btn-sm py-1.5 px-3 fw-semibold" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:6px;">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                 </a>
                 <span class="text-muted ms-auto" style="font-size:0.76rem;">
@@ -110,14 +110,14 @@
 
 {{-- ── Table Card ── --}}
 <div class="v2-card p-0 shadow-sm overflow-hidden mb-3">
-    <div class="py-2.5 px-3 bg-white border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="py-3 px-3 bg-white border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div class="d-flex align-items-center gap-2">
             <i class="bi bi-journals text-primary"></i>
-            <span class="fw-bold text-dark" style="font-size:0.85rem;">
+            <span class="fw-bold text-dark" style="font-size:0.88rem;">
                 Riwayat Mutasi Dompet {{ $store->store_name }}
             </span>
         </div>
-        <span class="badge bg-light text-dark border py-1.5 px-2.5 rounded-pill" style="font-size:0.7rem; font-weight:600;">
+        <span class="badge bg-light text-dark border py-1.5 px-3 rounded-pill" style="font-size:0.72rem; font-weight:600;">
             Total {{ count($mutasiList) }} Transaksi
         </span>
     </div>
@@ -127,12 +127,12 @@
             <thead>
                 <tr>
                     <th class="text-center" style="width: 45px;">No</th>
-                    <th style="width: 140px;">Waktu Transaksi</th>
-                    <th style="width: 160px;">ID Transaksi</th>
+                    <th style="width: 150px;">Waktu Transaksi</th>
+                    <th style="width: 170px;">ID Transaksi</th>
                     <th style="width: 150px;">Jenis Transaksi</th>
                     <th>Keterangan / Rincian</th>
-                    <th class="text-end" style="width: 140px;">Jumlah</th>
-                    <th class="text-end" style="width: 140px;">Saldo Akhir</th>
+                    <th class="text-end" style="width: 150px;">Jumlah</th>
+                    <th class="text-end" style="width: 150px;">Saldo Akhir</th>
                 </tr>
             </thead>
             <tbody>
@@ -144,12 +144,12 @@
                             <span class="ref-code">{{ $m['id'] }}</span>
                         </td>
                         <td>
-                            <span class="badge bg-light text-dark border px-2 py-1" style="font-size:0.7rem; font-weight:500;">
+                            <span class="badge bg-light text-dark border px-2 py-1" style="font-size:0.7rem; font-weight:600;">
                                 {{ $m['type'] }}
                             </span>
                         </td>
                         <td>
-                            <div class="text-wrap" style="font-size:0.78rem; line-height:1.3;">
+                            <div class="text-wrap" style="font-size:0.78rem; line-height:1.35;">
                                 {{ $m['description'] }}
                             </div>
                         </td>
@@ -158,7 +158,7 @@
                                 {{ $m['direction'] === 'in' ? '+' : '-' }} Rp {{ number_format(abs($m['amount']), 0, ',', '.') }}
                             </span>
                         </td>
-                        <td class="text-end fw-bold text-dark">
+                        <td class="text-end fw-bold text-dark font-monospace">
                             @if($m['current_balance'] !== null)
                                 Rp {{ number_format($m['current_balance'], 0, ',', '.') }}
                             @else
