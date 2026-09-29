@@ -259,6 +259,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/barang-keluar', [\App\Http\Controllers\V2\BarangKeluarController::class, 'store'])->name('barang_keluar.store');
         Route::get('/barang-keluar/{warehouseMutation}', [\App\Http\Controllers\V2\BarangKeluarController::class, 'show'])->name('barang_keluar.show');
         Route::delete('/barang-keluar/{warehouseMutation}', [\App\Http\Controllers\V2\BarangKeluarController::class, 'destroy'])->name('barang_keluar.destroy');
+
+        // Stock Opname V2
+        Route::get('/stock-opname', [\App\Http\Controllers\V2\StockOpnameController::class, 'index'])->name('stock_opname.index');
+        Route::get('/stock-opname/create', [\App\Http\Controllers\V2\StockOpnameController::class, 'create'])->name('stock_opname.create');
+        Route::post('/stock-opname', [\App\Http\Controllers\V2\StockOpnameController::class, 'store'])->name('stock_opname.store');
     });
 
     // =========================================================================
