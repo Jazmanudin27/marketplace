@@ -509,7 +509,6 @@
                             <input type="checkbox" id="check-all" class="form-check-input" style="cursor:pointer;">
                         </th>
                         <th>PRODUK &amp; PESANAN</th>
-                        <th>PEMBELI</th>
                         <th>TOKO &amp; CHANNEL</th>
                         <th style="text-align:right;">DIBAYAR</th>
                         <th>TANGGAL &amp; BATAS KIRIM</th>
@@ -548,7 +547,6 @@
                                 default => 'st-default',
                             };
 
-                            $buyerInitial = strtoupper(substr($order->buyer_name ?? 'U', 0, 1));
                         @endphp
                         <tr>
                             {{-- Checkbox --}}
@@ -606,14 +604,6 @@
                                             @endforeach
                                         </div>
                                     @endif
-                                </div>
-                            </td>
-
-                            {{-- Pembeli --}}
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="psr-avatar">{{ $buyerInitial }}</div>
-                                    <span style="font-size:0.8rem; font-weight:600; color:#111827;">{{ $order->buyer_name ?? '-' }}</span>
                                 </div>
                             </td>
 
@@ -752,7 +742,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9">
+                            <td colspan="8">
                                 <div class="psr-empty">
                                     <i class="bi bi-basket"></i>
                                     <p style="font-size:0.9rem; margin:0; font-weight:600;">Tidak ada pesanan ditemukan.</p>
