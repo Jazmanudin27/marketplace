@@ -127,7 +127,7 @@
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td class="text-center fw-bold">{{ $prod->sku }}</td>
                     <td>
-                        <span class="fw-bold">{{ $prod->name }}</span>
+                        <span class="fw-bold" title="{{ $prod->name }}">{{ \Illuminate\Support\Str::limit($prod->name, 50) }}</span>
                         @if($prod->sku_induk && $prod->sku_induk !== $prod->sku)
                             <div style="font-size: 9px; color: #555;">(Induk: {{ $prod->sku_induk }})</div>
                         @endif

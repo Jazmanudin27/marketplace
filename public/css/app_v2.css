@@ -203,6 +203,63 @@ body.v2-layout {
     color: #ffffff;
 }
 
+/* Sidebar Dropdown Submenu Styling */
+.v2-dropdown-toggle .v2-dropdown-arrow {
+    transition: transform 0.2s ease;
+}
+
+.v2-dropdown-toggle:not(.collapsed) .v2-dropdown-arrow,
+.v2-dropdown-toggle[aria-expanded="true"] .v2-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.v2-submenu-inner {
+    padding: 0.15rem 0 0.25rem 0.5rem;
+    margin-left: 0.75rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.v2-submenu-link {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.32rem 0.55rem;
+    color: #94a3b8;
+    text-decoration: none;
+    border-radius: var(--v2-radius-sm);
+    font-size: 0.72rem;
+    font-weight: 500;
+    transition: var(--v2-transition);
+    margin-top: 0.1rem;
+}
+
+.v2-submenu-link i {
+    font-size: 0.82rem;
+    width: 14px;
+    text-align: center;
+    color: #64748b;
+}
+
+.v2-submenu-link:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.v2-submenu-link:hover i {
+    color: #38bdf8;
+}
+
+.v2-submenu-link.active {
+    color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.12);
+    font-weight: 600;
+}
+
+.v2-submenu-link.active i {
+    color: #38bdf8;
+}
+
+
 /* Sidebar Footer */
 .v2-sidebar-footer {
     padding: 0.65rem 0.85rem;
