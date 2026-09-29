@@ -7,7 +7,7 @@
 :root {
     --v2-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-    --v2-bg-body: #f1f5f9;
+    --v2-bg-body: #e2e8f0;
     --v2-bg-surface: #ffffff;
     --v2-bg-surface-elevated: #ffffff;
     --v2-bg-sidebar: #0b132b;
@@ -403,12 +403,12 @@ body.v2-layout {
     margin-top: 0.1rem;
 }
 
-/* Card Styling Compact */
+/* Card Styling Compact - High Contrast Elevation */
 .v2-card {
-    background-color: var(--v2-bg-surface);
-    border: 1px solid var(--v2-border);
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
     border-radius: var(--v2-radius-md);
-    box-shadow: var(--v2-shadow-sm);
+    box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.09), 0 2px 4px -1px rgba(15, 23, 42, 0.05) !important;
     margin-bottom: 1rem;
 }
 
@@ -632,9 +632,9 @@ body.v2-layout {
 }
 
 .btn-v2-secondary {
-    background-color: #e2e8f0 !important;
-    color: #1e293b !important;
-    border: 1px solid #cbd5e1 !important;
+    background-color: #475569 !important;
+    color: #ffffff !important;
+    border: 1px solid #475569 !important;
     padding: 0.32rem 0.8rem;
     border-radius: var(--v2-radius-sm);
     font-weight: 600;
@@ -647,9 +647,9 @@ body.v2-layout {
 .btn-v2-secondary:hover,
 .btn-v2-secondary:focus,
 .btn-v2-secondary:active {
-    background-color: #cbd5e1 !important;
-    border-color: #94a3b8 !important;
-    color: #0f172a !important;
+    background-color: #334155 !important;
+    border-color: #334155 !important;
+    color: #ffffff !important;
 }
 
 /* Fix default outline button background colors so they're visible immediately */

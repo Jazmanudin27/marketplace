@@ -206,16 +206,16 @@
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-1">
                                     <button type="button" 
-                                            class="btn btn-sm btn-action-btn text-success border-success-subtle btn-adjust-item" 
+                                            class="btn-action-icon btn-action-view btn-adjust-item" 
                                             title="Opname / Sesuaikan Stok"
                                             data-id="{{ $item->id }}"
                                             data-name="{{ $item->name }}"
                                             data-unit="{{ $item->unit }}"
                                             data-stock="{{ $item->stock }}">
-                                        <i class="bi bi-clipboard-check"></i>
+                                        <i class="bi bi-clipboard-check text-white"></i>
                                     </button>
                                     <button type="button" 
-                                            class="btn btn-sm btn-action-btn text-primary border-primary-subtle btn-edit-item" 
+                                            class="btn-action-icon btn-action-edit btn-edit-item" 
                                             title="Edit Barang"
                                             data-id="{{ $item->id }}"
                                             data-sku="{{ $item->sku }}"
@@ -224,13 +224,13 @@
                                             data-unit="{{ $item->unit }}"
                                             data-min-stock="{{ $item->min_stock }}"
                                             data-cost-price="{{ number_format($item->cost_price, 0, '', '') }}">
-                                        <i class="bi bi-pencil"></i>
+                                        <i class="bi bi-pencil text-white"></i>
                                     </button>
-                                    <form action="{{ url('/v2/barang/' . $item->id) }}" method="POST" class="d-inline form-delete-barang">
+                                    <form action="{{ url('/v2/barang/' . $item->id) }}" method="POST" class="d-inline form-delete-barang m-0 p-0">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-action-btn text-danger border-danger-subtle" title="Hapus Barang" onclick="return confirm('Apakah Anda yakin ingin menghapus barang ini?')">
-                                            <i class="bi bi-trash"></i>
+                                        <button type="submit" class="btn-action-icon btn-action-delete" title="Hapus Barang" onclick="return confirm('Apakah Anda yakin ingin menghapus barang ini?')">
+                                            <i class="bi bi-trash text-white"></i>
                                         </button>
                                     </form>
                                 </div>
