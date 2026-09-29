@@ -15,6 +15,9 @@
         <a href="{{ url('/v2/produk') }}" class="btn btn-sm btn-v2-secondary py-1.5 px-2.5" title="Refresh Page">
             <i class="bi bi-arrow-clockwise"></i>
         </a>
+        <a href="{{ route('v2.produk.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-v2-secondary py-1.5 px-3 shadow-sm" title="Cetak Laporan Produk">
+            <i class="bi bi-printer me-1"></i> Cetak Laporan
+        </a>
         <button type="button" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm" onclick="alert('Fitur Tambah Produk Master akan segera dibuka!')">
             <i class="bi bi-plus-lg me-1"></i> Tambah Produk Master
         </button>

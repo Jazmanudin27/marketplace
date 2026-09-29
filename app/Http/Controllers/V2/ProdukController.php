@@ -173,4 +173,67 @@ class ProdukController extends Controller
 
         return redirect()->route('v2.produk.index')->with('success', "Master produk \"{$productName}\" berhasil dihapus!");
     }
+
+    public function print(Request $request)
+    {
+        $user = Auth::user();
+        $tenantId = $user->tenant_id;
+        $tenant = $user->tenant;
+
+        $query = MasterProduct::with(['category', 'brand', 'marketplaceProducts.store.channel'])
+            ->where('tenant_id', $tenantId);
+
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        }
+
+        if ($request->filled('sku')) {
+            $sku = $request->sku;
+            $query->where(function($q) use ($sku) {
+                $q->where('sku', 'like', '%' . $sku . '%')
+                  ->orWhere('sku_induk', 'like', '%' . $sku . '%');
+            });
+        }
+
+        if ($request->filled('is_bundle')) {
+            if ($request->is_bundle === '1') {
+                $query->where('is_bundle', true);
+            } elseif ($request->is_bundle === '0') {
+                $query->where(function($q) {
+                    $q->where('is_bundle', false)->orWhereNull('is_bundle');
+                });
+            }
+        }
+
+        if ($request->filled('is_preorder')) {
+            if ($request->is_preorder === '1') {
+                $query->where('is_preorder', true);
+            } elseif ($request->is_preorder === '0') {
+                $query->where(function($q) {
+                    $q->where('is_preorder', false)->orWhereNull('is_preorder');
+                });
+            }
+        }
+
+        if ($request->filled('store_id')) {
+            $query->whereHas('marketplaceProducts', function($q) use ($request) {
+                $q->where('store_id', $request->store_id);
+            });
+        }
+
+        if ($request->filled('link_status')) {
+            if ($request->link_status === 'unlinked') {
+                $query->where(function($q) {
+                    $q->whereDoesntHave('marketplaceProducts')
+                      ->orWhereDoesntHave('marketplaceProducts', function($mq) {
+                          $mq->whereRaw('LOWER(TRIM(marketplace_sku)) = LOWER(TRIM(master_products.sku))');
+                      });
+                });
+            }
+        }
+
+        $products = $query->orderBy('name')->get();
+
+        return view('v2.produk.print', compact('products', 'tenant'));
+    }
 }
