@@ -47,7 +47,7 @@
         <div class="v2-nav-item">
             <a href="{{ url('/v2/kategori-brand') }}" class="v2-nav-link {{ request()->is('v2/kategori*') || request()->is('v2/brand*') ? 'active' : '' }}">
                 <i class="bi bi-tags-fill"></i>
-                <span>Kategori & Model Variasi</span>
+                <span>Kategori dan Model & Varian</span>
             </a>
         </div>
         <div class="v2-nav-item">
