@@ -163,16 +163,15 @@
         $(document).ready(function() {
             $('.select2, .v2-select2, select.form-select-sm:not(.no-select2), select.form-select:not(.no-select2)').each(function() {
                 var $select = $(this);
-                if (!$select.parent().hasClass('select2-wrapper')) {
-                    $select.wrap('<div class="select2-wrapper position-relative d-block w-100"></div>');
-                }
-                var $wrapper = $select.parent();
+                
+                // Inisialisasi Select2
                 $select.select2({
                     theme: 'bootstrap-5',
                     width: '100%',
                     placeholder: $select.data('placeholder') || '-- Pilih --',
                     allowClear: true,
-                    dropdownParent: $wrapper
+                    // Opsi 1: Menggunakan body agar posisi dihitung absolute terhadap layar (paling aman untuk filter/form biasa)
+                    dropdownParent: $(document.body) 
                 });
             });
         });
