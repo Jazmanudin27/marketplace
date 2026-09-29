@@ -4,7 +4,7 @@
 
 @push('styles')
 <style>
-/* ─── Mutasi Keuangan V2 Custom Styles ─── */
+/* ─── Mutasi Keuangan V2 Custom Styles (Matching Barang Keluar) ─── */
 .mks-kpi-card {
     background: #ffffff;
     border: 1px solid #e5e7eb;
@@ -19,7 +19,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 .mks-kpi-title {
-    font-size: 0.73rem;
+    font-size: 0.72rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -45,45 +45,13 @@
     pointer-events: none;
 }
 
-/* Table styling */
-.mks-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8rem;
-}
-.mks-table thead tr {
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-}
-.mks-table thead th {
-    padding: 10px 12px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: #475569;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-}
-.mks-table tbody tr {
-    border-bottom: 1px solid #f1f5f9;
-    transition: background 0.1s;
-}
-.mks-table tbody tr:hover {
-    background: #f0f7ff;
-}
-.mks-table td {
-    padding: 10px 12px;
-    vertical-align: middle;
-    color: #334155;
-}
-
 .ref-code {
     font-weight: 700;
     color: #2563eb;
     background: #eff6ff;
     padding: 2px 7px;
-    border-radius: 4px;
-    font-size: 0.78rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
     display: inline-block;
 }
 
@@ -114,30 +82,41 @@
         </h1>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
-        <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1;" title="Refresh Data">
+        <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:8px;" title="Refresh Data">
             <i class="bi bi-arrow-clockwise me-1"></i> Refresh
         </a>
-        <a href="{{ route('v2.mutasi_keuangan.print', request()->query()) }}" target="_blank" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#1e293b; border:none;">
+        <a href="{{ route('v2.mutasi_keuangan.print', request()->query()) }}" target="_blank" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#1e293b; border:none; border-radius:8px;">
             <i class="bi bi-printer me-1"></i> Cetak Laporan
         </a>
-        <button type="button" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#16a34a; border:none;" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
-            <i class="bi bi-plus-circle me-1"></i> Input Pemasukan
+        <button type="button" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#16a34a; border:none; border-radius:8px;" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+            <i class="bi bi-plus-lg me-1"></i> Input Pemasukan
         </button>
-        <button type="button" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#dc2626; border:none;" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
-            <i class="bi bi-dash-circle me-1"></i> Input Pengeluaran
+        <button type="button" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#dc2626; border:none; border-radius:8px;" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+            <i class="bi bi-dash-lg me-1"></i> Input Pengeluaran
         </button>
-        <button type="button" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#d97706; border:none;" data-bs-toggle="modal" data-bs-target="#addTransferModal">
+        <button type="button" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#d97706; border:none; border-radius:8px;" data-bs-toggle="modal" data-bs-target="#addTransferModal">
             <i class="bi bi-arrow-left-right me-1"></i> Transfer Dana
         </button>
     </div>
 </div>
+
+{{-- ── Alert Messages ── --}}
+@foreach(['success','error','info'] as $type)
+    @if(session($type))
+        <div class="alert alert-{{ $type === 'error' ? 'danger' : ($type === 'info' ? 'info' : 'success') }} alert-dismissible fade show mb-3 border-0 shadow-sm" role="alert" style="border-radius:10px;">
+            <i class="bi bi-{{ $type === 'error' ? 'exclamation-triangle' : ($type === 'info' ? 'info-circle' : 'check-circle') }} me-2"></i>
+            {!! session($type) !!}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+@endforeach
 
 {{-- ── KPI Summary Cards ── --}}
 <div class="row g-2.5 mb-3">
     <!-- Saldo Awal -->
     <div class="col-12 col-sm-6 col-lg">
         <div class="mks-kpi-card border-start border-secondary border-3">
-            <div class="mks-kpi-title">Saldo Awal</div>
+            <div class="mks-kpi-title text-secondary">Saldo Awal</div>
             <div class="mks-kpi-value text-dark">
                 Rp {{ number_format($beginningBalance, 0, ',', '.') }}
             </div>
@@ -191,56 +170,55 @@
     </div>
 </div>
 
-{{-- ── Filter Card ── --}}
+{{-- ── Filter Section ── --}}
 <div class="v2-card p-3 mb-3 shadow-sm">
-    <form method="GET" action="{{ route('v2.mutasi_keuangan.index') }}">
-        <div class="row g-2 align-items-end">
-            <div class="col-12 col-sm-6 col-md-2">
-                <label class="v2-form-label">Dari Tanggal</label>
-                <input type="date" name="date_from" value="{{ $dateFrom }}" class="form-control form-control-sm v2-input">
-            </div>
-            <div class="col-12 col-sm-6 col-md-2">
-                <label class="v2-form-label">Sampai Tanggal</label>
-                <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control form-control-sm v2-input">
-            </div>
-            <div class="col-12 col-sm-6 col-md-3">
-                <label class="v2-form-label">Akun Kas / Bank</label>
-                <select name="account" class="form-select form-select-sm v2-input">
-                    <option value="all" {{ $account === 'all' ? 'selected' : '' }}>Semua Akun Kas / Bank</option>
-                    @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
-                        @foreach($bankAccounts as $bank)
-                            <option value="{{ $bank->bank_name }}" {{ strcasecmp((string)$account, (string)$bank->bank_name) === 0 || (string)$account === (string)$bank->id ? 'selected' : '' }}>
-                                {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }}
-                            </option>
-                        @endforeach
-                    @else
-                        <option value="kas_besar" {{ $account === 'kas_besar' ? 'selected' : '' }}>Kas Besar</option>
-                        <option value="kas_kecil" {{ $account === 'kas_kecil' ? 'selected' : '' }}>Kas Kecil</option>
-                    @endif
-                </select>
-            </div>
-            <div class="col-12 col-sm-6 col-md-2">
-                <label class="v2-form-label">Arah Mutasi</label>
-                <select name="direction" class="form-select form-select-sm v2-input">
-                    <option value="all" {{ $direction === 'all' ? 'selected' : '' }}>Semua (Masuk & Keluar)</option>
-                    <option value="in" {{ $direction === 'in' ? 'selected' : '' }}>Uang Masuk (+)</option>
-                    <option value="out" {{ $direction === 'out' ? 'selected' : '' }}>Uang Keluar (-)</option>
-                </select>
-            </div>
-            <div class="col-12 col-md-3 d-flex gap-2 align-items-center">
-                <button type="submit" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm fw-semibold flex-fill">
-                    <i class="bi bi-funnel me-1"></i> Terapkan Filter
-                </button>
-                <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm py-1.5 px-2.5 fw-semibold" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;" title="Reset Filter">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
-                </a>
-            </div>
+    <form method="GET" action="{{ route('v2.mutasi_keuangan.index') }}" class="row g-2 align-items-end">
+        <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold text-muted mb-1">Dari Tanggal</label>
+            <input type="date" name="date_from" value="{{ $dateFrom }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold text-muted mb-1">Sampai Tanggal</label>
+            <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-12 col-md-4">
+            <label class="form-label small fw-semibold text-muted mb-1">Akun Kas / Bank</label>
+            <select name="account" class="form-select form-select-sm">
+                <option value="all" {{ $account === 'all' ? 'selected' : '' }}>Semua Akun Kas / Bank</option>
+                @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                    @foreach($bankAccounts as $bank)
+                        <option value="{{ $bank->bank_name }}" {{ strcasecmp((string)$account, (string)$bank->bank_name) === 0 || (string)$account === (string)$bank->id ? 'selected' : '' }}>
+                            {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }}
+                        </option>
+                    @endforeach
+                @else
+                    <option value="kas_besar" {{ $account === 'kas_besar' ? 'selected' : '' }}>Kas Besar</option>
+                    <option value="kas_kecil" {{ $account === 'kas_kecil' ? 'selected' : '' }}>Kas Kecil</option>
+                @endif
+            </select>
+        </div>
+        <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-muted mb-1">Arah Mutasi</label>
+            <select name="direction" class="form-select form-select-sm">
+                <option value="all" {{ $direction === 'all' ? 'selected' : '' }}>Semua (Masuk & Keluar)</option>
+                <option value="in" {{ $direction === 'in' ? 'selected' : '' }}>Uang Masuk (+)</option>
+                <option value="out" {{ $direction === 'out' ? 'selected' : '' }}>Uang Keluar (-)</option>
+            </select>
+        </div>
+        <!-- Action Buttons Inline -->
+        <div class="col-6 col-md-1 d-flex gap-1">
+            <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1" style="background:#1e293b; border:none;" title="Terapkan Filter">
+                <i class="bi bi-funnel"></i>
+            </button>
+            <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm text-white fw-semibold" style="background:#64748b; border:none;" title="Reset Filter">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </a>
         </div>
     </form>
 </div>
 
-{{-- ── Data Table Card ── --}}
-<div class="v2-card p-0 shadow-sm overflow-hidden mb-3">
+{{-- ── Data Table Section ── --}}
+<div class="v2-card shadow-sm overflow-hidden mb-3">
     <div class="py-2.5 px-3 bg-white border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div class="d-flex align-items-center gap-2">
             <i class="bi bi-journals text-primary"></i>
@@ -248,29 +226,29 @@
                 Buku Mutasi Kas & Keuangan: {{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
             </span>
         </div>
-        <span class="badge bg-light text-dark border py-1.5 px-2.5 rounded-pill" style="font-size:0.7rem; font-weight:600;">
+        <span class="badge bg-light text-dark border py-1.5 px-3 rounded-pill" style="font-size:0.72rem; font-weight:600;">
             Total {{ $mutations->count() }} Transaksi
         </span>
     </div>
 
     <div class="table-responsive">
-        <table class="mks-table">
-            <thead>
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+            <thead class="bg-light text-muted">
                 <tr>
-                    <th class="text-center" style="width: 45px;">No</th>
-                    <th style="width: 190px;">Transaksi & Akun</th>
-                    <th style="width: 130px;">Kategori</th>
-                    <th>Keterangan</th>
-                    <th class="text-end" style="width: 130px;">Masuk (Rp)</th>
-                    <th class="text-end" style="width: 130px;">Keluar (Rp)</th>
-                    <th class="text-end" style="width: 140px;">Saldo Berjalan (Rp)</th>
-                    <th class="text-center" style="width: 85px;">Aksi</th>
+                    <th class="ps-3 py-2.5" style="width: 45px;">NO</th>
+                    <th class="py-2.5" style="width: 200px;">TRANSAKSI & AKUN</th>
+                    <th class="py-2.5" style="width: 130px;">KATEGORI</th>
+                    <th class="py-2.5">KETERANGAN</th>
+                    <th class="text-end py-2.5" style="width: 130px;">MASUK (RP)</th>
+                    <th class="text-end py-2.5" style="width: 130px;">KELUAR (RP)</th>
+                    <th class="text-end py-2.5" style="width: 140px;">SALDO BERJALAN</th>
+                    <th class="text-end pe-3 py-2.5" style="width: 100px;">AKSI</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($mutations as $index => $row)
                     <tr>
-                        <td class="text-center text-muted" style="font-size: 0.75rem;">{{ $index + 1 }}</td>
+                        <td class="ps-3 py-2.5 text-muted" style="font-size: 0.75rem;">{{ $index + 1 }}</td>
                         <td>
                             <div class="d-flex align-items-center gap-1.5 mb-1 flex-wrap">
                                 <span class="ref-code">{{ $row['reference'] }}</span>
@@ -281,12 +259,12 @@
                             </div>
                         </td>
                         <td>
-                            <span class="badge bg-light text-dark border px-2 py-1" style="font-size:0.7rem; font-weight:500;">
+                            <span class="badge bg-light text-dark border px-2 py-1" style="font-size:0.7rem; font-weight:600;">
                                 {{ $row['category_label'] }}
                             </span>
                         </td>
                         <td>
-                            <div class="text-wrap" style="font-size: 0.78rem; line-height: 1.3;">
+                            <div class="text-wrap" style="font-size: 0.78rem; line-height: 1.35;">
                                 {{ $row['description'] }}
                             </div>
                         </td>
@@ -305,12 +283,12 @@
                             @endif
                         </td>
                         <td class="text-end">
-                            <span class="amount-balance {{ $row['running_balance'] < 0 ? 'text-danger' : '' }}">
+                            <span class="amount-balance {{ $row['running_balance'] < 0 ? 'text-danger' : '' }} font-monospace">
                                 Rp {{ number_format($row['running_balance'], 0, ',', '.') }}
                             </span>
                         </td>
-                        <td class="text-center">
-                            <div class="btn-group btn-group-sm" role="group">
+                        <td class="text-end pe-3">
+                            <div class="d-flex justify-content-end gap-1">
                                 @if($row['model_type'] === 'income')
                                     <button type="button" class="btn btn-sm px-2 py-0.5 edit-income-btn"
                                         style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;"
@@ -329,7 +307,7 @@
                                         @csrf
                                         @method('DELETE')
                                         <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
-                                        <button type="submit" class="btn btn-sm px-2 py-0.5" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;" title="Hapus Pemasukan">
+                                        <button type="submit" class="btn btn-sm px-2 py-0.5" style="background:#dc2626; color:#ffffff; border:none;" title="Hapus Pemasukan">
                                             <i class="bi bi-trash" style="font-size:0.72rem;"></i>
                                         </button>
                                     </form>
@@ -352,7 +330,7 @@
                                         @csrf
                                         @method('DELETE')
                                         <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
-                                        <button type="submit" class="btn btn-sm px-2 py-0.5" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;" title="Hapus Pengeluaran">
+                                        <button type="submit" class="btn btn-sm px-2 py-0.5" style="background:#dc2626; color:#ffffff; border:none;" title="Hapus Pengeluaran">
                                             <i class="bi bi-trash" style="font-size:0.72rem;"></i>
                                         </button>
                                     </form>
@@ -373,7 +351,7 @@
                                         @csrf
                                         @method('DELETE')
                                         <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
-                                        <button type="submit" class="btn btn-sm px-2 py-0.5" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;" title="Hapus Transfer">
+                                        <button type="submit" class="btn btn-sm px-2 py-0.5" style="background:#dc2626; color:#ffffff; border:none;" title="Hapus Transfer">
                                             <i class="bi bi-trash" style="font-size:0.72rem;"></i>
                                         </button>
                                     </form>
@@ -383,8 +361,8 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-3 d-block mb-1 text-secondary opacity-50"></i>
                             Tidak ada transaksi mutasi kas/keuangan pada periode atau filter yang dipilih.
                         </td>
                     </tr>
@@ -392,10 +370,10 @@
             </tbody>
             <tfoot class="bg-light fw-bold" style="border-top:2px solid #cbd5e1;">
                 <tr>
-                    <td colspan="4" class="text-end text-uppercase" style="font-size:0.75rem; letter-spacing:0.04em;">Total Periode Ini</td>
-                    <td class="text-end amount-inflow">+ {{ number_format($totalInflow, 0, ',', '.') }}</td>
-                    <td class="text-end amount-outflow">- {{ number_format($totalOutflow, 0, ',', '.') }}</td>
-                    <td class="text-end amount-balance text-primary">Rp {{ number_format($endingBalance, 0, ',', '.') }}</td>
+                    <td colspan="4" class="text-end text-uppercase ps-3 py-2.5" style="font-size:0.75rem; letter-spacing:0.04em;">Total Periode Ini</td>
+                    <td class="text-end py-2.5 amount-inflow">+ {{ number_format($totalInflow, 0, ',', '.') }}</td>
+                    <td class="text-end py-2.5 amount-outflow">- {{ number_format($totalOutflow, 0, ',', '.') }}</td>
+                    <td class="text-end py-2.5 amount-balance text-primary font-monospace">Rp {{ number_format($endingBalance, 0, ',', '.') }}</td>
                     <td></td>
                 </tr>
             </tfoot>
