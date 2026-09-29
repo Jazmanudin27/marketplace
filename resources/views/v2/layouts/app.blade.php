@@ -207,6 +207,75 @@
         });
     </script>
 
+    <!-- Global SweetAlert2 Confirm Handler -->
+    <script>
+    // Global SweetAlert confirm untuk semua form dengan data-swal
+    $(document).on('submit', 'form[data-swal-title]', function(e) {
+        e.preventDefault();
+        const $form = $(this);
+        const title   = $form.data('swal-title')   || 'Konfirmasi';
+        const text    = $form.data('swal-text')    || 'Apakah Anda yakin?';
+        const icon    = $form.data('swal-icon')    || 'question';
+        const btnText = $form.data('swal-btn')     || 'Ya, Lanjutkan';
+        const btnColor = $form.data('swal-color')  || '#3b82f6';
+
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: icon,
+            showCancelButton: true,
+            confirmButtonColor: btnColor,
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: btnText,
+            cancelButtonText: 'Batal',
+            reverseButtons: true,
+            focusCancel: true,
+            customClass: {
+                popup: 'swal2-compact',
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $form[0].submit();
+            }
+        });
+    });
+
+    // SweetAlert notifikasi session flash otomatis
+    @if(session('success'))
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: @json(session('success')),
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true,
+        });
+    @endif
+    @if(session('error'))
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'error',
+            title: @json(session('error')),
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true,
+        });
+    @endif
+    @if(session('warning'))
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'warning',
+            title: @json(session('warning')),
+            showConfirmButton: false,
+            timer: 4500,
+            timerProgressBar: true,
+        });
+    @endif
+    </script>
+
     @stack('scripts')
 </body>
 

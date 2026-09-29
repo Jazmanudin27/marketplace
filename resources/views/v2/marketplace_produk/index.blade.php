@@ -18,7 +18,11 @@
         </a>
 
         <form action="{{ route('v2.marketplace_produk.bulk_promote') }}" method="POST" class="d-inline m-0"
-            onsubmit="return confirm('Jadikan semua produk marketplace yang belum ditautkan sebagai Master Product baru? (SKU kosong akan otomatis dibuatkan acak)');">
+            data-swal-title="Jadikan Master (Masal)?"
+            data-swal-text="Semua produk yang belum ditautkan akan dijadikan Master Product baru. SKU kosong akan dibuatkan otomatis."
+            data-swal-icon="question"
+            data-swal-btn="Ya, Jadikan Master!"
+            data-swal-color="#6366f1">
             @csrf
             <button type="submit" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-xs">
                 <i class="bi bi-stars me-1"></i> Jadikan Master (Masal)
@@ -27,20 +31,7 @@
     </div>
 </div>
 
-<!-- Alerts -->
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show py-2 px-3 mb-3 border-0 shadow-sm" style="font-size: 0.78rem;" role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-        <button type="button" class="btn-close py-2.5" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-@endif
 
-@if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 border-0 shadow-sm" style="font-size: 0.78rem;" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
-        <button type="button" class="btn-close py-2.5" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-@endif
 
 <!-- Summary Widgets (KPI Cards) -->
 <div class="row g-2 mb-3">
@@ -316,20 +307,28 @@
                         <td class="text-center">
                             @if (!$product->masterProduct)
                                 <div class="d-flex align-items-center justify-content-center gap-1.5">
-                                    <form action="{{ route('v2.marketplace_produk.promote', $product->id) }}" method="POST" class="d-inline m-0">
+                                    <form action="{{ route('v2.marketplace_produk.promote', $product->id) }}" method="POST" class="d-inline m-0"
+                                        data-swal-title="Jadikan Master Product?"
+                                        data-swal-text="Produk ini akan dijadikan Master Product baru di sistem ERP."
+                                        data-swal-icon="question"
+                                        data-swal-btn="Ya, Jadikan Master!"
+                                        data-swal-color="#6366f1">
                                         @csrf
                                         <button type="submit" class="btn-action-icon btn-action-view rounded-2"
-                                            onclick="return confirm('Jadikan produk ini sebagai Master Product baru?');"
                                             title="Jadikan Master Product">
                                             <i class="bi bi-star-fill text-white"></i>
                                         </button>
                                     </form>
 
-                                    <form action="{{ route('v2.marketplace_produk.destroy', $product->id) }}" method="POST" class="d-inline m-0">
+                                    <form action="{{ route('v2.marketplace_produk.destroy', $product->id) }}" method="POST" class="d-inline m-0"
+                                        data-swal-title="Hapus Produk?"
+                                        data-swal-text="Produk marketplace ini akan dihapus dari daftar ERP. Tindakan ini tidak bisa dibatalkan."
+                                        data-swal-icon="warning"
+                                        data-swal-btn="Ya, Hapus!"
+                                        data-swal-color="#ef4444">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn-action-icon btn-action-delete rounded-2"
-                                            onclick="return confirm('Hapus produk marketplace ini dari daftar ERP?');"
                                             title="Hapus Produk">
                                             <i class="bi bi-trash text-white"></i>
                                         </button>
@@ -345,7 +344,11 @@
                                     @endif
 
                                     <form action="{{ route('v2.marketplace_produk.unlink', $product->id) }}" method="POST" class="d-inline m-0"
-                                        onsubmit="return confirm('Batal tautkan produk marketplace ini dari Master Product?');">
+                                        data-swal-title="Batal Tautkan?"
+                                        data-swal-text="Produk marketplace ini akan dilepas dari Master Product-nya."
+                                        data-swal-icon="warning"
+                                        data-swal-btn="Ya, Lepaskan!"
+                                        data-swal-color="#f59e0b">
                                         @csrf
                                         <button type="submit" class="btn-action-icon btn-action-delete rounded-2" title="Batal Tautkan">
                                             <i class="bi bi-link-45deg text-white"></i>
