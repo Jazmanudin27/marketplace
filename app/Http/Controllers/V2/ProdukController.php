@@ -117,6 +117,16 @@ class ProdukController extends Controller
         ));
     }
 
+    public function create()
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
+
+        return view('v2.produk.create', compact('categories', 'brands'));
+    }
+
     public function store(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;

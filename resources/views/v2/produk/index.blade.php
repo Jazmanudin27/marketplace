@@ -18,9 +18,9 @@
         <a href="{{ route('v2.produk.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-v2-secondary py-1.5 px-3 shadow-sm" title="Cetak Laporan Produk">
             <i class="bi bi-printer me-1"></i> Cetak Laporan
         </a>
-        <button type="button" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#tambahProdukModal">
+        <a href="{{ route('v2.produk.create') }}" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm">
             <i class="bi bi-plus-lg me-1"></i> Tambah Produk Master
-        </button>
+        </a>
     </div>
 </div>
 
@@ -324,105 +324,6 @@
             </div>
         </div>
     @endif
-</div>
-
-<!-- Modal Tambah Produk Master -->
-<div class="modal fade" id="tambahProdukModal" tabindex="-1" aria-labelledby="tambahProdukModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow">
-            <form action="{{ route('v2.produk.store') }}" method="POST">
-                @csrf
-                <div class="modal-header bg-light py-2.5 border-bottom">
-                    <h6 class="modal-title fw-bold d-flex align-items-center gap-2 m-0" id="tambahProdukModalLabel">
-                        <i class="bi bi-box-seam-fill text-primary"></i> Tambah Master Produk Baru
-                    </h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-3.5">
-                    <div class="row g-3">
-                        <div class="col-12 col-md-8">
-                            <label class="form-label form-label-sm fw-semibold">Nama Produk Master <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control form-control-sm" placeholder="Contoh: Seragam SMP Lengan Panjang Size L" required>
-                        </div>
-                        <div class="col-12 col-md-4">
-                            <label class="form-label form-label-sm fw-semibold">SKU Master <span class="text-danger">*</span></label>
-                            <input type="text" name="sku" class="form-control form-control-sm font-monospace" placeholder="Contoh: SMP-PJG-L" required>
-                        </div>
-                        <div class="col-12 col-md-4">
-                            <label class="form-label form-label-sm fw-semibold">SKU Induk</label>
-                            <input type="text" name="sku_induk" class="form-control form-control-sm font-monospace" placeholder="Kosongkan jika sama">
-                        </div>
-                        <div class="col-6 col-md-4">
-                            <label class="form-label form-label-sm fw-semibold">Kategori</label>
-                            <select name="category_id" class="form-select form-select-sm">
-                                <option value="">-- Pilih Kategori --</option>
-                                @foreach($categories as $cat)
-                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-6 col-md-4">
-                            <label class="form-label form-label-sm fw-semibold">Model & Varian / Brand</label>
-                            <select name="brand_id" class="form-select form-select-sm">
-                                <option value="">-- Pilih Model / Brand --</option>
-                                @foreach($brands as $b)
-                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <label class="form-label form-label-sm fw-semibold">Harga Jual (Rp)</label>
-                            <input type="number" name="price" class="form-control form-control-sm" placeholder="0" min="0">
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <label class="form-label form-label-sm fw-semibold">Harga HPP (Rp)</label>
-                            <input type="number" name="cost_price" class="form-control form-control-sm" placeholder="0" min="0">
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <label class="form-label form-label-sm fw-semibold">Stok Awal</label>
-                            <input type="number" name="stock" class="form-control form-control-sm" placeholder="0" min="0">
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <label class="form-label form-label-sm fw-semibold">Satuan</label>
-                            <input type="text" name="unit" class="form-control form-control-sm" value="pcs" placeholder="pcs, set, meter">
-                        </div>
-                        <div class="col-6 col-md-4">
-                            <label class="form-label form-label-sm fw-semibold">Estimasi Kain (Meter)</label>
-                            <input type="number" step="0.01" name="est_kain" class="form-control form-control-sm" placeholder="0.00" min="0">
-                        </div>
-                        <div class="col-6 col-md-4">
-                            <label class="form-label form-label-sm fw-semibold">Estimasi Biaya Produksi (Rp)</label>
-                            <input type="number" name="est_biaya_produksi" class="form-control form-control-sm" placeholder="0" min="0">
-                        </div>
-                        <div class="col-6 col-md-4">
-                            <label class="form-label form-label-sm fw-semibold">Min. Stok Warning</label>
-                            <input type="number" name="min_stock" class="form-control form-control-sm" value="5" min="0">
-                        </div>
-                        <div class="col-6 col-md-6">
-                            <label class="form-label form-label-sm fw-semibold">Jenis Produk</label>
-                            <select name="is_bundle" class="form-select form-select-sm no-select2">
-                                <option value="0">Single (Biasa)</option>
-                                <option value="1">Paket (Bundle)</option>
-                            </select>
-                        </div>
-                        <div class="col-6 col-md-6">
-                            <label class="form-label form-label-sm fw-semibold">Tipe Stok</label>
-                            <select name="is_preorder" class="form-select form-select-sm no-select2">
-                                <option value="0">Ready Stock</option>
-                                <option value="1">Pre-Order (PO)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light py-2">
-                    <button type="button" class="btn btn-sm btn-v2-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-sm btn-v2-primary">
-                        <i class="bi bi-save me-1"></i> Simpan Master Produk
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 </div>
 
 <!-- Modal Detail / Show Produk -->
