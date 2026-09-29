@@ -7,9 +7,9 @@
 <div class="v2-page-header align-items-center mb-3">
     <div>
         <h1 class="v2-page-title d-flex align-items-center gap-2">
-            <i class="bi bi-shop text-primary fs-5"></i> Toko Terhubung (Integrasi Marketplace Hub)
+            <i class="bi bi-shop text-primary fs-5"></i> Toko Terhubung (Integrasi Marketplace)
         </h1>
-        <p class="v2-page-subtitle mb-0">Hubungkan dan kelola sinkronisasi otomatis produk, stok, dan pesanan multi-channel secara terpusat.</p>
+        <p class="v2-page-subtitle mb-0">Hubungkan dan sinkronkan produk, stok, dan pesanan secara terpusat dari semua toko Anda.</p>
     </div>
     <div class="d-flex align-items-center gap-2">
         <a href="{{ url('/v2/toko') }}" class="btn btn-sm btn-v2-secondary py-1.5 px-2.5" title="Refresh Page">
@@ -42,10 +42,10 @@
             <i class="bi bi-exclamation-triangle-fill fs-5"></i>
         </div>
         <div>
-            <h6 class="alert-heading fw-bold mb-1 text-dark" style="font-size: 0.85rem;">Koneksi Toko Membutuhkan Otorisasi Ulang!</h6>
+            <h6 class="alert-heading fw-bold mb-1 text-dark" style="font-size: 0.85rem;">Koneksi Toko Membutuhkan Tindakan Anda!</h6>
             <p class="mb-0 text-muted">
-                Beberapa toko mengalami masa aktif token kedaluwarsa. Silakan klik tombol 
-                <strong class="text-dark">Edit / Relink</strong> untuk menyegarkan token koneksi otorisasi secara aman.
+                Ada beberapa toko yang token koneksinya telah kedaluwarsa atau terputus. Silakan klik tombol 
+                <strong class="text-dark">Hubungkan Ulang</strong> pada toko tersebut agar sinkronisasi produk dan pesanan berjalan otomatis.
             </p>
         </div>
     </div>
@@ -60,7 +60,7 @@
             </div>
             <div class="v2-stat-info">
                 <span class="v2-stat-num">{{ number_format($totalCount) }}</span>
-                <span class="v2-stat-lbl">Total Toko Aktif</span>
+                <span class="v2-stat-lbl">Total Toko Master</span>
             </div>
         </div>
     </div>
@@ -71,7 +71,7 @@
             </div>
             <div class="v2-stat-info">
                 <span class="v2-stat-num">{{ number_format($connectedCount) }}</span>
-                <span class="v2-stat-lbl">Koneksi Terhubung Live</span>
+                <span class="v2-stat-lbl">Toko Terhubung</span>
             </div>
         </div>
     </div>
@@ -82,51 +82,17 @@
             </div>
             <div class="v2-stat-info">
                 <span class="v2-stat-num">{{ number_format($expiredCount) }}</span>
-                <span class="v2-stat-lbl">Butuh Otorisasi Ulang</span>
+                <span class="v2-stat-lbl">Butuh Koneksi Ulang</span>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Filter Bar Compact -->
-<div class="v2-card mb-3">
-    <div class="v2-card-body p-2.5 d-flex flex-column flex-md-row align-items-center justify-content-between gap-2">
-        <div class="d-flex align-items-center gap-1.5 overflow-auto w-100 w-md-auto py-1">
-            <button type="button" class="btn btn-sm btn-v2-primary py-1 px-3 filter-channel-btn active" data-channel="all">
-                Semua Channel ({{ $totalCount }})
-            </button>
-            <button type="button" class="btn btn-sm btn-v2-secondary py-1 px-2.5 filter-channel-btn" data-channel="shopee">
-                <i class="bi bi-bag-fill me-1 text-danger"></i> Shopee
-            </button>
-            <button type="button" class="btn btn-sm btn-v2-secondary py-1 px-2.5 filter-channel-btn" data-channel="tiktok">
-                <i class="bi bi-tiktok me-1"></i> TikTok Shop
-            </button>
-            <button type="button" class="btn btn-sm btn-v2-secondary py-1 px-2.5 filter-channel-btn" data-channel="tokopedia">
-                <i class="bi bi-shop me-1 text-success"></i> Tokopedia
-            </button>
-            <button type="button" class="btn btn-sm btn-v2-secondary py-1 px-2.5 filter-channel-btn" data-channel="lazada">
-                <i class="bi bi-bag me-1 text-primary"></i> Lazada
-            </button>
-        </div>
-        <div class="w-100 w-md-auto position-relative" style="min-width: 220px;">
-            <input type="text" id="searchStoreInput" class="form-control form-control-sm ps-4" placeholder="Cari toko / Shop ID...">
-            <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-2.5 text-muted" style="font-size: 0.75rem;"></i>
-        </div>
-    </div>
-</div>
-
-<!-- Grid Cards Toko Modern -->
-<div class="row g-3 mb-3" id="storeGridContainer">
+<!-- Grid Cards Toko -->
+<div class="row g-3 mb-3">
     @forelse($stores as $store)
         @php
             $chCode = strtolower($store->channel->code ?? '');
-            $bannerClass = match($chCode) {
-                'shopee'    => 'shopee',
-                'tiktok'    => 'tiktok',
-                'tokopedia' => 'tokopedia',
-                'lazada'    => 'lazada',
-                default     => 'default',
-            };
             $logoBgClass = match($chCode) {
                 'shopee'    => 'bg-danger text-white',
                 'tiktok'    => 'bg-dark text-white',
@@ -141,107 +107,155 @@
                 'lazada'    => 'bi bi-bag',
                 default     => 'bi bi-globe',
             };
-            $syncBtnClass = match($chCode) {
-                'shopee'    => 'btn-sync-shopee',
-                'tiktok'    => 'btn-sync-tiktok',
-                'tokopedia' => 'btn-sync-tokopedia',
-                'lazada'    => 'btn-sync-lazada',
-                default     => 'btn-sync-default',
-            };
-            $linkedCount = $store->marketplaceProducts ? $store->marketplaceProducts->count() : 0;
         @endphp
-        <div class="col-12 col-sm-6 col-lg-4 store-card-item" data-channel="{{ $chCode }}" data-name="{{ strtolower($store->store_name) }}" data-shopid="{{ strtolower($store->marketplace_store_id) }}">
-            <div class="v2-store-card h-100 d-flex flex-column">
-                <!-- Header Top Color Accent Bar -->
-                <div class="v2-store-banner {{ $bannerClass }}"></div>
-
-                <div class="p-3.5 d-flex flex-column h-100">
-                    
-                    <!-- Header Card Toko: Logo, Title, Status -->
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="d-flex align-items-center gap-2.5">
-                            @if ($store->logo_url)
-                                <img src="{{ $store->logo_url }}" alt="{{ $store->store_name }}" class="rounded-3 border shadow-sm flex-shrink-0" style="width: 44px; height: 44px; object-fit: cover;">
-                            @else
-                                <div class="rounded-3 d-flex align-items-center justify-content-center {{ $logoBgClass }} shadow-sm flex-shrink-0" style="width: 44px; height: 44px; font-size: 1.25rem;">
-                                    <i class="{{ $iconClass }}"></i>
-                                </div>
-                            @endif
-                            <div>
-                                <h6 class="fw-bold text-dark mb-0" style="font-size: 0.9rem;">{{ $store->channel->name ?? 'Marketplace' }}</h6>
-                                <span class="text-muted" style="font-size: 0.68rem;"><i class="bi bi-shield-check text-success me-1"></i>Official Channel</span>
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="v2-card h-100 border shadow-sm rounded-3 overflow-hidden d-flex flex-column">
+                <!-- Card Header: Channel Logo + Name + Status -->
+                <div class="v2-card-header bg-light py-2 px-3 d-flex align-items-center justify-content-between border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        @if ($store->logo_url)
+                            <img src="{{ $store->logo_url }}" alt="{{ $store->store_name }}" class="rounded-circle border flex-shrink-0" style="width: 32px; height: 32px; object-fit: cover;">
+                        @else
+                            <div class="rounded-circle d-flex align-items-center justify-content-center {{ $logoBgClass }} flex-shrink-0 shadow-sm" style="width: 32px; height: 32px; font-size: 0.95rem;">
+                                <i class="{{ $iconClass }}"></i>
                             </div>
-                        </div>
-
+                        @endif
                         <div>
-                            @if ($store->status === 'connected')
-                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill" style="font-size: 0.68rem;">
-                                    <span class="pulse-dot-green me-1"></span>Terhubung
-                                </span>
-                            @elseif ($store->status === 'expired')
-                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2.5 py-1 rounded-pill" style="font-size: 0.68rem;">
-                                    <i class="bi bi-exclamation-triangle me-1"></i>Expired
-                                </span>
-                            @else
-                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 rounded-pill" style="font-size: 0.68rem;">
-                                    <i class="bi bi-x-circle me-1"></i>Terputus
-                                </span>
-                            @endif
+                            <span class="fw-bold text-dark d-block" style="font-size: 0.82rem; line-height: 1.2;">{{ $store->channel->name ?? 'Marketplace' }}</span>
+                            <span class="text-muted" style="font-size: 0.65rem;">Official Store Channel</span>
                         </div>
                     </div>
 
-                    <!-- Store Name & Shop ID Code -->
-                    <div class="mb-3">
-                        <h5 class="fw-bold text-dark mb-1" style="font-size: 0.95rem; line-height: 1.25;">{{ $store->store_name }}</h5>
-                        <div class="d-flex align-items-center justify-content-between mt-1">
-                            <div class="d-flex align-items-center gap-1.5 text-muted" style="font-size: 0.72rem;">
-                                <span>Shop ID / Code:</span>
-                                <code class="text-primary font-monospace bg-light px-2 py-0.5 rounded border" style="font-size: 0.7rem;">{{ $store->marketplace_store_id }}</code>
-                            </div>
-                            <span class="badge bg-light text-secondary border" style="font-size: 0.65rem;" title="Jumlah produk marketplace terhubung">
-                                <i class="bi bi-link-45deg me-0.5 text-primary"></i> {{ $linkedCount }} Linked
+                    <div class="d-flex align-items-center gap-1.5">
+                        @if ($store->status === 'connected')
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5" style="font-size: 0.65rem;">
+                                <i class="bi bi-circle-fill me-1" style="font-size: 0.45rem;"></i>Terhubung
                             </span>
+                        @elseif ($store->status === 'expired')
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-0.5" style="font-size: 0.65rem;">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Expired
+                            </span>
+                        @else
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5" style="font-size: 0.65rem;">
+                                <i class="bi bi-x-circle-fill me-1"></i>Terputus
+                            </span>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Card Body: Store Details & Metrics -->
+                <div class="v2-card-body p-3 d-flex flex-column flex-grow-1">
+                    <div class="mb-2.5">
+                        <h6 class="fw-bold text-dark mb-1 text-truncate" style="font-size: 0.95rem;" title="{{ $store->store_name }}">
+                            {{ $store->store_name }}
+                        </h6>
+                        <div class="d-flex align-items-center gap-1.5 text-muted" style="font-size: 0.72rem;">
+                            <i class="bi bi-fingerprint text-primary"></i>
+                            <span>Shop ID:</span>
+                            <code class="text-secondary font-monospace bg-light px-1.5 py-0.5 rounded border" style="font-size: 0.7rem;">{{ $store->marketplace_store_id }}</code>
+                            <button class="btn btn-link btn-sm p-0 border-0 text-muted text-decoration-none ms-1" onclick="copyToClipboard('{{ $store->marketplace_store_id }}', this)" title="Salin ID Toko">
+                                <i class="bi bi-copy" style="font-size: 0.72rem;"></i>
+                            </button>
                         </div>
+                    </div>
+
+                    <!-- Key Metrics Grid -->
+                    <div class="row g-1.5 p-2 bg-light rounded-3 border mb-3">
+                        <div class="col-4 border-end text-center">
+                            <div class="text-muted" style="font-size: 0.62rem;">PRODUK LINKED</div>
+                            <div class="fw-bold text-dark font-monospace" style="font-size: 0.8rem;">
+                                <i class="bi bi-box-seam text-primary me-0.5"></i>{{ number_format($store->marketplace_products_count ?? 0) }}
+                            </div>
+                        </div>
+                        <div class="col-4 border-end text-center">
+                            <div class="text-muted" style="font-size: 0.62rem;">ORDER MASUK</div>
+                            <div class="fw-bold text-dark font-monospace" style="font-size: 0.8rem;">
+                                <i class="bi bi-cart-check text-success me-0.5"></i>{{ number_format($store->orders_count ?? 0) }}
+                            </div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="text-muted" style="font-size: 0.62rem;">METODE KURIR</div>
+                            <div class="fw-bold text-dark" style="font-size: 0.72rem;">
+                                <span class="badge bg-secondary-subtle text-secondary border px-1 py-0.5" style="font-size: 0.6rem;">
+                                    {{ $store->shipping_handover_method ?? 'DROP_OFF' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Token Expiry Footer Info -->
+                    <div class="mt-auto pt-1">
+                        @if($store->status === 'connected' && $store->token_expires_at)
+                            <div class="d-flex align-items-center justify-content-between text-muted mb-2" style="font-size: 0.68rem;">
+                                <span><i class="bi bi-clock me-1"></i>Token Aktif S/D:</span>
+                                <span class="fw-semibold text-dark">{{ $store->token_expires_at->translatedFormat('d M Y, H:i') }}</span>
+                            </div>
+                        @endif
                     </div>
 
                     <!-- Action Buttons Footer -->
-                    <div class="mt-auto pt-2.5 border-top d-flex align-items-center gap-2">
-                        @if($chCode === 'shopee')
-                            <form action="{{ route('shopee.sync_products', $store->id) }}" method="POST" class="flex-grow-1">
-                                @csrf
-                                <button type="submit" class="btn btn-sm {{ $syncBtnClass }} w-100 py-1.5 px-3 fw-bold d-flex align-items-center justify-content-center gap-1.5" style="font-size: 0.75rem;">
-                                    <i class="bi bi-arrow-repeat"></i> Sync Produk
-                                </button>
-                            </form>
-                        @elseif($chCode === 'tiktok' || $chCode === 'tokopedia')
-                            <form action="{{ route('tiktok.sync_products', $store->id) }}" method="POST" class="flex-grow-1">
-                                @csrf
-                                <button type="submit" class="btn btn-sm {{ $syncBtnClass }} w-100 py-1.5 px-3 fw-bold d-flex align-items-center justify-content-center gap-1.5" style="font-size: 0.75rem;">
-                                    <i class="bi bi-arrow-repeat"></i> Sync Produk
-                                </button>
-                            </form>
-                        @elseif($chCode === 'lazada')
-                            <form action="{{ route('lazada.sync_products', $store->id) }}" method="POST" class="flex-grow-1">
-                                @csrf
-                                <button type="submit" class="btn btn-sm {{ $syncBtnClass }} w-100 py-1.5 px-3 fw-bold d-flex align-items-center justify-content-center gap-1.5" style="font-size: 0.75rem;">
-                                    <i class="bi bi-arrow-repeat"></i> Sync Produk
-                                </button>
-                            </form>
-                        @else
-                            <a href="{{ url('/v2/produk') }}" class="btn btn-sm {{ $syncBtnClass }} flex-grow-1 py-1.5 px-3 fw-bold d-flex align-items-center justify-content-center gap-1.5" style="font-size: 0.75rem;">
-                                <i class="bi bi-box-seam"></i> Lihat Produk
-                            </a>
+                    <div class="pt-2.5 border-top d-flex gap-1.5 align-items-center">
+                        @if ($store->status === 'connected')
+                            @php
+                                $syncProductRoute = match($chCode) {
+                                    'shopee'    => route('shopee.sync_products', $store->id),
+                                    'tiktok'    => route('tiktok.sync_products', $store->id),
+                                    'tokopedia' => route('tokopedia.sync_products', $store->id),
+                                    'lazada'    => route('lazada.sync_products', $store->id),
+                                    default     => null,
+                                };
+                                $syncOrderRoute = match($chCode) {
+                                    'shopee'    => route('shopee.sync_orders', $store->id),
+                                    'tiktok'    => route('tiktok.sync_orders', $store->id),
+                                    'tokopedia' => route('tokopedia.sync_orders', $store->id),
+                                    'lazada'    => route('lazada.sync_orders', $store->id),
+                                    default     => null,
+                                };
+                            @endphp
+
+                            @if ($syncProductRoute)
+                                <form action="{{ $syncProductRoute }}" method="POST" class="flex-fill m-0">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-v2-primary w-100 py-1 px-1.5 justify-content-center" style="font-size: 0.7rem;" title="Tarik Produk dari Toko Ini">
+                                        <i class="bi bi-box-arrow-in-down me-1"></i>Tarik Produk
+                                    </button>
+                                </form>
+                            @endif
+
+                            @if ($syncOrderRoute)
+                                <form action="{{ $syncOrderRoute }}" method="POST" class="flex-fill m-0">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-v2-success w-100 py-1 px-1.5 justify-content-center" style="font-size: 0.7rem; background-color: #10b981 !important; border-color: #10b981 !important; color: #ffffff !important;" title="Tarik Pesanan dari Toko Ini">
+                                        <i class="bi bi-cart-download me-1"></i>Tarik Order
+                                    </button>
+                                </form>
+                            @endif
+                        @elseif ($store->status === 'expired')
+                            @php
+                                $reconnectUrl = match($chCode) {
+                                    'shopee'    => route('shopee.authorize'),
+                                    'tiktok'    => route('tiktok.auth'),
+                                    'tokopedia' => route('tiktok.auth', ['channel' => 'tokopedia']),
+                                    'lazada'    => route('lazada.authorize'),
+                                    default     => null,
+                                };
+                            @endphp
+                            @if ($reconnectUrl)
+                                <a href="{{ $reconnectUrl }}" class="btn btn-sm btn-warning text-dark fw-bold w-100 py-1 justify-content-center" style="font-size: 0.72rem;">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Hubungkan Ulang
+                                </a>
+                            @endif
                         @endif
 
-                        <a href="{{ url('/v2/toko/' . $store->id . '/edit') }}" class="btn-action-icon btn-action-edit shadow-sm" title="Pengaturan Toko">
-                            <i class="bi bi-gear-fill"></i>
+                        <a href="{{ url('/v2/toko/' . $store->id . '/edit') }}" class="btn-action-icon btn-action-edit flex-shrink-0" title="Edit Pengaturan Toko">
+                            <i class="bi bi-gear text-white"></i>
                         </a>
-
-                        <form action="{{ url('/v2/toko/' . $store->id) }}" method="POST" class="d-inline confirm-delete-store m-0 p-0">
+                        
+                        <form action="{{ url('/v2/toko/' . $store->id) }}" method="POST" class="d-inline m-0 p-0 flex-shrink-0">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn-action-icon btn-action-delete shadow-sm" title="Hapus Toko" onclick="return confirm('Apakah Anda yakin ingin menghapus toko ini?')">
-                                <i class="bi bi-trash-fill text-white"></i>
+                            <button type="submit" class="btn-action-icon btn-action-delete" title="Hapus Toko" onclick="return confirm('Apakah Anda yakin ingin menghapus toko ini?')">
+                                <i class="bi bi-trash text-white"></i>
                             </button>
                         </form>
                     </div>
@@ -262,44 +276,19 @@
         </div>
     @endforelse
 </div>
-@endsection
 
-@push('scripts')
+<!-- Copy to clipboard script -->
 <script>
-$(document).ready(function() {
-    // Channel Filter Buttons
-    $('.filter-channel-btn').on('click', function() {
-        $('.filter-channel-btn').removeClass('active btn-v2-primary').addClass('btn-v2-secondary');
-        $(this).addClass('active btn-v2-primary').removeClass('btn-v2-secondary');
-
-        const channel = $(this).data('channel');
-        filterGrid();
+function copyToClipboard(text, element) {
+    navigator.clipboard.writeText(text).then(() => {
+        const icon = element.querySelector('i');
+        icon.className = 'bi bi-check-lg text-success';
+        setTimeout(() => {
+            icon.className = 'bi bi-copy';
+        }, 1500);
+    }).catch(err => {
+        console.error('Gagal menyalin text: ', err);
     });
-
-    // Live Search Input
-    $('#searchStoreInput').on('keyup', function() {
-        filterGrid();
-    });
-
-    function filterGrid() {
-        const activeChannel = $('.filter-channel-btn.active').data('channel') || 'all';
-        const searchVal = $('#searchStoreInput').val().toLowerCase().trim();
-
-        $('.store-card-item').each(function() {
-            const itemChannel = $(this).data('channel');
-            const itemName = $(this).data('name') || '';
-            const itemShopId = $(this).data('shopid') || '';
-
-            const matchesChannel = (activeChannel === 'all') || (itemChannel === activeChannel);
-            const matchesSearch = (searchVal === '') || (itemName.indexOf(searchVal) !== -1) || (itemShopId.indexOf(searchVal) !== -1);
-
-            if (matchesChannel && matchesSearch) {
-                $(this).removeClass('d-none');
-            } else {
-                $(this).addClass('d-none');
-            }
-        });
-    }
-});
+}
 </script>
-@endpush
+@endsection

@@ -15,7 +15,8 @@ class TokoController extends Controller
     {
         Channel::ensureChannelsExist();
         $tenantId = Auth::user()->tenant_id ?? 1;
-        $stores = Store::with(['channel', 'marketplaceProducts'])
+        $stores = Store::with('channel')
+            ->withCount(['marketplaceProducts', 'orders'])
             ->where('tenant_id', $tenantId)
             ->get();
 
