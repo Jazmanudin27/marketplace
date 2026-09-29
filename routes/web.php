@@ -203,6 +203,14 @@ Route::middleware('auth')->group(function () {
         Route::put('/barang/{id}', [\App\Http\Controllers\V2\BarangController::class, 'update'])->name('barang.update');
         Route::delete('/barang/{id}', [\App\Http\Controllers\V2\BarangController::class, 'destroy'])->name('barang.destroy');
         Route::post('/barang/{id}/adjust', [\App\Http\Controllers\V2\BarangController::class, 'adjust'])->name('barang.adjust');
+
+        // Toko Terhubung & Tambah Toko V2
+        Route::get('/toko', [\App\Http\Controllers\V2\TokoController::class, 'index'])->name('toko.index');
+        Route::get('/toko/create', [\App\Http\Controllers\V2\TokoController::class, 'create'])->name('toko.create');
+        Route::post('/toko', [\App\Http\Controllers\V2\TokoController::class, 'store'])->name('toko.store');
+        Route::get('/toko/{id}/edit', [\App\Http\Controllers\V2\TokoController::class, 'edit'])->name('toko.edit');
+        Route::put('/toko/{id}', [\App\Http\Controllers\V2\TokoController::class, 'update'])->name('toko.update');
+        Route::delete('/toko/{id}', [\App\Http\Controllers\V2\TokoController::class, 'destroy'])->name('toko.destroy');
     });
 
     // =========================================================================

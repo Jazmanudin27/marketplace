@@ -94,8 +94,8 @@
             </a>
         </div>
         <div class="v2-nav-item">
-            <a href="{{ Route::has('stores.index') ? route('stores.index') : url('/marketplace/stores') }}"
-                class="v2-nav-link">
+            <a href="{{ url('/v2/toko') }}"
+                class="v2-nav-link {{ request()->is('v2/toko*') || request()->is('stores*') ? 'active' : '' }}">
                 <i class="bi bi-shop"></i>
                 <span>Toko Terhubung</span>
             </a>
