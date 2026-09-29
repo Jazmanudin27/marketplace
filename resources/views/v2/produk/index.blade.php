@@ -102,14 +102,14 @@
                 <input type="text" name="sku" class="form-control form-control-sm font-monospace" placeholder="Cari SKU / SKU Induk..." value="{{ request('sku') }}">
             </div>
             <div class="col-6 col-md-2">
-                <select name="is_bundle" class="form-select form-select-sm">
+                <select name="is_bundle" class="form-select form-select-sm no-select2">
                     <option value="">-- Semua Jenis --</option>
                     <option value="0" {{ request('is_bundle') === '0' ? 'selected' : '' }}>Single (Biasa)</option>
                     <option value="1" {{ request('is_bundle') === '1' ? 'selected' : '' }}>Paket (Bundle)</option>
                 </select>
             </div>
-            <div class="col-6 col-md-1.5 col-lg-1.5">
-                <select name="is_preorder" class="form-select form-select-sm">
+            <div class="col-6 col-md-2">
+                <select name="is_preorder" class="form-select form-select-sm no-select2">
                     <option value="">-- Tipe --</option>
                     <option value="0" {{ request('is_preorder') === '0' ? 'selected' : '' }}>Ready</option>
                     <option value="1" {{ request('is_preorder') === '1' ? 'selected' : '' }}>Pre-Order</option>
@@ -125,9 +125,9 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-6 col-md-1.5 col-lg-1.5 d-flex align-items-center gap-1">
-                <button type="submit" class="btn btn-sm btn-v2-primary w-100 justify-content-center py-1">
-                    <i class="bi bi-search"></i> Cari
+            <div class="col-6 col-md-1 d-flex align-items-center gap-1">
+                <button type="submit" class="btn btn-sm btn-v2-primary w-100 justify-content-center py-1" title="Cari">
+                    <i class="bi bi-search"></i>
                 </button>
                 @if(request()->anyFilled(['name', 'sku', 'is_bundle', 'is_preorder', 'store_id', 'link_status']))
                     <a href="{{ url('/v2/produk') }}" class="btn btn-sm btn-v2-secondary py-1" title="Reset Filter">

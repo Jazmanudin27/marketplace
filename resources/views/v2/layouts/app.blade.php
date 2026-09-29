@@ -161,7 +161,7 @@
 
         // Auto initialize Select2 with tight wrapper for 100% position accuracy
         $(document).ready(function() {
-            $('.select2, .v2-select2, select.form-select-sm, select.form-select').each(function() {
+            $('.select2, .v2-select2, select.form-select-sm:not(.no-select2), select.form-select:not(.no-select2)').each(function() {
                 var $select = $(this);
                 if (!$select.parent().hasClass('select2-wrapper')) {
                     $select.wrap('<div class="select2-wrapper position-relative d-block w-100"></div>');
