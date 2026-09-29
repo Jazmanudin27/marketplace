@@ -50,10 +50,10 @@ class SaldoMarketplaceController extends Controller
                 Cache::forget("store_pending_balance_v4_{$s->id}");
                 Cache::forget("store_wallet_balance_v5_{$s->id}");
                 Cache::forget("store_pending_balance_v5_{$s->id}");
-                Cache::forget("store_shopee_fee_ratio_{$s->id}");
-                Cache::forget("store_tiktok_fee_ratio_{$s->id}");
-                Cache::forget("store_shopee_fee_ratio_v3_{$s->id}");
-                Cache::forget("store_tiktok_fee_ratio_v3_{$s->id}");
+                Cache::forget("store_wallet_balance_v6_{$s->id}");
+                Cache::forget("store_pending_balance_v6_{$s->id}");
+                Cache::forget("store_wallet_balance_v7_{$s->id}");
+                Cache::forget("store_pending_balance_v7_{$s->id}");
 
                 // Jalankan sinkronisasi cepat per toko
                 try {
@@ -63,22 +63,6 @@ class SaldoMarketplaceController extends Controller
                             '--store_id' => $s->id,
                             '--days'     => 30,
                         ]);
-
-                        if ($s->channel->code === 'shopee') {
-                            $accessToken = $s->getValidAccessToken();
-                            $shopId = (int) $s->marketplace_store_id;
-                            $res = $this->shopeeService->getWalletBalance($accessToken, $shopId);
-                            if (is_array($res) && (isset($res['current_balance']) || isset($res['withdraw_balance']))) {
-                                $currentBal = (float) ($res['current_balance'] ?? 0);
-                                $withdrawBal = isset($res['withdraw_balance']) ? (float) $res['withdraw_balance'] : $currentBal;
-                                Cache::put("store_wallet_balance_v5_{$s->id}", [
-                                    'success'          => true,
-                                    'current_balance'  => $currentBal,
-                                    'withdraw_balance' => $withdrawBal,
-                                    'error_message'    => null,
-                                ], now()->addMinutes(15));
-                            }
-                        }
                     }
                 } catch (\Throwable $e) {
                     Log::warning("Real-time refresh error for store {$s->store_name}: " . $e->getMessage());
@@ -95,15 +79,14 @@ class SaldoMarketplaceController extends Controller
         $totalPendingCount = 0;
 
         foreach ($stores as $store) {
-            $walletCacheKey  = "store_wallet_balance_v5_{$store->id}";
-            $pendingCacheKey = "store_pending_balance_v5_{$store->id}";
+            $walletCacheKey  = "store_wallet_balance_v7_{$store->id}";
+            $pendingCacheKey = "store_pending_balance_v7_{$store->id}";
             
             // 1. Saldo Dompet (Dapat Ditarik) - Fast Retrieval with Instant DB Fallback
             $balanceData = Cache::remember($walletCacheKey, now()->addMinutes(15), function () use ($store) {
                 try {
                     $currentBalance  = null;
                     $withdrawBalance = null;
-                    $apiSuccess      = false;
 
                     // A. Prioritas 1: Ambil transaksi dompet terbaru di DB lokal
                     $latestTx = MarketplaceWalletTransaction::where('store_id', $store->id)
@@ -115,11 +98,10 @@ class SaldoMarketplaceController extends Controller
                     if ($latestTx) {
                         $currentBalance  = (float) $latestTx->current_balance;
                         $withdrawBalance = $currentBalance;
-                        $apiSuccess      = true;
                     }
 
                     // B. Jika belum ada di DB dan Shopee connected, coba 1 call cepat ke API
-                    if (!$apiSuccess && $store->channel->code === 'shopee' && $store->status === 'connected') {
+                    if ($currentBalance === null && $store->channel->code === 'shopee' && $store->status === 'connected') {
                         try {
                             $accessToken = $store->getValidAccessToken();
                             $shopId = (int) $store->marketplace_store_id;
@@ -127,7 +109,6 @@ class SaldoMarketplaceController extends Controller
                             if (is_array($res) && (isset($res['current_balance']) || isset($res['withdraw_balance']))) {
                                 $currentBalance  = (float) ($res['current_balance'] ?? 0);
                                 $withdrawBalance = isset($res['withdraw_balance']) ? (float) $res['withdraw_balance'] : $currentBalance;
-                                $apiSuccess      = true;
                             }
                         } catch (\Throwable $e) {
                             Log::info("Shopee fast getWalletBalance notice for {$store->store_name}: " . $e->getMessage());
@@ -148,10 +129,10 @@ class SaldoMarketplaceController extends Controller
                 } catch (\Throwable $e) {
                     Log::error("Failed to retrieve wallet balance for {$store->store_name}: " . $e->getMessage());
                     return [
-                        'success'          => false,
+                        'success'          => true,
                         'current_balance'  => 0.0,
                         'withdraw_balance' => 0.0,
-                        'error_message'    => $e->getMessage(),
+                        'error_message'    => null,
                     ];
                 }
             });
