@@ -95,28 +95,25 @@
 
     .rtr-table {
         width: 100%;
-        border-collapse: collapse;
+        border-collapse: separate;
+        border-spacing: 0;
         font-size: 0.78rem;
     }
     .rtr-table th {
-        background: #f9fafb;
-        color: #4b5563;
+        background: #f8fafc;
+        color: #475569;
         font-weight: 700;
         text-transform: uppercase;
         font-size: 0.68rem;
         letter-spacing: 0.03em;
-        padding: 10px 12px;
-        border-bottom: 1px solid #e5e7eb;
+        padding: 10px 14px;
+        border-bottom: 1px solid #e2e8f0;
         white-space: nowrap;
     }
     .rtr-table td {
-        padding: 12px;
-        border-bottom: 1px solid #f3f4f6;
-        vertical-align: middle;
+        padding: 12px 14px;
+        vertical-align: top;
         color: #1f2937;
-    }
-    .rtr-table tr:hover td {
-        background: #fafafa;
     }
 
     /* Badges */
@@ -346,16 +343,17 @@
                     &nbsp;·&nbsp; Halaman {{ $returns->currentPage() }} dari {{ $returns->lastPage() }}
                 @endif
             </div>
-               {{-- Table --}}
+        </div>
+
+        {{-- Table Grouped Order Style --}}
         <div class="table-responsive">
             <table class="rtr-table">
                 <thead>
                     <tr>
-                        <th style="width: 36px; text-align: center;">#</th>
-                        <th style="min-width: 210px;">RETUR &amp; TOKO</th>
-                        <th style="min-width: 230px;">BARANG DIRETUR &amp; ALASAN</th>
-                        <th style="min-width: 180px; text-align: center;">STATUS &amp; REFUND</th>
-                        <th style="width: 120px; text-align: center;">AKSI</th>
+                        <th style="width: 42%;">PRODUK DIRETUR &amp; ALASAN</th>
+                        <th style="width: 18%; text-align: center;">REFUND &amp; STATUS</th>
+                        <th style="width: 24%; text-align: center;">INSPEKSI GUDANG (QC)</th>
+                        <th style="width: 16%; text-align: center;">AKSI</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -369,98 +367,167 @@
                                 str_contains($chCode, 'lazada') => 'ch-lazada',
                                 default => 'ch-default'
                             };
+
+                            // Fallback item fetching if marketplace retur item relationship is empty
+                            $displayItems = $ret->items;
+                            $isFallback = false;
+                            if ($displayItems->isEmpty() && $ret->order && $ret->order->items) {
+                                $displayItems = $ret->order->items;
+                                $isFallback = true;
+                            }
                         @endphp
-                        <tr>
-                            <td style="text-align: center;" class="text-muted fw-bold">
-                                {{ $returns->firstItem() + $index }}
-                            </td>
 
-                            {{-- Retur & Toko --}}
-                            <td>
-                                <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                                    <span class="fw-bold text-primary font-monospace" style="font-size: 0.83rem;">
-                                        <i class="bi bi-arrow-return-left me-0.5"></i>{{ $ret->return_sn }}
-                                    </span>
-                                    <span class="rtr-badge {{ $chClass }}" style="font-size:0.62rem; padding: 2px 6px;">
-                                        {{ $chName }}
-                                    </span>
-                                </div>
-                                <div class="fw-bold text-dark mt-1" style="font-size: 0.78rem;">
-                                    <i class="bi bi-shop me-1 text-secondary"></i>{{ $ret->store->store_name ?? 'Toko Tidak Diketahui' }}
-                                </div>
-                                <div class="mt-0.5 text-muted" style="font-size: 0.7rem;">
-                                    <span>Inv:</span>
-                                    @if($ret->order)
-                                        <a href="{{ route('v2.pesanan.index', ['order_number' => $ret->order->invoice_number]) }}" class="fw-semibold text-dark text-decoration-none" title="Lihat Pesanan Asli">
-                                            {{ $ret->order->invoice_number ?? $ret->order->order_marketplace_id }}
-                                        </a>
-                                    @else
-                                        <span>-</span>
-                                    @endif
-                                    &nbsp;·&nbsp;
-                                    <span>{{ $ret->created_at ? $ret->created_at->format('d/m/y H:i') : '-' }}</span>
-                                </div>
-                            </td>
-
-                            {{-- Barang & Alasan --}}
-                            <td>
-                                <div class="mb-1">
-                                    @foreach($ret->items as $rItem)
-                                        <div class="d-flex align-items-center gap-1.5 mb-1">
-                                            <span class="badge bg-secondary" style="font-size: 0.65rem;">{{ $rItem->quantity }}x</span>
-                                            <span class="fw-semibold text-dark" style="font-size: 0.76rem;">
-                                                {{ $rItem->orderItem->product_name ?? 'Barang Retur' }}
-                                            </span>
+                        {{-- Card Header Strip --}}
+                        <tr style="background-color: #f8fafc; border-top: 2px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+                            <td colspan="4" class="py-2 px-3">
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2" style="font-size: 0.74rem;">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <span class="rtr-badge {{ $chClass }} font-monospace">
+                                            <i class="bi bi-shop me-1"></i>{{ strtoupper($chName) }}
+                                        </span>
+                                        <span class="fw-bold text-dark">
+                                            <i class="bi bi-building me-1 text-secondary"></i>{{ $ret->store->store_name ?? 'Toko' }}
+                                        </span>
+                                        <span class="text-muted">|</span>
+                                        <span class="text-muted">
+                                            <i class="bi bi-person me-1"></i><strong>Pembeli:</strong> {{ $ret->order->buyer_name ?? '-' }}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-3 flex-wrap font-monospace">
+                                        <div>
+                                            <span class="text-muted">SN Retur:</span>
+                                            <span class="fw-bold text-primary me-1">{{ $ret->return_sn }}</span>
                                         </div>
-                                    @endforeach
+                                        <div>
+                                            <span class="text-muted">No. Pesanan:</span>
+                                            @if($ret->order)
+                                                <a href="{{ route('v2.pesanan.index', ['order_number' => $ret->order->invoice_number]) }}" class="fw-bold text-dark text-decoration-none" title="Lihat Pesanan Asli">
+                                                    {{ $ret->order->invoice_number ?? $ret->order->order_marketplace_id }}
+                                                </a>
+                                            @else
+                                                <span>-</span>
+                                            @endif
+                                        </div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">
+                                            <i class="bi bi-clock me-1"></i>{{ $ret->created_at ? $ret->created_at->format('d/m/Y H:i') : '-' }}
+                                        </div>
+                                    </div>
                                 </div>
+                            </td>
+                        </tr>
+
+                        {{-- Card Body --}}
+                        <tr style="border-bottom: 1px solid #e5e7eb;">
+                            {{-- Produk & Alasan --}}
+                            <td class="align-top">
+                                <div class="d-flex flex-column gap-2 mb-2">
+                                    @forelse($displayItems as $item)
+                                        @php
+                                            $orderItem = $isFallback ? $item : ($item->orderItem ?? null);
+                                            $prodName = 'Barang Retur';
+                                            $imgUrl = null;
+                                            $sku = null;
+                                            $variant = null;
+                                            $qty = $isFallback ? ($item->quantity ?? 1) : ($item->quantity ?? 1);
+
+                                            if ($orderItem) {
+                                                $mpProduct = $orderItem->marketplaceProduct ?? null;
+                                                $prodName = $mpProduct ? $mpProduct->name : ($orderItem->product_name ?? 'Barang Retur');
+                                                $imgUrl = $orderItem->product_image ?? null;
+                                                $sku = $orderItem->sku ?? ($mpProduct->sku ?? null);
+                                                $variant = $orderItem->variant_name ?? null;
+                                            }
+                                        @endphp
+                                        <div class="d-flex align-items-start gap-2.5">
+                                            <div class="position-relative border rounded overflow-hidden flex-shrink-0" style="width: 46px; height: 46px; background-color: #f8fafc;">
+                                                @if($imgUrl)
+                                                    <img src="{{ $imgUrl }}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
+                                                @else
+                                                    <div class="d-flex align-items-center justify-content-center h-100 w-100 text-muted" style="background-color: #f1f5f9;">
+                                                        <i class="bi bi-box-seam fs-5"></i>
+                                                    </div>
+                                                @endif
+                                                <span class="position-absolute bottom-0 end-0 bg-dark text-white px-1 font-monospace fw-bold" style="font-size: 0.62rem; border-top-left-radius: 4px;">
+                                                    {{ $qty }}x
+                                                </span>
+                                            </div>
+                                            <div class="flex-grow-1 min-w-0">
+                                                <div class="fw-bold text-dark" style="font-size: 0.78rem; line-height: 1.3;">
+                                                    {{ $prodName }}
+                                                </div>
+                                                <div class="text-muted mt-0.5 d-flex flex-wrap align-items-center gap-2" style="font-size: 0.7rem;">
+                                                    @if($sku)
+                                                        <span>SKU: <span class="fw-semibold text-dark">{{ $sku }}</span></span>
+                                                    @endif
+                                                    @if($variant)
+                                                        <span class="badge bg-light text-dark border px-1.5 py-0.5" style="font-size: 0.64rem;">Variasi: {{ $variant }}</span>
+                                                    @endif
+                                                    @if($isFallback)
+                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-1.5 py-0.5" style="font-size: 0.64rem;" title="Item diperoleh dari pesanan asli">Pesanan</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <div class="text-muted small">Detail produk tidak tersedia</div>
+                                    @endforelse
+                                </div>
+
                                 @if($ret->reason)
-                                    <div class="text-danger bg-danger bg-opacity-10 px-2 py-0.5 rounded d-inline-block mt-0.5" style="font-size: 0.68rem;">
+                                    <div class="text-danger bg-danger bg-opacity-10 px-2.5 py-1 rounded d-inline-block" style="font-size: 0.72rem;">
                                         <i class="bi bi-exclamation-circle-fill me-1"></i>
                                         <strong>Alasan:</strong> {{ $ret->reason }}
                                     </div>
                                 @endif
                             </td>
 
-                            {{-- Status & Refund --}}
-                            <td style="text-align: center;">
-                                <div class="fw-bold text-dark font-monospace mb-1" style="font-size: 0.85rem;">
+                            {{-- Refund & Status --}}
+                            <td style="text-align: center;" class="align-top">
+                                <div class="fw-bold text-dark font-monospace mb-1.5" style="font-size: 0.9rem;">
                                     Rp {{ number_format($ret->refund_amount ?? 0, 0, ',', '.') }}
                                 </div>
-                                <div class="d-flex flex-wrap align-items-center justify-content-center gap-1">
+                                <div>
                                     <span class="rtr-badge rtr-badge-status" title="Status Marketplace">
                                         {{ $ret->status ?? 'REQUESTED' }}
                                     </span>
+                                </div>
+                            </td>
 
-                                    @if($ret->is_restocked)
-                                        @if($ret->inspection_status === 'GOOD')
-                                            <span class="rtr-badge rtr-badge-qc-good" title="Status QC Gudang">
-                                                <i class="bi bi-check-circle-fill"></i> Layak Jual
-                                            </span>
-                                        @else
-                                            <span class="rtr-badge rtr-badge-qc-defective" title="Status QC Gudang">
-                                                <i class="bi bi-x-circle-fill"></i> Cacat
-                                            </span>
-                                        @endif
+                            {{-- QC / Inspeksi Gudang --}}
+                            <td style="text-align: center;" class="align-top">
+                                @if($ret->is_restocked)
+                                    @if($ret->inspection_status === 'GOOD')
+                                        <span class="rtr-badge rtr-badge-qc-good mb-1">
+                                            <i class="bi bi-check-circle-fill"></i> Layak Jual (Restocked)
+                                        </span>
                                     @else
-                                        <span class="rtr-badge rtr-badge-qc-pending" title="Status QC Gudang">
-                                            <i class="bi bi-hourglass-split"></i> Belum QC
+                                        <span class="rtr-badge rtr-badge-qc-defective mb-1">
+                                            <i class="bi bi-x-circle-fill"></i> Cacat / Rusak
                                         </span>
                                     @endif
-                                </div>
+                                    @if($ret->inspection_notes)
+                                        <div class="text-muted text-truncate mx-auto" style="max-width: 140px; font-size: 0.68rem;" title="{{ $ret->inspection_notes }}">
+                                            Catatan: {{ $ret->inspection_notes }}
+                                        </div>
+                                    @endif
+                                @else
+                                    <span class="rtr-badge rtr-badge-qc-pending">
+                                        <i class="bi bi-hourglass-split"></i> Belum QC Gudang
+                                    </span>
+                                @endif
 
                                 @if($ret->replacement_order_id)
-                                    <div class="mt-1">
-                                        <span class="badge bg-info text-white" style="font-size: 0.62rem;">
-                                            <i class="bi bi-arrow-repeat me-1"></i>Pengganti Dikirim
+                                    <div class="mt-1.5">
+                                        <span class="badge bg-info text-white" style="font-size: 0.65rem;">
+                                            <i class="bi bi-arrow-repeat me-1"></i>Barang Pengganti Dikirim
                                         </span>
                                     </div>
                                 @endif
                             </td>
 
                             {{-- Aksi --}}
-                            <td style="text-align: center;">
-                                <div class="d-flex flex-column align-items-center gap-1">
+                            <td style="text-align: center;" class="align-top">
+                                <div class="d-flex flex-column align-items-center gap-1.5">
                                     @if(!$ret->is_restocked)
                                         <button type="button" class="rtr-btn rtr-btn-success" data-bs-toggle="modal" data-bs-target="#qcModal-{{ $ret->id }}">
                                             <i class="bi bi-clipboard-check"></i> QC Inspeksi
@@ -472,7 +539,7 @@
 
                                         @if(!$ret->replacement_order_id && $ret->order)
                                             <button type="button" class="rtr-btn rtr-btn-primary" data-bs-toggle="modal" data-bs-target="#replModal-{{ $ret->id }}">
-                                                <i class="bi bi-box-arrow-right"></i> Pengganti
+                                                <i class="bi bi-box-arrow-right"></i> Kirim Pengganti
                                             </button>
                                         @endif
                                     @endif
@@ -510,10 +577,15 @@
 
                                             <h6 class="fw-bold mb-2 text-dark" style="font-size:0.82rem;">Pemeriksaan Item Retur:</h6>
 
-                                            @foreach($ret->items as $rItem)
+                                            @foreach($displayItems as $rItem)
+                                                @php
+                                                    $rOrderItem = $isFallback ? $rItem : ($rItem->orderItem ?? null);
+                                                    $rItemName = $rOrderItem ? ($rOrderItem->marketplaceProduct->name ?? ($rOrderItem->product_name ?? 'Barang Retur')) : 'Barang Retur';
+                                                    $rItemId = $isFallback ? $rItem->id : $rItem->id;
+                                                @endphp
                                                 <div class="border rounded p-3 mb-3 bg-white shadow-sm">
                                                     <div class="fw-bold text-primary mb-2" style="font-size:0.83rem;">
-                                                        {{ $rItem->quantity }}x {{ $rItem->orderItem->product_name ?? 'Barang Retur' }}
+                                                        {{ $rItem->quantity ?? 1 }}x {{ $rItemName }}
                                                     </div>
 
                                                     <div class="row g-3 align-items-center">
@@ -522,23 +594,23 @@
                                                             <div class="d-flex gap-3">
                                                                 <div class="form-check">
                                                                     <input class="form-check-input" type="radio" 
-                                                                           name="items[{{ $rItem->id }}][inspection_status]" 
-                                                                           id="status_good_{{ $rItem->id }}" 
+                                                                           name="items[{{ $rItemId }}][inspection_status]" 
+                                                                           id="status_good_{{ $rItemId }}" 
                                                                            value="GOOD" 
                                                                            {{ ($rItem->inspection_status ?? 'GOOD') === 'GOOD' ? 'checked' : '' }}
                                                                            {{ $ret->is_restocked ? 'disabled' : '' }}>
-                                                                    <label class="form-check-label text-success fw-bold" for="status_good_{{ $rItem->id }}">
+                                                                    <label class="form-check-label text-success fw-bold" for="status_good_{{ $rItemId }}">
                                                                         <i class="bi bi-check-circle me-1"></i>Layak Jual (Tambah Stok)
                                                                     </label>
                                                                 </div>
                                                                 <div class="form-check">
                                                                     <input class="form-check-input" type="radio" 
-                                                                           name="items[{{ $rItem->id }}][inspection_status]" 
-                                                                           id="status_def_{{ $rItem->id }}" 
+                                                                           name="items[{{ $rItemId }}][inspection_status]" 
+                                                                           id="status_def_{{ $rItemId }}" 
                                                                            value="DEFECTIVE" 
                                                                            {{ ($rItem->inspection_status ?? '') === 'DEFECTIVE' ? 'checked' : '' }}
                                                                            {{ $ret->is_restocked ? 'disabled' : '' }}>
-                                                                    <label class="form-check-label text-danger fw-bold" for="status_def_{{ $rItem->id }}">
+                                                                    <label class="form-check-label text-danger fw-bold" for="status_def_{{ $rItemId }}">
                                                                         <i class="bi bi-x-circle me-1"></i>Cacat / Rusak
                                                                     </label>
                                                                 </div>
@@ -547,19 +619,19 @@
 
                                                         <div class="col-md-6">
                                                             <label class="form-label fw-bold mb-1">Catatan QC:</label>
-                                                            <input type="text" name="items[{{ $rItem->id }}][inspection_notes]" 
+                                                            <input type="text" name="items[{{ $rItemId }}][inspection_notes]" 
                                                                    class="form-control form-control-sm" 
                                                                    placeholder="Contoh: Plastik terbuka, barang dalam kondisi baru..." 
-                                                                   value="{{ $rItem->inspection_notes }}"
+                                                                   value="{{ $rItem->inspection_notes ?? '' }}"
                                                                    {{ $ret->is_restocked ? 'disabled' : '' }}>
                                                         </div>
 
                                                         <div class="col-md-12">
                                                             <label class="form-label fw-bold mb-1">Upload Foto Bukti Fisik (Opsional):</label>
-                                                            <input type="file" name="items[{{ $rItem->id }}][photo]" 
+                                                            <input type="file" name="items[{{ $rItemId }}][photo]" 
                                                                    class="form-control form-control-sm" accept="image/*"
                                                                    {{ $ret->is_restocked ? 'disabled' : '' }}>
-                                                            @if($rItem->inspection_photo)
+                                                            @if(!empty($rItem->inspection_photo))
                                                                 <div class="mt-2">
                                                                     <a href="{{ asset($rItem->inspection_photo) }}" target="_blank" class="btn btn-outline-secondary btn-sm py-0.5 px-2" style="font-size:0.7rem;">
                                                                         <i class="bi bi-image me-1"></i>Lihat Foto Terupload
@@ -612,8 +684,12 @@
 
                                                 <div class="fw-bold mb-1">Item yang Akan Dikirim Ulang:</div>
                                                 <ul class="ps-3 mb-0" style="font-size:0.76rem;">
-                                                    @foreach($ret->items as $rItem)
-                                                        <li>{{ $rItem->quantity }}x {{ $rItem->orderItem->product_name ?? 'Barang Retur' }}</li>
+                                                    @foreach($displayItems as $rItem)
+                                                        @php
+                                                            $rOrderItem = $isFallback ? $rItem : ($rItem->orderItem ?? null);
+                                                            $rItemName = $rOrderItem ? ($rOrderItem->marketplaceProduct->name ?? ($rOrderItem->product_name ?? 'Barang Retur')) : 'Barang Retur';
+                                                        @endphp
+                                                        <li>{{ $rItem->quantity ?? 1 }}x {{ $rItemName }}</li>
                                                     @endforeach
                                                 </ul>
                                             </div>
@@ -631,11 +707,12 @@
 
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
+                            <td colspan="4" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
                                 <div class="fw-bold" style="font-size:0.9rem;">Tidak Ada Data Retur</div>
                                 <div style="font-size:0.75rem;">Belum ada pesanan retur yang sesuai dengan filter pencarian Anda.</div>
                             </td>
+                        </tr>
                     @endforelse
                 </tbody>
             </table>
