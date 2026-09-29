@@ -4,13 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Petunjuk Penghapusan Data ERP Marketplace - Panduan menghapus akun dan data integrasi Anda">
+    <meta name="description"
+        content="Petunjuk Penghapusan Data ERP Marketplace - Panduan menghapus akun dan data integrasi Anda">
     <title>Petunjuk Penghapusan Data | ERP Marketplace</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -112,6 +115,7 @@
                 grid-template-columns: 1fr;
                 margin-top: 24px;
             }
+
             .sidebar {
                 display: none;
             }
@@ -339,12 +343,17 @@
             </div>
 
             <p>
-                Di ERP Marketplace, kami berkomitmen penuh untuk menghormati privasi data Anda serta mendukung penuh hak Anda untuk mengendalikan, mencabut, atau menghapus informasi bisnis yang telah Anda daftarkan di dalam sistem kami.
+                Di ERP Marketplace, kami berkomitmen penuh untuk menghormati privasi data Anda serta mendukung penuh hak
+                Anda untuk mengendalikan, mencabut, atau menghapus informasi bisnis yang telah Anda daftarkan di dalam
+                sistem kami.
             </p>
 
             <div class="important-box">
                 <p>
-                    <i class="fas fa-circle-info me-1"></i> Sesuai dengan peraturan privasi data global (GDPR, UU Pelindungan Data Pribadi) serta kebijakan developer Google, Facebook, dan platform Marketplace (Shopee, TikTok, Lazada), panduan ini menjelaskan langkah demi langkah untuk menghapus data Anda secara permanen dari server kami.
+                    <i class="fas fa-circle-info me-1"></i> Sesuai dengan peraturan privasi data global (GDPR, UU
+                    Pelindungan Data Pribadi) serta kebijakan developer Google, Facebook, dan platform Marketplace
+                    (Shopee, TikTok, Lazada), panduan ini menjelaskan langkah demi langkah untuk menghapus data Anda
+                    secara permanen dari server kami.
                 </p>
             </div>
 
@@ -353,7 +362,9 @@
                 <i class="fas fa-user-shield"></i> 1. Komitmen Kontrol Data Anda
             </h2>
             <p>
-                Kami percaya Anda memiliki hak kepemilikan penuh atas data bisnis Anda. Anda dapat mengajukan permohonan untuk menghapus akun pribadi, profil tenant/perusahaan, dan memutuskan koneksi otorisasi toko marketplace kapan pun Anda inginkan.
+                Kami percaya Anda memiliki hak kepemilikan penuh atas data bisnis Anda. Anda dapat mengajukan permohonan
+                untuk menghapus akun pribadi, profil tenant/perusahaan, dan memutuskan koneksi otorisasi toko
+                marketplace kapan pun Anda inginkan.
             </p>
 
             <!-- Section 2 -->
@@ -361,20 +372,24 @@
                 <i class="fas fa-paper-plane"></i> 2. Cara Mengajukan Permohonan Penghapusan Data
             </h2>
             <p>
-                Untuk mengajukan penghapusan akun secara permanen, Anda dapat mengirimkan permohonan tertulis melalui email resmi yang terdaftar di dalam sistem:
+                Untuk mengajukan penghapusan akun secara permanen, Anda dapat mengirimkan permohonan tertulis melalui
+                email resmi yang terdaftar di dalam sistem:
             </p>
             <ul class="step-list">
                 <li class="step-item">
                     <div class="step-num">1</div>
-                    <div class="step-text">Kirim email ke alamat <strong>support@aspartech.com</strong> dengan subjek: <strong>"Permohonan Penghapusan Data Akun ERP - [Nama Tenant/Perusahaan Anda]"</strong>.</div>
+                    <div class="step-text">Kirim email ke alamat <strong>support@aspartech.com</strong> dengan subjek:
+                        <strong>"Permohonan Penghapusan Data Akun ERP - [Nama Tenant/Perusahaan Anda]"</strong>.</div>
                 </li>
                 <li class="step-item">
                     <div class="step-num">2</div>
-                    <div class="step-text">Sebutkan nama lengkap Anda, alamat email terdaftar, nama tenant (perusahaan/toko) Anda, dan alasan penghapusan data.</div>
+                    <div class="step-text">Sebutkan nama lengkap Anda, alamat email terdaftar, nama tenant
+                        (perusahaan/toko) Anda, dan alasan penghapusan data.</div>
                 </li>
                 <li class="step-item">
                     <div class="step-num">3</div>
-                    <div class="step-text">Staf IT kami akan melakukan verifikasi identitas pemilik tenant untuk memastikan keamanan permohonan sebelum proses penghapusan dilakukan.</div>
+                    <div class="step-text">Staf IT kami akan melakukan verifikasi identitas pemilik tenant untuk
+                        memastikan keamanan permohonan sebelum proses penghapusan dilakukan.</div>
                 </li>
             </ul>
 
@@ -386,8 +401,12 @@
                 Setelah permohonan diverifikasi, proses penghapusan data akan mengikuti alur berikut:
             </p>
             <ul>
-                <li><strong>Penangguhan Akun (Maksimal 7 Hari):</strong> Akun dan tenant Anda akan dinonaktifkan sementara. Dalam masa tenggang ini, Anda masih dapat membatalkan permohonan jika berubah pikiran.</li>
-                <li><strong>Penghapusan Data Permanen (Maksimal 30 Hari):</strong> Semua data yang disimpan di database utama dan backup server kami akan dihapus secara permanen menggunakan prosedur pembersihan data yang aman.</li>
+                <li><strong>Penangguhan Akun (Maksimal 7 Hari):</strong> Akun dan tenant Anda akan dinonaktifkan
+                    sementara. Dalam masa tenggang ini, Anda masih dapat membatalkan permohonan jika berubah pikiran.
+                </li>
+                <li><strong>Penghapusan Data Permanen (Maksimal 30 Hari):</strong> Semua data yang disimpan di database
+                    utama dan backup server kami akan dihapus secara permanen menggunakan prosedur pembersihan data yang
+                    aman.</li>
             </ul>
 
             <!-- Section 4 -->
@@ -400,8 +419,10 @@
             <ul>
                 <li>Profil detail akun pengguna (nama, email terenkripsi, nomor HP, peran hak akses).</li>
                 <li>Katalog master produk, SKU, harga, dan file resep formulasi (BOM).</li>
-                <li>Riwayat log transaksi, pesanan masuk e-commerce, riwayat cetak SPK, kartu stok, dan laporan absensi karyawan.</li>
-                <li>Seluruh token otorisasi API marketplace (Shopee, TikTok, Lazada) sehingga sistem kami kehilangan akses sepenuhnya ke toko marketplace Anda.</li>
+                <li>Riwayat log transaksi, pesanan masuk e-commerce, riwayat cetak SPK, kartu stok, dan laporan absensi
+                    karyawan.</li>
+                <li>Seluruh token otorisasi API marketplace (Shopee, TikTok, Lazada) sehingga sistem kami kehilangan
+                    akses sepenuhnya ke toko marketplace Anda.</li>
             </ul>
 
             <!-- Section 5 -->
@@ -409,11 +430,15 @@
                 <i class="fas fa-file-shield"></i> 5. Data yang Tetap Disimpan (Retensi Terbatas)
             </h2>
             <p>
-                Kami hanya akan menyimpan data tertentu jika diwajibkan oleh undang-undang atau kepatuhan peraturan yang berlaku:
+                Kami hanya akan menyimpan data tertentu jika diwajibkan oleh undang-undang atau kepatuhan peraturan yang
+                berlaku:
             </p>
             <ul>
-                <li>Catatan transaksi keuangan atau bukti pembayaran lisensi berlangganan SaaS untuk keperluan perpajakan, audit internal, atau kewajiban hukum yang berlaku di Indonesia (disimpan maksimal 5 tahun).</li>
-                <li>Log aktivitas keamanan server yang tidak berisi informasi data pribadi (disimpan maksimal 90 hari untuk tujuan audit keamanan).</li>
+                <li>Catatan transaksi keuangan atau bukti pembayaran lisensi berlangganan SaaS untuk keperluan
+                    perpajakan, audit internal, atau kewajiban hukum yang berlaku di Indonesia (disimpan maksimal 5
+                    tahun).</li>
+                <li>Log aktivitas keamanan server yang tidak berisi informasi data pribadi (disimpan maksimal 90 hari
+                    untuk tujuan audit keamanan).</li>
             </ul>
 
             <!-- Section 6 -->
@@ -421,20 +446,25 @@
                 <i class="fas fa-unlink"></i> 6. Pemutusan Integrasi Marketplace Secara Mandiri
             </h2>
             <p>
-                Jika Anda tidak ingin menghapus seluruh akun ERP, tetapi ingin menghentikan sistem kami dari mengakses toko e-commerce Anda, Anda dapat melakukannya secara mandiri:
+                Jika Anda tidak ingin menghapus seluruh akun ERP, tetapi ingin menghentikan sistem kami dari mengakses
+                toko e-commerce Anda, Anda dapat melakukannya secara mandiri:
             </p>
             <ul class="step-list">
                 <li class="step-item">
                     <div class="step-num">1</div>
-                    <div class="step-text">Masuk ke dashboard ERP Marketplace Anda, buka menu <strong>Toko / Channel</strong>.</div>
+                    <div class="step-text">Masuk ke dashboard ERP Marketplace Anda, buka menu <strong>Toko /
+                            Channel</strong>.</div>
                 </li>
                 <li class="step-item">
                     <div class="step-num">2</div>
-                    <div class="step-text">Pilih toko yang ingin Anda putuskan koneksinya, lalu klik tombol <strong>Hapus / Putuskan Otorisasi</strong>.</div>
+                    <div class="step-text">Pilih toko yang ingin Anda putuskan koneksinya, lalu klik tombol
+                        <strong>Hapus / Putuskan Otorisasi</strong>.</div>
                 </li>
                 <li class="step-item">
                     <div class="step-num">3</div>
-                    <div class="step-text">Alternatif lainnya, masuk ke panel seller e-commerce Anda (seperti Shopee Partner App atau TikTok App Store) dan cabut otorisasi aplikasi ERP Marketplace. Token otorisasi akan otomatis tidak valid seketika itu juga.</div>
+                    <div class="step-text">Alternatif lainnya, masuk ke panel seller e-commerce Anda (seperti Shopee
+                        Partner App atau TikTok App Store) dan cabut otorisasi aplikasi ERP Marketplace. Token otorisasi
+                        akan otomatis tidak valid seketika itu juga.</div>
                 </li>
             </ul>
 
@@ -443,7 +473,8 @@
                 <i class="fas fa-headset"></i> 7. Hubungi Pusat Bantuan
             </h2>
             <p>
-                Jika Anda mengalami kesulitan atau memiliki pertanyaan lebih lanjut mengenai penghapusan data ini, silakan menghubungi:
+                Jika Anda mengalami kesulitan atau memiliki pertanyaan lebih lanjut mengenai penghapusan data ini,
+                silakan menghubungi:
             </p>
             <p style="margin-left: 10px;">
                 <i class="fas fa-envelope text-primary me-2"></i> <strong>Support Email:</strong> support@aspartech.com
