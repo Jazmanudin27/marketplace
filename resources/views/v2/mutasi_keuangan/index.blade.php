@@ -284,10 +284,8 @@
             <thead>
                 <tr>
                     <th class="text-center" style="width: 45px;">No</th>
-                    <th style="width: 100px;">Tanggal</th>
-                    <th style="width: 130px;">No. Referensi</th>
-                    <th style="width: 160px;">Jenis & Akun</th>
-                    <th style="width: 140px;">Kategori</th>
+                    <th style="width: 190px;">Transaksi & Akun</th>
+                    <th style="width: 130px;">Kategori</th>
                     <th>Keterangan</th>
                     <th class="text-end" style="width: 130px;">Masuk (Rp)</th>
                     <th class="text-end" style="width: 130px;">Keluar (Rp)</th>
@@ -299,16 +297,13 @@
                 @forelse($mutations as $index => $row)
                     <tr>
                         <td class="text-center text-muted" style="font-size: 0.75rem;">{{ $index + 1 }}</td>
-                        <td class="fw-medium" style="font-size:0.78rem;">{{ $row['date_formatted'] }}</td>
                         <td>
-                            <span class="ref-code">{{ $row['reference'] }}</span>
-                        </td>
-                        <td>
-                            <span class="badge {{ $row['type_badge'] }} mb-1 d-inline-block px-2 py-0.5" style="font-size:0.67rem;">
-                                {{ $row['type_label'] }}
-                            </span>
-                            <div class="text-muted text-truncate" style="font-size: 0.72rem; max-width: 180px;" title="{{ $row['account_label'] }}">
-                                {{ $row['account_label'] }}
+                            <div class="d-flex align-items-center gap-1.5 mb-1 flex-wrap">
+                                <span class="ref-code">{{ $row['reference'] }}</span>
+                                <span class="text-muted fw-medium" style="font-size:0.75rem;">{{ $row['date_formatted'] }}</span>
+                            </div>
+                            <div class="text-dark fw-semibold text-truncate" style="font-size: 0.74rem; max-width: 220px;" title="{{ $row['account_label'] }}">
+                                <i class="bi bi-wallet2 me-1 text-secondary"></i>{{ $row['account_label'] }}
                             </div>
                         </td>
                         <td>
@@ -411,7 +406,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="text-center py-5 text-muted">
+                        <td colspan="8" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
                             Tidak ada transaksi mutasi kas/keuangan pada periode atau filter yang dipilih.
                         </td>
@@ -420,7 +415,7 @@
             </tbody>
             <tfoot class="bg-light fw-bold" style="border-top:2px solid #cbd5e1;">
                 <tr>
-                    <td colspan="6" class="text-end text-uppercase" style="font-size:0.75rem; letter-spacing:0.04em;">Total Periode Ini</td>
+                    <td colspan="4" class="text-end text-uppercase" style="font-size:0.75rem; letter-spacing:0.04em;">Total Periode Ini</td>
                     <td class="text-end amount-inflow">+ {{ number_format($totalInflow, 0, ',', '.') }}</td>
                     <td class="text-end amount-outflow">- {{ number_format($totalOutflow, 0, ',', '.') }}</td>
                     <td class="text-end amount-balance text-primary">Rp {{ number_format($endingBalance, 0, ',', '.') }}</td>
