@@ -1,6 +1,6 @@
 @extends('v2.layouts.app')
 
-@section('title', 'Pengeluaran Barang (Barang Keluar) V2')
+@section('title', 'Barang Keluar V2')
 
 @push('styles')
 <style>
@@ -53,7 +53,7 @@
 <div class="v2-page-header align-items-center mb-3">
     <div>
         <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0">
-            <i class="bi bi-box-arrow-up-right text-danger fs-5"></i> Pengeluaran Barang (Barang Keluar)
+            <i class="bi bi-box-arrow-up-right text-danger fs-5"></i> Barang Keluar
         </h1>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">

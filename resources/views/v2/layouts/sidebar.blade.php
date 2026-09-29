@@ -137,7 +137,7 @@
             <a href="{{ Route::has('v2.barang_keluar.index') ? route('v2.barang_keluar.index') : url('/v2/barang-keluar') }}"
                 class="v2-nav-link {{ request()->is('v2/barang-keluar*') ? 'active' : '' }}">
                 <i class="bi bi-box-arrow-up-right text-danger"></i>
-                <span>Barang Keluar (Pembelian)</span>
+                <span>Barang Keluar</span>
             </a>
         </div>
 
