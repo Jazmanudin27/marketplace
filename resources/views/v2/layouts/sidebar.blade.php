@@ -124,6 +124,23 @@
             </a>
         </div>
 
+        <!-- Pembelian & Stok -->
+        <div class="v2-nav-section-title mt-2">PEMBELIAN & STOK</div>
+        <div class="v2-nav-item">
+            <a href="{{ route('v2.barang_masuk.index') }}"
+                class="v2-nav-link {{ request()->is('v2/barang-masuk*') ? 'active' : '' }}">
+                <i class="bi bi-box-arrow-in-down text-success"></i>
+                <span>Barang Masuk</span>
+            </a>
+        </div>
+        <div class="v2-nav-item">
+            <a href="{{ route('v2.barang_keluar.index') }}"
+                class="v2-nav-link {{ request()->is('v2/barang-keluar*') ? 'active' : '' }}">
+                <i class="bi bi-box-arrow-up-right text-danger"></i>
+                <span>Barang Keluar (Pembelian)</span>
+            </a>
+        </div>
+
         <!-- HRD & Keuangan -->
         <div class="v2-nav-section-title mt-2">KEUANGAN & HRD</div>
         <div class="v2-nav-item">

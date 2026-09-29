@@ -244,6 +244,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/saldo-marketplace/{store}/mutasi', [\App\Http\Controllers\V2\SaldoMarketplaceController::class, 'mutasi'])->name('saldo_marketplace.mutasi');
         Route::get('/saldo-marketplace/{store}/pending', [\App\Http\Controllers\V2\SaldoMarketplaceController::class, 'pending'])->name('saldo_marketplace.pending');
         Route::get('/saldo-marketplace/{store}/sync', [\App\Http\Controllers\V2\SaldoMarketplaceController::class, 'sync'])->name('saldo_marketplace.sync');
+
+        // Barang Masuk (Penerimaan Barang) V2
+        Route::get('/barang-masuk', [\App\Http\Controllers\V2\BarangMasukController::class, 'index'])->name('barang_masuk.index');
+        Route::get('/barang-masuk/create', [\App\Http\Controllers\V2\BarangMasukController::class, 'create'])->name('barang_masuk.create');
+        Route::post('/barang-masuk', [\App\Http\Controllers\V2\BarangMasukController::class, 'store'])->name('barang_masuk.store');
+        Route::get('/barang-masuk/{goodsReceipt}', [\App\Http\Controllers\V2\BarangMasukController::class, 'show'])->name('barang_masuk.show');
+        Route::post('/barang-masuk/{goodsReceipt}/approve', [\App\Http\Controllers\V2\BarangMasukController::class, 'approve'])->name('barang_masuk.approve');
+        Route::delete('/barang-masuk/{goodsReceipt}', [\App\Http\Controllers\V2\BarangMasukController::class, 'destroy'])->name('barang_masuk.destroy');
+
+        // Barang Keluar (Pengeluaran Barang) V2
+        Route::get('/barang-keluar', [\App\Http\Controllers\V2\BarangKeluarController::class, 'index'])->name('barang_keluar.index');
+        Route::get('/barang-keluar/create', [\App\Http\Controllers\V2\BarangKeluarController::class, 'create'])->name('barang_keluar.create');
+        Route::post('/barang-keluar', [\App\Http\Controllers\V2\BarangKeluarController::class, 'store'])->name('barang_keluar.store');
+        Route::get('/barang-keluar/{warehouseMutation}', [\App\Http\Controllers\V2\BarangKeluarController::class, 'show'])->name('barang_keluar.show');
+        Route::delete('/barang-keluar/{warehouseMutation}', [\App\Http\Controllers\V2\BarangKeluarController::class, 'destroy'])->name('barang_keluar.destroy');
     });
 
     // =========================================================================
