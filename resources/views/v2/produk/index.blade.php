@@ -27,7 +27,7 @@
 <!-- Header Summary Widgets (KPI Cards) -->
 <div class="row g-2 mb-3">
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <div class="v2-stat-widget">
+        <div class="v2-stat-widget widget-blue">
             <div class="v2-stat-icon-wrapper blue">
                 <i class="bi bi-boxes"></i>
             </div>
@@ -38,7 +38,7 @@
         </div>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <div class="v2-stat-widget">
+        <div class="v2-stat-widget widget-green">
             <div class="v2-stat-icon-wrapper green">
                 <i class="bi bi-box-seam"></i>
             </div>
@@ -49,7 +49,7 @@
         </div>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <div class="v2-stat-widget">
+        <div class="v2-stat-widget widget-purple">
             <div class="v2-stat-icon-wrapper purple">
                 <i class="bi bi-diagram-3"></i>
             </div>
@@ -60,7 +60,7 @@
         </div>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <div class="v2-stat-widget">
+        <div class="v2-stat-widget widget-blue">
             <div class="v2-stat-icon-wrapper blue">
                 <i class="bi bi-check-circle"></i>
             </div>
@@ -71,7 +71,7 @@
         </div>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <div class="v2-stat-widget">
+        <div class="v2-stat-widget widget-amber">
             <div class="v2-stat-icon-wrapper amber">
                 <i class="bi bi-clock-history"></i>
             </div>
@@ -144,13 +144,20 @@
 
 <!-- Main Table Card -->
 <div class="v2-card mb-3">
-    <div class="v2-card-header bg-light py-2">
+    <div class="v2-card-header bg-light py-2 d-flex align-items-center justify-content-between">
         <h6 class="v2-card-title d-flex align-items-center gap-2 m-0">
             <i class="bi bi-list-columns-reverse text-primary"></i> Daftar Master Produk
             <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.65rem;">
                 {{ $products->total() }} Item
             </span>
         </h6>
+        <!-- Bulk Action Bar -->
+        <div id="bulkActionBar" class="d-none align-items-center gap-2">
+            <span class="badge bg-primary px-2.5 py-1 rounded-pill" id="selectedCountBadge" style="font-size: 0.72rem;">0 Dipilih</span>
+            <button type="button" class="btn btn-sm btn-v2-success py-1 px-3 shadow-sm" id="btnCreateAutoBundle" style="background-color: #7c3aed !important; border-color: #7c3aed !important; color: #ffffff !important;">
+                <i class="bi bi-diagram-3-fill me-1"></i> Buat Set / Bundle Otomatis
+            </button>
+        </div>
     </div>
     <div class="v2-card-body p-0">
         <div class="v2-table-responsive">
@@ -174,7 +181,16 @@
                     @forelse($products as $index => $prod)
                         <tr>
                             <td class="text-center pe-0">
-                                <input type="checkbox" class="form-check-input product-checkbox no-select2" value="{{ $prod->id }}" style="cursor: pointer;">
+                                <input type="checkbox"
+                                       class="form-check-input product-checkbox no-select2"
+                                       value="{{ $prod->id }}"
+                                       data-id="{{ $prod->id }}"
+                                       data-name="{{ $prod->name }}"
+                                       data-sku="{{ $prod->sku }}"
+                                       data-price="{{ $prod->selling_price ?? $prod->price ?? 0 }}"
+                                       data-cost="{{ $prod->cost_price ?? 0 }}"
+                                       data-stock="{{ $prod->stock ?? 0 }}"
+                                       style="cursor: pointer;">
                             </td>
                             <td class="text-center text-muted" style="font-size: 0.72rem;">
                                 {{ $products->firstItem() + $index }}
@@ -326,6 +342,99 @@
     @endif
 </div>
 
+<!-- Modal Auto Bundle Otomatis -->
+<div class="modal fade" id="createAutoBundleModal" tabindex="-1" aria-labelledby="createAutoBundleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ route('v2.produk.auto_bundle') }}" method="POST">
+                @csrf
+                <div class="modal-header bg-light py-2.5 border-bottom">
+                    <h6 class="modal-title fw-bold d-flex align-items-center gap-2 m-0" id="createAutoBundleModalLabel">
+                        <i class="bi bi-diagram-3-fill" style="color: #7c3aed;"></i> Buat Set / Bundle Paket Otomatis
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3.5">
+                    <div class="alert alert-primary bg-primary-subtle border-primary-subtle text-primary py-2 px-3 mb-3" style="font-size: 0.75rem;">
+                        <i class="bi bi-info-circle-fill me-1"></i>
+                        Produk Set / Bundle yang dibuat otomatis akan menginduk ke komponen-komponen berikut. Stok Bundle akan terhitung otomatis dari stok komponen terkecil.
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-8">
+                            <label class="form-label form-label-sm fw-semibold">Nama Master Set / Bundle <span class="text-danger">*</span></label>
+                            <input type="text" name="name" id="autoBundleName" class="form-control form-control-sm fw-bold" required placeholder="Contoh: SET SERAGAM SMP LENGAN PANJANG">
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">SKU Master Bundle <span class="text-danger">*</span></label>
+                            <input type="text" name="sku" id="autoBundleSku" class="form-control form-control-sm font-monospace fw-bold" required placeholder="Contoh: SET-SMP-PJG">
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">Kategori</label>
+                            <select name="category_id" class="form-select form-select-sm">
+                                <option value="">-- Pilih Kategori --</option>
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">Model & Varian / Brand</label>
+                            <select name="brand_id" class="form-select form-select-sm">
+                                <option value="">-- Pilih Model / Brand --</option>
+                                @foreach($brands as $b)
+                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">Satuan Unit</label>
+                            <input type="text" name="unit" class="form-control form-control-sm" value="set" placeholder="set, paket, pcs">
+                        </div>
+                        <div class="col-6 col-md-6">
+                            <label class="form-label form-label-sm fw-semibold">Total Harga Jual Bundle (Rp)</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light text-muted">Rp</span>
+                                <input type="number" name="price" id="autoBundlePrice" class="form-control font-monospace fw-bold text-primary" min="0">
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-6">
+                            <label class="form-label form-label-sm fw-semibold">Total HPP Bundle (Rp)</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light text-muted">Rp</span>
+                                <input type="number" name="cost_price" id="autoBundleCostPrice" class="form-control font-monospace" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2" style="font-size: 0.8rem;"><i class="bi bi-boxes text-primary me-1"></i> Komponen Produk Isi Set / Bundle</h6>
+                    <div class="table-responsive border rounded-3 mb-3">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.75rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3 py-2">NAMA PRODUK KOMPONEN & SKU</th>
+                                    <th class="text-end py-2">HARGA ACUAN</th>
+                                    <th class="text-center py-2" style="width: 110px;">JUMLAH (QTY)</th>
+                                    <th class="text-end py-2 pe-3">SUBTOTAL HARGA</th>
+                                </tr>
+                            </thead>
+                            <tbody id="autoBundleComponentsTableBody">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-sm btn-v2-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-v2-primary" style="background-color: #7c3aed !important; border-color: #7c3aed !important; color: #ffffff !important;">
+                        <i class="bi bi-diagram-3-fill me-1"></i> Simpan Set / Bundle Otomatis
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Detail / Show Produk -->
 <div class="modal fade" id="detailProdukModal" tabindex="-1" aria-labelledby="detailProdukModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -474,16 +583,113 @@
 
 @push('scripts')
 <script>
-    // Select All Checkboxes
+    // Select All Checkboxes & Toggle Bulk Action Bar
+    function updateBulkActionBar() {
+        var checkedCount = $('.product-checkbox:checked').length;
+        if (checkedCount > 0) {
+            $('#bulkActionBar').removeClass('d-none').addClass('d-flex');
+            $('#selectedCountBadge').text(checkedCount + ' Dipilih');
+        } else {
+            $('#bulkActionBar').addClass('d-none').removeClass('d-flex');
+        }
+    }
+
     $('#selectAllProducts').on('change', function() {
         var isChecked = $(this).is(':checked');
         $('.product-checkbox').prop('checked', isChecked);
+        updateBulkActionBar();
     });
 
     $(document).on('change', '.product-checkbox', function() {
         var total = $('.product-checkbox').length;
         var checked = $('.product-checkbox:checked').length;
         $('#selectAllProducts').prop('checked', total === checked && total > 0);
+        updateBulkActionBar();
+    });
+
+    // Handle Auto Bundle Modal trigger
+    $('#btnCreateAutoBundle').on('click', function() {
+        var selectedChecked = $('.product-checkbox:checked');
+        if (selectedChecked.length < 1) {
+            Swal.fire('Perhatian', 'Pilih minimal 1 produk untuk dibuatkan Set / Bundle Paket!', 'warning');
+            return;
+        }
+
+        var items = [];
+        var names = [];
+        var skus = [];
+        var totalPrice = 0;
+        var totalCost = 0;
+
+        selectedChecked.each(function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            var sku = $(this).data('sku');
+            var price = parseFloat($(this).data('price')) || 0;
+            var cost = parseFloat($(this).data('cost')) || 0;
+
+            items.push({ id: id, name: name, sku: sku, price: price, cost: cost });
+            names.push(name);
+            if (sku) skus.push(sku);
+            totalPrice += price;
+            totalCost += cost;
+        });
+
+        // Set suggested bundle name & SKU
+        var bundleName = 'SET: ' + names.join(' + ');
+        if (bundleName.length > 100) {
+            bundleName = bundleName.substring(0, 97) + '...';
+        }
+        var timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        var bundleSku = 'SET-' + (skus.length > 0 ? skus[0] : timestamp) + '-PAKET';
+
+        $('#autoBundleName').val(bundleName);
+        $('#autoBundleSku').val(bundleSku);
+        $('#autoBundlePrice').val(totalPrice);
+        $('#autoBundleCostPrice').val(totalCost);
+
+        // Populate table rows
+        var rowsHtml = '';
+        items.forEach(function(item, index) {
+            rowsHtml += '<tr>' +
+                '<td class="ps-3 py-2">' +
+                    '<div class="fw-bold text-dark">' + item.name + '</div>' +
+                    '<code class="text-secondary font-monospace">SKU: ' + item.sku + '</code>' +
+                    '<input type="hidden" name="components[' + index + '][id]" value="' + item.id + '">' +
+                '</td>' +
+                '<td class="text-end font-monospace py-2">Rp ' + new Intl.NumberFormat('id-ID').format(item.price) + '</td>' +
+                '<td class="text-center py-2" style="width: 110px;">' +
+                    '<input type="number" name="components[' + index + '][quantity]" class="form-control form-control-sm text-center comp-qty" value="1" min="1" data-price="' + item.price + '" data-cost="' + item.cost + '">' +
+                '</td>' +
+                '<td class="text-end font-monospace fw-bold py-2 pe-3 comp-subtotal">Rp ' + new Intl.NumberFormat('id-ID').format(item.price) + '</td>' +
+            '</tr>';
+        });
+
+        $('#autoBundleComponentsTableBody').html(rowsHtml);
+
+        var autoBundleModal = new bootstrap.Modal(document.getElementById('createAutoBundleModal'));
+        autoBundleModal.show();
+    });
+
+    // Recalculate bundle totals when component qty changes
+    $(document).on('input change', '.comp-qty', function() {
+        var calcTotalSelling = 0;
+        var calcTotalHpp = 0;
+
+        $('.comp-qty').each(function() {
+            var qty = parseInt($(this).val()) || 0;
+            var prc = parseFloat($(this).data('price')) || 0;
+            var cst = parseFloat($(this).data('cost')) || 0;
+            var subtotal = qty * prc;
+
+            calcTotalSelling += subtotal;
+            calcTotalHpp += (qty * cst);
+
+            $(this).closest('tr').find('.comp-subtotal').text('Rp ' + new Intl.NumberFormat('id-ID').format(subtotal));
+        });
+
+        $('#autoBundlePrice').val(calcTotalSelling);
+        $('#autoBundleCostPrice').val(calcTotalHpp);
     });
 
     // Show Product Detail Modal via AJAX
@@ -509,7 +715,7 @@
             $('#showDetailEstKain').text(prod.est_kain > 0 ? prod.est_kain + ' m' : '-');
             $('#showDetailEstProduksi').text(prod.est_biaya_produksi > 0 ? 'Rp ' + new Intl.NumberFormat('id-ID').format(prod.est_biaya_produksi) : '-');
 
-            $('#showDetailCategory').text(prod.category ? prod.category.name : 'Uncategorized');
+            $('#showDetailCategory').text(prod.category ? prod.category.name : 'Tanpa Kategori');
             $('#showDetailBrand').text(prod.brand ? prod.brand.name : '-');
 
             if (prod.is_bundle) {

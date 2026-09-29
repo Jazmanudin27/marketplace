@@ -167,6 +167,58 @@ class ProdukController extends Controller
         return redirect()->route('v2.produk.index')->with('success', 'Master produk baru berhasil ditambahkan!');
     }
 
+    public function storeAutoBundle(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'sku' => 'required|string|max:100',
+            'price' => 'nullable|numeric|min:0',
+            'cost_price' => 'nullable|numeric|min:0',
+            'category_id' => 'nullable',
+            'brand_id' => 'nullable',
+            'components' => 'required|array|min:1',
+            'components.*.id' => 'required|exists:master_products,id',
+            'components.*.quantity' => 'required|integer|min:1',
+        ]);
+
+        $sku = strtoupper(trim($request->sku));
+        if (MasterProduct::where('tenant_id', $tenantId)->where('sku', $sku)->exists()) {
+            return redirect()->back()->withErrors(['sku' => 'SKU Bundle "' . $sku . '" sudah digunakan. Silakan gunakan SKU lain.'])->withInput();
+        }
+
+        $bundle = MasterProduct::create([
+            'tenant_id' => $tenantId,
+            'name' => $request->name,
+            'sku' => $sku,
+            'sku_induk' => $request->sku_induk ? strtoupper(trim($request->sku_induk)) : $sku,
+            'price' => $request->price ?? 0,
+            'selling_price' => $request->price ?? 0,
+            'cost_price' => $request->cost_price ?? 0,
+            'stock' => 0,
+            'min_stock' => $request->min_stock ?? 5,
+            'unit' => $request->unit ?? 'set',
+            'category_id' => $request->category_id ?: null,
+            'brand_id' => $request->brand_id ?: null,
+            'is_bundle' => true,
+            'is_preorder' => $request->filled('is_preorder') ? (bool)$request->is_preorder : false,
+            'is_active' => true,
+        ]);
+
+        foreach ($request->components as $comp) {
+            $childId = $comp['id'] ?? null;
+            $qty = (int) ($comp['quantity'] ?? 1);
+            if ($childId && $qty > 0) {
+                $bundle->components()->attach($childId, ['quantity' => $qty]);
+            }
+        }
+
+        MasterProduct::recalculateAllBundleStocks($tenantId);
+
+        return redirect()->route('v2.produk.index')->with('success', "Set Bundle Paket \"{$bundle->name}\" berhasil dibuat dari " . count($request->components) . " produk komponen!");
+    }
+
     public function show($id)
     {
         $tenantId = Auth::user()->tenant_id;
