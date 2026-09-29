@@ -346,21 +346,16 @@
                     &nbsp;·&nbsp; Halaman {{ $returns->currentPage() }} dari {{ $returns->lastPage() }}
                 @endif
             </div>
-        </div>
-
-        {{-- Table --}}
+               {{-- Table --}}
         <div class="table-responsive">
             <table class="rtr-table">
                 <thead>
                     <tr>
-                        <th style="width: 40px; text-align: center;">#</th>
-                        <th>SN RETUR &amp; PESANAN ASLI</th>
-                        <th>TOKO &amp; CHANNEL</th>
-                        <th>BARANG DIRETUR &amp; ALASAN</th>
-                        <th style="text-align: right;">NOMINAL REFUND</th>
-                        <th style="text-align: center;">STATUS MARKETPLACE</th>
-                        <th style="text-align: center;">INSPEKSI GUDANG (QC)</th>
-                        <th style="text-align: center;">AKSI</th>
+                        <th style="width: 36px; text-align: center;">#</th>
+                        <th style="min-width: 210px;">RETUR &amp; TOKO</th>
+                        <th style="min-width: 230px;">BARANG DIRETUR &amp; ALASAN</th>
+                        <th style="min-width: 180px; text-align: center;">STATUS &amp; REFUND</th>
+                        <th style="width: 120px; text-align: center;">AKSI</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -380,34 +375,31 @@
                                 {{ $returns->firstItem() + $index }}
                             </td>
 
-                            {{-- SN Retur & Pesanan --}}
+                            {{-- Retur & Toko --}}
                             <td>
-                                <div class="fw-bold text-primary font-monospace" style="font-size: 0.83rem;">
-                                    <i class="bi bi-arrow-return-left me-1"></i>{{ $ret->return_sn }}
+                                <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                    <span class="fw-bold text-primary font-monospace" style="font-size: 0.83rem;">
+                                        <i class="bi bi-arrow-return-left me-0.5"></i>{{ $ret->return_sn }}
+                                    </span>
+                                    <span class="rtr-badge {{ $chClass }}" style="font-size:0.62rem; padding: 2px 6px;">
+                                        {{ $chName }}
+                                    </span>
                                 </div>
-                                <div class="mt-1" style="font-size: 0.73rem;">
-                                    <span class="text-muted">Invoice:</span>
+                                <div class="fw-bold text-dark mt-1" style="font-size: 0.78rem;">
+                                    <i class="bi bi-shop me-1 text-secondary"></i>{{ $ret->store->store_name ?? 'Toko Tidak Diketahui' }}
+                                </div>
+                                <div class="mt-0.5 text-muted" style="font-size: 0.7rem;">
+                                    <span>Inv:</span>
                                     @if($ret->order)
-                                        <a href="{{ route('v2.pesanan.index', ['order_number' => $ret->order->invoice_number]) }}" class="fw-bold text-dark text-decoration-none" title="Lihat Pesanan Asli">
+                                        <a href="{{ route('v2.pesanan.index', ['order_number' => $ret->order->invoice_number]) }}" class="fw-semibold text-dark text-decoration-none" title="Lihat Pesanan Asli">
                                             {{ $ret->order->invoice_number ?? $ret->order->order_marketplace_id }}
                                         </a>
                                     @else
-                                        <span class="text-muted">-</span>
+                                        <span>-</span>
                                     @endif
+                                    &nbsp;·&nbsp;
+                                    <span>{{ $ret->created_at ? $ret->created_at->format('d/m/y H:i') : '-' }}</span>
                                 </div>
-                                <div class="text-muted" style="font-size: 0.68rem;">
-                                    <i class="bi bi-clock me-1"></i>{{ $ret->created_at ? $ret->created_at->format('d/m/Y H:i') : '-' }}
-                                </div>
-                            </td>
-
-                            {{-- Toko & Channel --}}
-                            <td>
-                                <div class="fw-bold text-dark" style="font-size: 0.8rem;">
-                                    {{ $ret->store->store_name ?? 'Toko Tidak Diketahui' }}
-                                </div>
-                                <span class="rtr-badge {{ $chClass }} mt-1">
-                                    <i class="bi bi-shop me-1"></i>{{ $chName }}
-                                </span>
                             </td>
 
                             {{-- Barang & Alasan --}}
@@ -423,54 +415,44 @@
                                     @endforeach
                                 </div>
                                 @if($ret->reason)
-                                    <div class="text-danger mt-1 bg-danger bg-opacity-10 p-1.5 rounded" style="font-size: 0.7rem;">
-                                        <i class="bi bi-info-circle-fill me-1"></i>
+                                    <div class="text-danger bg-danger bg-opacity-10 px-2 py-0.5 rounded d-inline-block mt-0.5" style="font-size: 0.68rem;">
+                                        <i class="bi bi-exclamation-circle-fill me-1"></i>
                                         <strong>Alasan:</strong> {{ $ret->reason }}
                                     </div>
                                 @endif
                             </td>
 
-                            {{-- Nominal Refund --}}
-                            <td style="text-align: right;">
-                                <div class="fw-bold text-dark font-monospace" style="font-size: 0.85rem;">
+                            {{-- Status & Refund --}}
+                            <td style="text-align: center;">
+                                <div class="fw-bold text-dark font-monospace mb-1" style="font-size: 0.85rem;">
                                     Rp {{ number_format($ret->refund_amount ?? 0, 0, ',', '.') }}
                                 </div>
-                            </td>
-
-                            {{-- Status Marketplace --}}
-                            <td style="text-align: center;">
-                                <span class="rtr-badge rtr-badge-status">
-                                    {{ $ret->status ?? 'REQUESTED' }}
-                                </span>
-                            </td>
-
-                            {{-- QC / Inspeksi Gudang --}}
-                            <td style="text-align: center;">
-                                @if($ret->is_restocked)
-                                    @if($ret->inspection_status === 'GOOD')
-                                        <span class="rtr-badge rtr-badge-qc-good mb-1">
-                                            <i class="bi bi-check-circle-fill"></i> Layak Jual (Restocked)
-                                        </span>
-                                    @else
-                                        <span class="rtr-badge rtr-badge-qc-defective mb-1">
-                                            <i class="bi bi-x-circle-fill"></i> Cacat / Rusak
-                                        </span>
-                                    @endif
-                                    @if($ret->inspection_notes)
-                                        <div class="text-muted text-truncate mx-auto" style="max-width: 120px; font-size: 0.65rem;" title="{{ $ret->inspection_notes }}">
-                                            Catatan: {{ $ret->inspection_notes }}
-                                        </div>
-                                    @endif
-                                @else
-                                    <span class="rtr-badge rtr-badge-qc-pending">
-                                        <i class="bi bi-hourglass-split"></i> Belum QC Gudang
+                                <div class="d-flex flex-wrap align-items-center justify-content-center gap-1">
+                                    <span class="rtr-badge rtr-badge-status" title="Status Marketplace">
+                                        {{ $ret->status ?? 'REQUESTED' }}
                                     </span>
-                                @endif
+
+                                    @if($ret->is_restocked)
+                                        @if($ret->inspection_status === 'GOOD')
+                                            <span class="rtr-badge rtr-badge-qc-good" title="Status QC Gudang">
+                                                <i class="bi bi-check-circle-fill"></i> Layak Jual
+                                            </span>
+                                        @else
+                                            <span class="rtr-badge rtr-badge-qc-defective" title="Status QC Gudang">
+                                                <i class="bi bi-x-circle-fill"></i> Cacat
+                                            </span>
+                                        @endif
+                                    @else
+                                        <span class="rtr-badge rtr-badge-qc-pending" title="Status QC Gudang">
+                                            <i class="bi bi-hourglass-split"></i> Belum QC
+                                        </span>
+                                    @endif
+                                </div>
 
                                 @if($ret->replacement_order_id)
                                     <div class="mt-1">
-                                        <span class="badge bg-info text-white" style="font-size: 0.65rem;">
-                                            <i class="bi bi-arrow-repeat me-1"></i>Barang Pengganti Dikirim
+                                        <span class="badge bg-info text-white" style="font-size: 0.62rem;">
+                                            <i class="bi bi-arrow-repeat me-1"></i>Pengganti Dikirim
                                         </span>
                                     </div>
                                 @endif
@@ -490,7 +472,7 @@
 
                                         @if(!$ret->replacement_order_id && $ret->order)
                                             <button type="button" class="rtr-btn rtr-btn-primary" data-bs-toggle="modal" data-bs-target="#replModal-{{ $ret->id }}">
-                                                <i class="bi bi-box-arrow-right"></i> Kirim Pengganti
+                                                <i class="bi bi-box-arrow-right"></i> Pengganti
                                             </button>
                                         @endif
                                     @endif
@@ -649,12 +631,11 @@
 
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
+                            <td colspan="5" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
                                 <div class="fw-bold" style="font-size:0.9rem;">Tidak Ada Data Retur</div>
                                 <div style="font-size:0.75rem;">Belum ada pesanan retur yang sesuai dengan filter pencarian Anda.</div>
                             </td>
-                        </tr>
                     @endforelse
                 </tbody>
             </table>
