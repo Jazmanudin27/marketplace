@@ -178,6 +178,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/produk/{id}/edit', [\App\Http\Controllers\V2\ProdukController::class, 'edit'])->name('produk.edit');
         Route::put('/produk/{id}', [\App\Http\Controllers\V2\ProdukController::class, 'update'])->name('produk.update');
         Route::delete('/produk/{id}', [\App\Http\Controllers\V2\ProdukController::class, 'destroy'])->name('produk.destroy');
+
+        // Kategori & Brand V2
+        Route::get('/kategori-brand', [\App\Http\Controllers\V2\KategoriBrandController::class, 'index'])->name('kategori.index');
+        Route::post('/kategori', [\App\Http\Controllers\V2\KategoriBrandController::class, 'storeCategory'])->name('kategori.store');
+        Route::put('/kategori/{id}', [\App\Http\Controllers\V2\KategoriBrandController::class, 'updateCategory'])->name('kategori.update');
+        Route::delete('/kategori/{id}', [\App\Http\Controllers\V2\KategoriBrandController::class, 'destroyCategory'])->name('kategori.destroy');
+
+        Route::post('/brand', [\App\Http\Controllers\V2\KategoriBrandController::class, 'storeBrand'])->name('brand.store');
+        Route::put('/brand/{id}', [\App\Http\Controllers\V2\KategoriBrandController::class, 'updateBrand'])->name('brand.update');
+        Route::delete('/brand/{id}', [\App\Http\Controllers\V2\KategoriBrandController::class, 'destroyBrand'])->name('brand.destroy');
     });
 
     // =========================================================================

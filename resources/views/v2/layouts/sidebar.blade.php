@@ -45,7 +45,7 @@
             </a>
         </div>
         <div class="v2-nav-item">
-            <a href="{{ Route::has('categories.index') ? route('categories.index') : url('/categories') }}" class="v2-nav-link">
+            <a href="{{ url('/v2/kategori-brand') }}" class="v2-nav-link {{ request()->is('v2/kategori*') || request()->is('v2/brand*') ? 'active' : '' }}">
                 <i class="bi bi-tags-fill"></i>
                 <span>Kategori & Brand</span>
             </a>
