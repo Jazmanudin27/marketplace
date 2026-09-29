@@ -147,13 +147,6 @@
                 <span>Memantau Stok</span>
             </a>
         </div>
-        <div class="v2-nav-item">
-            <a href="{{ Route::has('v2.stock_opname.index') ? route('v2.stock_opname.index') : url('/v2/stock-opname') }}"
-                class="v2-nav-link {{ request()->is('v2/stock-opname*') || request()->is('stock-opnames*') ? 'active' : '' }}">
-                <i class="bi bi-clipboard-check text-warning"></i>
-                <span>Opname Stok</span>
-            </a>
-        </div>
 
         <!-- HRD & Keuangan -->
         <div class="v2-nav-section-title mt-2">KEUANGAN & HRD</div>
