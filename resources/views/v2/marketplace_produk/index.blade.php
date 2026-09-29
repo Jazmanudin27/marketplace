@@ -195,13 +195,12 @@
         <table class="table v2-table table-hover align-middle mb-0">
             <thead>
                 <tr>
-                    <th style="width: 14%;">SKU MARKETPLACE</th>
-                    <th style="width: 28%;">NAMA PRODUK</th>
-                    <th style="width: 12%;">HARGA JUAL</th>
-                    <th style="width: 10%;" class="text-center">STOK</th>
-                    <th style="width: 16%;">STATUS MASTER</th>
-                    <th style="width: 12%;">TOKO / CHANNEL</th>
-                    <th style="width: 8%;" class="text-center">AKSI</th>
+                    <th style="width: 38%;">NAMA PRODUK</th>
+                    <th style="width: 13%;">HARGA JUAL</th>
+                    <th style="width: 8%;" class="text-center">STOK</th>
+                    <th style="width: 17%;">STATUS MASTER</th>
+                    <th style="width: 14%;">TOKO / CHANNEL</th>
+                    <th style="width: 10%;" class="text-center">AKSI</th>
                 </tr>
             </thead>
             <tbody>
@@ -217,17 +216,6 @@
                         };
                     @endphp
                     <tr>
-                        <!-- SKU Marketplace -->
-                        <td>
-                            @if ($product->marketplace_sku)
-                                <code class="text-primary font-monospace px-1.5 py-0.5 rounded bg-light border" style="font-size: 0.72rem;">
-                                    {{ $product->marketplace_sku }}
-                                </code>
-                            @else
-                                <span class="badge bg-secondary-subtle text-secondary border px-1.5 py-0.5" style="font-size: 0.65rem;">Tanpa SKU</span>
-                            @endif
-                        </td>
-
                         <!-- Nama Produk & Thumbnail -->
                         <td>
                             <div class="d-flex align-items-center gap-2">
@@ -244,12 +232,16 @@
                                     </div>
                                 @endif
                                 <div class="overflow-hidden">
-                                    <div class="fw-semibold text-dark text-truncate" style="font-size: 0.78rem; max-width: 280px;" title="{{ $product->name }}">
+                                    <div class="fw-semibold text-dark text-truncate" style="font-size: 0.78rem; max-width: 320px;" title="{{ $product->name }}">
                                         {{ $product->name }}
                                     </div>
                                     <div class="text-muted d-flex align-items-center gap-1" style="font-size: 0.68rem;">
-                                        <span>ID:</span>
-                                        <code class="font-monospace text-secondary">{{ $product->marketplace_product_id }}</code>
+                                        @if ($product->marketplace_sku)
+                                            <i class="bi bi-upc-scan text-primary" style="font-size: 0.65rem;"></i>
+                                            <code class="font-monospace text-primary" style="font-size: 0.68rem;">{{ $product->marketplace_sku }}</code>
+                                        @else
+                                            <span class="text-secondary fst-italic">Tanpa SKU</span>
+                                        @endif
                                         @if($product->isPreOrder())
                                             <span class="badge bg-warning text-dark px-1 py-0" style="font-size: 0.58rem;">PO</span>
                                         @endif
