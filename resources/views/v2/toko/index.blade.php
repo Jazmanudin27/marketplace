@@ -193,8 +193,8 @@
                         @endif
                     </div>
 
-                    <!-- Action Buttons Footer -->
-                    <div class="pt-2.5 border-top d-flex gap-1.5 align-items-center">
+                    <!-- Action Buttons Footer with Spacing & Margins -->
+                    <div class="pt-2.5 mt-1 border-top d-flex align-items-center justify-content-between gap-2">
                         @if ($store->status === 'connected')
                             @php
                                 $syncProductRoute = match($chCode) {
@@ -213,23 +213,25 @@
                                 };
                             @endphp
 
-                            @if ($syncProductRoute)
-                                <form action="{{ $syncProductRoute }}" method="POST" class="flex-fill m-0">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm btn-v2-primary w-100 py-1 px-1.5 justify-content-center" style="font-size: 0.7rem;" title="Tarik Produk dari Toko Ini">
-                                        <i class="bi bi-box-arrow-in-down me-1"></i>Tarik Produk
-                                    </button>
-                                </form>
-                            @endif
+                            <div class="d-flex align-items-center gap-2 flex-grow-1">
+                                @if ($syncProductRoute)
+                                    <form action="{{ $syncProductRoute }}" method="POST" class="flex-fill m-0">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-v2-primary w-100 py-1.5 px-2 justify-content-center rounded-2 shadow-xs" style="font-size: 0.72rem;" title="Tarik Produk dari Toko Ini">
+                                            <i class="bi bi-box-arrow-in-down me-1"></i>Tarik Produk
+                                        </button>
+                                    </form>
+                                @endif
 
-                            @if ($syncOrderRoute)
-                                <form action="{{ $syncOrderRoute }}" method="POST" class="flex-fill m-0">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm btn-v2-success w-100 py-1 px-1.5 justify-content-center" style="font-size: 0.7rem; background-color: #10b981 !important; border-color: #10b981 !important; color: #ffffff !important;" title="Tarik Pesanan dari Toko Ini">
-                                        <i class="bi bi-cart-download me-1"></i>Tarik Order
-                                    </button>
-                                </form>
-                            @endif
+                                @if ($syncOrderRoute)
+                                    <form action="{{ $syncOrderRoute }}" method="POST" class="flex-fill m-0">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-v2-success w-100 py-1.5 px-2 justify-content-center rounded-2 shadow-xs" style="font-size: 0.72rem; background-color: #10b981 !important; border-color: #10b981 !important; color: #ffffff !important;" title="Tarik Pesanan dari Toko Ini">
+                                            <i class="bi bi-cart-download me-1"></i>Tarik Order
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
                         @elseif ($store->status === 'expired')
                             @php
                                 $reconnectUrl = match($chCode) {
@@ -241,23 +243,25 @@
                                 };
                             @endphp
                             @if ($reconnectUrl)
-                                <a href="{{ $reconnectUrl }}" class="btn btn-sm btn-warning text-dark fw-bold w-100 py-1 justify-content-center" style="font-size: 0.72rem;">
+                                <a href="{{ $reconnectUrl }}" class="btn btn-sm btn-warning text-dark fw-bold flex-grow-1 py-1.5 px-2.5 justify-content-center rounded-2 shadow-xs me-1" style="font-size: 0.72rem;">
                                     <i class="bi bi-arrow-repeat me-1"></i>Hubungkan Ulang
                                 </a>
                             @endif
                         @endif
 
-                        <a href="{{ url('/v2/toko/' . $store->id . '/edit') }}" class="btn-action-icon btn-action-edit flex-shrink-0" title="Edit Pengaturan Toko">
-                            <i class="bi bi-gear text-white"></i>
-                        </a>
-                        
-                        <form action="{{ url('/v2/toko/' . $store->id) }}" method="POST" class="d-inline m-0 p-0 flex-shrink-0">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn-action-icon btn-action-delete" title="Hapus Toko" onclick="return confirm('Apakah Anda yakin ingin menghapus toko ini?')">
-                                <i class="bi bi-trash text-white"></i>
-                            </button>
-                        </form>
+                        <div class="d-flex align-items-center gap-1.5 flex-shrink-0 ms-1">
+                            <a href="{{ url('/v2/toko/' . $store->id . '/edit') }}" class="btn-action-icon btn-action-edit rounded-2" title="Edit Pengaturan Toko">
+                                <i class="bi bi-gear text-white"></i>
+                            </a>
+                            
+                            <form action="{{ url('/v2/toko/' . $store->id) }}" method="POST" class="d-inline m-0 p-0">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn-action-icon btn-action-delete rounded-2" title="Hapus Toko" onclick="return confirm('Apakah Anda yakin ingin menghapus toko ini?')">
+                                    <i class="bi bi-trash text-white"></i>
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                 </div>
