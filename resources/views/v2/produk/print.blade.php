@@ -107,22 +107,15 @@
                 <th>Model / Brand</th>
                 <th style="width: 80px;" class="text-end">HPP (Rp)</th>
                 <th style="width: 85px;" class="text-end">Harga Jual</th>
+                <th style="width: 70px;" class="text-end">Est. Kain</th>
+                <th style="width: 90px;" class="text-end">Est. Produksi</th>
                 <th style="width: 55px;" class="text-center">Stok</th>
-                <th style="width: 60px;" class="text-center">Jenis</th>
-                <th style="width: 60px;" class="text-center">Tipe</th>
-                <th>Toko Terhubung</th>
+                <th style="width: 55px;" class="text-center">Jenis</th>
+                <th style="width: 55px;" class="text-center">Tipe</th>
             </tr>
         </thead>
         <tbody>
             @forelse($products as $index => $prod)
-                @php
-                    $uniqueStores = $prod->marketplaceProducts->unique(function($mp) {
-                        return ($mp->store_id ?? $mp->store->store_name ?? '') . '_' . ($mp->marketplace_sku ?? $mp->sku ?? '');
-                    });
-                    $storeList = $uniqueStores->map(function($mp) {
-                        return ($mp->store->store_name ?? 'Toko') . ' (' . ($mp->store->channel->name ?? 'MP') . ')';
-                    })->implode(', ');
-                @endphp
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td class="text-center fw-bold">{{ $prod->sku }}</td>
@@ -136,14 +129,15 @@
                     <td>{{ $prod->brand->name ?? '-' }}</td>
                     <td class="text-end">{{ isset($prod->cost_price) && $prod->cost_price > 0 ? number_format($prod->cost_price, 0, ',', '.') : '-' }}</td>
                     <td class="text-end fw-bold">{{ number_format($prod->selling_price ?? $prod->price ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-end">{{ $prod->est_kain > 0 ? number_format($prod->est_kain, 2, ',', '.') . ' m' : '-' }}</td>
+                    <td class="text-end">{{ $prod->est_biaya_produksi > 0 ? 'Rp ' . number_format($prod->est_biaya_produksi, 0, ',', '.') : '-' }}</td>
                     <td class="text-center fw-bold">{{ number_format($prod->stock ?? 0) }} {{ $prod->unit ?? 'pcs' }}</td>
                     <td class="text-center">{{ $prod->is_bundle ? 'Bundle' : 'Single' }}</td>
                     <td class="text-center">{{ $prod->is_preorder ? 'PO' : 'Ready' }}</td>
-                    <td>{{ $storeList ?: 'Belum Terhubung' }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="11" class="text-center py-3">Tidak ada data produk master yang sesuai dengan filter.</td>
+                    <td colspan="12" class="text-center py-3">Tidak ada data produk master yang sesuai dengan filter.</td>
                 </tr>
             @endforelse
         </tbody>
