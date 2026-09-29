@@ -155,25 +155,6 @@
 }
 .order-link:hover { color: #1d4ed8; text-decoration: underline; }
 
-/* sku tag */
-.v2-sku-tag {
-    font-size: 0.68rem;
-    color: #6b7280;
-    font-family: 'Courier New', monospace;
-    background: #f3f4f6;
-    border-radius: 3px;
-    padding: 1px 5px;
-    display: inline-block;
-}
-
-/* buyer avatar */
-.psr-avatar {
-    width: 26px; height: 26px; border-radius: 50%;
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-    color: #fff; font-size: 0.68rem; font-weight: 700;
-    display: inline-flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-}
 
 /* channel badges */
 .ch-badge {
@@ -501,7 +482,9 @@
                             {{-- Produk & Pesanan --}}
                             <td>
                                 <div class="d-flex flex-column gap-1">
-                                    <a href="{{ route('orders.show', $order) }}" class="order-link">
+                                    <a href="#" class="order-link psr-detail-trigger"
+                                       data-order-id="{{ $order->id }}"
+                                       data-url="{{ route('orders.show', $order->id) }}?modal=1">
                                         {{ $order->invoice_number ?? $order->order_marketplace_id }}
                                     </a>
                                     {{-- Meta badges --}}
@@ -530,21 +513,10 @@
                                             </span>
                                         @endif
                                     </div>
-                                    {{-- SKU Items --}}
-                                    @if($order->items->isNotEmpty())
-                                        <div class="d-flex flex-column gap-1">
-                                            @foreach($order->items as $item)
-                                                <span class="v2-sku-tag">
-                                                    <i class="bi bi-tag-fill me-1 opacity-50"></i>
-                                                    {{ $item->sku ?? ($item->masterProduct->sku ?? '-') }}
-                                                    <span style="color:#9ca3af;">&times;{{ $item->quantity }}</span>
-                                                    @if($item->is_substituted)
-                                                        <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem; padding:1px 3px;">Tukar</span>
-                                                    @endif
-                                                </span>
-                                            @endforeach
-                                        </div>
-                                    @endif
+                                    <span class="v2-meta-badge" style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd; cursor:pointer;"
+                                          onclick="this.closest('tr').querySelector('.psr-detail-trigger').click()">
+                                        <i class="bi bi-eye me-1"></i>{{ $order->items->count() }} item &middot; Lihat Detail
+                                    </span>
                                 </div>
                             </td>
 
@@ -771,6 +743,62 @@ document.addEventListener('DOMContentLoaded', function () {
     /* ── Tooltips ── */
     document.querySelectorAll('[data-bs-toggle="tooltip"]')
             .forEach(el => new bootstrap.Tooltip(el));
+
+    /* ── Modal Detail Pesanan ── */
+    const detailModal    = new bootstrap.Modal(document.getElementById('psrDetailModal'));
+    const detailBody     = document.getElementById('psrDetailBody');
+    const detailTitle    = document.getElementById('psrDetailTitle');
+    const detailSpinner  = document.getElementById('psrDetailSpinner');
+
+    document.addEventListener('click', function (e) {
+        const trigger = e.target.closest('.psr-detail-trigger');
+        if (!trigger) return;
+        e.preventDefault();
+
+        const url   = trigger.dataset.url;
+        const label = trigger.textContent.trim();
+
+        detailTitle.textContent = label;
+        detailBody.innerHTML    = '';
+        detailSpinner.classList.remove('d-none');
+        detailModal.show();
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.text())
+            .then(html => {
+                detailSpinner.classList.add('d-none');
+                detailBody.innerHTML = html;
+            })
+            .catch(() => {
+                detailSpinner.classList.add('d-none');
+                detailBody.innerHTML = '<div class="text-center text-danger py-4"><i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>Gagal memuat detail pesanan.</div>';
+            });
+    });
 });
 </script>
+
+{{-- ── Modal Detail Pesanan ── --}}
+<div class="modal fade" id="psrDetailModal" tabindex="-1" aria-labelledby="psrDetailTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius:10px; overflow:hidden;">
+            <div class="modal-header py-2 px-3" style="background:linear-gradient(135deg,#1e3a5f,#2563eb); border:none;">
+                <h6 class="modal-title text-white fw-bold d-flex align-items-center gap-2 mb-0" style="font-size:0.88rem;">
+                    <i class="bi bi-receipt"></i>
+                    <span id="psrDetailTitle">Detail Pesanan</span>
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" style="min-height:200px;">
+                <div id="psrDetailSpinner" class="d-flex align-items-center justify-content-center py-5">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width:2rem;height:2rem;"></div>
+                        <div class="text-muted" style="font-size:0.8rem;">Memuat detail pesanan...</div>
+                    </div>
+                </div>
+                <div id="psrDetailBody"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endpush
