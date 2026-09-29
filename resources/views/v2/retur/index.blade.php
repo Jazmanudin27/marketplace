@@ -207,9 +207,6 @@
                 <i class="bi bi-arrow-repeat text-primary me-1"></i> Sinkronkan Retur
             </button>
         </form>
-        <a href="{{ route('v2.retur.export', request()->query()) }}" class="btn btn-sm btn-v2-secondary py-1 px-3">
-            <i class="bi bi-file-earmark-excel text-success me-1"></i> Export CSV
-        </a>
     </div>
 </div>
 
@@ -350,6 +347,17 @@
                                 $displayItems = $ret->order->items;
                                 $isFallback = true;
                             }
+
+                            // Human friendly reason format
+                            $reasonRaw = $ret->reason;
+                            $reasonText = match(strtoupper($reasonRaw ?? '')) {
+                                'CHANGE_MIND' => 'Berubah Pikiran',
+                                'WRONG_ITEM' => 'Salah Kirim Barang',
+                                'ITEM_MISSING' => 'Barang Kurang / Hilang',
+                                'DIFFERENT_DESCRIPTION' => 'Tidak Sesuai Deskripsi',
+                                'DEFECTIVE_ITEM', 'DAMAGED_ITEM', 'DAMAGE_ITEM' => 'Barang Cacat / Rusak',
+                                default => str_replace(['_', '-'], ' ', $reasonRaw ?? '')
+                            };
                         @endphp
 
                         {{-- Card Header Strip --}}
@@ -394,7 +402,7 @@
                         {{-- Card Body --}}
                         <tr style="border-bottom: 1px solid #e5e7eb;">
                             {{-- Produk & Alasan --}}
-                            <td class="align-top">
+                            <td class="align-top" style="padding: 12px 16px;">
                                 <div class="d-flex flex-column gap-2 mb-2">
                                     @forelse($displayItems as $item)
                                         @php
@@ -413,32 +421,36 @@
                                                 $variant = $orderItem->variant_name ?? null;
                                             }
                                         @endphp
-                                        <div class="d-flex align-items-start gap-2.5">
-                                            <div class="position-relative border rounded overflow-hidden flex-shrink-0" style="width: 46px; height: 46px; background-color: #f8fafc;">
+                                        <div class="p-2 rounded-3 bg-white border border-slate-200 shadow-2xs d-flex align-items-start gap-2.5">
+                                            <div class="position-relative border rounded-2 overflow-hidden flex-shrink-0" style="width: 50px; height: 50px; background-color: #f8fafc;">
                                                 @if($imgUrl)
                                                     <img src="{{ $imgUrl }}" alt="Foto" style="width: 100%; height: 100%; object-fit: cover;">
                                                 @else
                                                     <div class="d-flex align-items-center justify-content-center h-100 w-100 text-muted" style="background-color: #f1f5f9;">
-                                                        <i class="bi bi-box-seam fs-5"></i>
+                                                        <i class="bi bi-box-seam fs-5 text-secondary"></i>
                                                     </div>
                                                 @endif
-                                                <span class="position-absolute bottom-0 end-0 bg-dark text-white px-1 font-monospace fw-bold" style="font-size: 0.62rem; border-top-left-radius: 4px;">
+                                                <span class="position-absolute bottom-0 end-0 bg-primary text-white px-1.5 font-monospace fw-bold" style="font-size: 0.62rem; border-top-left-radius: 5px;">
                                                     {{ $qty }}x
                                                 </span>
                                             </div>
                                             <div class="flex-grow-1 min-w-0">
-                                                <div class="fw-bold text-dark" style="font-size: 0.78rem; line-height: 1.3;">
+                                                <div class="fw-bold text-dark text-truncate-2" style="font-size: 0.8rem; line-height: 1.35; color: #1e293b;">
                                                     {{ $prodName }}
                                                 </div>
-                                                <div class="text-muted mt-0.5 d-flex flex-wrap align-items-center gap-2" style="font-size: 0.7rem;">
+                                                <div class="mt-1 d-flex flex-wrap align-items-center gap-1.5" style="font-size: 0.68rem;">
                                                     @if($sku)
-                                                        <span>SKU: <span class="fw-semibold text-dark">{{ $sku }}</span></span>
+                                                        <span class="badge bg-light text-dark border px-1.5 py-0.5" style="font-weight: 500;">
+                                                            <i class="bi bi-barcode text-muted me-1"></i>SKU: {{ $sku }}
+                                                        </span>
                                                     @endif
                                                     @if($variant)
-                                                        <span class="badge bg-light text-dark border px-1.5 py-0.5" style="font-size: 0.64rem;">Variasi: {{ $variant }}</span>
+                                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-1.5 py-0.5" style="font-weight: 500;">
+                                                            Variasi: {{ $variant }}
+                                                        </span>
                                                     @endif
                                                     @if($isFallback)
-                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-1.5 py-0.5" style="font-size: 0.64rem;" title="Item diperoleh dari pesanan asli">Pesanan</span>
+                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-1.5 py-0.5" title="Diambil dari data pesanan asli">Pesanan</span>
                                                     @endif
                                                 </div>
                                             </div>
@@ -449,9 +461,17 @@
                                 </div>
 
                                 @if($ret->reason)
-                                    <div class="text-danger bg-danger bg-opacity-10 px-2.5 py-1 rounded d-inline-block" style="font-size: 0.72rem;">
-                                        <i class="bi bi-exclamation-circle-fill me-1"></i>
-                                        <strong>Alasan:</strong> {{ $ret->reason }}
+                                    <div class="p-2 rounded-3 border d-flex align-items-center gap-2 mt-2" style="background: linear-gradient(135deg, #fff1f2, #fef2f2); border-color: #fecaca !important;">
+                                        <div class="rounded-circle bg-danger bg-opacity-15 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 24px; height: 24px;">
+                                            <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 0.72rem;"></i>
+                                        </div>
+                                        <div class="overflow-hidden" style="font-size: 0.72rem;">
+                                            <span class="text-danger fw-bold">Alasan Retur:</span>
+                                            <span class="text-dark fw-semibold me-1">{{ $reasonText }}</span>
+                                            @if($reasonText !== $reasonRaw)
+                                                <span class="text-muted font-monospace" style="font-size: 0.65rem;">({{ $reasonRaw }})</span>
+                                            @endif
+                                        </div>
                                     </div>
                                 @endif
                             </td>

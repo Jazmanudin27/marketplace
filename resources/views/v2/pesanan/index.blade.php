@@ -240,38 +240,11 @@
         <a href="{{ url('/v2/pesanan') }}" class="btn btn-sm btn-v2-secondary py-1 px-2" title="Refresh">
             <i class="bi bi-arrow-clockwise"></i>
         </a>
-        @can('orders.export')
-        <a href="{{ route('orders.export', request()->all()) }}" class="btn btn-sm btn-v2-secondary py-1 px-3">
-            <i class="bi bi-file-earmark-excel me-1"></i> Export CSV
-        </a>
-        @endcan
         <button type="submit" form="mass-print-form" class="btn btn-sm btn-v2-primary py-1 px-3 shadow-sm">
             <i class="bi bi-printer me-1"></i> Cetak Massal
         </button>
     </div>
 </div>
-
-
-{{-- ── Urgent Banner ── --}}
-@if($toProcessCount > 0)
-<div class="v2-card mb-3 p-0 overflow-hidden shadow-sm" style="border-left: 3px solid #3b82f6;">
-    <div class="psr-urgent-banner">
-        <div class="d-flex align-items-center gap-3">
-            <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                 style="width:36px; height:36px; background: linear-gradient(135deg,#2563eb,#3b82f6); flex-shrink:0;">
-                <i class="bi bi-exclamation-circle-fill text-white" style="font-size:1rem;"></i>
-            </div>
-            <div>
-                <div class="fw-bold text-dark" style="font-size:0.85rem;">Ada <span class="text-primary">{{ $toProcessCount }}</span> pesanan menunggu proses</div>
-                <div class="text-muted" style="font-size:0.72rem;">Segera cetak resi atau proses pesanan ini agar tidak melewati batas pengiriman.</div>
-            </div>
-        </div>
-        <a href="{{ url('/v2/pesanan?process_status=to_process') }}" class="psr-btn psr-btn-primary" style="flex-shrink:0;">
-            <i class="bi bi-arrow-right-circle"></i> Proses Sekarang
-        </a>
-    </div>
-</div>
-@endif
 
 {{-- ── Main Card ── --}}
 <div class="v2-card p-0 shadow-sm overflow-hidden">
