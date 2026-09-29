@@ -247,10 +247,13 @@
                             </td>
                             <td>
                                 @php
-                                    $linkedStoresCount = $prod->marketplaceProducts->count();
+                                    $uniqueStores = $prod->marketplaceProducts->unique(function($mp) {
+                                        return ($mp->store_id ?? $mp->store->store_name ?? '') . '_' . ($mp->marketplace_sku ?? $mp->sku ?? '');
+                                    });
+                                    $linkedStoresCount = $uniqueStores->count();
                                     $storeData = [];
                                     if ($linkedStoresCount > 0) {
-                                        foreach ($prod->marketplaceProducts as $mp) {
+                                        foreach ($uniqueStores as $mp) {
                                             $storeData[] = [
                                                 'store_name' => $mp->store->store_name ?? 'Toko Marketplace',
                                                 'channel_name' => $mp->store->channel->name ?? 'Marketplace',
