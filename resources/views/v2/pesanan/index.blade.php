@@ -513,10 +513,6 @@
                                             </span>
                                         @endif
                                     </div>
-                                    <span class="v2-meta-badge" style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd; cursor:pointer;"
-                                          onclick="this.closest('tr').querySelector('.psr-detail-trigger').click()">
-                                        <i class="bi bi-eye me-1"></i>{{ $order->items->count() }} item &middot; Lihat Detail
-                                    </span>
                                 </div>
                             </td>
 
