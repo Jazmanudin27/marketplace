@@ -238,6 +238,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/mutasi-keuangan', [\App\Http\Controllers\V2\MutasiKeuanganController::class, 'index'])->name('mutasi_keuangan.index');
         Route::get('/mutasi-keuangan/export', [\App\Http\Controllers\V2\MutasiKeuanganController::class, 'export'])->name('mutasi_keuangan.export');
         Route::get('/mutasi-keuangan/print', [\App\Http\Controllers\V2\MutasiKeuanganController::class, 'print'])->name('mutasi_keuangan.print');
+
+        // Saldo Marketplace V2
+        Route::get('/saldo-marketplace', [\App\Http\Controllers\V2\SaldoMarketplaceController::class, 'index'])->name('saldo_marketplace.index');
+        Route::get('/saldo-marketplace/{store}/mutasi', [\App\Http\Controllers\V2\SaldoMarketplaceController::class, 'mutasi'])->name('saldo_marketplace.mutasi');
+        Route::get('/saldo-marketplace/{store}/pending', [\App\Http\Controllers\V2\SaldoMarketplaceController::class, 'pending'])->name('saldo_marketplace.pending');
+        Route::get('/saldo-marketplace/{store}/sync', [\App\Http\Controllers\V2\SaldoMarketplaceController::class, 'sync'])->name('saldo_marketplace.sync');
     });
 
     // =========================================================================

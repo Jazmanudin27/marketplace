@@ -134,6 +134,13 @@
             </a>
         </div>
         <div class="v2-nav-item">
+            <a href="{{ route('v2.saldo_marketplace.index') }}"
+                class="v2-nav-link {{ request()->is('v2/saldo-marketplace*') ? 'active' : '' }}">
+                <i class="bi bi-wallet2"></i>
+                <span>Saldo Marketplace</span>
+            </a>
+        </div>
+        <div class="v2-nav-item">
             <a href="{{ Route::has('reports.income_statement') ? route('reports.income_statement') : url('/reports') }}"
                 class="v2-nav-link">
                 <i class="bi bi-bar-chart-line-fill"></i>
