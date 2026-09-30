@@ -185,18 +185,18 @@
             </a>
             <div class="collapse v2-submenu {{ $isTitipanActive ? 'show' : '' }}" id="titipanSubmenu">
                 <div class="v2-submenu-inner">
-                    <a href="{{ route('supplier_consignments.index') }}"
-                        class="v2-submenu-link {{ request()->routeIs('supplier_consignments.index') || request()->routeIs('supplier_consignments.create') || request()->routeIs('supplier_consignments.show') || request()->routeIs('supplier_consignments.edit') ? 'active' : '' }}">
+                    <a href="{{ route('v2.titipan_barang.index') }}"
+                        class="v2-submenu-link {{ request()->routeIs('v2.titipan_barang.index') || request()->routeIs('v2.titipan_barang.create') || request()->routeIs('v2.titipan_barang.show') || request()->routeIs('v2.titipan_barang.edit') || request()->routeIs('supplier_consignments.index') ? 'active' : '' }}">
                         <i class="bi bi-box-arrow-in-down text-success me-1.5"></i>
                         <span>Penerimaan Barang Titipan</span>
                     </a>
-                    <a href="{{ route('supplier_consignments.stock_card') }}"
-                        class="v2-submenu-link {{ request()->routeIs('supplier_consignments.stock_card') ? 'active' : '' }}">
+                    <a href="{{ route('v2.titipan_barang.stock_card') }}"
+                        class="v2-submenu-link {{ request()->routeIs('v2.titipan_barang.stock_card') || request()->routeIs('supplier_consignments.stock_card') ? 'active' : '' }}">
                         <i class="bi bi-card-checklist text-info me-1.5"></i>
                         <span>Kartu Stok Konsinyasi</span>
                     </a>
-                    <a href="{{ route('supplier_consignments.settlement.index') }}"
-                        class="v2-submenu-link {{ request()->routeIs('supplier_consignments.settlement.*') ? 'active' : '' }}">
+                    <a href="{{ route('v2.titipan_barang.settlement.index') }}"
+                        class="v2-submenu-link {{ request()->routeIs('v2.titipan_barang.settlement.*') || request()->routeIs('supplier_consignments.settlement.*') ? 'active' : '' }}">
                         <i class="bi bi-receipt text-warning me-1.5"></i>
                         <span>Riwayat Setoran Supplier</span>
                     </a>
