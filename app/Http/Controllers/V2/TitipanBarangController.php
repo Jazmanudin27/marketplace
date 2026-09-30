@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Inventory;
+namespace App\Http\Controllers\V2;
 
 use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
@@ -16,10 +16,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-class SupplierConsignmentController extends Controller
+class TitipanBarangController extends Controller
 {
     /**
-     * Daftar Penerimaan Barang Jadi Konsinyasi.
+     * Daftar Penerimaan Barang Konsinyasi V2.
      */
     public function index(Request $request)
     {
@@ -53,7 +53,7 @@ class SupplierConsignmentController extends Controller
     }
 
     /**
-     * Form Penerimaan Barang Konsinyasi Baru.
+     * Form Penerimaan Barang Konsinyasi Baru V2.
      */
     public function create()
     {
@@ -66,7 +66,7 @@ class SupplierConsignmentController extends Controller
     }
 
     /**
-     * AJAX Search untuk MasterProduct (Optimasi 20.000+ data dengan Select2).
+     * AJAX Search untuk MasterProduct dengan Select2.
      */
     public function searchProducts(Request $request)
     {
@@ -105,7 +105,7 @@ class SupplierConsignmentController extends Controller
     }
 
     /**
-     * Simpan Penerimaan Barang Konsinyasi (Status: Pending).
+     * Simpan Penerimaan Barang Konsinyasi V2.
      */
     public function store(Request $request)
     {
@@ -151,7 +151,7 @@ class SupplierConsignmentController extends Controller
                 $totalQtyReceived += $qty;
                 $totalAmountHpp   += ($qty * $costPrice);
 
-                $consignmentItem = $consignment->items()->create([
+                $consignment->items()->create([
                     'master_product_id'  => $row['master_product_id'],
                     'qty_received'       => $qty,
                     'unit_cost_price'    => $costPrice,
@@ -159,7 +159,6 @@ class SupplierConsignmentController extends Controller
                     'notes'              => $row['notes'] ?? null,
                 ]);
 
-                // Langsung tambah stok master produk & update harga
                 $product = MasterProduct::find($row['master_product_id']);
                 if ($product) {
                     $product->increment('stock', $qty);
@@ -170,7 +169,6 @@ class SupplierConsignmentController extends Controller
 
                     $newStock = $product->fresh()->stock;
 
-                    // Catat mutasi stok masuk
                     StockMovement::create([
                         'tenant_id'         => $tenantId,
                         'master_product_id' => $product->id,
@@ -196,7 +194,7 @@ class SupplierConsignmentController extends Controller
     }
 
     /**
-     * Detail Penerimaan Barang Konsinyasi.
+     * Detail Penerimaan Barang Konsinyasi V2.
      */
     public function show(SupplierConsignment $consignment)
     {
@@ -208,7 +206,7 @@ class SupplierConsignmentController extends Controller
     }
 
     /**
-     * Cetak Label Stiker Barcode / QR Produk Barang Titipan Konsinyasi
+     * Cetak Label Stiker Barcode / QR Produk Barang Titipan Konsinyasi V2.
      */
     public function printItemLabels(SupplierConsignment $consignment)
     {
@@ -220,7 +218,7 @@ class SupplierConsignmentController extends Controller
     }
 
     /**
-     * Setujui Penerimaan Barang: Tambah Stok MasterProduct & Catat Stock Movement.
+     * Setujui Penerimaan Barang V2.
      */
     public function approve(SupplierConsignment $consignment)
     {
@@ -239,10 +237,7 @@ class SupplierConsignmentController extends Controller
             foreach ($consignment->items as $item) {
                 $product = $item->masterProduct;
                 if ($product) {
-                    // Update stok & cost_price / price pada MasterProduct
                     $product->increment('stock', $item->qty_received);
-                    
-                    // Update cost_price (HPP) dan price (Harga Jual) pada master produk jika bernilai > 0
                     $product->update([
                         'cost_price' => $item->unit_cost_price > 0 ? $item->unit_cost_price : $product->cost_price,
                         'price'      => $item->unit_selling_price > 0 ? $item->unit_selling_price : $product->price,
@@ -250,14 +245,13 @@ class SupplierConsignmentController extends Controller
 
                     $newStock = $product->fresh()->stock;
 
-                    // Catat mutasi stok masuk
                     StockMovement::create([
                         'tenant_id'         => $tenantId,
                         'master_product_id' => $product->id,
                         'user_id'           => $userId,
                         'type'              => 'in',
                         'quantity'          => $item->qty_received,
-                        'reference'         => 'Penitipan Barang Konsinyasi Supplier (' . ($consignment->supplier ? $consignment->supplier->name : 'Supplier') . ') Ã¢â‚¬â€ ' . $consignment->reference_number,
+                        'reference'         => 'Penitipan Barang Konsinyasi Supplier (' . ($consignment->supplier ? $consignment->supplier->name : 'Supplier') . ') — ' . $consignment->reference_number,
                         'balance_after'     => $newStock,
                     ]);
                 }
@@ -271,11 +265,11 @@ class SupplierConsignmentController extends Controller
         });
 
         return redirect()->route('supplier_consignments.show', $consignment)
-            ->with('success', 'Penerimaan barang konsinyasi berhasil disetujui! Stok master produk telah bertambah secara otomatis.');
+            ->with('success', 'Penerimaan barang konsinyasi berhasil disetujui!');
     }
 
     /**
-     * Form Edit Penerimaan Barang Konsinyasi.
+     * Form Edit Penerimaan Barang Konsinyasi V2.
      */
     public function edit(SupplierConsignment $consignment)
     {
@@ -289,7 +283,7 @@ class SupplierConsignmentController extends Controller
     }
 
     /**
-     * Update Penerimaan Barang Konsinyasi & Penyesuaian Stok.
+     * Update Penerimaan Barang Konsinyasi V2.
      */
     public function update(Request $request, SupplierConsignment $consignment)
     {
@@ -307,15 +301,11 @@ class SupplierConsignmentController extends Controller
             'items.*.qty_received'       => 'required|integer|min:1',
             'items.*.unit_cost_price'    => 'required|numeric|min:0',
             'items.*.unit_selling_price' => 'required|numeric|min:0',
-        ], [
-            'supplier_id.required' => 'Supplier penyedia barang konsinyasi wajib dipilih.',
-            'items.required'       => 'Minimal satu produk konsinyasi harus diisikan.',
         ]);
 
         DB::transaction(function () use ($request, $consignment, $tenantId, $userId) {
             $consignment->load('items.masterProduct');
 
-            // 1. Revert stok lama dari master product
             foreach ($consignment->items as $oldItem) {
                 if ($product = $oldItem->masterProduct) {
                     $product->decrement('stock', $oldItem->qty_received);
@@ -333,10 +323,8 @@ class SupplierConsignmentController extends Controller
                 }
             }
 
-            // 2. Hapus item lama
             $consignment->items()->delete();
 
-            // 3. Tambahkan item baru & sesuaikan stok baru
             $totalQtyReceived = 0;
             $totalAmountHpp   = 0;
 
@@ -378,7 +366,6 @@ class SupplierConsignmentController extends Controller
                 }
             }
 
-            // 4. Update Header Consignment
             $consignment->update([
                 'supplier_id'        => $request->supplier_id,
                 'consignment_date'   => $request->consignment_date,
@@ -389,11 +376,11 @@ class SupplierConsignmentController extends Controller
         });
 
         return redirect()->route('supplier_consignments.show', $consignment)
-            ->with('success', 'Penerimaan barang konsinyasi berhasil diperbarui dan stok master produk telah disesuaikan.');
+            ->with('success', 'Penerimaan barang konsinyasi berhasil diperbarui.');
     }
 
     /**
-     * Batal/Hapus Penerimaan Barang Konsinyasi (Kembalikan Stok).
+     * Hapus Penerimaan Barang Konsinyasi V2.
      */
     public function destroy(SupplierConsignment $consignment)
     {
@@ -405,7 +392,6 @@ class SupplierConsignmentController extends Controller
         DB::transaction(function () use ($consignment, $tenantId, $userId) {
             $consignment->load('items.masterProduct');
 
-            // Kembalikan/kurangi stok master product yang sebelumnya masuk
             foreach ($consignment->items as $item) {
                 if ($product = $item->masterProduct) {
                     $product->decrement('stock', $item->qty_received);
@@ -428,37 +414,35 @@ class SupplierConsignmentController extends Controller
         });
 
         return redirect()->route('supplier_consignments.index')
-            ->with('success', 'Transaksi penerimaan barang konsinyasi berhasil dihapus dan stok master produk telah dikurangi kembali.');
+            ->with('success', 'Transaksi penerimaan barang konsinyasi berhasil dihapus.');
     }
 
     /**
-     * Kartu Stok, Mutasi & Rekapitulasi Persediaan Barang Konsinyasi per Supplier.
+     * Kartu Stok, Mutasi & Rekapitulasi Persediaan Konsinyasi V2.
      */
     public function stockCard(Request $request)
     {
-        $tenantId = Auth::user()->tenant_id;
+        $tenantId  = Auth::user()->tenant_id;
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
 
         $selectedSupplierId = $request->supplier_id ?: ($suppliers->first() ? $suppliers->first()->id : null);
 
-        $reportData = [];
-        $totalReceivedAll  = 0;
-        $totalSoldAll      = 0;
-        $totalRemainingAll = 0;
-        $totalSettledAll   = 0;
-        $totalUnsettledAll = 0;
-        $totalPaidAmountAll= 0;
-        $totalProfitAll    = 0;
+        $reportData         = [];
+        $totalReceivedAll   = 0;
+        $totalSoldAll       = 0;
+        $totalRemainingAll  = 0;
+        $totalSettledAll    = 0;
+        $totalUnsettledAll  = 0;
+        $totalPaidAmountAll = 0;
+        $totalProfitAll     = 0;
 
         if ($selectedSupplierId) {
-            // Ambil semua item dari penerimaan konsinyasi yang approved untuk supplier ini
             $items = SupplierConsignmentItem::whereHas('consignment', function ($q) use ($tenantId, $selectedSupplierId) {
                 $q->where('tenant_id', $tenantId)
                   ->where('supplier_id', $selectedSupplierId)
                   ->where('status', 'approved');
             })->with(['masterProduct', 'consignment'])->get();
 
-            // Kelompokkan per MasterProduct
             $grouped = $items->groupBy('master_product_id');
 
             foreach ($grouped as $productId => $groupItems) {
@@ -469,18 +453,15 @@ class SupplierConsignmentController extends Controller
                 $unitCost         = $groupItems->avg('unit_cost_price') ?: $product->cost_price;
                 $unitSelling      = $groupItems->avg('unit_selling_price') ?: $product->price;
 
-                // Hitung total setoran yang sudah dilakukan untuk produk ini pada supplier ini
                 $qtySettledTotal  = (int) SupplierConsignmentSettlementItem::whereHas('settlement', function ($q) use ($tenantId, $selectedSupplierId) {
                     $q->where('tenant_id', $tenantId)
                       ->where('supplier_id', $selectedSupplierId)
                       ->where('status', 'approved');
                 })->where('master_product_id', $productId)->sum('qty_settled');
 
-                // Hitung estimasi atau riil barang terjual berdasarkan hasil scan kemas riil
                 $actualQtySold = (int) $groupItems->sum('qty_sold');
-                $currentStock = $product->stock;
-                // Total Terjual (Gunakan qty_sold riil dari scan barcode kemas, atau fallback ke estimasi jika belum ada scan)
-                $qtySoldTotal = $actualQtySold > 0 ? min($qtyReceivedTotal, $actualQtySold) : max(0, $qtyReceivedTotal - $currentStock);
+                $currentStock  = $product->stock;
+                $qtySoldTotal  = $actualQtySold > 0 ? min($qtyReceivedTotal, $actualQtySold) : max(0, $qtyReceivedTotal - $currentStock);
                 if ($qtySoldTotal > $qtyReceivedTotal) {
                     $qtySoldTotal = $qtyReceivedTotal;
                 }
@@ -501,26 +482,25 @@ class SupplierConsignmentController extends Controller
                 $totalProfitAll    += $profitTotal;
 
                 $reportData[] = [
-                    'product_id'          => $product->id,
-                    'sku'                 => $product->sku,
-                    'name'                => $product->name,
-                    'unit'                => $product->unit ?: 'PCS',
-                    'unit_cost'           => $unitCost,
-                    'unit_selling'        => $unitSelling,
-                    'qty_received'        => $qtyReceivedTotal,
-                    'current_stock'       => $product->stock,
-                    'qty_sold'            => $qtySoldTotal,
-                    'qty_remaining'       => $qtyRemainingTotal,
-                    'qty_settled'         => $qtySettledTotal,
-                    'qty_unsettled'       => $qtyUnsettledTotal,
-                    'nominal_paid'        => $nominalPaid,
-                    'nominal_unsettled'   => $nominalUnsettled,
-                    'profit_total'        => $profitTotal,
+                    'product_id'        => $product->id,
+                    'sku'               => $product->sku,
+                    'name'              => $product->name,
+                    'unit'              => $product->unit ?: 'PCS',
+                    'unit_cost'         => $unitCost,
+                    'unit_selling'      => $unitSelling,
+                    'qty_received'      => $qtyReceivedTotal,
+                    'current_stock'     => $product->stock,
+                    'qty_sold'          => $qtySoldTotal,
+                    'qty_remaining'     => $qtyRemainingTotal,
+                    'qty_settled'       => $qtySettledTotal,
+                    'qty_unsettled'     => $qtyUnsettledTotal,
+                    'nominal_paid'      => $nominalPaid,
+                    'nominal_unsettled' => $nominalUnsettled,
+                    'profit_total'      => $profitTotal,
                 ];
             }
         }
 
-        // Dapatkan riwayat setoran supplier ini
         $settlements = SupplierConsignmentSettlement::where('tenant_id', $tenantId)
             ->when($selectedSupplierId, function ($q) use ($selectedSupplierId) {
                 $q->where('supplier_id', $selectedSupplierId);
@@ -548,16 +528,16 @@ class SupplierConsignmentController extends Controller
     }
 
     /**
-     * Form Input Setoran Hasil Penjualan ke Supplier.
+     * Form Input Setoran Hasil Penjualan V2.
      */
     public function createSettlement(Request $request)
     {
-        $tenantId = Auth::user()->tenant_id;
-        $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $tenantId     = Auth::user()->tenant_id;
+        $suppliers    = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $bankAccounts = BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('bank_name')->get();
 
         $selectedSupplierId = $request->supplier_id ?: ($suppliers->first() ? $suppliers->first()->id : null);
-        $availableItems = [];
+        $availableItems     = [];
 
         if ($selectedSupplierId) {
             $items = SupplierConsignmentItem::whereHas('consignment', function ($q) use ($tenantId, $selectedSupplierId) {
@@ -581,8 +561,6 @@ class SupplierConsignmentController extends Controller
                     })
                     ->sum('qty_settled');
 
-                // Qty yang belum disetorkan dihitung dari Terjual dikurangi Yang Sudah Disetorkan (jika ada scan kemas),
-                // atau dari Qty Received jika belum ada data scan
                 $basisQty     = $actualSold > 0 ? $qtySold : $qtyReceived;
                 $qtyUnsettled = max(0, $basisQty - $qtySettled);
 
@@ -616,7 +594,7 @@ class SupplierConsignmentController extends Controller
     }
 
     /**
-     * Simpan Setoran ke Supplier.
+     * Simpan Setoran ke Supplier V2.
      */
     public function storeSettlement(Request $request)
     {
@@ -633,9 +611,6 @@ class SupplierConsignmentController extends Controller
             'items.*.master_product_id'   => 'required|exists:master_products,id',
             'items.*.qty_settled'         => 'required|integer|min:1',
             'items.*.unit_cost_price'     => 'required|numeric|min:0',
-        ], [
-            'supplier_id.required' => 'Supplier penerima setoran wajib dipilih.',
-            'items.required'       => 'Pilih minimal satu barang yang akan disetorkan.',
         ]);
 
         $settlement = DB::transaction(function () use ($request, $tenantId) {
@@ -680,7 +655,6 @@ class SupplierConsignmentController extends Controller
                 'total_amount_paid' => $totalAmountPaid,
             ]);
 
-            // Opsional: Catat Pengeluaran Keuangan (Expense)
             $supplier = Supplier::find($request->supplier_id);
             Expense::create([
                 'tenant_id'       => $tenantId,
@@ -689,7 +663,7 @@ class SupplierConsignmentController extends Controller
                 'expense_date'    => $request->settlement_date,
                 'payment_method'  => $request->payment_method,
                 'bank_account_id' => $request->bank_account_id,
-                'description'     => 'Setoran Penjualan Barang Konsinyasi ' . ($supplier ? $supplier->name : '') . ' (' . $settlementNumber . ') Ã¢â‚¬â€ Total ' . $totalQtySettled . ' PCS',
+                'description'     => 'Setoran Penjualan Barang Konsinyasi ' . ($supplier ? $supplier->name : '') . ' (' . $settlementNumber . ') — Total ' . $totalQtySettled . ' PCS',
                 'created_by'      => Auth::id(),
             ]);
 
@@ -697,11 +671,11 @@ class SupplierConsignmentController extends Controller
         });
 
         return redirect()->route('supplier_consignments.settlement.index', ['supplier_id' => $request->supplier_id])
-            ->with('success', 'Setoran hasil penjualan ke supplier berhasil disimpan dan dicatat dalam laporan keuangan.');
+            ->with('success', 'Setoran hasil penjualan ke supplier berhasil disimpan.');
     }
 
     /**
-     * Riwayat Setoran Pembayaran ke Supplier.
+     * Riwayat Setoran Pembayaran Supplier V2.
      */
     public function indexSettlement(Request $request)
     {
@@ -732,7 +706,6 @@ class SupplierConsignmentController extends Controller
 
         $settlements = $query->orderByDesc('settlement_date')->orderByDesc('id')->paginate(20)->withQueryString();
 
-        // KPI Aggregates (based on filtered query without pagination)
         $aggregateQuery = SupplierConsignmentSettlement::where('tenant_id', $tenantId);
         if ($request->filled('search')) {
             $aggregateQuery->where(function ($q) use ($request) {
@@ -753,11 +726,10 @@ class SupplierConsignmentController extends Controller
         $totalAmountSettled = (float) $aggregateQuery->sum('total_amount_paid');
 
         return view('v2.titipan_barang.settlement_index', compact('settlements', 'suppliers', 'totalQtySettled', 'totalAmountSettled'));
-
     }
 
     /**
-     * Detail Rincian Setoran Pembayaran Supplier.
+     * Detail Rincian Setoran Pembayaran Supplier V2.
      */
     public function showSettlement(SupplierConsignmentSettlement $settlement)
     {
@@ -769,7 +741,7 @@ class SupplierConsignmentController extends Controller
     }
 
     /**
-     * Hapus Transaksi Setoran Supplier.
+     * Hapus Transaksi Setoran Supplier V2.
      */
     public function destroySettlement(SupplierConsignmentSettlement $settlement)
     {
@@ -784,4 +756,3 @@ class SupplierConsignmentController extends Controller
             ->with('success', 'Riwayat setoran supplier berhasil dihapus.');
     }
 }
-

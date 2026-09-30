@@ -1,0 +1,4 @@
+# Abaikan folder log dan cache
+storage/logs/
+vendor/
+node_modules/

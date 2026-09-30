@@ -1098,6 +1098,30 @@ Route::middleware('auth')->group(function () {
     Route::get('/fix/compare-detail', [\App\Http\Controllers\SecretRepairDashboardController::class, 'compareDetail'])->name('secret_repair.compare_detail');
     Route::post('/fix/sync-order/{order}', [\App\Http\Controllers\SecretRepairDashboardController::class, 'syncSingleOrder'])->name('secret_repair.sync_single_order');
     Route::post('/fix/sync-mismatches', [\App\Http\Controllers\SecretRepairDashboardController::class, 'syncMismatches'])->name('secret_repair.sync_mismatches');
+
+    // 📦 MODUL TITIPAN BARANG (SUPPLIER CONSIGNMENT) V2
+    Route::prefix('v2/titipan-barang')->name('supplier_consignments.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\V2\TitipanBarangController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\V2\TitipanBarangController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\V2\TitipanBarangController::class, 'store'])->name('store');
+        Route::get('/search-products', [\App\Http\Controllers\V2\TitipanBarangController::class, 'searchProducts'])->name('search_products');
+        Route::get('/stock-card', [\App\Http\Controllers\V2\TitipanBarangController::class, 'stockCard'])->name('stock_card');
+
+        // Settlement / Setoran Supplier
+        Route::get('/settlement', [\App\Http\Controllers\V2\TitipanBarangController::class, 'indexSettlement'])->name('settlement.index');
+        Route::get('/settlement/create', [\App\Http\Controllers\V2\TitipanBarangController::class, 'createSettlement'])->name('settlement.create');
+        Route::post('/settlement', [\App\Http\Controllers\V2\TitipanBarangController::class, 'storeSettlement'])->name('settlement.store');
+        Route::get('/settlement/{settlement}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'showSettlement'])->name('settlement.show');
+        Route::delete('/settlement/{settlement}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'destroySettlement'])->name('settlement.destroy');
+
+        // Consignment Header CRUD & Label Printing
+        Route::get('/{consignment}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'show'])->name('show');
+        Route::get('/{consignment}/edit', [\App\Http\Controllers\V2\TitipanBarangController::class, 'edit'])->name('edit');
+        Route::put('/{consignment}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'update'])->name('update');
+        Route::delete('/{consignment}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'destroy'])->name('destroy');
+        Route::get('/{consignment}/print-labels', [\App\Http\Controllers\V2\TitipanBarangController::class, 'printItemLabels'])->name('print_labels');
+        Route::post('/{consignment}/approve', [\App\Http\Controllers\V2\TitipanBarangController::class, 'approve'])->name('approve');
+    });
 });
 
 
