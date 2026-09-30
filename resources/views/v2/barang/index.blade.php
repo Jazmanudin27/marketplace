@@ -422,7 +422,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('barang.import_opname') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('v2.barang.import_opname') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body p-4">
                     <div class="alert alert-info py-2 px-3 small mb-3 border-0 rounded-3">
@@ -438,7 +438,7 @@
                         <input type="text" name="pic" class="form-control form-control-sm" value="{{ Auth::user()->name }}" placeholder="Nama Petugas Audit">
                     </div>
                     <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-                        <a href="{{ route('barang.opname_template') }}" class="btn btn-sm btn-outline-secondary">
+                        <a href="{{ route('v2.barang.opname_template') }}" class="btn btn-sm btn-outline-secondary">
                             <i class="bi bi-download me-1"></i> Download Template CSV
                         </a>
                         <div class="d-flex gap-2">
