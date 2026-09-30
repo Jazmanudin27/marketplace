@@ -139,49 +139,61 @@
                                 tambah)</small>
                         </h6>
                         <div class="row g-2 align-items-end" id="quick-input-bar">
-                            <div class="col-5 select2-wrapper position-relative">
-                                <label class="form-label small text-muted mb-1 text-truncate d-block">Cari / Pilih Barang
-                                    <span class="text-danger">*</span></label>
-                                <select id="quick_product_select" class="form-select form-select-sm w-100 no-select2"
-                                    data-placeholder="-- Ketik Nama / SKU Barang --">
-                                    <option value="">-- Ketik Nama / SKU Barang --</option>
-                                </select>
-                            </div>
-                            <div class="col-2">
-                                <label class="form-label small text-muted mb-1 text-truncate d-block">Qty (PCS) <span
-                                        class="text-danger">*</span></label>
-                                <input type="number" id="quick_qty"
-                                    class="form-control form-control-sm text-center fw-bold" value="100" min="1">
-                            </div>
-                            <div class="col-2">
-                                <label class="form-label small text-muted mb-1 text-truncate d-block">Harga Titip (HPP)
-                                    <span class="text-danger">*</span></label>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text text-muted border-end-0 px-2">Rp</span>
-                                    <input type="text" id="quick_cost_display"
-                                        class="form-control border-start-0 fw-bold" value="80.000"
-                                        oninput="formatRupiahQuick(this)">
-                                    <input type="hidden" id="quick_cost_raw" value="80000">
+                            <div class="mb-1">
+                                <div class="col-5 select2-wrapper position-relative">
+                                    <label class="form-label small text-muted mb-1 text-truncate d-block">Cari / Pilih
+                                        Barang
+                                        <span class="text-danger">*</span></label>
+                                    <select id="quick_product_select" class="form-select form-select-sm w-100 no-select2"
+                                        data-placeholder="-- Ketik Nama / SKU Barang --">
+                                        <option value="">-- Ketik Nama / SKU Barang --</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div class="col-2">
-                                <label class="form-label small text-muted mb-1 text-truncate d-block">Harga Jual Toko <span
-                                        class="text-danger">*</span></label>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text text-muted border-end-0 px-2">Rp</span>
-                                    <input type="text" id="quick_price_display"
-                                        class="form-control border-start-0 fw-bold" value="100.000"
-                                        oninput="formatRupiahQuick(this)">
-                                    <input type="hidden" id="quick_price_raw" value="100000">
+                            <div class="mb-1">
+                                <div class="col-2">
+                                    <label class="form-label small text-muted mb-1 text-truncate d-block">Qty (PCS) <span
+                                            class="text-danger">*</span></label>
+                                    <input type="number" id="quick_qty"
+                                        class="form-control form-control-sm text-center fw-bold" value="100"
+                                        min="1">
                                 </div>
                             </div>
-                            <div class="col-1">
-                                <button type="button" id="btn-add-to-cart"
-                                    class="btn btn-sm w-100 text-white fw-bold shadow-sm d-flex align-items-center justify-content-center"
-                                    style="background:#f59e0b; border:none; height:31px;"
-                                    title="Tambah ke Keranjang (Enter)">
-                                    <i class="bi bi-plus-lg"></i>
-                                </button>
+                            <div class="mb-1">
+                                <div class="col-2">
+                                    <label class="form-label small text-muted mb-1 text-truncate d-block">Harga Titip (HPP)
+                                        <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text text-muted border-end-0 px-2">Rp</span>
+                                        <input type="text" id="quick_cost_display"
+                                            class="form-control border-start-0 fw-bold" value="80.000"
+                                            oninput="formatRupiahQuick(this)">
+                                        <input type="hidden" id="quick_cost_raw" value="80000">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-1">
+                                <div class="col-2">
+                                    <label class="form-label small text-muted mb-1 text-truncate d-block">Harga Jual Toko
+                                        <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text text-muted border-end-0 px-2">Rp</span>
+                                        <input type="text" id="quick_price_display"
+                                            class="form-control border-start-0 fw-bold" value="100.000"
+                                            oninput="formatRupiahQuick(this)">
+                                        <input type="hidden" id="quick_price_raw" value="100000">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-1">
+                                <div class="col-1">
+                                    <button type="button" id="btn-add-to-cart"
+                                        class="btn btn-sm w-100 text-white fw-bold shadow-sm d-flex align-items-center justify-content-center"
+                                        style="background:#f59e0b; border:none; height:31px;"
+                                        title="Tambah ke Keranjang (Enter)">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
