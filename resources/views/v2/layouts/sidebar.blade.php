@@ -47,6 +47,7 @@
                 request()->is('v2/produk*') ||
                 request()->is('v2/kategori*') ||
                 request()->is('v2/brand*') ||
+                request()->is('v2/gudang-jadi*') ||
                 request()->is('inventory-items*');
         @endphp
         <div class="v2-nav-item v2-nav-dropdown {{ $isDataMasterActive ? 'show' : '' }}">
@@ -76,6 +77,11 @@
                         class="v2-submenu-link {{ request()->is('v2/barang*') || request()->is('inventory-items*') ? 'active' : '' }}">
                         <i class="bi bi-boxes me-1.5"></i>
                         <span>Data Barang</span>
+                    </a>
+                    <a href="{{ Route::has('v2.gudang_jadi.index') ? route('v2.gudang_jadi.index') : url('/v2/gudang-jadi') }}"
+                        class="v2-submenu-link {{ request()->is('v2/gudang-jadi*') || request()->routeIs('v2.gudang_jadi.*') ? 'active' : '' }}">
+                        <i class="bi bi-building-gear text-primary me-1.5"></i>
+                        <span>Gudang Jadi</span>
                     </a>
                 </div>
             </div>
