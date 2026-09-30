@@ -132,8 +132,8 @@
             <div class="col-12 col-lg-9">
                 <div class="v2-card p-3 shadow-sm h-100 d-flex flex-column">
                     {{-- Quick Input Bar --}}
-                    <div class="border-bottom pb-3 mb-3">
-                        <h6 class="fw-bold text-dark mb-2">
+                    <div class="border-bottom pb-2 mb-1">
+                        <h6 class="fw-bold text-dark mb-1">
                             <i class="bi bi-barcode text-warning me-1.5"></i> Tambah Barang ke Keranjang
                             <small class="text-muted fw-normal ms-1" style="font-size:0.72rem;">(tekan Enter untuk langsung
                                 tambah)</small>
