@@ -126,15 +126,15 @@
                     </div>
 
                     <div class="table-responsive flex-grow-1 mb-2">
-                        <table class="table table-bordered align-middle" id="itemsTable" style="font-size: 0.8rem;">
+                        <table class="table table-bordered align-middle" id="itemsTable" style="font-size: 0.8rem; table-layout: fixed; width: 100%;">
                             <thead class="bg-light text-muted">
                                 <tr>
-                                    <th style="min-width: 240px;">PILIH BARANG <span class="text-danger">*</span></th>
-                                    <th style="width: 100px;" class="text-center">QTY <span class="text-danger">*</span></th>
-                                    <th style="width: 135px;" class="text-end">HARGA TITIP (HPP) <span class="text-danger">*</span></th>
-                                    <th style="width: 135px;" class="text-end">HARGA JUAL TOKO <span class="text-danger">*</span></th>
-                                    <th style="width: 135px;" class="text-end">SUBTOTAL HPP</th>
-                                    <th style="width: 40px;" class="text-center"><i class="bi bi-trash"></i></th>
+                                    <th style="width: 42%;">PILIH BARANG <span class="text-danger">*</span></th>
+                                    <th style="width: 10%;" class="text-center">QTY <span class="text-danger">*</span></th>
+                                    <th style="width: 15%;" class="text-end">HARGA TITIP (HPP) <span class="text-danger">*</span></th>
+                                    <th style="width: 15%;" class="text-end">HARGA JUAL TOKO <span class="text-danger">*</span></th>
+                                    <th style="width: 14%;" class="text-end">SUBTOTAL HPP</th>
+                                    <th style="width: 4%;" class="text-center"><i class="bi bi-trash"></i></th>
                                 </tr>
                             </thead>
                             <tbody id="itemsTableBody">
@@ -205,13 +205,17 @@
 
                 tbody.appendChild(tr);
 
+                if (window.initV2Select2) {
+                    window.initV2Select2(tr);
+                }
+
                 const select = tr.querySelector('.product-select');
                 const qtyInput = tr.querySelector('.qty-input');
                 const costInput = tr.querySelector('.cost-input');
                 const priceInput = tr.querySelector('.price-input');
                 const removeBtn = tr.querySelector('.remove-row-btn');
 
-                select.addEventListener('change', function() {
+                const handleSelectChange = function() {
                     const selectedOpt = select.options[select.selectedIndex];
                     if (selectedOpt && selectedOpt.dataset.cost) {
                         costInput.value = parseFloat(selectedOpt.dataset.cost) || 0;
@@ -220,7 +224,10 @@
                         priceInput.value = parseFloat(selectedOpt.dataset.price) || 0;
                     }
                     calculateRowSubtotal(tr);
-                });
+                };
+
+                select.addEventListener('change', handleSelectChange);
+                $(select).on('select2:select change', handleSelectChange);
 
                 qtyInput.addEventListener('input', () => calculateRowSubtotal(tr));
                 costInput.addEventListener('input', () => calculateRowSubtotal(tr));

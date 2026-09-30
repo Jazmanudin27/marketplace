@@ -186,24 +186,34 @@
             $('#realtimeClock').text(timeStr);
         }, 1000);
 
-        // Auto initialize Select2 with tight wrapper for 100% position accuracy
-        $(document).ready(function() {
-            $('.select2, .v2-select2, select.form-select-sm:not(.no-select2), select.form-select:not(.no-select2)')
-                .each(function() {
-                    var $select = $(this);
-                    if (!$select.parent().hasClass('select2-wrapper')) {
-                        $select.wrap('<div class="select2-wrapper position-relative d-block w-100"></div>');
-                    }
-                    var $wrapper = $select.parent();
+        // Global Select2 Initializer with tight wrapper for 100% position & width accuracy
+        window.initV2Select2 = function(context) {
+            var $target = context ? 
+                $(context).find('select.form-select, select.form-select-sm, select.select2, select.v2-select2') : 
+                $('select.form-select, select.form-select-sm, select.select2, select.v2-select2');
 
-                    $select.select2({
-                        theme: 'bootstrap-5',
-                        width: '100%',
-                        placeholder: $select.data('placeholder') || '-- Pilih --',
-                        allowClear: true,
-                        dropdownParent: $wrapper
-                    });
+            $target.not('.no-select2').each(function() {
+                var $select = $(this);
+                if ($select.hasClass('select2-hidden-accessible')) {
+                    return; // Already initialized
+                }
+                if (!$select.parent().hasClass('select2-wrapper')) {
+                    $select.wrap('<div class="select2-wrapper position-relative d-block w-100" style="max-width: 100%;"></div>');
+                }
+                var $wrapper = $select.parent();
+
+                $select.select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    placeholder: $select.data('placeholder') || '-- Pilih --',
+                    allowClear: true,
+                    dropdownParent: $wrapper
                 });
+            });
+        };
+
+        $(document).ready(function() {
+            window.initV2Select2();
         });
     </script>
 

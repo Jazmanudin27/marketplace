@@ -106,14 +106,14 @@
                 </div>
 
                 <div class="table-responsive flex-grow-1 mb-2">
-                    <table class="table table-bordered align-middle" id="itemsTable" style="font-size: 0.8rem;">
+                    <table class="table table-bordered align-middle" id="itemsTable" style="font-size: 0.8rem; table-layout: fixed; width: 100%;">
                         <thead class="bg-light text-muted">
                             <tr>
-                                <th style="min-width: 250px;">PILIH BARANG <span class="text-danger">*</span></th>
-                                <th style="width: 110px;" class="text-center">QTY <span class="text-danger">*</span></th>
-                                <th style="width: 150px;" class="text-end">HARGA SATUAN (RP)</th>
-                                <th style="width: 150px;" class="text-end">SUBTOTAL (RP)</th>
-                                <th style="width: 40px;" class="text-center"><i class="bi bi-trash"></i></th>
+                                <th style="width: 45%;">PILIH BARANG <span class="text-danger">*</span></th>
+                                <th style="width: 12%;" class="text-center">QTY <span class="text-danger">*</span></th>
+                                <th style="width: 20%;" class="text-end">HARGA SATUAN (RP)</th>
+                                <th style="width: 19%;" class="text-end">SUBTOTAL (RP)</th>
+                                <th style="width: 4%;" class="text-center"><i class="bi bi-trash"></i></th>
                             </tr>
                         </thead>
                         <tbody id="itemsTableBody">
@@ -177,13 +177,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         tbody.appendChild(tr);
 
+        if (window.initV2Select2) {
+            window.initV2Select2(tr);
+        }
+
         // Bind events for this row
         const select = tr.querySelector('.item-select');
         const qtyInput = tr.querySelector('.qty-input');
         const priceInput = tr.querySelector('.price-input');
         const removeBtn = tr.querySelector('.remove-row-btn');
 
-        select.addEventListener('change', function() {
+        const handleSelectChange = function() {
             const selectedOpt = select.options[select.selectedIndex];
             if (selectedOpt && selectedOpt.dataset.price) {
                 if (parseFloat(priceInput.value) === 0 || !priceInput.value) {
@@ -191,7 +195,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             calculateRowSubtotal(tr);
-        });
+        };
+
+        select.addEventListener('change', handleSelectChange);
+        $(select).on('select2:select change', handleSelectChange);
 
         qtyInput.addEventListener('input', () => calculateRowSubtotal(tr));
         priceInput.addEventListener('input', () => calculateRowSubtotal(tr));
