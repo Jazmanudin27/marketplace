@@ -170,83 +170,120 @@
         </div>
     </div>
 
-    {{-- Kanan: Tabel Item --}}
+    {{-- Kanan: Card List Item (Full Width Nama Barang & Sub-Metrics) --}}
     <div class="col-12 col-lg-9">
         <div class="v2-card shadow-sm h-100 d-flex flex-column overflow-hidden">
             <div class="px-3 py-2.5 border-bottom bg-light d-flex align-items-center justify-content-between">
-                <span class="fw-bold text-secondary small text-uppercase" style="font-size:0.73rem; letter-spacing:0.04em;">
-                    <i class="bi bi-boxes text-warning me-1"></i>
+                <span class="fw-bold text-secondary small text-uppercase" style="font-size:0.75rem; letter-spacing:0.04em;">
+                    <i class="bi bi-boxes text-warning me-1.5 fs-6"></i>
                     Daftar Item Penerimaan — {{ $consignment->items->count() }} SKU
                 </span>
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1 fw-bold" style="font-size:0.75rem;">
+                    Total HPP: Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}
+                </span>
             </div>
-            <div class="table-responsive flex-grow-1">
-                <table class="table table-hover align-middle mb-0" style="font-size:0.82rem;">
-                    <thead class="bg-light text-muted">
-                        <tr>
-                            <th class="ps-3 py-2.5">BARANG / SKU</th>
-                            <th class="text-center py-2.5">QTY TITIP</th>
-                            <th class="text-center py-2.5">TERJUAL (SCAN)</th>
-                            <th class="text-center py-2.5">SISA GUDANG</th>
-                            <th class="text-end py-2.5">HARGA TITIP (HPP)</th>
-                            <th class="text-end pe-3 py-2.5">SUBTOTAL HPP</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($consignment->items as $idx => $item)
-                            @php
-                                $qtyTitip     = (int) $item->qty_received;
-                                $qtySold      = (int) ($item->qty_sold ?? 0);
-                                $qtyRemaining = max(0, $qtyTitip - $qtySold);
-                                $subtotalHpp  = $qtyTitip * $item->unit_cost_price;
-                            @endphp
-                            <tr>
-                                <td class="ps-3 py-2.5">
-                                    <div class="fw-semibold text-dark">{{ $item->masterProduct ? $item->masterProduct->name : 'Produk Terhapus' }}</div>
-                                    <span class="badge bg-light text-secondary border font-monospace" style="font-size:0.66rem;">
-                                        {{ $item->masterProduct ? $item->masterProduct->sku : '-' }}
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-bold" style="font-size:0.78rem;">
-                                        {{ number_format($qtyTitip) }} PCS
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    @if($qtySold > 0)
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold" style="font-size:0.78rem;">
-                                            <i class="bi bi-check me-1"></i>{{ number_format($qtySold) }} PCS
+
+            <div class="p-3 d-flex flex-column gap-3 flex-grow-1" style="background: #f8fafc;">
+                @foreach($consignment->items as $idx => $item)
+                    @php
+                        $qtyTitip     = (int) $item->qty_received;
+                        $qtySold      = (int) ($item->qty_sold ?? 0);
+                        $qtyRemaining = max(0, $qtyTitip - $qtySold);
+                        $subtotalHpp  = $qtyTitip * $item->unit_cost_price;
+                        $product      = $item->masterProduct;
+                    @endphp
+                    <div class="card border border-slate-200 shadow-sm rounded-3 overflow-hidden bg-white">
+                        {{-- Top Header: Full Width Product Name & SKU --}}
+                        <div class="p-3 border-bottom bg-light-subtle d-flex align-items-start justify-content-between gap-3">
+                            <div class="d-flex align-items-start gap-2.5 flex-grow-1">
+                                <div class="rounded-2 p-2 bg-primary-subtle text-primary fw-bold text-center d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; min-width: 36px;">
+                                    <i class="bi bi-box-seam fs-6"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-bold text-dark mb-1.5 lh-sm" style="font-size: 0.95rem; word-break: break-word;">
+                                        {{ $product ? $product->name : 'Produk Terhapus' }}
+                                    </h6>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <span class="badge bg-secondary-subtle text-secondary border font-monospace px-2 py-0.5" style="font-size:0.72rem;">
+                                            <i class="bi bi-barcode me-1"></i>SKU: {{ $product ? $product->sku : '-' }}
                                         </span>
-                                    @else
-                                        <span class="text-muted small">— 0 PCS</span>
-                                    @endif
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge {{ $qtyRemaining > 0 ? 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' : 'bg-light text-muted border' }} px-2.5 py-1 fw-bold" style="font-size:0.78rem;">
-                                        {{ number_format($qtyRemaining) }} PCS
-                                    </span>
-                                </td>
-                                <td class="text-end font-monospace text-muted" style="font-size:0.8rem;">
-                                    Rp {{ number_format($item->unit_cost_price, 0, ',', '.') }}
-                                </td>
-                                <td class="text-end pe-3 font-monospace fw-bold text-dark" style="font-size:0.8rem;">
+                                        @if($product && $product->unit)
+                                            <span class="badge bg-light text-muted border px-2 py-0.5" style="font-size:0.7rem;">
+                                                Satuan: {{ $product->unit }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-end ps-2 flex-shrink-0">
+                                <span class="text-muted d-block small" style="font-size:0.7rem;">Subtotal HPP</span>
+                                <strong class="font-monospace text-warning-emphasis fw-bold fs-6">
                                     Rp {{ number_format($subtotalHpp, 0, ',', '.') }}
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                    <tfoot class="bg-warning-subtle">
-                        <tr class="fw-bold">
-                            <td class="ps-3 py-2.5 text-dark">TOTAL</td>
-                            <td class="text-center text-primary">{{ number_format($grandTotalQty) }} PCS</td>
-                            <td class="text-center text-success">{{ number_format($grandTotalSold) }} PCS</td>
-                            <td class="text-center text-warning-emphasis">{{ number_format($grandTotalRemaining) }} PCS</td>
-                            <td></td>
-                            <td class="text-end pe-3 font-monospace text-dark" style="font-size:0.88rem;">
-                                Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
+                                </strong>
+                            </div>
+                        </div>
+
+                        {{-- Bottom Grid: Metrics Below Product Name --}}
+                        <div class="p-3 bg-white">
+                            <div class="row g-2.5 align-items-center" style="font-size: 0.8rem;">
+                                <div class="col-6 col-md-3">
+                                    <div class="p-2 rounded-2 bg-light border text-center">
+                                        <span class="text-muted d-block" style="font-size: 0.68rem; font-weight: 600;">QTY TITIP</span>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-bold mt-1" style="font-size: 0.82rem;">
+                                            {{ number_format($qtyTitip) }} PCS
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="p-2 rounded-2 bg-light border text-center">
+                                        <span class="text-muted d-block" style="font-size: 0.68rem; font-weight: 600;">TERJUAL (SCAN)</span>
+                                        @if($qtySold > 0)
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold mt-1" style="font-size: 0.82rem;">
+                                                <i class="bi bi-check-lg me-0.5"></i>{{ number_format($qtySold) }} PCS
+                                            </span>
+                                        @else
+                                            <span class="text-muted fw-semibold d-block mt-1" style="font-size: 0.8rem;">0 PCS</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="p-2 rounded-2 bg-light border text-center">
+                                        <span class="text-muted d-block" style="font-size: 0.68rem; font-weight: 600;">SISA GUDANG</span>
+                                        <span class="badge {{ $qtyRemaining > 0 ? 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' : 'bg-light text-muted border' }} px-2.5 py-1 fw-bold mt-1" style="font-size: 0.82rem;">
+                                            {{ number_format($qtyRemaining) }} PCS
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="p-2 rounded-2 bg-light border text-center">
+                                        <span class="text-muted d-block" style="font-size: 0.68rem; font-weight: 600;">HARGA TITIP (HPP)</span>
+                                        <span class="font-monospace fw-bold text-dark d-block mt-1" style="font-size: 0.85rem;">
+                                            Rp {{ number_format($item->unit_cost_price, 0, ',', '.') }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- Grand Total Footer --}}
+            <div class="p-3 bg-light border-top mt-auto">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3" style="font-size: 0.85rem;">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="fw-bold text-dark me-1">TOTAL AKUMULASI:</span>
+                        <span class="badge bg-primary text-white px-2.5 py-1" style="font-size:0.75rem;">Titip: {{ number_format($grandTotalQty) }} PCS</span>
+                        <span class="badge bg-success text-white px-2.5 py-1" style="font-size:0.75rem;">Terjual: {{ number_format($grandTotalSold) }} PCS</span>
+                        <span class="badge bg-warning text-dark px-2.5 py-1" style="font-size:0.75rem;">Sisa: {{ number_format($grandTotalRemaining) }} PCS</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="text-muted small me-2">Grand Total HPP:</span>
+                        <strong class="font-monospace text-warning-emphasis fs-5">
+                            Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}
+                        </strong>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
