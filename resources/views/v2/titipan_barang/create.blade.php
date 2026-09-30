@@ -142,7 +142,7 @@
                             <div class="col-5 select2-wrapper position-relative">
                                 <label class="form-label small text-muted mb-1 text-truncate d-block">Cari / Pilih Barang
                                     <span class="text-danger">*</span></label>
-                                <select id="quick_product_select" class="form-select form-select-sm w-100 no-select2"
+                                <select id="quick_product_select" class="form-select form-select-sm"
                                     data-placeholder="-- Ketik Nama / SKU Barang --">
                                     <option value="">-- Ketik Nama / SKU Barang --</option>
                                 </select>
