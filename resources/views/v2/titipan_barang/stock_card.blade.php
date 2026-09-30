@@ -307,13 +307,6 @@
         </div>
     </div>
 
-@else
-    {{-- Empty State - Belum pilih supplier --}}
-    <div class="v2-card shadow-sm text-center py-5 px-3">
-        <i class="bi bi-building fs-1 text-secondary opacity-40 d-block mb-3"></i>
-        <h6 class="fw-semibold text-secondary mb-1">Pilih Supplier Terlebih Dahulu</h6>
-        <p class="text-muted small mb-0">Pilih supplier penitip barang di atas untuk melihat kartu stok & mutasi konsinyasi.</p>
-    </div>
 @endif
 
 @endsection
