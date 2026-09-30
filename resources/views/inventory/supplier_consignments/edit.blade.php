@@ -2,6 +2,16 @@
 
 @section('title', 'Edit Barang Titipan — ' . $consignment->reference_number)
 
+@push('styles')
+<style>
+/* Select2 fix: dropdown tetap di dalam container */
+#quick-input-bar { position: relative; }
+#quick-input-bar .select2-container { min-width: 0 !important; }
+#quick-input-bar .select2-container .select2-selection { min-height: 31px; }
+#quick-input-bar .select2-dropdown { min-width: 320px; max-width: 500px; }
+</style>
+@endpush
+
 @section('content')
 
 {{-- ── Page Header ── --}}
@@ -212,7 +222,7 @@ $(document).ready(function() {
         theme: 'bootstrap-5',
         placeholder: '-- Ketik Nama / SKU Barang --',
         allowClear: true,
-        width: '100%',
+        dropdownParent: $('#quick-input-bar'),
         ajax: {
             url: "{{ route('supplier_consignments.search_products') }}",
             dataType: 'json',
