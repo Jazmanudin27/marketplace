@@ -94,19 +94,30 @@
     </div>
 </div>
 
-<!-- Nav Tabs -->
-<ul class="nav nav-tabs mb-3 border-bottom" style="font-size: 0.85rem;">
-    <li class="nav-item">
-        <a class="nav-link py-2 px-3.5 {{ $activeTab === 'items' ? 'active fw-bold text-primary border-bottom border-primary border-2' : 'text-secondary' }}" href="{{ url('/v2/barang?tab=items') }}">
-            <i class="bi bi-boxes me-1.5"></i> Data Barang
+<!-- Nav Tabs Segmented Bar -->
+<div class="d-flex align-items-center mb-3">
+    <div class="p-1 rounded-3 shadow-sm border d-inline-flex gap-1" style="background-color: #f1f5f9;">
+        <a href="{{ url('/v2/barang?tab=items') }}" 
+           class="btn btn-sm px-3.5 py-2 fw-bold rounded-2 d-flex align-items-center gap-2 {{ $activeTab === 'items' ? 'bg-primary text-white shadow-sm' : 'text-secondary bg-transparent' }}"
+           style="font-size: 0.84rem; text-decoration: none; transition: all 0.2s ease-in-out;">
+            <i class="bi bi-boxes fs-6"></i>
+            <span>Data Barang</span>
+            <span class="badge {{ $activeTab === 'items' ? 'bg-white text-primary' : 'bg-secondary text-white' }} rounded-pill px-2" style="font-size: 0.72rem;">
+                {{ number_format($counts['total_items']) }}
+            </span>
         </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link py-2 px-3.5 {{ $activeTab === 'opname' ? 'active fw-bold text-warning border-bottom border-warning border-2' : 'text-secondary' }}" href="{{ url('/v2/barang?tab=opname') }}">
-            <i class="bi bi-clock-history me-1.5"></i> Histori Opname
+        
+        <a href="{{ url('/v2/barang?tab=opname') }}" 
+           class="btn btn-sm px-3.5 py-2 fw-bold rounded-2 d-flex align-items-center gap-2 {{ $activeTab === 'opname' ? 'bg-warning text-dark shadow-sm' : 'text-secondary bg-transparent' }}"
+           style="font-size: 0.84rem; text-decoration: none; transition: all 0.2s ease-in-out;">
+            <i class="bi bi-clock-history fs-6"></i>
+            <span>Histori Opname</span>
+            <span class="badge {{ $activeTab === 'opname' ? 'bg-dark text-warning' : 'bg-secondary text-white' }} rounded-pill px-2" style="font-size: 0.72rem;">
+                Opname Log
+            </span>
         </a>
-    </li>
-</ul>
+    </div>
+</div>
 
 @if($activeTab === 'opname')
     {{-- ── TAB 2: HISTORI OPNAME ── --}}
