@@ -6,7 +6,7 @@
 <style>
 /* Select2 fix: dropdown tetap di dalam container */
 #quick-input-bar { position: relative; }
-#quick-input-bar .select2-container { min-width: 0 !important; }
+#quick-input-bar .select2-container { width: 100% !important; min-width: 0 !important; }
 #quick-input-bar .select2-container .select2-selection { min-height: 31px; }
 #quick-input-bar .select2-dropdown { min-width: 320px; max-width: 500px; }
 </style>
@@ -116,34 +116,34 @@
                         <small class="text-muted fw-normal ms-1" style="font-size:0.72rem;">(tekan Enter untuk langsung tambah)</small>
                     </h6>
                     <div class="row g-2 align-items-end" id="quick-input-bar">
-                        <div class="col-md-5 col-12 select2-wrapper position-relative">
-                            <label class="form-label small text-muted mb-1">Cari / Pilih Barang <span class="text-danger">*</span></label>
+                        <div class="col-5 select2-wrapper position-relative">
+                            <label class="form-label small text-muted mb-1 text-truncate d-block">Cari / Pilih Barang <span class="text-danger">*</span></label>
                             <select id="quick_product_select" class="form-select form-select-sm w-100 no-select2" data-placeholder="-- Ketik Nama / SKU Barang --">
                                 <option value="">-- Ketik Nama / SKU Barang --</option>
                             </select>
                         </div>
-                        <div class="col-md-2 col-4">
-                            <label class="form-label small text-muted mb-1">Qty (PCS) <span class="text-danger">*</span></label>
+                        <div class="col-2">
+                            <label class="form-label small text-muted mb-1 text-truncate d-block">Qty (PCS) <span class="text-danger">*</span></label>
                             <input type="number" id="quick_qty" class="form-control form-control-sm text-center fw-bold" value="100" min="1">
                         </div>
-                        <div class="col-md-2 col-4">
-                            <label class="form-label small text-muted mb-1">Harga Titip (HPP) <span class="text-danger">*</span></label>
+                        <div class="col-2">
+                            <label class="form-label small text-muted mb-1 text-truncate d-block">Harga Titip (HPP) <span class="text-danger">*</span></label>
                             <div class="input-group input-group-sm">
-                                <span class="input-group-text text-muted border-end-0">Rp</span>
+                                <span class="input-group-text text-muted border-end-0 px-2">Rp</span>
                                 <input type="text" id="quick_cost_display" class="form-control border-start-0 fw-bold" value="80.000" oninput="formatRupiahQuick(this)">
                                 <input type="hidden" id="quick_cost_raw" value="80000">
                             </div>
                         </div>
-                        <div class="col-md-2 col-4">
-                            <label class="form-label small text-muted mb-1">Harga Jual Toko <span class="text-danger">*</span></label>
+                        <div class="col-2">
+                            <label class="form-label small text-muted mb-1 text-truncate d-block">Harga Jual Toko <span class="text-danger">*</span></label>
                             <div class="input-group input-group-sm">
-                                <span class="input-group-text text-muted border-end-0">Rp</span>
+                                <span class="input-group-text text-muted border-end-0 px-2">Rp</span>
                                 <input type="text" id="quick_price_display" class="form-control border-start-0 fw-bold" value="100.000" oninput="formatRupiahQuick(this)">
                                 <input type="hidden" id="quick_price_raw" value="100000">
                             </div>
                         </div>
-                        <div class="col-md-1 col-12">
-                            <button type="button" id="btn-add-to-cart" class="btn btn-sm w-100 text-white fw-bold shadow-sm" style="background:#f59e0b; border:none;" title="Tambah ke Keranjang (Enter)">
+                        <div class="col-1">
+                            <button type="button" id="btn-add-to-cart" class="btn btn-sm w-100 text-white fw-bold shadow-sm d-flex align-items-center justify-content-center" style="background:#f59e0b; border:none; height:31px;" title="Tambah ke Keranjang (Enter)">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
