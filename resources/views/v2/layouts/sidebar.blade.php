@@ -165,6 +165,45 @@
             </div>
         </div>
 
+        <!-- Titipan Barang -->
+        <div class="v2-nav-section-title mt-2">TITIPAN BARANG</div>
+        @php
+            $isTitipanActive =
+                request()->is('v2/titipan*') ||
+                request()->is('supplier-consignments*');
+        @endphp
+        <div class="v2-nav-item v2-nav-dropdown {{ $isTitipanActive ? 'show' : '' }}">
+            <a href="javascript:void(0)"
+                class="v2-nav-link v2-dropdown-toggle d-flex align-items-center justify-content-between {{ $isTitipanActive ? 'active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#titipanSubmenu"
+                aria-expanded="{{ $isTitipanActive ? 'true' : 'false' }}">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-box-seam-fill text-warning"></i>
+                    <span>Titipan Barang</span>
+                </div>
+                <i class="bi bi-chevron-down v2-dropdown-arrow ms-auto" style="font-size: 0.65rem;"></i>
+            </a>
+            <div class="collapse v2-submenu {{ $isTitipanActive ? 'show' : '' }}" id="titipanSubmenu">
+                <div class="v2-submenu-inner">
+                    <a href="{{ route('supplier_consignments.index') }}"
+                        class="v2-submenu-link {{ request()->routeIs('supplier_consignments.index') || request()->routeIs('supplier_consignments.create') || request()->routeIs('supplier_consignments.show') || request()->routeIs('supplier_consignments.edit') ? 'active' : '' }}">
+                        <i class="bi bi-box-arrow-in-down text-success me-1.5"></i>
+                        <span>Penerimaan Barang Titipan</span>
+                    </a>
+                    <a href="{{ route('supplier_consignments.stock_card') }}"
+                        class="v2-submenu-link {{ request()->routeIs('supplier_consignments.stock_card') ? 'active' : '' }}">
+                        <i class="bi bi-card-checklist text-info me-1.5"></i>
+                        <span>Kartu Stok Konsinyasi</span>
+                    </a>
+                    <a href="{{ route('supplier_consignments.settlement.index') }}"
+                        class="v2-submenu-link {{ request()->routeIs('supplier_consignments.settlement.*') ? 'active' : '' }}">
+                        <i class="bi bi-receipt text-warning me-1.5"></i>
+                        <span>Riwayat Setoran Supplier</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- Keuangan -->
         <div class="v2-nav-section-title mt-2">KEUANGAN</div>
         @php
