@@ -193,108 +193,155 @@
         </div>
     </div>
 
-    {{-- ── Table Kartu Stok per Produk ── --}}
-    <div class="v2-card shadow-sm overflow-hidden">
+    {{-- ── Card List Mutasi & Stok Persediaan per Produk ── --}}
+    <div class="v2-card shadow-sm overflow-hidden mb-4">
         <div class="px-3 py-2.5 border-bottom d-flex align-items-center justify-content-between bg-light">
-            <span class="fw-bold text-secondary small text-uppercase" style="font-size:0.73rem; letter-spacing:0.04em;">
-                <i class="bi bi-table me-1"></i>
-                Mutasi & Stok Persediaan — {{ $selectedSupplier ? strtoupper($selectedSupplier->name) : '' }}
+            <span class="fw-bold text-secondary small text-uppercase" style="font-size:0.75rem; letter-spacing:0.04em;">
+                <i class="bi bi-boxes text-warning me-1.5 fs-6"></i>
+                Mutasi & Stok Persediaan — {{ $selectedSupplier ? strtoupper($selectedSupplier->name) : 'SEMUA SUPPLIER' }} ({{ count($reportData) }} SKU)
             </span>
-            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:0.7rem;">
-                {{ count($reportData) }} SKU
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 fw-bold" style="font-size:0.75rem;">
+                {{ count($reportData) }} Produk
             </span>
         </div>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
-                <thead class="bg-light text-muted">
-                    <tr>
-                        <th class="ps-3 py-2.5">SKU & NAMA PRODUK</th>
-                        <th class="text-end py-2.5">HARGA TITIP (HPP)</th>
-                        <th class="text-end py-2.5">HARGA JUAL</th>
-                        <th class="text-center py-2.5">MASUK</th>
-                        <th class="text-center py-2.5">TERJUAL</th>
-                        <th class="text-center py-2.5">SISA GUDANG</th>
-                        <th class="text-center py-2.5">DISETOR</th>
-                        <th class="text-center py-2.5">BLM DISETOR</th>
-                        <th class="text-end py-2.5">HAK SUPPLIER</th>
-                        <th class="text-end pe-3 py-2.5">PROFIT TOKO</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($reportData as $row)
-                        <tr>
-                            <td class="ps-3 py-2.5">
-                                <div class="fw-semibold text-dark">{{ $row['name'] }}</div>
-                                <span class="badge bg-light text-secondary border font-monospace" style="font-size:0.66rem;">
-                                    {{ $row['sku'] }}
+
+        <div class="p-3 d-flex flex-column gap-3" style="background: #f8fafc;">
+            @forelse($reportData as $row)
+                <div class="card border border-slate-200 shadow-sm rounded-3 overflow-hidden bg-white hover-shadow transition-all">
+                    {{-- Product Name & SKU Header Bar (Full 100% Width) --}}
+                    <div class="p-3 border-bottom bg-light-subtle d-flex align-items-start justify-content-between gap-3 flex-wrap flex-md-nowrap">
+                        <div class="d-flex align-items-start gap-2.5 flex-grow-1">
+                            <div class="rounded-2 p-2 bg-primary-subtle text-primary fw-bold text-center d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; min-width: 38px;">
+                                <i class="bi bi-box-seam fs-6"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold text-dark mb-1.5 lh-sm" style="font-size: 0.95rem; word-break: break-word;">
+                                    {{ $row['name'] }}
+                                </h6>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="badge bg-secondary-subtle text-secondary border font-monospace px-2 py-0.5" style="font-size:0.72rem;">
+                                        <i class="bi bi-barcode me-1"></i>SKU: {{ $row['sku'] }}
+                                    </span>
+                                    @if(isset($row['supplier_name']) && !$selectedSupplierId)
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5" style="font-size:0.72rem;">
+                                            <i class="bi bi-building me-1"></i>{{ $row['supplier_name'] }}
+                                        </span>
+                                    @endif
+                                    <span class="badge bg-light text-muted border px-2 py-0.5" style="font-size:0.7rem;">
+                                        Satuan: {{ $row['unit'] }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Price Info Badges --}}
+                        <div class="d-flex align-items-center gap-3 ps-md-2 flex-shrink-0">
+                            <div class="text-end">
+                                <span class="text-muted d-block small" style="font-size:0.68rem; font-weight: 600;">HARGA TITIP (HPP)</span>
+                                <span class="font-monospace fw-bold text-dark" style="font-size:0.85rem;">
+                                    Rp {{ number_format($row['unit_cost'], 0, ',', '.') }}
                                 </span>
-                            </td>
-                            <td class="text-end text-muted font-monospace" style="font-size:0.8rem;">
-                                Rp {{ number_format($row['unit_cost'], 0, ',', '.') }}
-                            </td>
-                            <td class="text-end text-muted font-monospace" style="font-size:0.8rem;">
-                                Rp {{ number_format($row['unit_selling'], 0, ',', '.') }}
-                            </td>
-                            <td class="text-center fw-semibold text-dark">
-                                {{ number_format($row['qty_received']) }}
-                                <span class="text-muted fw-normal" style="font-size:0.72rem;">{{ $row['unit'] }}</span>
-                            </td>
-                            <td class="text-center fw-bold text-info">
-                                {{ number_format($row['qty_sold']) }}
-                                <span class="text-muted fw-normal" style="font-size:0.72rem;">{{ $row['unit'] }}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 fw-bold" style="font-size:0.78rem;">
-                                    {{ number_format($row['current_stock']) }} {{ $row['unit'] }}
+                            </div>
+                            <div class="border-start ps-3 text-end">
+                                <span class="text-muted d-block small" style="font-size:0.68rem; font-weight: 600;">HARGA JUAL TOKO</span>
+                                <span class="font-monospace fw-bold text-primary" style="font-size:0.85rem;">
+                                    Rp {{ number_format($row['unit_selling'], 0, ',', '.') }}
                                 </span>
-                            </td>
-                            <td class="text-center fw-bold text-success">
-                                {{ number_format($row['qty_settled']) }}
-                                <span class="text-muted fw-normal" style="font-size:0.72rem;">{{ $row['unit'] }}</span>
-                            </td>
-                            <td class="text-center fw-bold text-danger">
-                                {{ number_format($row['qty_unsettled']) }}
-                                <span class="text-muted fw-normal" style="font-size:0.72rem;">{{ $row['unit'] }}</span>
-                            </td>
-                            <td class="text-end fw-semibold text-dark font-monospace" style="font-size:0.8rem;">
-                                Rp {{ number_format($row['nominal_paid'], 0, ',', '.') }}
-                            </td>
-                            <td class="text-end pe-3 fw-bold text-success font-monospace" style="font-size:0.8rem;">
-                                +Rp {{ number_format($row['profit_total'], 0, ',', '.') }}
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="10" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary opacity-50"></i>
-                                Belum ada data penerimaan barang konsinyasi yang tercatat.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-                @if(count($reportData) > 0)
-                    <tfoot class="table-light">
-                        <tr class="fw-bold border-top">
-                            <td class="ps-3 text-muted small text-uppercase">TOTAL</td>
-                            <td colspan="2"></td>
-                            <td class="text-center text-dark">{{ number_format($totalReceivedAll) }}</td>
-                            <td class="text-center text-info">{{ number_format($totalSoldAll) }}</td>
-                            <td class="text-center">
-                                <span class="fw-bold text-warning-emphasis">{{ number_format($totalRemainingAll) }}</span>
-                            </td>
-                            <td class="text-center text-success">{{ number_format($totalSettledAll) }}</td>
-                            <td class="text-center text-danger">{{ number_format($totalUnsettledAll) }}</td>
-                            <td class="text-end font-monospace" style="font-size:0.8rem;">
-                                Rp {{ number_format($totalPaidAmountAll, 0, ',', '.') }}
-                            </td>
-                            <td class="text-end pe-3 font-monospace text-success" style="font-size:0.8rem;">
-                                +Rp {{ number_format($totalProfitAll, 0, ',', '.') }}
-                            </td>
-                        </tr>
-                    </tfoot>
-                @endif
-            </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Sub Metrics Grid --}}
+                    <div class="p-3 bg-white">
+                        <div class="row g-2 align-items-center" style="font-size: 0.78rem;">
+                            <div class="col-6 col-sm-4 col-md-2">
+                                <div class="p-2 rounded-2 bg-light border text-center">
+                                    <span class="text-muted d-block" style="font-size: 0.65rem; font-weight: 600;">MASUK</span>
+                                    <span class="fw-bold text-dark d-block mt-0.5" style="font-size: 0.82rem;">
+                                        {{ number_format($row['qty_received']) }} {{ $row['unit'] }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-sm-4 col-md-2">
+                                <div class="p-2 rounded-2 bg-light border text-center">
+                                    <span class="text-muted d-block" style="font-size: 0.65rem; font-weight: 600;">TERJUAL</span>
+                                    <span class="fw-bold text-info d-block mt-0.5" style="font-size: 0.82rem;">
+                                        {{ number_format($row['qty_sold']) }} {{ $row['unit'] }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-sm-4 col-md-2">
+                                <div class="p-2 rounded-2 bg-light border text-center">
+                                    <span class="text-muted d-block" style="font-size: 0.65rem; font-weight: 600;">SISA GUDANG</span>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-0.5 fw-bold mt-0.5" style="font-size: 0.78rem;">
+                                        {{ number_format($row['current_stock']) }} {{ $row['unit'] }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-sm-4 col-md-2">
+                                <div class="p-2 rounded-2 bg-light border text-center">
+                                    <span class="text-muted d-block" style="font-size: 0.65rem; font-weight: 600;">DISETOR</span>
+                                    <span class="fw-bold text-success d-block mt-0.5" style="font-size: 0.82rem;">
+                                        {{ number_format($row['qty_settled']) }} {{ $row['unit'] }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-sm-4 col-md-2">
+                                <div class="p-2 rounded-2 bg-light border text-center">
+                                    <span class="text-muted d-block" style="font-size: 0.65rem; font-weight: 600;">BELUM DISETOR</span>
+                                    @if($row['qty_unsettled'] > 0)
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5 fw-bold mt-0.5" style="font-size: 0.78rem;">
+                                            {{ number_format($row['qty_unsettled']) }} {{ $row['unit'] }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted fw-semibold d-block mt-0.5" style="font-size: 0.78rem;">0 {{ $row['unit'] }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="col-6 col-sm-4 col-md-2">
+                                <div class="p-2 rounded-2 bg-light border text-center">
+                                    <span class="text-muted d-block" style="font-size: 0.65rem; font-weight: 600;">PROFIT TOKO</span>
+                                    <span class="font-monospace fw-bold text-success d-block mt-0.5" style="font-size: 0.82rem;">
+                                        +Rp {{ number_format($row['profit_total'], 0, ',', '.') }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="v2-card p-5 text-center text-muted">
+                    <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                    Belum ada data penerimaan barang konsinyasi yang disetujui.
+                </div>
+            @endforelse
         </div>
+
+        {{-- Total Summary Banner Footer --}}
+        @if(count($reportData) > 0)
+            <div class="p-3 bg-light border-top">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3" style="font-size: 0.85rem;">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="fw-bold text-dark me-1">REKAPITULASI TOTAL:</span>
+                        <span class="badge bg-primary text-white px-2.5 py-1" style="font-size:0.75rem;">Masuk: {{ number_format($totalReceivedAll) }}</span>
+                        <span class="badge bg-info text-white px-2.5 py-1" style="font-size:0.75rem;">Terjual: {{ number_format($totalSoldAll) }}</span>
+                        <span class="badge bg-warning text-dark px-2.5 py-1" style="font-size:0.75rem;">Sisa: {{ number_format($totalRemainingAll) }}</span>
+                        <span class="badge bg-success text-white px-2.5 py-1" style="font-size:0.75rem;">Disetor: {{ number_format($totalSettledAll) }}</span>
+                        <span class="badge bg-danger text-white px-2.5 py-1" style="font-size:0.75rem;">Blm Setor: {{ number_format($totalUnsettledAll) }}</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <div>
+                            <span class="text-muted small me-1">Hak Supplier:</span>
+                            <strong class="font-monospace text-dark">Rp {{ number_format($totalPaidAmountAll, 0, ',', '.') }}</strong>
+                        </div>
+                        <div class="border-start ps-3">
+                            <span class="text-muted small me-1">Profit Toko:</span>
+                            <strong class="font-monospace text-success fs-6">+Rp {{ number_format($totalProfitAll, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
 
 @endsection
