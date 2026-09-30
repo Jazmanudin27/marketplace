@@ -167,33 +167,50 @@
 
         <!-- HRD & Keuangan -->
         <div class="v2-nav-section-title mt-2">KEUANGAN & HRD</div>
-        <div class="v2-nav-item">
-            <a href="{{ route('v2.mutasi_keuangan.index') }}"
-                class="v2-nav-link {{ request()->is('v2/mutasi-keuangan*') ? 'active' : '' }}">
-                <i class="bi bi-journal-text"></i>
-                <span>Mutasi Keuangan</span>
+        @php
+            $isKeuanganActive =
+                request()->is('v2/mutasi-keuangan*') ||
+                request()->is('v2/saldo-marketplace*') ||
+                request()->is('reports*') ||
+                request()->is('employees*') ||
+                request()->is('hrd*') ||
+                request()->is('finance*');
+        @endphp
+        <div class="v2-nav-item v2-nav-dropdown {{ $isKeuanganActive ? 'show' : '' }}">
+            <a href="javascript:void(0)"
+                class="v2-nav-link v2-dropdown-toggle d-flex align-items-center justify-content-between {{ $isKeuanganActive ? 'active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#keuanganSubmenu"
+                aria-expanded="{{ $isKeuanganActive ? 'true' : 'false' }}">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-cash-stack"></i>
+                    <span>Keuangan & HRD</span>
+                </div>
+                <i class="bi bi-chevron-down v2-dropdown-arrow ms-auto" style="font-size: 0.65rem;"></i>
             </a>
-        </div>
-        <div class="v2-nav-item">
-            <a href="{{ route('v2.saldo_marketplace.index') }}"
-                class="v2-nav-link {{ request()->is('v2/saldo-marketplace*') ? 'active' : '' }}">
-                <i class="bi bi-wallet2"></i>
-                <span>Saldo Marketplace</span>
-            </a>
-        </div>
-        <div class="v2-nav-item">
-            <a href="{{ Route::has('reports.income_statement') ? route('reports.income_statement') : url('/reports') }}"
-                class="v2-nav-link">
-                <i class="bi bi-bar-chart-line-fill"></i>
-                <span>Laba Rugi & Keuangan</span>
-            </a>
-        </div>
-        <div class="v2-nav-item">
-            <a href="{{ Route::has('employees.index') ? route('employees.index') : (Route::has('hrd.employees.index') ? route('hrd.employees.index') : url('/employees')) }}"
-                class="v2-nav-link">
-                <i class="bi bi-people-fill"></i>
-                <span>Karyawan & Payroll</span>
-            </a>
+            <div class="collapse v2-submenu {{ $isKeuanganActive ? 'show' : '' }}" id="keuanganSubmenu">
+                <div class="v2-submenu-inner">
+                    <a href="{{ route('v2.mutasi_keuangan.index') }}"
+                        class="v2-submenu-link {{ request()->is('v2/mutasi-keuangan*') ? 'active' : '' }}">
+                        <i class="bi bi-journal-text text-primary me-1.5"></i>
+                        <span>Mutasi Keuangan</span>
+                    </a>
+                    <a href="{{ route('v2.saldo_marketplace.index') }}"
+                        class="v2-submenu-link {{ request()->is('v2/saldo-marketplace*') ? 'active' : '' }}">
+                        <i class="bi bi-wallet2 text-warning me-1.5"></i>
+                        <span>Saldo Marketplace</span>
+                    </a>
+                    <a href="{{ Route::has('reports.income_statement') ? route('reports.income_statement') : url('/reports') }}"
+                        class="v2-submenu-link {{ request()->is('reports*') ? 'active' : '' }}">
+                        <i class="bi bi-bar-chart-line-fill text-success me-1.5"></i>
+                        <span>Laba Rugi & Keuangan</span>
+                    </a>
+                    <a href="{{ Route::has('employees.index') ? route('employees.index') : (Route::has('hrd.employees.index') ? route('hrd.employees.index') : url('/employees')) }}"
+                        class="v2-submenu-link {{ request()->is('employees*') || request()->is('hrd*') ? 'active' : '' }}">
+                        <i class="bi bi-people-fill text-info me-1.5"></i>
+                        <span>Karyawan & Payroll</span>
+                    </a>
+                </div>
+            </div>
         </div>
     </nav>
 
