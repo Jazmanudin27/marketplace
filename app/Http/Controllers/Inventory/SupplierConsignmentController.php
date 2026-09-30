@@ -257,7 +257,7 @@ class SupplierConsignmentController extends Controller
                         'user_id'           => $userId,
                         'type'              => 'in',
                         'quantity'          => $item->qty_received,
-                        'reference'         => 'Penitipan Barang Konsinyasi Supplier (' . ($consignment->supplier ? $consignment->supplier->name : 'Supplier') . ') â€” ' . $consignment->reference_number,
+                        'reference'         => 'Penitipan Barang Konsinyasi Supplier (' . ($consignment->supplier ? $consignment->supplier->name : 'Supplier') . ') Ã¢â‚¬â€ ' . $consignment->reference_number,
                         'balance_after'     => $newStock,
                     ]);
                 }
@@ -689,7 +689,7 @@ class SupplierConsignmentController extends Controller
                 'expense_date'    => $request->settlement_date,
                 'payment_method'  => $request->payment_method,
                 'bank_account_id' => $request->bank_account_id,
-                'description'     => 'Setoran Penjualan Barang Konsinyasi ' . ($supplier ? $supplier->name : '') . ' (' . $settlementNumber . ') â€” Total ' . $totalQtySettled . ' PCS',
+                'description'     => 'Setoran Penjualan Barang Konsinyasi ' . ($supplier ? $supplier->name : '') . ' (' . $settlementNumber . ') Ã¢â‚¬â€ Total ' . $totalQtySettled . ' PCS',
                 'created_by'      => Auth::id(),
             ]);
 
