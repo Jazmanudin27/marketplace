@@ -1134,12 +1134,13 @@ select option {
     cursor: pointer !important;
 }
 
-/* Fix table layouts containing forms so columns don't stretch */
+/* Fix table layouts containing forms so columns don't stretch or cause scrollbars */
 .v2-card table.table,
 #itemsTable,
 .table-items {
     table-layout: fixed !important;
     width: 100% !important;
+    margin-bottom: 0 !important;
 }
 
 .v2-card table.table td,
@@ -1149,6 +1150,12 @@ select option {
 .table-items td,
 .table-items th {
     overflow: visible !important;
+    padding: 0.35rem 0.35rem !important;
+}
+
+.v2-card .table-responsive {
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
 }
 
 /* Position clear (x) button cleanly without overlapping text */

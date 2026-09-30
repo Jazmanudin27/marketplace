@@ -113,8 +113,8 @@
                         </button>
                     </div>
 
-                    <div class="table-responsive flex-grow-1 mb-2">
-                        <table class="table table-bordered align-middle" id="itemsTable" style="font-size: 0.8rem; table-layout: fixed; width: 100%;">
+                    <div class="table-responsive flex-grow-1 mb-2" style="overflow-x: hidden; overflow-y: visible;">
+                        <table class="table table-bordered align-middle m-0" id="itemsTable" style="font-size: 0.8rem; table-layout: fixed; width: 100%;">
                             <thead class="bg-light text-muted">
                                 <tr>
                                     <th style="width: 45%;">PILIH BARANG <span class="text-danger">*</span></th>

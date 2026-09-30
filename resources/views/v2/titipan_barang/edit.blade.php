@@ -126,16 +126,16 @@
                         </button>
                     </div>
 
-                    <div class="table-responsive flex-grow-1 mb-2">
-                        <table class="table table-bordered align-middle" id="itemsTable" style="font-size: 0.8rem; table-layout: fixed; width: 100%;">
+                    <div class="table-responsive flex-grow-1 mb-2" style="overflow-x: hidden; overflow-y: visible;">
+                        <table class="table table-bordered align-middle m-0" id="itemsTable" style="font-size: 0.8rem; table-layout: fixed; width: 100%;">
                             <thead class="bg-light text-muted">
                                 <tr>
-                                    <th style="width: 42%;">PILIH BARANG <span class="text-danger">*</span></th>
+                                    <th style="width: 38%;">PILIH BARANG <span class="text-danger">*</span></th>
                                     <th style="width: 10%;" class="text-center">QTY <span class="text-danger">*</span></th>
-                                    <th style="width: 15%;" class="text-end">HARGA TITIP (HPP) <span class="text-danger">*</span></th>
-                                    <th style="width: 15%;" class="text-end">HARGA JUAL TOKO <span class="text-danger">*</span></th>
-                                    <th style="width: 14%;" class="text-end">SUBTOTAL HPP</th>
-                                    <th style="width: 4%;" class="text-center"><i class="bi bi-trash"></i></th>
+                                    <th style="width: 16%;" class="text-end">HARGA TITIP (HPP) <span class="text-danger">*</span></th>
+                                    <th style="width: 16%;" class="text-end">HARGA JUAL TOKO <span class="text-danger">*</span></th>
+                                    <th style="width: 15%;" class="text-end">SUBTOTAL HPP</th>
+                                    <th style="width: 5%;" class="text-center"><i class="bi bi-trash"></i></th>
                                 </tr>
                             </thead>
                             <tbody id="itemsTableBody">
