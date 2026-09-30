@@ -60,7 +60,7 @@ class BarangController extends Controller
 
         $items = $query->orderBy('name')->paginate(15, ['*'], 'items_page')->withQueryString();
 
-        // Tab 2: Stock Opname History Query
+        // Tab 2: Stock Opname & Penyesuaian Stok History Query (Grouped by Date, User, Reference)
         $opnameQuery = StockMovement::with(['inventoryItem', 'masterProduct', 'user'])
             ->where('tenant_id', $tenantId)
             ->whereIn('type', ['adj', 'adjustment'])
@@ -86,7 +86,30 @@ class BarangController extends Controller
             $opnameQuery->whereDate('created_at', $request->opname_date);
         }
 
-        $opnames = $opnameQuery->paginate(15, ['*'], 'opname_page')->withQueryString();
+        $allMovements = $opnameQuery->get();
+
+        $groupedOpnames = $allMovements->groupBy(function ($item) {
+            $dateStr = $item->created_at ? $item->created_at->format('Y-m-d H:i') : 'no-date';
+            $userId = $item->user_id ?? 0;
+            $ref = trim($item->reference ?? 'Manual Opname');
+            return $dateStr . '||' . $userId . '||' . $ref;
+        });
+
+        $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage('opname_page');
+        $perPage = 15;
+        $currentPageItems = $groupedOpnames->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        $opnames = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentPageItems,
+            $groupedOpnames->count(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
+                'pageName' => 'opname_page',
+            ]
+        );
+        $opnames->withQueryString();
 
         return view('v2.barang.index', compact('items', 'counts', 'opnames', 'activeTab'));
     }

@@ -120,7 +120,7 @@
 </div>
 
 @if($activeTab === 'opname')
-    {{-- ── TAB 2: HISTORI OPNAME ── --}}
+    {{-- ── TAB 2: HISTORI OPNAME & PENYESUAIAN STOK ── --}}
     <!-- Filter Card Opname -->
     <div class="v2-card mb-3 shadow-sm">
         <div class="v2-card-body p-2.5">
@@ -146,13 +146,13 @@
         </div>
     </div>
 
-    <!-- Table Opname Card -->
+    <!-- Table Opname Card (Grouped by Date & User) -->
     <div class="v2-card shadow-sm">
-        <div class="v2-card-header bg-light py-2 d-flex align-items-center justify-content-between">
+        <div class="v2-card-header bg-light py-2.5 px-3 d-flex align-items-center justify-content-between">
             <h6 class="v2-card-title d-flex align-items-center gap-2 m-0" style="font-size:0.85rem;">
-                <i class="bi bi-journal-check text-warning"></i> Histori Opname & Penyesuaian Stok
-                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.65rem;">
-                    {{ $opnames->total() }} Transaksi
+                <i class="bi bi-journal-check text-warning fs-6"></i> Histori Opname & Penyesuaian Stok
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2.5 py-0.5 rounded-pill" style="font-size: 0.68rem;">
+                    {{ $opnames->total() }} Sesi Audit
                 </span>
             </h6>
         </div>
@@ -161,64 +161,68 @@
                 <table class="v2-table align-middle">
                     <thead>
                         <tr>
-                            <th style="width: 170px;">TANGGAL</th>
-                            <th>NAMA BARANG / SKU</th>
-                            <th class="text-center">SELISIH QTY</th>
-                            <th class="text-end">STOK SETELAH</th>
-                            <th>PETUGAS / REFERENSI</th>
+                            <th class="text-center" style="width: 45px;">#</th>
+                            <th style="width: 170px;">TANGGAL & WAKTU</th>
                             <th>DIINPUT OLEH</th>
-                            <th class="text-center" style="width: 100px;">AKSI</th>
+                            <th>PETUGAS / REFERENSI AUDIT</th>
+                            <th class="text-center" style="width: 130px;">JUMLAH SKU</th>
+                            <th class="text-end" style="width: 150px;">TOTAL SELISIH QTY</th>
+                            <th class="text-center" style="width: 120px;">AKSI</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($opnames as $op)
+                        @forelse($opnames as $batchIdx => $batch)
                             @php
-                                $itemName = $op->inventoryItem ? $op->inventoryItem->name : ($op->masterProduct ? $op->masterProduct->name : 'Item Hilang');
-                                $itemSku  = $op->inventoryItem ? $op->inventoryItem->sku : ($op->masterProduct ? $op->masterProduct->sku : '-');
-                                $itemUnit = $op->inventoryItem ? $op->inventoryItem->unit : 'pcs';
+                                $first = $batch->first();
+                                $dateFormatted = $first->created_at ? $first->created_at->format('d/m/Y H:i') : '-';
+                                $diffHuman = $first->created_at ? $first->created_at->diffForHumans() : '-';
+                                $userName = $first->user ? $first->user->name : 'Sistem / PIC';
+                                $ref = $first->reference ?? 'Penyesuaian Stok';
+                                $totalSku = $batch->count();
+                                $totalDiff = $batch->sum('quantity');
+                                $batchModalId = 'batchOpnameModal_' . $loop->index;
                             @endphp
                             <tr>
-                                <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.78rem;">{{ $op->created_at ? $op->created_at->format('d/m/Y H:i') : '-' }}</div>
-                                    <div class="text-muted small" style="font-size:0.68rem;">{{ $op->created_at ? $op->created_at->diffForHumans() : '-' }}</div>
+                                <td class="text-center text-muted fw-semibold" style="font-size: 0.75rem;">
+                                    {{ $opnames->firstItem() + $batchIdx }}
                                 </td>
                                 <td>
-                                    <div class="fw-bold text-dark" style="font-size: 0.8rem;">{{ $itemName }}</div>
-                                    <div class="font-monospace text-muted" style="font-size: 0.7rem;">SKU: {{ $itemSku }}</div>
+                                    <div class="fw-bold text-dark" style="font-size: 0.78rem;">{{ $dateFormatted }}</div>
+                                    <div class="text-muted small" style="font-size:0.68rem;">{{ $diffHuman }}</div>
                                 </td>
-                                <td class="text-center fw-bold font-monospace" style="font-size: 0.88rem;">
-                                    @if($op->quantity > 0)
-                                        <span class="text-success">+{{ number_format($op->quantity, 2, ',', '.') }} {{ $itemUnit }}</span>
-                                    @elseif($op->quantity < 0)
-                                        <span class="text-danger">{{ number_format($op->quantity, 2, ',', '.') }} {{ $itemUnit }}</span>
+                                <td>
+                                    <span class="badge bg-light text-dark border px-2.5 py-1" style="font-size: 0.75rem;">
+                                        <i class="bi bi-person-fill text-primary me-1"></i>{{ $userName }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark" style="font-size: 0.78rem;">{{ $ref }}</div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.75rem;">
+                                        <i class="bi bi-box-seam me-1"></i>{{ $totalSku }} Item SKU
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    @if($totalDiff > 0)
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold" style="font-size: 0.78rem;">
+                                            +{{ number_format($totalDiff, 0, ',', '.') }} Pcs
+                                        </span>
+                                    @elseif($totalDiff < 0)
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fw-bold" style="font-size: 0.78rem;">
+                                            {{ number_format($totalDiff, 0, ',', '.') }} Pcs
+                                        </span>
                                     @else
-                                        <span class="text-muted">0</span>
+                                        <span class="badge bg-secondary-subtle text-secondary px-2.5 py-1" style="font-size: 0.78rem;">0 Pcs</span>
                                     @endif
-                                </td>
-                                <td class="text-end fw-bold font-monospace text-dark" style="font-size: 0.82rem;">
-                                    {{ number_format($op->balance_after, 2, ',', '.') }} {{ $itemUnit }}
-                                </td>
-                                <td>
-                                    <div class="fw-semibold text-dark" style="font-size: 0.78rem;">{{ $op->reference }}</div>
-                                </td>
-                                <td>
-                                    <div class="text-dark fw-medium" style="font-size: 0.75rem;">
-                                        <i class="bi bi-person me-1 text-secondary"></i>{{ $op->user->name ?? 'Sistem' }}
-                                    </div>
                                 </td>
                                 <td class="text-center">
                                     <button type="button" 
-                                            class="btn btn-sm btn-outline-primary py-0.5 px-2.5 fw-semibold btn-show-opname" 
-                                            style="font-size: 0.72rem;"
-                                            data-date="{{ $op->created_at ? $op->created_at->format('d/m/Y H:i:s') : '-' }}"
-                                            data-item="{{ $itemName }}"
-                                            data-sku="{{ $itemSku }}"
-                                            data-unit="{{ $itemUnit }}"
-                                            data-qty="{{ $op->quantity }}"
-                                            data-after="{{ $op->balance_after }}"
-                                            data-ref="{{ $op->reference }}"
-                                            data-user="{{ $op->user->name ?? 'Sistem' }}">
-                                        <i class="bi bi-eye me-1"></i> Detail
+                                            class="btn btn-sm btn-outline-primary py-1 px-2.5 fw-semibold shadow-sm" 
+                                            style="font-size: 0.73rem;"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#{{ $batchModalId }}">
+                                        <i class="bi bi-eye me-1"></i> Show / Detail
                                     </button>
                                 </td>
                             </tr>
@@ -238,7 +242,7 @@
             <div class="v2-card-footer bg-light py-2 px-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="text-muted" style="font-size: 0.72rem;">
-                        Menampilkan {{ $opnames->firstItem() }} - {{ $opnames->lastItem() }} dari {{ $opnames->total() }} opname
+                        Menampilkan Sesi Opname {{ $opnames->firstItem() }} - {{ $opnames->lastItem() }} dari {{ $opnames->total() }} Sesi
                     </div>
                     <div>
                         {{ $opnames->links('pagination::bootstrap-5') }}
@@ -247,6 +251,108 @@
             </div>
         @endif
     </div>
+
+    <!-- Modals Detail Group Sesi Opname -->
+    @foreach($opnames as $batchIdx => $batch)
+        @php
+            $first = $batch->first();
+            $dateFormatted = $first->created_at ? $first->created_at->format('d F Y, H:i:s') : '-';
+            $userName = $first->user ? $first->user->name : 'Sistem / PIC';
+            $ref = $first->reference ?? 'Penyesuaian Stok';
+            $totalSku = $batch->count();
+            $totalDiff = $batch->sum('quantity');
+            $batchModalId = 'batchOpnameModal_' . $loop->index;
+        @endphp
+        <div class="modal fade" id="{{ $batchModalId }}" tabindex="-1" aria-labelledby="{{ $batchModalId }}Label" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content border-0 shadow-lg" style="border-radius:12px; overflow:hidden;">
+                    <div class="modal-header bg-warning text-dark py-3">
+                        <h5 class="modal-title fw-bold fs-6 mb-0" id="{{ $batchModalId }}Label">
+                            <i class="bi bi-clock-history me-2"></i>Detail Opname & Penyesuaian Stok
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <!-- Summary Header Box -->
+                        <div class="p-3 bg-light rounded-3 border mb-3">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-4">
+                                    <small class="text-secondary d-block fw-semibold" style="font-size:0.72rem;">TANGGAL & WAKTU</small>
+                                    <span class="fw-bold text-dark" style="font-size:0.85rem;">{{ $dateFormatted }}</span>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <small class="text-secondary d-block fw-semibold" style="font-size:0.72rem;">DIINPUT OLEH (USER)</small>
+                                    <span class="fw-bold text-primary" style="font-size:0.85rem;"><i class="bi bi-person-circle me-1"></i>{{ $userName }}</span>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <small class="text-secondary d-block fw-semibold" style="font-size:0.72rem;">TOTAL ITEM & SELISIH</small>
+                                    <span class="fw-bold text-dark" style="font-size:0.85rem;">{{ $totalSku }} Item SKU</span>
+                                    (<span class="{{ $totalDiff >= 0 ? 'text-success' : 'text-danger' }} fw-bold">{{ $totalDiff > 0 ? '+' : '' }}{{ number_format($totalDiff, 0, ',', '.') }} Pcs</span>)
+                                </div>
+                                <div class="col-12 border-top pt-2 mt-2">
+                                    <small class="text-secondary d-block fw-semibold" style="font-size:0.72rem;">REFERENSI / CATATAN AUDIT</small>
+                                    <span class="fw-semibold text-dark" style="font-size:0.82rem;">{{ $ref }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Table List SKU dalam Sesi ini -->
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h6 class="fw-bold text-dark mb-0 fs-7">
+                                <i class="bi bi-boxes me-1 text-primary"></i> Daftar SKU Barang dalam Sesi Audit Ini
+                            </h6>
+                            <span class="badge bg-secondary rounded-pill">{{ $totalSku }} SKU</span>
+                        </div>
+                        <div class="table-responsive rounded-2 border">
+                            <table class="table table-hover table-striped align-middle mb-0" style="font-size:0.8rem;">
+                                <thead class="bg-light text-secondary">
+                                    <tr>
+                                        <th class="text-center" style="width:40px;">#</th>
+                                        <th style="width:140px;">SKU</th>
+                                        <th>NAMA BARANG</th>
+                                        <th class="text-center" style="width:90px;">TIPE</th>
+                                        <th class="text-end" style="width:110px;">SELISIH QTY</th>
+                                        <th class="text-end" style="width:130px;">STOK SETELAH</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($batch as $mIdx => $m)
+                                        @php
+                                            $sku = $m->inventoryItem->sku ?? $m->masterProduct->sku ?? '-';
+                                            $name = $m->inventoryItem->name ?? $m->masterProduct->name ?? '-';
+                                            $unit = $m->inventoryItem->unit ?? 'pcs';
+                                            $type = $m->inventoryItem->type ?? 'Produk';
+                                        @endphp
+                                        <tr>
+                                            <td class="text-center text-muted fw-semibold">{{ $mIdx + 1 }}</td>
+                                            <td><span class="badge bg-secondary-subtle text-dark font-monospace border px-2 py-1">{{ $sku }}</span></td>
+                                            <td class="fw-semibold text-dark">{{ $name }}</td>
+                                            <td class="text-center"><span class="badge bg-light text-secondary border text-uppercase" style="font-size:0.68rem;">{{ $type }}</span></td>
+                                            <td class="text-end font-monospace">
+                                                @if($m->quantity > 0)
+                                                    <span class="text-success fw-bold">+{{ number_format($m->quantity, 0, ',', '.') }} {{ $unit }}</span>
+                                                @elseif($m->quantity < 0)
+                                                    <span class="text-danger fw-bold">{{ number_format($m->quantity, 0, ',', '.') }} {{ $unit }}</span>
+                                                @else
+                                                    <span class="text-muted">0 {{ $unit }}</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-end font-monospace fw-bold text-dark">
+                                                {{ $m->balance_after !== null ? number_format($m->balance_after, 0, ',', '.') : '-' }} {{ $unit }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2 bg-light">
+                        <button type="button" class="btn btn-sm btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Tutup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endforeach
 
 @else
     {{-- ── TAB 1: DATA BARANG ── --}}
