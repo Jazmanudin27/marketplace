@@ -245,7 +245,7 @@
             $batchModalId = 'batchOpnameModal_' . $loop->index;
         @endphp
         <div class="modal fade" id="{{ $batchModalId }}" tabindex="-1" aria-labelledby="{{ $batchModalId }}Label" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content border-0 shadow-lg" style="border-radius:12px; overflow:hidden;">
                     <div class="modal-header bg-warning text-dark py-3">
                         <h5 class="modal-title fw-bold fs-6 mb-0" id="{{ $batchModalId }}Label">
