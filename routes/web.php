@@ -267,6 +267,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/stock-opname/create', [\App\Http\Controllers\V2\StockOpnameController::class, 'create'])->name('stock_opname.create');
         Route::post('/stock-opname', [\App\Http\Controllers\V2\StockOpnameController::class, 'store'])->name('stock_opname.store');
 
+        // Gudang Jadi (Mutasi Stok Produk Jadi) V2
+        Route::get('/gudang-jadi', [\App\Http\Controllers\V2\GudangJadiController::class, 'index'])->name('gudang_jadi.index');
+        Route::get('/gudang-jadi/create', [\App\Http\Controllers\V2\GudangJadiController::class, 'create'])->name('gudang_jadi.create');
+        Route::post('/gudang-jadi', [\App\Http\Controllers\V2\GudangJadiController::class, 'store'])->name('gudang_jadi.store');
+        Route::get('/gudang-jadi/search-products', [\App\Http\Controllers\V2\GudangJadiController::class, 'searchProducts'])->name('gudang_jadi.search_products');
+
         // Titipan Barang (Supplier Consignment) V2
         Route::prefix('titipan-barang')->name('titipan_barang.')->group(function () {
             Route::get('/', [\App\Http\Controllers\V2\TitipanBarangController::class, 'index'])->name('index');

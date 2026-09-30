@@ -156,6 +156,11 @@
                         <i class="bi bi-box-arrow-up-right text-danger me-1.5"></i>
                         <span>Barang Keluar</span>
                     </a>
+                    <a href="{{ route('v2.gudang_jadi.index') }}"
+                        class="v2-submenu-link {{ request()->is('v2/gudang-jadi*') || request()->routeIs('v2.gudang_jadi.*') ? 'active' : '' }}">
+                        <i class="bi bi-building-gear text-primary me-1.5"></i>
+                        <span>Gudang Jadi</span>
+                    </a>
                     <a href="{{ url('/v2/barang') }}"
                         class="v2-submenu-link {{ request()->is('v2/barang*') || request()->is('pembelian/stock-report*') ? 'active' : '' }}">
                         <i class="bi bi-eye text-info me-1.5"></i>
