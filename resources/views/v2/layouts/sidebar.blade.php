@@ -165,15 +165,13 @@
             </div>
         </div>
 
-        <!-- HRD & Keuangan -->
-        <div class="v2-nav-section-title mt-2">KEUANGAN & HRD</div>
+        <!-- Keuangan -->
+        <div class="v2-nav-section-title mt-2">KEUANGAN</div>
         @php
             $isKeuanganActive =
                 request()->is('v2/mutasi-keuangan*') ||
                 request()->is('v2/saldo-marketplace*') ||
                 request()->is('reports*') ||
-                request()->is('employees*') ||
-                request()->is('hrd*') ||
                 request()->is('finance*');
         @endphp
         <div class="v2-nav-item v2-nav-dropdown {{ $isKeuanganActive ? 'show' : '' }}">
@@ -183,7 +181,7 @@
                 aria-expanded="{{ $isKeuanganActive ? 'true' : 'false' }}">
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-cash-stack"></i>
-                    <span>Keuangan & HRD</span>
+                    <span>Keuangan</span>
                 </div>
                 <i class="bi bi-chevron-down v2-dropdown-arrow ms-auto" style="font-size: 0.65rem;"></i>
             </a>
@@ -203,11 +201,6 @@
                         class="v2-submenu-link {{ request()->is('reports*') ? 'active' : '' }}">
                         <i class="bi bi-bar-chart-line-fill text-success me-1.5"></i>
                         <span>Laba Rugi & Keuangan</span>
-                    </a>
-                    <a href="{{ Route::has('employees.index') ? route('employees.index') : (Route::has('hrd.employees.index') ? route('hrd.employees.index') : url('/employees')) }}"
-                        class="v2-submenu-link {{ request()->is('employees*') || request()->is('hrd*') ? 'active' : '' }}">
-                        <i class="bi bi-people-fill text-info me-1.5"></i>
-                        <span>Karyawan & Payroll</span>
                     </a>
                 </div>
             </div>
