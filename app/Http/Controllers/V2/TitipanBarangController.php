@@ -61,8 +61,9 @@ class TitipanBarangController extends Controller
 
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $refNumber = SupplierConsignment::generateReferenceNumber();
+        $products  = MasterProduct::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->limit(500)->get(['id', 'sku', 'name', 'stock', 'unit', 'cost_price', 'price']);
 
-        return view('v2.titipan_barang.create', compact('suppliers', 'refNumber'));
+        return view('v2.titipan_barang.create', compact('suppliers', 'refNumber', 'products'));
     }
 
     /**
@@ -277,9 +278,10 @@ class TitipanBarangController extends Controller
 
         $tenantId  = Auth::user()->tenant_id;
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $products  = MasterProduct::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->limit(500)->get(['id', 'sku', 'name', 'stock', 'unit', 'cost_price', 'price']);
         $consignment->load(['supplier', 'items.masterProduct']);
 
-        return view('v2.titipan_barang.edit', compact('consignment', 'suppliers'));
+        return view('v2.titipan_barang.edit', compact('consignment', 'suppliers', 'products'));
     }
 
     /**
