@@ -4,8 +4,11 @@ namespace App\Http\Controllers\V2;
 
 use App\Http\Controllers\Controller;
 use App\Models\InventoryItem;
+use App\Models\MasterProduct;
+use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class BarangController extends Controller
 {
@@ -21,7 +24,9 @@ class BarangController extends Controller
     {
         $this->checkAccess('inventory-items.index');
         $tenantId = Auth::user()->tenant_id;
+        $activeTab = $request->query('tab', 'items');
 
+        // Tab 1: Inventory Items Query
         $query = InventoryItem::where('tenant_id', $tenantId);
 
         if ($request->filled('name')) {
@@ -53,9 +58,37 @@ class BarangController extends Controller
             })->count(),
         ];
 
-        $items = $query->orderBy('name')->paginate(15)->withQueryString();
+        $items = $query->orderBy('name')->paginate(15, ['*'], 'items_page')->withQueryString();
 
-        return view('v2.barang.index', compact('items', 'counts'));
+        // Tab 2: Stock Opname History Query
+        $opnameQuery = StockMovement::with(['inventoryItem', 'masterProduct', 'user'])
+            ->where('tenant_id', $tenantId)
+            ->whereIn('type', ['adj', 'adjustment'])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+
+        if ($request->filled('opname_search')) {
+            $search = $request->opname_search;
+            $opnameQuery->where(function ($q) use ($search) {
+                $q->where('reference', 'like', '%' . $search . '%')
+                  ->orWhereHas('inventoryItem', function ($iq) use ($search) {
+                      $iq->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('sku', 'like', '%' . $search . '%');
+                  })
+                  ->orWhereHas('masterProduct', function ($mq) use ($search) {
+                      $mq->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('sku', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+
+        if ($request->filled('opname_date')) {
+            $opnameQuery->whereDate('created_at', $request->opname_date);
+        }
+
+        $opnames = $opnameQuery->paginate(15, ['*'], 'opname_page')->withQueryString();
+
+        return view('v2.barang.index', compact('items', 'counts', 'opnames', 'activeTab'));
     }
 
     public function store(Request $request)
@@ -173,6 +206,145 @@ class BarangController extends Controller
             Auth::id()
         );
 
-        return redirect()->route('v2.barang.index')->with('success', "Stok barang \"{$item->name}\" berhasil disesuaikan.");
+        return redirect()->to(url('/v2/barang?tab=opname'))->with('success', "Stok barang \"{$item->name}\" berhasil disesuaikan.");
+    }
+
+    /**
+     * Download CSV template for Stock Opname import.
+     */
+    public function downloadOpnameTemplate()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="template_import_stok_opname.csv"',
+        ];
+
+        $callback = function () {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF"); // UTF-8 BOM
+            fputcsv($file, ['SKU', 'Stok']);
+            fputcsv($file, ['BRG-KMN-001', '100']);
+            fputcsv($file, ['BRG-BHN-002', '45.5']);
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Import Stock Opname from CSV file.
+     */
+    public function importOpname(Request $request)
+    {
+        $this->checkAccess('inventory-items.edit');
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'file' => 'required|file|max:10240',
+            'pic'  => 'nullable|string|max:255',
+        ]);
+
+        $pic  = $request->filled('pic') ? trim($request->pic) : Auth::user()->name;
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+
+        $content = file_get_contents($path);
+        if (substr($content, 0, 3) === "\xEF\xBB\xBF") {
+            $content = substr($content, 3);
+        }
+
+        $lines = preg_split('/\r\n|\r|\n/', trim($content));
+        if (empty($lines)) {
+            return redirect()->back()->with('error', 'File import kosong.');
+        }
+
+        $delimiters = [',', ';', "\t", '|'];
+        $chosenDelimiter = ',';
+        $maxCount = 0;
+        foreach ($delimiters as $delim) {
+            $count = substr_count($lines[0], $delim);
+            if ($count > $maxCount) {
+                $maxCount = $count;
+                $chosenDelimiter = $delim;
+            }
+        }
+
+        $rows = [];
+        foreach ($lines as $line) {
+            if (trim($line) === '') continue;
+            $rows[] = str_getcsv($line, $chosenDelimiter);
+        }
+
+        if (empty($rows)) {
+            return redirect()->back()->with('error', 'Tidak ada data valid dalam file CSV.');
+        }
+
+        $skuCol = 0;
+        $qtyCol = 1;
+        $hasHeader = false;
+
+        $firstRow = array_map('strtolower', array_map('trim', $rows[0]));
+        foreach ($firstRow as $idx => $headerName) {
+            $cleanHeader = preg_replace('/[^a-z0-9_]/', '', $headerName);
+            if (in_array($cleanHeader, ['sku', 'kode', 'kode_barang', 'product_sku'])) {
+                $skuCol = $idx;
+                $hasHeader = true;
+            }
+            if (in_array($cleanHeader, ['stok', 'stock', 'qty', 'stok_fisik', 'actual_stock'])) {
+                $qtyCol = $idx;
+                $hasHeader = true;
+            }
+        }
+
+        if ($hasHeader) {
+            array_shift($rows);
+        }
+
+        $successCount = 0;
+        $notFoundSkus = [];
+        $date = now()->format('Y-m-d H:i:s');
+        $reference = "Import Stock Opname — PIC: {$pic}";
+
+        DB::transaction(function () use ($rows, $skuCol, $qtyCol, $tenantId, $reference, $date, &$successCount, &$notFoundSkus) {
+            foreach ($rows as $row) {
+                if (!isset($row[$skuCol]) || !isset($row[$qtyCol])) continue;
+
+                $sku = strtoupper(trim($row[$skuCol]));
+                $actualStock = (float) trim($row[$qtyCol]);
+
+                if (empty($sku)) continue;
+
+                // Search InventoryItem first
+                $item = InventoryItem::where('tenant_id', $tenantId)->where('sku', $sku)->first();
+                if ($item) {
+                    $diff = $actualStock - $item->stock;
+                    if ($diff != 0) {
+                        $item->recordStockMovement((int) round($diff), 'adjustment', $reference, Auth::id(), $date);
+                    }
+                    $successCount++;
+                    continue;
+                }
+
+                // Search MasterProduct fallback
+                $product = MasterProduct::where('tenant_id', $tenantId)->where('sku', $sku)->first();
+                if ($product) {
+                    $diff = $actualStock - $product->stock;
+                    if ($diff != 0) {
+                        $product->recordStockMovement((int) round($diff), 'adjustment', $reference, Auth::id(), $date);
+                    }
+                    $successCount++;
+                    continue;
+                }
+
+                $notFoundSkus[] = $sku;
+            }
+        });
+
+        $msg = "✅ Success import stock opname untuk {$successCount} item barang.";
+        if (count($notFoundSkus) > 0) {
+            $msg .= " (SKU tidak ditemukan: " . implode(', ', array_slice($notFoundSkus, 0, 5)) . (count($notFoundSkus) > 5 ? ' dll' : '') . ")";
+        }
+
+        return redirect()->to(url('/v2/barang?tab=opname'))->with('success', $msg);
     }
 }

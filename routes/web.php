@@ -199,6 +199,8 @@ Route::middleware('auth')->group(function () {
         // Data Barang V2
         Route::get('/barang', [\App\Http\Controllers\V2\BarangController::class, 'index'])->name('barang.index');
         Route::post('/barang', [\App\Http\Controllers\V2\BarangController::class, 'store'])->name('barang.store');
+        Route::get('/barang/opname-template', [\App\Http\Controllers\V2\BarangController::class, 'downloadOpnameTemplate'])->name('barang.opname_template');
+        Route::post('/barang/import-opname', [\App\Http\Controllers\V2\BarangController::class, 'importOpname'])->name('barang.import_opname');
         Route::get('/barang/{id}', [\App\Http\Controllers\V2\BarangController::class, 'show'])->name('barang.show');
         Route::put('/barang/{id}', [\App\Http\Controllers\V2\BarangController::class, 'update'])->name('barang.update');
         Route::delete('/barang/{id}', [\App\Http\Controllers\V2\BarangController::class, 'destroy'])->name('barang.destroy');
