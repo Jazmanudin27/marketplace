@@ -1079,7 +1079,7 @@ select option {
     margin: 0 !important;
     padding: 0 !important;
     box-sizing: border-box !important;
-    overflow: hidden !important;
+    overflow: visible !important;
 }
 
 .select2-container {
@@ -1108,6 +1108,7 @@ select option {
     margin: 0 !important;
     position: relative !important;
     overflow: hidden !important;
+    cursor: pointer !important;
 }
 
 /* Fix text collision with clear (x) button */
@@ -1130,6 +1131,7 @@ select option {
     white-space: normal !important;
     font-size: 0.75rem !important;
     padding: 6px 10px !important;
+    cursor: pointer !important;
 }
 
 /* Fix table layouts containing forms so columns don't stretch */
@@ -1146,8 +1148,7 @@ select option {
 #itemsTable th,
 .table-items td,
 .table-items th {
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    overflow: visible !important;
 }
 
 /* Position clear (x) button cleanly without overlapping text */
