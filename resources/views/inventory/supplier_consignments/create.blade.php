@@ -62,7 +62,7 @@
                 {{-- Supplier --}}
                 <div class="mb-2">
                     <label class="form-label small fw-semibold text-dark mb-1">Supplier (Pemilik Barang) <span class="text-danger">*</span></label>
-                    <select name="supplier_id" id="supplier_select" class="form-select form-select-sm @error('supplier_id') is-invalid @enderror" required>
+                    <select name="supplier_id" id="supplier_select" class="form-select form-select-sm @error('supplier_id') is-invalid @enderror" data-placeholder="-- Pilih Supplier Penitip --" required>
                         <option value="">-- Pilih Supplier Penitip --</option>
                         @foreach($suppliers as $supplier)
                             <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
@@ -114,9 +114,9 @@
                         <small class="text-muted fw-normal ms-1" style="font-size:0.72rem;">(tekan Enter untuk langsung tambah)</small>
                     </h6>
                     <div class="row g-2 align-items-end" id="quick-input-bar">
-                        <div class="col-md-5 col-12">
+                        <div class="col-md-5 col-12 select2-wrapper position-relative">
                             <label class="form-label small text-muted mb-1">Cari / Pilih Barang <span class="text-danger">*</span></label>
-                            <select id="quick_product_select" class="form-select form-select-sm w-100">
+                            <select id="quick_product_select" class="form-select form-select-sm w-100 no-select2" data-placeholder="-- Ketik Nama / SKU Barang --">
                                 <option value="">-- Ketik Nama / SKU Barang --</option>
                             </select>
                         </div>
@@ -206,13 +206,12 @@ function formatRupiahQuick(elem) {
 }
 
 $(document).ready(function() {
-    $('#supplier_select').select2({ theme: 'bootstrap-5', placeholder: '-- Pilih Supplier Penitip --' });
-
     $('#quick_product_select').select2({
         theme: 'bootstrap-5',
+        width: '100%',
         placeholder: '-- Ketik Nama / SKU Barang --',
         allowClear: true,
-        dropdownParent: $('#quick-input-bar'),
+        dropdownParent: $('#quick_product_select').parent(),
         ajax: {
             url: "{{ route('supplier_consignments.search_products') }}",
             dataType: 'json',

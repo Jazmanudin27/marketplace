@@ -42,7 +42,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold small text-uppercase">Supplier <span class="text-danger">*</span></label>
-                            <select name="supplier_id" class="form-select @error('supplier_id') is-invalid @enderror" onchange="window.location.href='{{ route('supplier_consignments.settlement.create') }}?supplier_id='+this.value" required>
+                            <select name="supplier_id" class="form-select form-select-sm @error('supplier_id') is-invalid @enderror" data-placeholder="-- Pilih Supplier --" onchange="window.location.href='{{ route('supplier_consignments.settlement.create') }}?supplier_id='+this.value" required>
                                 <option value="">-- Pilih Supplier --</option>
                                 @foreach($suppliers as $supplier)
                                     <option value="{{ $supplier->id }}" {{ $selectedSupplierId == $supplier->id ? 'selected' : '' }}>
@@ -53,18 +53,18 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold small text-uppercase">Tanggal Setoran <span class="text-danger">*</span></label>
-                            <input type="date" name="settlement_date" class="form-control @error('settlement_date') is-invalid @enderror" value="{{ old('settlement_date', date('Y-m-d')) }}" required>
+                            <input type="date" name="settlement_date" class="form-control form-control-sm @error('settlement_date') is-invalid @enderror" value="{{ old('settlement_date', date('Y-m-d')) }}" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold small text-uppercase">Metode Pembayaran <span class="text-danger">*</span></label>
-                            <select name="payment_method" id="payment_method" class="form-select" onchange="toggleBank(this.value)" required>
+                            <select name="payment_method" id="payment_method" class="form-select form-select-sm" onchange="toggleBank(this.value)" required>
                                 <option value="transfer" {{ old('payment_method') === 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
                                 <option value="cash" {{ old('payment_method') === 'cash' ? 'selected' : '' }}>Tunai / Kas</option>
                             </select>
                         </div>
                         <div class="mb-3" id="bank-container">
                             <label class="form-label fw-semibold small text-uppercase">Sumber Rekening Bank <span class="text-danger">*</span></label>
-                            <select name="bank_account_id" class="form-select">
+                            <select name="bank_account_id" class="form-select form-select-sm" data-placeholder="-- Pilih Rekening --">
                                 <option value="">-- Pilih Rekening --</option>
                                 @foreach($bankAccounts as $bank)
                                     <option value="{{ $bank->id }}" {{ old('bank_account_id') == $bank->id ? 'selected' : '' }}>
