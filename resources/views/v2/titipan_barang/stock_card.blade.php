@@ -126,17 +126,7 @@
     @endif
 </div>
 
-@if(!$selectedSupplierId)
-    <div class="v2-card p-5 text-center my-4 shadow-sm">
-        <div class="mb-3 text-muted">
-            <i class="bi bi-search text-secondary" style="font-size: 3rem;"></i>
-        </div>
-        <h5 class="fw-bold text-dark">Ketik Nama Supplier</h5>
-        <p class="text-muted small mb-0" style="max-width: 520px; margin: 0 auto;">
-            Ketikkan nama supplier pada kolom pencarian di atas lalu tekan tombol <strong>Cari</strong> untuk menampilkan laporan Kartu Stok & Persediaan Konsinyasi.
-        </p>
-    </div>
-@else
+
 
     {{-- ── KPI Summary Cards ── --}}
     <div class="row g-2.5 mb-3">
@@ -277,7 +267,7 @@
                         <tr>
                             <td colspan="10" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary opacity-50"></i>
-                                Belum ada data barang konsinyasi untuk supplier ini.
+                                Belum ada data penerimaan barang konsinyasi yang tercatat.
                             </td>
                         </tr>
                     @endforelse
@@ -306,7 +296,5 @@
             </table>
         </div>
     </div>
-
-@endif
 
 @endsection

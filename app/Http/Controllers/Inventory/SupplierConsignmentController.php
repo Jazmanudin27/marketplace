@@ -461,74 +461,72 @@ class SupplierConsignmentController extends Controller
         $totalPaidAmountAll= 0;
         $totalProfitAll    = 0;
 
-        if ($selectedSupplierId) {
-            // Ambil semua item dari penerimaan konsinyasi yang approved untuk supplier ini
-            $items = SupplierConsignmentItem::whereHas('consignment', function ($q) use ($tenantId, $selectedSupplierId) {
-                $q->where('tenant_id', $tenantId)
-                  ->where('supplier_id', $selectedSupplierId)
-                  ->where('status', 'approved');
-            })->with(['masterProduct', 'consignment'])->get();
-
-            // Kelompokkan per MasterProduct
-            $grouped = $items->groupBy('master_product_id');
-
-            foreach ($grouped as $productId => $groupItems) {
-                $product = MasterProduct::find($productId);
-                if (!$product) continue;
-
-                $qtyReceivedTotal = $groupItems->sum('qty_received');
-                $unitCost         = $groupItems->avg('unit_cost_price') ?: $product->cost_price;
-                $unitSelling      = $groupItems->avg('unit_selling_price') ?: $product->price;
-
-                // Hitung total setoran yang sudah dilakukan untuk produk ini pada supplier ini
-                $qtySettledTotal  = (int) SupplierConsignmentSettlementItem::whereHas('settlement', function ($q) use ($tenantId, $selectedSupplierId) {
-                    $q->where('tenant_id', $tenantId)
-                      ->where('supplier_id', $selectedSupplierId)
-                      ->where('status', 'approved');
-                })->where('master_product_id', $productId)->sum('qty_settled');
-
-                // Hitung estimasi atau riil barang terjual berdasarkan hasil scan kemas riil
-                $actualQtySold = (int) $groupItems->sum('qty_sold');
-                $currentStock = $product->stock;
-                // Total Terjual (Gunakan qty_sold riil dari scan barcode kemas, atau fallback ke estimasi jika belum ada scan)
-                $qtySoldTotal = $actualQtySold > 0 ? min($qtyReceivedTotal, $actualQtySold) : max(0, $qtyReceivedTotal - $currentStock);
-                if ($qtySoldTotal > $qtyReceivedTotal) {
-                    $qtySoldTotal = $qtyReceivedTotal;
-                }
-
-                $qtyRemainingTotal = max(0, $qtyReceivedTotal - $qtySoldTotal);
-                $qtyUnsettledTotal = max(0, $qtySoldTotal - $qtySettledTotal);
-
-                $nominalPaid      = $qtySettledTotal * $unitCost;
-                $nominalUnsettled = $qtyUnsettledTotal * $unitCost;
-                $profitTotal      = $qtySoldTotal * ($unitSelling - $unitCost);
-
-                $totalReceivedAll  += $qtyReceivedTotal;
-                $totalSoldAll      += $qtySoldTotal;
-                $totalRemainingAll += $qtyRemainingTotal;
-                $totalSettledAll   += $qtySettledTotal;
-                $totalUnsettledAll += $qtyUnsettledTotal;
-                $totalPaidAmountAll+= $nominalPaid;
-                $totalProfitAll    += $profitTotal;
-
-                $reportData[] = [
-                    'product_id'          => $product->id,
-                    'sku'                 => $product->sku,
-                    'name'                => $product->name,
-                    'unit'                => $product->unit ?: 'PCS',
-                    'unit_cost'           => $unitCost,
-                    'unit_selling'        => $unitSelling,
-                    'qty_received'        => $qtyReceivedTotal,
-                    'current_stock'       => $product->stock,
-                    'qty_sold'            => $qtySoldTotal,
-                    'qty_remaining'       => $qtyRemainingTotal,
-                    'qty_settled'         => $qtySettledTotal,
-                    'qty_unsettled'       => $qtyUnsettledTotal,
-                    'nominal_paid'        => $nominalPaid,
-                    'nominal_unsettled'   => $nominalUnsettled,
-                    'profit_total'        => $profitTotal,
-                ];
+        $itemsQuery = SupplierConsignmentItem::whereHas('consignment', function ($q) use ($tenantId, $selectedSupplierId) {
+            $q->where('tenant_id', $tenantId)
+              ->where('status', 'approved');
+            if ($selectedSupplierId) {
+                $q->where('supplier_id', $selectedSupplierId);
             }
+        })->with(['masterProduct', 'consignment.supplier']);
+
+        $items = $itemsQuery->get();
+        $grouped = $items->groupBy('master_product_id');
+
+        foreach ($grouped as $productId => $groupItems) {
+            $product = MasterProduct::find($productId);
+            if (!$product) continue;
+
+            $qtyReceivedTotal = $groupItems->sum('qty_received');
+            $unitCost         = $groupItems->avg('unit_cost_price') ?: $product->cost_price;
+            $unitSelling      = $groupItems->avg('unit_selling_price') ?: $product->price;
+
+            $qtySettledTotal  = (int) SupplierConsignmentSettlementItem::whereHas('settlement', function ($q) use ($tenantId, $selectedSupplierId) {
+                $q->where('tenant_id', $tenantId)
+                  ->where('status', 'approved');
+                if ($selectedSupplierId) {
+                    $q->where('supplier_id', $selectedSupplierId);
+                }
+            })->where('master_product_id', $productId)->sum('qty_settled');
+
+            $actualQtySold = (int) $groupItems->sum('qty_sold');
+            $currentStock = $product->stock;
+            $qtySoldTotal = $actualQtySold > 0 ? min($qtyReceivedTotal, $actualQtySold) : max(0, $qtyReceivedTotal - $currentStock);
+            if ($qtySoldTotal > $qtyReceivedTotal) {
+                $qtySoldTotal = $qtyReceivedTotal;
+            }
+
+            $qtyRemainingTotal = max(0, $qtyReceivedTotal - $qtySoldTotal);
+            $qtyUnsettledTotal = max(0, $qtySoldTotal - $qtySettledTotal);
+
+            $nominalPaid      = $qtySettledTotal * $unitCost;
+            $nominalUnsettled = $qtyUnsettledTotal * $unitCost;
+            $profitTotal      = $qtySoldTotal * ($unitSelling - $unitCost);
+
+            $totalReceivedAll  += $qtyReceivedTotal;
+            $totalSoldAll      += $qtySoldTotal;
+            $totalRemainingAll += $qtyRemainingTotal;
+            $totalSettledAll   += $qtySettledTotal;
+            $totalUnsettledAll += $qtyUnsettledTotal;
+            $totalPaidAmountAll+= $nominalPaid;
+            $totalProfitAll    += $profitTotal;
+
+            $reportData[] = [
+                'product_id'          => $product->id,
+                'sku'                 => $product->sku,
+                'name'                => $product->name,
+                'unit'                => $product->unit ?: 'PCS',
+                'unit_cost'           => $unitCost,
+                'unit_selling'        => $unitSelling,
+                'qty_received'        => $qtyReceivedTotal,
+                'current_stock'       => $product->stock,
+                'qty_sold'            => $qtySoldTotal,
+                'qty_remaining'       => $qtyRemainingTotal,
+                'qty_settled'         => $qtySettledTotal,
+                'qty_unsettled'       => $qtyUnsettledTotal,
+                'nominal_paid'        => $nominalPaid,
+                'nominal_unsettled'   => $nominalUnsettled,
+                'profit_total'        => $profitTotal,
+            ];
         }
 
         // Dapatkan riwayat setoran supplier ini
