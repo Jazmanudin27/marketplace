@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Inventory;
 
@@ -49,7 +49,7 @@ class SupplierConsignmentController extends Controller
         $consignments = $query->paginate(20)->withQueryString();
         $suppliers    = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
 
-        return view('inventory.supplier_consignments.index', compact('consignments', 'suppliers'));
+        return view('v2.titipan_barang.index', compact('consignments', 'suppliers'));
     }
 
     /**
@@ -62,7 +62,7 @@ class SupplierConsignmentController extends Controller
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $refNumber = SupplierConsignment::generateReferenceNumber();
 
-        return view('inventory.supplier_consignments.create', compact('suppliers', 'refNumber'));
+        return view('v2.titipan_barang.create', compact('suppliers', 'refNumber'));
     }
 
     /**
@@ -204,7 +204,7 @@ class SupplierConsignmentController extends Controller
 
         $consignment->load(['supplier', 'items.masterProduct', 'creator', 'approver', 'items.deductions.order']);
 
-        return view('inventory.supplier_consignments.show', compact('consignment'));
+        return view('v2.titipan_barang.show', compact('consignment'));
     }
 
     /**
@@ -216,7 +216,7 @@ class SupplierConsignmentController extends Controller
 
         $consignment->load(['supplier', 'items.masterProduct']);
 
-        return view('inventory.supplier_consignments.print_labels', compact('consignment'));
+        return view('v2.titipan_barang.print_labels', compact('consignment'));
     }
 
     /**
@@ -257,7 +257,7 @@ class SupplierConsignmentController extends Controller
                         'user_id'           => $userId,
                         'type'              => 'in',
                         'quantity'          => $item->qty_received,
-                        'reference'         => 'Penitipan Barang Konsinyasi Supplier (' . ($consignment->supplier ? $consignment->supplier->name : 'Supplier') . ') — ' . $consignment->reference_number,
+                        'reference'         => 'Penitipan Barang Konsinyasi Supplier (' . ($consignment->supplier ? $consignment->supplier->name : 'Supplier') . ') â€” ' . $consignment->reference_number,
                         'balance_after'     => $newStock,
                     ]);
                 }
@@ -285,7 +285,7 @@ class SupplierConsignmentController extends Controller
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $consignment->load(['supplier', 'items.masterProduct']);
 
-        return view('inventory.supplier_consignments.edit', compact('consignment', 'suppliers'));
+        return view('v2.titipan_barang.edit', compact('consignment', 'suppliers'));
     }
 
     /**
@@ -531,7 +531,7 @@ class SupplierConsignmentController extends Controller
 
         $selectedSupplier = Supplier::find($selectedSupplierId);
 
-        return view('inventory.supplier_consignments.stock_card', compact(
+        return view('v2.titipan_barang.stock_card', compact(
             'suppliers',
             'selectedSupplierId',
             'selectedSupplier',
@@ -606,7 +606,7 @@ class SupplierConsignmentController extends Controller
 
         $settlementNumber = SupplierConsignmentSettlement::generateSettlementNumber();
 
-        return view('inventory.supplier_consignments.settlement_create', compact(
+        return view('v2.titipan_barang.settlement_create', compact(
             'suppliers',
             'bankAccounts',
             'selectedSupplierId',
@@ -689,7 +689,7 @@ class SupplierConsignmentController extends Controller
                 'expense_date'    => $request->settlement_date,
                 'payment_method'  => $request->payment_method,
                 'bank_account_id' => $request->bank_account_id,
-                'description'     => 'Setoran Penjualan Barang Konsinyasi ' . ($supplier ? $supplier->name : '') . ' (' . $settlementNumber . ') — Total ' . $totalQtySettled . ' PCS',
+                'description'     => 'Setoran Penjualan Barang Konsinyasi ' . ($supplier ? $supplier->name : '') . ' (' . $settlementNumber . ') â€” Total ' . $totalQtySettled . ' PCS',
                 'created_by'      => Auth::id(),
             ]);
 
@@ -752,7 +752,7 @@ class SupplierConsignmentController extends Controller
         $totalQtySettled    = (int) $aggregateQuery->sum('total_qty_settled');
         $totalAmountSettled = (float) $aggregateQuery->sum('total_amount_paid');
 
-        return view('inventory.supplier_consignments.settlement_index', compact('settlements', 'suppliers', 'totalQtySettled', 'totalAmountSettled'));
+        return view('v2.titipan_barang.settlement_index', compact('settlements', 'suppliers', 'totalQtySettled', 'totalAmountSettled'));
 
     }
 
@@ -765,7 +765,7 @@ class SupplierConsignmentController extends Controller
 
         $settlement->load(['supplier', 'creator', 'bankAccount', 'items.masterProduct', 'items.consignmentItem.consignment']);
 
-        return view('inventory.supplier_consignments.settlement_show', compact('settlement'));
+        return view('v2.titipan_barang.settlement_show', compact('settlement'));
     }
 
     /**
@@ -784,3 +784,4 @@ class SupplierConsignmentController extends Controller
             ->with('success', 'Riwayat setoran supplier berhasil dihapus.');
     }
 }
+
