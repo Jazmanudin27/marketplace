@@ -81,36 +81,62 @@
     </div>
 @endif
 
-{{-- ── Filter Supplier ── --}}
+{{-- ── Filter Supplier (Ketik Nama / Cari Supplier) ── --}}
 <div class="v2-card p-3 mb-3 shadow-sm">
-    <form method="GET" action="{{ route('supplier_consignments.stock_card') }}" class="row g-2 align-items-end">
-        <div class="col-12 col-md-5">
-            <label class="form-label small fw-semibold text-muted mb-1">Pilih Supplier Penitip Barang</label>
-            <select name="supplier_id" class="form-select form-select-sm select2" onchange="this.form.submit()">
-                <option value="">-- Pilih Supplier --</option>
-                @foreach($suppliers as $supplier)
-                    <option value="{{ $supplier->id }}" {{ $selectedSupplierId == $supplier->id ? 'selected' : '' }}>
-                        {{ $supplier->name }} {{ $supplier->phone ? '('.$supplier->phone.')' : '' }}
-                    </option>
-                @endforeach
-            </select>
+    <form method="GET" action="{{ route('supplier_consignments.stock_card') }}" class="row g-2 align-items-center">
+        <div class="col-12 col-md-6 col-lg-5">
+            <label class="form-label small fw-semibold text-muted mb-1">Cari Supplier Penitip Barang</label>
+            <div class="input-group input-group-sm">
+                <input type="text" name="supplier" value="{{ request('supplier') }}" class="form-control" placeholder="Ketik nama supplier (contoh: PT Bandung Kain)..." autocomplete="off">
+                <button type="submit" class="btn btn-primary px-3 fw-semibold">
+                    <i class="bi bi-search me-1"></i> Cari
+                </button>
+                @if(request()->filled('supplier') || request()->filled('supplier_id'))
+                    <a href="{{ route('supplier_consignments.stock_card') }}" class="btn btn-outline-secondary" title="Reset Filter">
+                        <i class="bi bi-x-circle me-1"></i> Reset
+                    </a>
+                @endif
+            </div>
         </div>
         @if($selectedSupplier)
-            <div class="col-12 col-md-7 d-flex align-items-center gap-2 flex-wrap pt-1">
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1.5 fw-semibold" style="font-size:0.78rem;">
-                    <i class="bi bi-building me-1"></i>{{ $selectedSupplier->name }}
+            <div class="col-12 col-md-6 col-lg-7 d-flex align-items-center gap-2 flex-wrap pt-md-3">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1.5 fw-semibold" style="font-size:0.8rem;">
+                    <i class="bi bi-building me-1"></i>Supplier: {{ $selectedSupplier->name }}
                 </span>
                 @if($selectedSupplier->phone)
-                    <span class="badge bg-light text-secondary border px-3 py-1.5" style="font-size:0.78rem;">
+                    <span class="badge bg-light text-secondary border px-3 py-1.5" style="font-size:0.8rem;">
                         <i class="bi bi-telephone me-1"></i>{{ $selectedSupplier->phone }}
                     </span>
                 @endif
             </div>
         @endif
     </form>
+
+    @if(!empty($searchSupplier) && $suppliers->count() > 1 && !$selectedSupplierId)
+        <div class="mt-3 pt-2 border-top">
+            <div class="small text-muted mb-2"><i class="bi bi-info-circle me-1"></i>Ditemukan {{ $suppliers->count() }} supplier yang cocok, silakan pilih salah satu:</div>
+            <div class="d-flex flex-wrap gap-2">
+                @foreach($suppliers as $sup)
+                    <a href="{{ route('supplier_consignments.stock_card', ['supplier_id' => $sup->id, 'supplier' => $sup->name]) }}" class="btn btn-sm btn-outline-primary fw-semibold">
+                        <i class="bi bi-building me-1"></i>{{ $sup->name }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
 </div>
 
-@if($selectedSupplierId)
+@if(!$selectedSupplierId)
+    <div class="v2-card p-5 text-center my-4 shadow-sm">
+        <div class="mb-3 text-muted">
+            <i class="bi bi-search text-secondary" style="font-size: 3rem;"></i>
+        </div>
+        <h5 class="fw-bold text-dark">Ketik Nama Supplier</h5>
+        <p class="text-muted small mb-0" style="max-width: 520px; margin: 0 auto;">
+            Ketikkan nama supplier pada kolom pencarian di atas lalu tekan tombol <strong>Cari</strong> untuk menampilkan laporan Kartu Stok & Persediaan Konsinyasi.
+        </p>
+    </div>
+@else
 
     {{-- ── KPI Summary Cards ── --}}
     <div class="row g-2.5 mb-3">

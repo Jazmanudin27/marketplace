@@ -422,10 +422,19 @@ class TitipanBarangController extends Controller
      */
     public function stockCard(Request $request)
     {
-        $tenantId  = Auth::user()->tenant_id;
-        $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $tenantId       = Auth::user()->tenant_id;
+        $searchSupplier = trim($request->input('supplier', ''));
+        $selectedSupplierId = $request->input('supplier_id');
 
-        $selectedSupplierId = $request->supplier_id ?: ($suppliers->first() ? $suppliers->first()->id : null);
+        $suppliersQuery = Supplier::where('tenant_id', $tenantId)->where('is_active', true);
+        if (!empty($searchSupplier)) {
+            $suppliersQuery->where('name', 'like', '%' . $searchSupplier . '%');
+        }
+        $suppliers = $suppliersQuery->orderBy('name')->get();
+
+        if (!$selectedSupplierId && !empty($searchSupplier) && $suppliers->count() === 1) {
+            $selectedSupplierId = $suppliers->first()->id;
+        }
 
         $reportData         = [];
         $totalReceivedAll   = 0;
@@ -513,6 +522,7 @@ class TitipanBarangController extends Controller
 
         return view('v2.titipan_barang.stock_card', compact(
             'suppliers',
+            'searchSupplier',
             'selectedSupplierId',
             'selectedSupplier',
             'reportData',
