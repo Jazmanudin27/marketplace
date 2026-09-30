@@ -126,26 +126,43 @@
 
         <!-- Pembelian & Stok -->
         <div class="v2-nav-section-title mt-2">PEMBELIAN & STOK</div>
-        <div class="v2-nav-item">
-            <a href="{{ Route::has('v2.barang_masuk.index') ? route('v2.barang_masuk.index') : url('/v2/barang-masuk') }}"
-                class="v2-nav-link {{ request()->is('v2/barang-masuk*') ? 'active' : '' }}">
-                <i class="bi bi-box-arrow-in-down text-success"></i>
-                <span>Barang Masuk</span>
+        @php
+            $isPembelianActive =
+                request()->is('v2/barang-masuk*') ||
+                request()->is('v2/barang-keluar*') ||
+                request()->is('v2/barang*') ||
+                request()->is('pembelian*');
+        @endphp
+        <div class="v2-nav-item v2-nav-dropdown {{ $isPembelianActive ? 'show' : '' }}">
+            <a href="javascript:void(0)"
+                class="v2-nav-link v2-dropdown-toggle d-flex align-items-center justify-content-between {{ $isPembelianActive ? 'active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#pembelianSubmenu"
+                aria-expanded="{{ $isPembelianActive ? 'true' : 'false' }}">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-cart-plus-fill"></i>
+                    <span>Pembelian & Stok</span>
+                </div>
+                <i class="bi bi-chevron-down v2-dropdown-arrow ms-auto" style="font-size: 0.65rem;"></i>
             </a>
-        </div>
-        <div class="v2-nav-item">
-            <a href="{{ Route::has('v2.barang_keluar.index') ? route('v2.barang_keluar.index') : url('/v2/barang-keluar') }}"
-                class="v2-nav-link {{ request()->is('v2/barang-keluar*') ? 'active' : '' }}">
-                <i class="bi bi-box-arrow-up-right text-danger"></i>
-                <span>Barang Keluar</span>
-            </a>
-        </div>
-        <div class="v2-nav-item">
-            <a href="{{ url('/v2/barang') }}"
-                class="v2-nav-link {{ request()->is('v2/barang*') || request()->is('pembelian/stock-report*') ? 'active' : '' }}">
-                <i class="bi bi-eye text-info"></i>
-                <span>Memantau Stok</span>
-            </a>
+            <div class="collapse v2-submenu {{ $isPembelianActive ? 'show' : '' }}" id="pembelianSubmenu">
+                <div class="v2-submenu-inner">
+                    <a href="{{ Route::has('v2.barang_masuk.index') ? route('v2.barang_masuk.index') : url('/v2/barang-masuk') }}"
+                        class="v2-submenu-link {{ request()->is('v2/barang-masuk*') ? 'active' : '' }}">
+                        <i class="bi bi-box-arrow-in-down text-success me-1.5"></i>
+                        <span>Barang Masuk</span>
+                    </a>
+                    <a href="{{ Route::has('v2.barang_keluar.index') ? route('v2.barang_keluar.index') : url('/v2/barang-keluar') }}"
+                        class="v2-submenu-link {{ request()->is('v2/barang-keluar*') ? 'active' : '' }}">
+                        <i class="bi bi-box-arrow-up-right text-danger me-1.5"></i>
+                        <span>Barang Keluar</span>
+                    </a>
+                    <a href="{{ url('/v2/barang') }}"
+                        class="v2-submenu-link {{ request()->is('v2/barang*') || request()->is('pembelian/stock-report*') ? 'active' : '' }}">
+                        <i class="bi bi-eye text-info me-1.5"></i>
+                        <span>Memantau Stok</span>
+                    </a>
+                </div>
+            </div>
         </div>
 
         <!-- HRD & Keuangan -->
