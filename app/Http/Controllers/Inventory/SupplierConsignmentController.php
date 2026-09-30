@@ -732,7 +732,28 @@ class SupplierConsignmentController extends Controller
 
         $settlements = $query->orderByDesc('settlement_date')->orderByDesc('id')->paginate(20)->withQueryString();
 
-        return view('inventory.supplier_consignments.settlement_index', compact('settlements', 'suppliers'));
+        // KPI Aggregates (based on filtered query without pagination)
+        $aggregateQuery = SupplierConsignmentSettlement::where('tenant_id', $tenantId);
+        if ($request->filled('search')) {
+            $aggregateQuery->where(function ($q) use ($request) {
+                $q->where('settlement_number', 'like', '%' . $request->search . '%')
+                  ->orWhere('reference_number', 'like', '%' . $request->search . '%');
+            });
+        }
+        if ($request->filled('supplier_id')) {
+            $aggregateQuery->where('supplier_id', $request->supplier_id);
+        }
+        if ($request->filled('date_from')) {
+            $aggregateQuery->whereDate('settlement_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $aggregateQuery->whereDate('settlement_date', '<=', $request->date_to);
+        }
+        $totalQtySettled    = (int) $aggregateQuery->sum('total_qty_settled');
+        $totalAmountSettled = (float) $aggregateQuery->sum('total_amount_paid');
+
+        return view('inventory.supplier_consignments.settlement_index', compact('settlements', 'suppliers', 'totalQtySettled', 'totalAmountSettled'));
+
     }
 
     /**
