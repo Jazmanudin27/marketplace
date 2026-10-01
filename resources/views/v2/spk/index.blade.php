@@ -1,375 +1,734 @@
 @extends('v2.layouts.app')
 
-@section('title', 'SPK Produksi V2')
-
-@push('styles')
-<style>
-    /* ── SPK Produksi V2 Custom Styling ── */
-    .spk-kpi-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 16px;
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .spk-kpi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    }
-    .spk-kpi-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.25rem;
-    }
-    
-    .spk-item-card {
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        background: #ffffff;
-        transition: all 0.2s ease;
-    }
-    .spk-item-card:hover {
-        border-color: #cbd5e1;
-        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
-    }
-    
-    .pulse-urgent {
-        animation: pulse-urgent-animation 1.5s infinite;
-    }
-    @keyframes pulse-urgent-animation {
-        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
-        70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-    }
-
-    .sub-spk-accordion .accordion-button:not(.collapsed) {
-        background-color: #f8fafc;
-        color: #0f172a;
-    }
-</style>
-@endpush
+@section('title', 'Marketing & Pengiriman (SPK Produksi)')
 
 @section('content')
-<div class="container-fluid px-3 py-3">
-    <!-- Page Header & Action Buttons -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <div>
-            <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 rounded-pill px-2.5 py-1 fs-12 fw-bold">
-                    <i class="bi bi-tools me-1"></i> MANUFAKTUR & PRODUKSI V2
-                </span>
+    <div class="container-fluid px-3 py-3">
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4 bg-success bg-opacity-10 text-success fw-bold"
+                role="alert">
+                <i class="fas fa-check-circle me-2 fs-5 align-middle"></i>{{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-            <h4 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
-                Surat Perintah Kerja (SPK) & Marketing
-            </h4>
-            <p class="text-secondary fs-13 mb-0">Pantau seluruh antrian pesanan SPK, bagikan pelacakan pelanggan, dan atur prioritas Urgent.</p>
-        </div>
+        @endif
 
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            <a href="{{ route('spks.scan_karung') }}" class="btn btn-success text-white fw-bold d-inline-flex align-items-center gap-2 shadow-sm rounded-3 px-3 py-2 fs-13">
-                <i class="bi bi-upc-scan"></i> Scan Karung
-            </a>
-            <a href="{{ route('spks.payments.index') }}" class="btn btn-warning text-dark fw-bold d-inline-flex align-items-center gap-2 shadow-sm rounded-3 px-3 py-2 fs-13">
-                <i class="bi bi-wallet2"></i> Pembayaran Produksi
-            </a>
-            @can('spks.create')
-                <a href="{{ route('spks.create') }}" class="btn btn-primary fw-bold d-inline-flex align-items-center gap-2 shadow-sm rounded-3 px-3 py-2 fs-13">
-                    <i class="bi bi-plus-lg"></i> Buat SPK Baru
+        {{-- HEADER SECTION --}}
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+            <div>
+                <h4 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                    <i class="fas fa-industry text-primary fs-5"></i>
+                    <span>Marketing &amp; Pengiriman (SPK Produksi)</span>
+                </h4>
+                <p class="text-secondary small mb-0">
+                    Pantau seluruh antrian pesanan SPK, bagikan link pelacakan pelanggan, dan atur prioritas Urgent.
+                </p>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <a href="{{ Route::has('v2.spk.scan_karung') ? route('v2.spk.scan_karung') : route('spks.scan_karung') }}"
+                    class="btn btn-success text-white px-3 py-2 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2" style="background: linear-gradient(135deg, #059669, #10b981);">
+                    <i class="fas fa-barcode"></i>
+                    <span>Scan Karung (Multi-SPK)</span>
                 </a>
-            @endcan
+                <a href="{{ Route::has('v2.spk.payments') ? route('v2.spk.payments') : route('spks.payments.index') }}"
+                    class="btn btn-warning text-dark px-3 py-2 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
+                    <i class="fas fa-wallet text-dark"></i>
+                    <span>Pembayaran Produksi</span>
+                </a>
+                @can('spks.create')
+                    <a href="{{ Route::has('v2.spk.create') ? route('v2.spk.create') : route('spks.create') }}"
+                        class="btn btn-primary px-3 py-2 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
+                        <i class="fas fa-plus"></i>
+                        <span>Buat SPK Baru</span>
+                    </a>
+                @endcan
+            </div>
         </div>
-    </div>
 
-    <!-- Alert Success -->
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 rounded-3 shadow-sm mb-4 bg-success bg-opacity-10 text-success fw-bold" role="alert">
-            <i class="bi bi-check-circle-fill me-2 fs-5 align-middle"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    <!-- KPI Stats Cards -->
-    <div class="row g-3 mb-4">
-        <!-- Total Antrian Produksi -->
-        <div class="col-12 col-sm-6 col-xl-4">
-            <div class="spk-kpi-card shadow-sm">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-muted fs-12 fw-semibold text-uppercase">Total Antrian Produksi</span>
-                    <div class="spk-kpi-icon bg-primary bg-opacity-10 text-primary">
-                        <i class="bi bi-boxes"></i>
+        {{-- KPI STATS SUMMARY CARDS --}}
+        <div class="row g-3 mb-4">
+            {{-- Total Antrian Produksi --}}
+            <div class="col-12 col-sm-6 col-xl-4">
+                <div class="card border border-light-subtle shadow-sm rounded-3 bg-white h-100">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted small fw-semibold text-uppercase tracking-wider">Total Antrian Produksi</span>
+                            <div class="rounded-2 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center"
+                                style="width: 38px; height: 38px;">
+                                <i class="fas fa-boxes-stacked fs-6"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-baseline">
+                            <h3 class="fw-bold text-dark mb-0 me-2">{{ number_format($stats['total_produksi'] ?? $spks->total()) }}</h3>
+                            <span class="text-secondary small fw-medium">Grup</span>
+                        </div>
                     </div>
                 </div>
-                <div class="d-flex align-items-baseline">
-                    <h3 class="fw-bold text-dark mb-0 me-2">{{ number_format($stats['total_produksi'] ?? $spks->total()) }}</h3>
-                    <span class="text-muted fs-12 fw-medium">Grup SPK</span>
+            </div>
+
+            {{-- Pesanan Urgent --}}
+            @php $urgentCount = (int)($stats['total_urgent'] ?? 0); @endphp
+            <div class="col-12 col-sm-6 col-xl-4">
+                <div class="card border border-light-subtle shadow-sm rounded-3 bg-white h-100">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted small fw-semibold text-uppercase tracking-wider">Pesanan Urgent</span>
+                            <div class="rounded-2 {{ $urgentCount > 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-warning bg-opacity-10 text-warning' }} d-flex align-items-center justify-content-center"
+                                style="width: 38px; height: 38px;">
+                                <i class="fas fa-bolt fs-6"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-baseline justify-content-between">
+                            <div class="d-flex align-items-baseline">
+                                <h3 class="fw-bold {{ $urgentCount > 0 ? 'text-danger' : 'text-dark' }} mb-0 me-2">{{ number_format($urgentCount) }}</h3>
+                                <span class="text-secondary small fw-medium">SPK</span>
+                            </div>
+                            @if($urgentCount > 0)
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle rounded-pill px-2 py-1 small fw-semibold">
+                                    Prioritas Tinggi
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Total Volume Pcs --}}
+            <div class="col-12 col-sm-12 col-xl-4">
+                <div class="card border border-light-subtle shadow-sm rounded-3 bg-white h-100">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted small fw-semibold text-uppercase tracking-wider">Total Volume Pcs</span>
+                            <div class="rounded-2 bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center"
+                                style="width: 38px; height: 38px;">
+                                <i class="fas fa-shirt fs-6"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-baseline">
+                            <h3 class="fw-bold text-success mb-0 me-2">{{ number_format($stats['total_pcs'] ?? 0) }}</h3>
+                            <span class="text-secondary small fw-medium">Pcs</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Pesanan Urgent -->
-        @php $urgentCount = (int)($stats['total_urgent'] ?? 0); @endphp
-        <div class="col-12 col-sm-6 col-xl-4">
-            <div class="spk-kpi-card shadow-sm">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-muted fs-12 fw-semibold text-uppercase">Pesanan Urgent</span>
-                    <div class="spk-kpi-icon {{ $urgentCount > 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-warning bg-opacity-10 text-warning' }}">
-                        <i class="bi bi-lightning-charge-fill"></i>
-                    </div>
-                </div>
-                <div class="d-flex align-items-baseline justify-content-between">
-                    <div class="d-flex align-items-baseline">
-                        <h3 class="fw-bold {{ $urgentCount > 0 ? 'text-danger' : 'text-dark' }} mb-0 me-2">{{ number_format($urgentCount) }}</h3>
-                        <span class="text-muted fs-12 fw-medium">SPK</span>
-                    </div>
-                    @if($urgentCount > 0)
-                        <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 fs-11 fw-bold">Prioritas Tinggi</span>
-                    @endif
-                </div>
-            </div>
-        </div>
+        {{-- FILTER & SEARCH BAR --}}
+        <div class="card border border-light-subtle shadow-sm rounded-3 bg-white mb-4">
+            <div class="card-body p-3">
+                <form action="{{ Route::has('v2.spk.index') ? route('v2.spk.index') : route('spks.index') }}" method="GET" class="m-0">
+                    @php
+                        $currStage = request('stage');
+                        $isUrgent = request('urgent') == '1';
+                        $selectedFilter = $isUrgent ? 'urgent' : ($currStage ?: '');
+                        $hasActiveFilter = !empty($selectedFilter) || request()->filled('tipe_spk') || request()->filled('search');
+                    @endphp
+                    <div class="row g-2.5 align-items-center">
 
-        <!-- Total Volume Pcs -->
-        <div class="col-12 col-sm-12 col-xl-4">
-            <div class="spk-kpi-card shadow-sm">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-muted fs-12 fw-semibold text-uppercase">Total Volume Pcs</span>
-                    <div class="spk-kpi-icon bg-success bg-opacity-10 text-success">
-                        <i class="bi bi-layers-fill"></i>
-                    </div>
-                </div>
-                <div class="d-flex align-items-baseline">
-                    <h3 class="fw-bold text-success mb-0 me-2">{{ number_format($stats['total_pcs'] ?? 0) }}</h3>
-                    <span class="text-muted fs-12 fw-medium">Pcs Barisan Produk</span>
-                </div>
-            </div>
-        </div>
-    </div>
+                        {{-- STAGE & STATUS SELECT DROPDOWN --}}
+                        <div class="col-12 col-md-5 col-lg-5">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-light-subtle text-muted">
+                                    <i class="fas fa-filter text-primary small"></i>
+                                </span>
+                                <select name="stage" class="form-select border-light-subtle bg-white text-dark fw-medium"
+                                    style="cursor: pointer;" onchange="this.form.submit()">
+                                    <option value="" {{ $selectedFilter === '' ? 'selected' : '' }}>🌐 Semua SPK (Semua Status)</option>
+                                    <option value="urgent" {{ $selectedFilter === 'urgent' ? 'selected' : '' }}>⚡ Pesanan Urgent</option>
+                                    <option value="draft" {{ $selectedFilter === 'draft' ? 'selected' : '' }}>📝 DRAFT (Belum Deal / Menunggu DP)</option>
+                                    <option value="desain" {{ $selectedFilter === 'desain' ? 'selected' : '' }}>🎨 Tahap Desain &amp; Mockup</option>
+                                    <option value="pesanan_baru" {{ $selectedFilter === 'pesanan_baru' ? 'selected' : '' }}>📋 Pesanan Baru / Perencanaan</option>
+                                    <option value="sampling" {{ $selectedFilter === 'sampling' ? 'selected' : '' }}>⏳ Antrian &amp; Sampling</option>
+                                    <option value="potong" {{ $selectedFilter === 'potong' ? 'selected' : '' }}>✂️ Tahap Pemotongan (Potong)</option>
+                                    <option value="sablon_bordir" {{ $selectedFilter === 'sablon_bordir' ? 'selected' : '' }}>🎨 Sablon / Bordir</option>
+                                    <option value="jahit" {{ $selectedFilter === 'jahit' ? 'selected' : '' }}>🪡 Tahap Jahit</option>
+                                    <option value="lkpk" {{ $selectedFilter === 'lkpk' ? 'selected' : '' }}>💿 Tahap LKPK (Kancing)</option>
+                                    <option value="qc" {{ $selectedFilter === 'qc' ? 'selected' : '' }}>🔍 Quality Control (QC)</option>
+                                    <option value="packing" {{ $selectedFilter === 'packing' ? 'selected' : '' }}>📦 Packing / Finishing</option>
+                                    <option value="selesai" {{ $selectedFilter === 'selesai' ? 'selected' : '' }}>✅ Selesai (Finished Good)</option>
+                                    <option value="dikirim" {{ $selectedFilter === 'dikirim' ? 'selected' : '' }}>🚀 Telah Dikirim (Shipped)</option>
+                                </select>
+                            </div>
+                        </div>
 
-    <!-- Filter & Search Bar -->
-    <div class="card border-0 shadow-sm rounded-3 bg-white mb-4">
-        <div class="card-body p-3">
-            <form action="{{ Route::has('v2.spk.index') ? route('v2.spk.index') : route('spks.index') }}" method="GET" class="m-0">
-                @php
-                    $currStage = request('stage');
-                    $isUrgent = request('urgent') == '1';
-                    $selectedFilter = $isUrgent ? 'urgent' : ($currStage ?: '');
-                    $hasActiveFilter = !empty($selectedFilter) || request()->filled('tipe_spk') || request()->filled('search');
-                @endphp
-                <div class="row g-2.5 align-items-center">
-                    <!-- Stage & Status Select -->
-                    <div class="col-12 col-md-5 col-lg-5">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-light-subtle text-muted">
-                                <i class="bi bi-funnel text-primary"></i>
-                            </span>
-                            <select name="stage" class="form-select border-light-subtle bg-white text-dark fw-medium fs-13" onchange="this.form.submit()">
-                                <option value="" {{ $selectedFilter === '' ? 'selected' : '' }}>🌐 Semua SPK (Semua Status)</option>
-                                <option value="urgent" {{ $selectedFilter === 'urgent' ? 'selected' : '' }}>⚡ Pesanan Urgent</option>
-                                <option value="draft" {{ $selectedFilter === 'draft' ? 'selected' : '' }}>📝 DRAFT (Belum Deal / Menunggu DP)</option>
-                                <option value="desain" {{ $selectedFilter === 'desain' ? 'selected' : '' }}>🎨 Tahap Desain & Mockup</option>
-                                <option value="pesanan_baru" {{ $selectedFilter === 'pesanan_baru' ? 'selected' : '' }}>📋 Pesanan Baru / Perencanaan</option>
-                                <option value="sampling" {{ $selectedFilter === 'sampling' ? 'selected' : '' }}>⏳ Antrian & Sampling</option>
-                                <option value="potong" {{ $selectedFilter === 'potong' ? 'selected' : '' }}>✂️ Tahap Pemotongan (Potong)</option>
-                                <option value="sablon_bordir" {{ $selectedFilter === 'sablon_bordir' ? 'selected' : '' }}>🎨 Sablon / Bordir</option>
-                                <option value="jahit" {{ $selectedFilter === 'jahit' ? 'selected' : '' }}>🪡 Tahap Jahit</option>
-                                <option value="lkpk" {{ $selectedFilter === 'lkpk' ? 'selected' : '' }}>💿 Tahap LKPK (Kancing)</option>
-                                <option value="qc" {{ $selectedFilter === 'qc' ? 'selected' : '' }}>🔍 Quality Control (QC)</option>
-                                <option value="packing" {{ $selectedFilter === 'packing' ? 'selected' : '' }}>📦 Packing / Finishing</option>
-                                <option value="selesai" {{ $selectedFilter === 'selesai' ? 'selected' : '' }}>✅ Selesai (Finished Good)</option>
-                                <option value="dikirim" {{ $selectedFilter === 'dikirim' ? 'selected' : '' }}>🚀 Telah Dikirim (Shipped)</option>
+                        {{-- TIPE SPK FILTER --}}
+                        <div class="col-12 col-md-3 col-lg-3">
+                            <select name="tipe_spk" class="form-select border-light-subtle bg-white text-dark fw-medium"
+                                style="cursor: pointer;" onchange="this.form.submit()">
+                                <option value="">🏢 Semua Tipe SPK</option>
+                                <option value="stok_gudang" {{ request('tipe_spk') === 'stok_gudang' ? 'selected' : '' }}>🏬 Stok Gudang</option>
+                                <option value="pesanan_pelanggan" {{ request('tipe_spk') === 'pesanan_pelanggan' ? 'selected' : '' }}>🛒 Pesanan Pelanggan</option>
                             </select>
                         </div>
-                    </div>
 
-                    <!-- Tipe SPK Filter -->
-                    <div class="col-12 col-md-3 col-lg-3">
-                        <select name="tipe_spk" class="form-select border-light-subtle bg-white text-dark fw-medium fs-13" onchange="this.form.submit()">
-                            <option value="">🏢 Semua Tipe SPK</option>
-                            <option value="stok_gudang" {{ request('tipe_spk') === 'stok_gudang' ? 'selected' : '' }}>🏬 Stok Gudang</option>
-                            <option value="pesanan_pelanggan" {{ request('tipe_spk') === 'pesanan_pelanggan' ? 'selected' : '' }}>🛒 Pesanan Pelanggan</option>
-                        </select>
-                    </div>
-
-                    <!-- Search Input -->
-                    <div class="col-12 col-md-{{ $hasActiveFilter ? '3' : '4' }} col-lg-{{ $hasActiveFilter ? '3' : '4' }}">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-light-subtle text-muted">
-                                <i class="bi bi-search"></i>
-                            </span>
-                            <input type="text" name="search" class="form-control border-light-subtle bg-white text-dark fs-13" placeholder="Cari SPK / Pemesan / Instansi..." value="{{ request('search') }}" onchange="this.form.submit()">
-                        </div>
-                    </div>
-
-                    <!-- Reset Button -->
-                    @if($hasActiveFilter)
-                        <div class="col-12 col-md-1 col-lg-1 text-md-end">
-                            <a href="{{ Route::has('v2.spk.index') ? route('v2.spk.index') : route('spks.index') }}" class="btn btn-outline-secondary btn-sm w-100 py-2 rounded-2 fs-12">
-                                <i class="bi bi-arrow-counterclockwise"></i> Reset
-                            </a>
-                        </div>
-                    @endif
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- SPK Production Group Cards Grid -->
-    <div class="row g-3.5 mb-4">
-        @forelse($spks as $index => $row)
-            @php
-                $queueNo = ($spks->currentPage() - 1) * $spks->perPage() + $index + 1;
-                $spkGroup = $row->sub_spks ?? collect([$row]);
-                $spkCount = $spkGroup->count();
-                $totalPcsGroup = $spkGroup->sum(fn($s) => $s->total_pcs);
-                $isUrgentGroup = $spkGroup->contains('is_urgent', true);
-                $isDraftGroup = $spkGroup->contains(
-                    fn($s) => str_contains(strtoupper($s->current_stage_name), 'DRAFT') ||
-                        str_contains(strtoupper($s->tahap_saat_ini ?? ''), 'DRAFT'),
-                );
-
-                $firstSpk = $spkGroup->first() ?? $row;
-                $mainImageUrl =
-                    $firstSpk->image_url ??
-                    ($firstSpk->items->pluck('masterProduct.image_url')->filter()->first() ??
-                        $spkGroup->pluck('image_url')->filter()->first());
-
-                $trackingUrl = route('spks.customer_track', $row->no_produksi ?: $row->id);
-                $waText = rawurlencode(
-                    'Halo ' .
-                        ($row->pemesan ?: 'Pelanggan') .
-                        ', berikut link tracking status produksi SPK ' .
-                        ($row->no_produksi ?: $row->no_spk) .
-                        ': ' .
-                        $trackingUrl,
-                );
-
-                $deadlineText = '-';
-                $deadlineClass = 'text-muted';
-                if ($row->deadline) {
-                    $daysLeft = (int) now()->startOfDay()->diffInDays($row->deadline->startOfDay(), false);
-                    if ($daysLeft < 0) {
-                        $deadlineText = $row->deadline->format('d M') . ' (Lewat ' . abs($daysLeft) . 'hr)';
-                        $deadlineClass = 'text-danger fw-bold';
-                    } elseif ($daysLeft === 0) {
-                        $deadlineText = $row->deadline->format('d M') . ' (Hari ini)';
-                        $deadlineClass = 'text-warning fw-bold';
-                    } else {
-                        $deadlineText = $row->deadline->format('d M') . ' (' . $daysLeft . 'hr lagi)';
-                        $deadlineClass = 'text-dark fw-bold';
-                    }
-                }
-            @endphp
-            <div class="col-12 col-md-6 col-xl-4">
-                <div class="spk-item-card h-100 shadow-sm overflow-hidden d-flex flex-column justify-content-between">
-                    <div>
-                        <!-- Header Bar -->
-                        <div class="d-flex align-items-center justify-content-between px-3 py-2.5 bg-light border-bottom">
-                            <div class="d-flex align-items-center gap-1.5">
-                                <span class="badge bg-dark text-white font-monospace fs-12">
-                                    #{{ $row->no_produksi ?: 'NO-PROD' }}
+                        {{-- SEARCH BOX --}}
+                        <div class="col-12 col-md-{{ $hasActiveFilter ? '3' : '4' }} col-lg-{{ $hasActiveFilter ? '3' : '4' }}">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-light-subtle text-muted">
+                                    <i class="fas fa-search small"></i>
                                 </span>
-                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-0.5 fw-bold fs-11">
+                                <input type="text" name="search"
+                                    class="form-control border-light-subtle bg-white text-dark"
+                                    placeholder="Cari SPK / Pemesan / Instansi..."
+                                    value="{{ request('search') }}" onchange="this.form.submit()">
+                            </div>
+                        </div>
+
+                        {{-- RESET FILTER (IF ACTIVE) --}}
+                        @if($hasActiveFilter)
+                            <div class="col-12 col-md-1 col-lg-1 text-md-end">
+                                <a href="{{ Route::has('v2.spk.index') ? route('v2.spk.index') : route('spks.index') }}" class="btn btn-outline-secondary btn-sm w-100 py-2 rounded-2" title="Reset Filter">
+                                    <i class="fas fa-rotate-left me-1"></i>Reset
+                                </a>
+                            </div>
+                        @endif
+
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {{-- SPK PRODUCTION GROUP CARDS GRID --}}
+        <div class="row g-3.5 mb-4">
+            @forelse($spks as $index => $row)
+                @php
+                    $queueNo = ($spks->currentPage() - 1) * $spks->perPage() + $index + 1;
+                    $spkGroup = $row->sub_spks ?? collect([$row]);
+                    $spkCount = $spkGroup->count();
+                    $totalPcsGroup = $spkGroup->sum(fn($s) => $s->total_pcs);
+                    $isUrgentGroup = $spkGroup->contains('is_urgent', true);
+                    $isDraftGroup = $spkGroup->contains(
+                        fn($s) => str_contains(strtoupper($s->current_stage_name), 'DRAFT') ||
+                            str_contains(strtoupper($s->tahap_saat_ini ?? ''), 'DRAFT'),
+                    );
+
+                    $firstSpk = $spkGroup->first() ?? $row;
+                    $mainImageUrl =
+                        $firstSpk->image_url ??
+                        ($firstSpk->items->pluck('masterProduct.image_url')->filter()->first() ??
+                            $spkGroup->pluck('image_url')->filter()->first());
+
+                    $trackingUrl = route('spks.customer_track', $row->no_produksi ?: $row->id);
+                    $waText = rawurlencode(
+                        'Halo ' .
+                            ($row->pemesan ?: 'Pelanggan') .
+                            ', berikut link tracking status produksi SPK ' .
+                            ($row->no_produksi ?: $row->no_spk) .
+                            ': ' .
+                            $trackingUrl,
+                    );
+
+                    $deadlineText = '-';
+                    $deadlineClass = 'text-muted';
+                    if ($row->deadline) {
+                        $daysLeft = (int) now()
+                            ->startOfDay()
+                            ->diffInDays($row->deadline->startOfDay(), false);
+                        if ($daysLeft < 0) {
+                            $deadlineText = $row->deadline->format('d M') . ' (Lewat ' . abs($daysLeft) . 'hr)';
+                            $deadlineClass = 'text-danger fw-extrabold';
+                        } elseif ($daysLeft === 0) {
+                            $deadlineText = $row->deadline->format('d M') . ' (Hari ini)';
+                            $deadlineClass = 'text-warning fw-extrabold';
+                        } else {
+                            $deadlineText = $row->deadline->format('d M') . ' (' . $daysLeft . 'hr lagi)';
+                            $deadlineClass = 'text-dark fw-bold';
+                        }
+                    }
+                @endphp
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white transition-hover position-relative spk-card"
+                        style="border: 1px solid rgba(0,0,0,0.08) !important;">
+
+                        {{-- CARD TOP HEADER BAR --}}
+                        <div
+                            class="d-flex align-items-center justify-content-between px-3 py-2 bg-light bg-opacity-75 border-bottom border-light-subtle flex-wrap gap-1">
+                            <div class="d-flex align-items-center gap-1.5">
+                                <span
+                                    class="font-monospace fw-extrabold text-dark px-2 py-0.5 rounded-2 bg-white border border-slate-200 shadow-2xs"
+                                    style="font-size: 12px; letter-spacing: -0.2px;">
+                                    <i class="fas fa-hashtag text-primary me-0.5"
+                                        style="font-size: 10px;"></i>{{ $row->no_produksi ?: 'NO-PROD' }}
+                                </span>
+                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-0.5 fw-bold"
+                                    style="font-size: 9.5px;">
                                     ANTRIAN #{{ $queueNo }}
                                 </span>
                             </div>
 
                             <div class="d-flex align-items-center gap-1">
                                 @if ($isDraftGroup)
-                                    <span class="badge bg-secondary text-white rounded-pill px-2 py-0.5 fw-bold fs-11">
-                                        📝 DRAFT
+                                    <span
+                                        class="badge bg-secondary bg-opacity-15 text-dark border border-secondary border-opacity-25 rounded-pill px-2 py-0.5 fw-bold"
+                                        style="font-size: 9.5px;">
+                                        📝 DRAFT (Belum Deal)
                                     </span>
                                 @endif
 
                                 @if ($spkCount > 1)
-                                    <span class="badge bg-info text-white rounded-pill px-2 py-0.5 fw-bold fs-11">
+                                    <span
+                                        class="badge bg-success bg-opacity-15 text-white rounded-pill px-2 py-0.5 fw-bold"
+                                        style="font-size: 9.5px;">
                                         📦 {{ $spkCount }} SPK
                                     </span>
                                 @endif
 
                                 @if ($isUrgentGroup)
-                                    <span class="badge bg-danger text-white rounded-pill px-2 py-0.5 fw-bold pulse-urgent fs-11">
-                                        ⚡ URGENT
+                                    <span id="urgent-badge-{{ $row->id }}"
+                                        class="badge bg-danger text-white rounded-pill px-2 py-0.5 fw-bold pulse-urgent"
+                                        style="font-size: 9.5px;">
+                                        <i class="fas fa-bolt text-warning me-0.5"></i>URGENT
+                                    </span>
+                                @else
+                                    <span id="urgent-badge-{{ $row->id }}"
+                                        class="badge bg-danger text-white rounded-pill px-2 py-0.5 fw-bold pulse-urgent d-none"
+                                        style="font-size: 9.5px;">
+                                        <i class="fas fa-bolt text-warning me-0.5"></i>URGENT
                                     </span>
                                 @endif
                             </div>
                         </div>
 
-                        <!-- Card Body -->
-                        <div class="p-3">
-                            <div class="d-flex gap-3 align-items-start mb-3">
-                                <img src="{{ $mainImageUrl ?: '/assets/img/products/product1.jpg' }}" alt="Foto SPK" class="rounded-3 border" style="width: 60px; height: 60px; object-fit: cover;" onerror="this.src='/assets/img/products/product1.jpg'">
-                                <div class="flex-grow-1 overflow-hidden">
-                                    <h6 class="fw-bold text-dark mb-0 fs-14 text-truncate" title="{{ $row->pemesan ?: 'Pelanggan Umum' }}">
-                                        {{ $row->pemesan ?: 'Pelanggan Umum' }}
-                                    </h6>
-                                    <span class="text-secondary fs-12 d-block text-truncate mb-1" title="{{ $row->instansi ?: 'Instansi / Umum' }}">
-                                        <i class="bi bi-building me-1"></i>{{ $row->instansi ?: 'Instansi Umum' }}
-                                    </span>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-20 fs-11 fw-bold">
-                                            Vol: {{ number_format($totalPcsGroup) }} Pcs
-                                        </span>
-                                        <span class="badge bg-light text-dark border fs-11">
-                                            {{ $row->tipe_spk === 'stok_gudang' ? 'Stok Gudang' : 'Pesanan Pelanggan' }}
-                                        </span>
+                        <div class="card-body p-3 d-flex flex-column justify-content-between">
+
+                            <div>
+                                {{-- MAIN BODY (IMAGE SPK 1 + PEMESAN & VOLUME) --}}
+                                <div class="d-flex gap-3 align-items-start mb-2.5">
+
+                                    {{-- SPK 1 Image Thumbnail Container --}}
+                                    <div class="flex-shrink-0 position-relative group-image-wrapper">
+                                        @if ($mainImageUrl)
+                                            <div class="position-relative overflow-hidden rounded-3 border border-slate-200 bg-white shadow-2xs cursor-pointer image-preview-trigger"
+                                                data-image="{{ $mainImageUrl }}"
+                                                data-title="{{ $row->no_produksi ?: $row->no_spk }} - {{ $row->pemesan }}"
+                                                title="Klik untuk memperbesar foto desain SPK 1">
+                                                <img src="{{ $mainImageUrl }}" alt="Desain SPK 1"
+                                                    class="object-fit-cover transition-scale"
+                                                    style="width: 92px; height: 92px;">
+                                                <div
+                                                    class="image-overlay d-flex align-items-center justify-content-center">
+                                                    <i class="fas fa-search-plus text-white fs-5 opacity-90"></i>
+                                                </div>
+                                                <span
+                                                    class="position-absolute top-0 start-0 bg-primary text-white fw-bold px-1.5 py-0.5"
+                                                    style="font-size: 8px; letter-spacing: 0.3px; border-bottom-right-radius: 6px;">
+                                                    SPK 1
+                                                </span>
+                                            </div>
+                                        @else
+                                            <div class="rounded-3 border border-slate-200 bg-white d-flex flex-column align-items-center justify-content-center text-muted shadow-2xs position-relative"
+                                                style="width: 92px; height: 92px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+                                                <i class="fas fa-tshirt fs-3 opacity-30 mb-1 text-primary"></i>
+                                                <span style="font-size: 8px;" class="fw-bold text-uppercase text-muted">No
+                                                    Image</span>
+                                                <span
+                                                    class="position-absolute top-0 start-0 bg-secondary text-white fw-bold px-1.5 py-0.5"
+                                                    style="font-size: 8px; border-bottom-right-radius: 6px;">
+                                                    SPK 1
+                                                </span>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    {{-- Customer & Order Info --}}
+                                    <div class="flex-grow-1 min-w-0">
+                                        {{-- Customer Name --}}
+                                        <h6 class="fw-extrabold text-dark mb-0.5 text-truncate font-sans d-flex align-items-center gap-1"
+                                            style="font-size: 0.98rem; letter-spacing: -0.2px;"
+                                            title="{{ $row->pemesan }}">
+                                            <i class="fas fa-user-circle text-primary opacity-80"
+                                                style="font-size: 13px;"></i>
+                                            <span>{{ strtoupper($row->pemesan ?: 'GUEST') }}</span>
+                                        </h6>
+
+                                        {{-- Instansi / Store --}}
+                                        <div class="text-muted text-truncate mb-1.5" style="font-size: 0.78rem;">
+                                            <i class="fas fa-building me-1 opacity-50 text-secondary"
+                                                style="font-size: 11px;"></i>{{ $row->instansi ?: '-' }}
+                                        </div>
+
+                                        {{-- Tipe SPK Badge --}}
+                                        @if (($row->tipe_spk ?? '') === 'stok_gudang' && !str_contains(strtoupper($row->pemesan ?? ''), 'STOK GUDANG'))
+                                            <div class="mb-1.5">
+                                                <span class="badge rounded-2 px-2 py-0.5 fw-bold"
+                                                    style="font-size: 9px; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">
+                                                    🏬 Stok Gudang
+                                                </span>
+                                            </div>
+                                        @elseif (($row->tipe_spk ?? '') !== 'stok_gudang')
+                                            <div class="mb-1.5">
+                                                <span class="badge rounded-2 px-2 py-0.5 fw-bold"
+                                                    style="font-size: 9px; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
+                                                    🛒 Pesanan Pelanggan
+                                                </span>
+                                            </div>
+                                        @endif
+
+                                        @php
+                                            $groupTargetPcs = (int) $spkGroup->sum(fn($s) => $s->items->sum('quantity'));
+                                            $groupDiambilPcs = (int) $spkGroup->sum(fn($s) => $s->items->sum(fn($it) => $it->qty_diambil));
+                                            $groupSisaPcs = max(0, $groupTargetPcs - $groupDiambilPcs);
+                                        @endphp
+                                        {{-- Total Volume Pcs Pill & Receiving Summary Badges --}}
+                                        <div class="fw-bold text-dark d-flex align-items-center gap-1 flex-wrap mt-1">
+                                            <span
+                                                class="badge rounded-pill px-2.5 py-1 text-white fw-extrabold d-inline-flex align-items-center gap-1 shadow-2xs"
+                                                style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); font-size: 11px;">
+                                                <i class="fas fa-tshirt" style="font-size: 9.5px;"></i>
+                                                <span>{{ number_format($totalPcsGroup) }} Pcs</span>
+                                            </span>
+                                            <span class="badge rounded-pill px-2 py-0.5 fw-bold"
+                                                style="font-size: 9.5px; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;" title="Total Sudah Diterima">
+                                                <i class="fas fa-check-circle me-0.5"></i>Terima: {{ number_format($groupDiambilPcs) }}
+                                            </span>
+                                            @if($groupSisaPcs > 0)
+                                                <span class="badge rounded-pill px-2 py-0.5 fw-bold"
+                                                    style="font-size: 9.5px; background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;" title="Sisa Belum Diterima">
+                                                    <i class="fas fa-clock me-0.5"></i>Belum: {{ number_format($groupSisaPcs) }}
+                                                </span>
+                                            @else
+                                                <span class="badge rounded-pill bg-success text-white px-2 py-0.5 fw-bold" style="font-size: 9.5px;">
+                                                    <i class="fas fa-check-double me-0.5"></i>Lengkap
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- SUB-SPK BREAKDOWN CONTAINER --}}
+                                <div
+                                    class="bg-light bg-opacity-60 rounded-3 p-2 my-2 border border-light-subtle shadow-2xs">
+                                    @foreach ($spkGroup as $subSpk)
+                                        @php
+                                            $stageName = strtoupper($subSpk->current_stage_name);
+                                            $stageDisplayName = $stageName;
+                                            $badgeBg = '#eff6ff';
+                                            $badgeFg = '#2563eb';
+                                            $badgeBorder = '#dbeafe';
+                                            if (str_contains($stageName, 'DRAFT')) {
+                                                $badgeBg = '#f1f5f9';
+                                                $badgeFg = '#475569';
+                                                $badgeBorder = '#cbd5e1';
+                                                $stageDisplayName = '📝 DRAFT (BELUM DEAL)';
+                                            } elseif (str_contains($stageName, 'POTONG')) {
+                                                $badgeBg = '#e0f2fe';
+                                                $badgeFg = '#0369a1';
+                                                $badgeBorder = '#bae6fd';
+                                            } elseif (str_contains($stageName, 'JAHIT')) {
+                                                $badgeBg = '#f3e8ff';
+                                                $badgeFg = '#7e22ce';
+                                                $badgeBorder = '#e9d5ff';
+                                            } elseif (str_contains($stageName, 'LKPK')) {
+                                                $badgeBg = '#ecfdf5';
+                                                $badgeFg = '#047857';
+                                                $badgeBorder = '#a7f3d0';
+                                            } elseif (str_contains($stageName, 'QC')) {
+                                                $badgeBg = '#f0f9ff';
+                                                $badgeFg = '#0284c7';
+                                                $badgeBorder = '#b9e6fe';
+                                            } elseif (
+                                                str_contains($stageName, 'PACKING') ||
+                                                str_contains($stageName, 'SELESAI')
+                                            ) {
+                                                $badgeBg = '#fef3c7';
+                                                $badgeFg = '#b45309';
+                                                $badgeBorder = '#fde68a';
+                                            }
+
+                                            $subTargetPcs = (int) $subSpk->items->sum('quantity');
+                                            $subDiambilPcs = (int) $subSpk->items->sum(fn($it) => $it->qty_diambil);
+                                            $subSisaPcs = max(0, $subTargetPcs - $subDiambilPcs);
+                                        @endphp
+                                        <div class="bg-white rounded-3 p-2 mb-1.5 border border-light-subtle shadow-2xs">
+                                            {{-- Line 1: Full Kategori badge & Stage Badge --}}
+                                            <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
+                                                <span class="badge rounded-2 px-2 py-1 fw-bold text-wrap text-start"
+                                                    style="font-size: 9.5px; background-color: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; line-height: 1.2;">
+                                                    🏷️ {{ $subSpk->kategori ?: 'SPK ' . ($loop->index + 1) }}
+                                                </span>
+                                                <span
+                                                    class="badge rounded-2 px-1.5 py-0.5 fw-extrabold text-uppercase flex-shrink-0"
+                                                    style="font-size: 9px; background-color: {{ $badgeBg }}; color: {{ $badgeFg }}; border: 1px solid {{ $badgeBorder }};">
+                                                    {{ $stageDisplayName }}
+                                                </span>
+                                            </div>
+                                            {{-- Line 2: Qty Target, Diterima & Belum Diterima --}}
+                                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-1 mt-1 pt-1 border-top border-light-subtle"
+                                                style="font-size: 10.5px;">
+                                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                    <span class="fw-extrabold text-primary" title="Target SPK Ini">
+                                                        {{ number_format($subTargetPcs) }} Pcs
+                                                    </span>
+                                                    <span class="badge rounded-2 px-1.5 py-0.5 fw-bold"
+                                                        style="font-size: 9px; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;" title="Sudah Diterima">
+                                                        ✓ Terima: {{ number_format($subDiambilPcs) }}
+                                                    </span>
+                                                    @if($subSisaPcs > 0)
+                                                        <span class="badge rounded-2 px-1.5 py-0.5 fw-bold"
+                                                            style="font-size: 9px; background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;" title="Sisa Belum Diterima">
+                                                            ⏳ Belum: {{ number_format($subSisaPcs) }}
+                                                        </span>
+                                                    @else
+                                                        <span class="badge rounded-2 bg-success text-white px-1.5 py-0.5 fw-bold" style="font-size: 9px;">
+                                                            ✓ Lengkap
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                                <span class="text-muted fw-semibold text-truncate ms-auto"
+                                                    style="font-size: 9.5px;" title="{{ $subSpk->variant_summary }}">
+                                                    {{ $subSpk->variant_summary }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                {{-- DATES ROW (MASUK & TARGET DEADLINE) --}}
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <div class="bg-light bg-opacity-75 rounded-3 p-2 border border-light text-center">
+                                            <span class="text-muted d-block small mb-0.5" style="font-size: 10px;">
+                                                <i class="far fa-calendar-plus me-1 opacity-70"></i>Tanggal Masuk:
+                                            </span>
+                                            <span class="fw-bold text-dark" style="font-size: 0.8rem;">
+                                                {{ $row->tanggal ? $row->tanggal->format('d M Y') : '-' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="bg-light bg-opacity-75 rounded-3 p-2 border border-light text-center">
+                                            <span class="text-muted d-block small mb-0.5" style="font-size: 10px;">
+                                                <i class="fas fa-flag-checkered me-1 opacity-70"></i>Target Deadline:
+                                            </span>
+                                            <span class="{{ $deadlineClass }}" style="font-size: 0.8rem;">
+                                                {{ $deadlineText }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- List Sub-SPKs Accordion / Items Summary -->
-                            <div class="bg-light p-2.5 rounded-3 mb-3 border">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="text-muted fs-11 font-monospace text-uppercase">Tahap Produksi saat ini:</span>
-                                    <span class="badge bg-primary text-white fs-11 fw-bold">
-                                        {{ strtoupper($row->tahap_saat_ini ?: 'PERENCANAAN') }}
-                                    </span>
+                            {{-- PAYMENT STATUS BAR --}}
+                            <div class="d-flex justify-content-between align-items-center bg-light bg-opacity-75 px-2.5 py-1.5 rounded-3 border border-light-subtle mb-2">
+                                <div class="d-flex align-items-center gap-1">
+                                    <i class="fas fa-wallet text-warning" style="font-size: 11px;"></i>
+                                    <span class="text-muted fw-bold" style="font-size: 10.5px;">Ongkos Produksi:</span>
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center fs-12 pt-1 border-top border-secondary border-opacity-10">
-                                    <span class="text-muted fs-11">Tgl Masuk: <strong>{{ $row->tanggal ? $row->tanggal->format('d/m/Y') : '-' }}</strong></span>
-                                    <span class="fs-11">Deadline: <strong class="{{ $deadlineClass }}">{{ $deadlineText }}</strong></span>
+                                <div>
+                                    {!! $row->production_payment_status_badge !!}
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Footer Action Buttons -->
-                    <div class="card-footer bg-white border-top p-2.5 d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-1">
-                            <a href="https://wa.me/?text={{ $waText }}" target="_blank" class="btn btn-xs btn-outline-success rounded-2 py-1 px-2 fs-12" title="Kirim WA Tracking">
-                                <i class="bi bi-whatsapp"></i> WA
-                            </a>
-                            <a href="{{ route('spks.show', $row->id) }}" class="btn btn-xs btn-outline-primary rounded-2 py-1 px-2 fs-12 fw-semibold">
-                                <i class="bi bi-eye"></i> Detail SPK
-                            </a>
-                        </div>
-                        <div class="d-flex align-items-center gap-1">
-                            <a href="{{ route('spks.print', $row->id) }}" target="_blank" class="btn btn-xs btn-outline-secondary rounded-2 py-1 px-2 fs-12" title="Cetak SPK">
-                                <i class="bi bi-printer"></i> Cetak
-                            </a>
+                            {{-- ACTION BUTTONS TOOLBAR --}}
+                            <div class="d-flex flex-column gap-2 mt-auto">
+                                {{-- Row 1: Detail/Edit, Lihat Track Customer & Kirim WA --}}
+                                <div class="row g-1">
+                                    <div class="col-4">
+                                        <a href="{{ Route::has('v2.spk.show') ? route('v2.spk.show', $row) : route('spks.show', $row) }}"
+                                            class="btn btn-sm btn-outline-secondary w-100 rounded-3 fw-bold py-1.5 bg-white text-dark border-opacity-25 d-inline-flex align-items-center justify-content-center gap-1 hover-shadow"
+                                            style="font-size: 0.75rem;" title="Edit Detail SPK">
+                                            <i class="far fa-eye text-primary"></i>
+                                            <span>Detail</span>
+                                        </a>
+                                    </div>
+                                    <div class="col-4">
+                                        <a href="{{ route('spks.customer_track', $row->no_produksi ?: $row->id) }}" target="_blank"
+                                            class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1 transition-all hover-shadow"
+                                            style="font-size: 0.75rem; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;"
+                                            title="Buka Halaman Tracking Customer di Tab Baru">
+                                            <i class="fas fa-external-link-alt text-primary"></i>
+                                            <span>Tracking</span>
+                                        </a>
+                                    </div>
+                                    <div class="col-4">
+                                        <a href="https://wa.me/?text={{ $waText }}" target="_blank"
+                                            class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1 transition-all hover-shadow"
+                                            style="font-size: 0.75rem; background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;"
+                                            title="Bagikan Tautan Pelacakan ke Pelanggan via WhatsApp">
+                                            <i class="fab fa-whatsapp fs-6 text-success"></i>
+                                            <span>Kirim WA</span>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                {{-- Row 2: Cetak SPK & Hapus SPK --}}
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <a href="{{ route('spks.print', $row->id) }}" target="_blank"
+                                            class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1.5 transition-all text-truncate hover-shadow"
+                                            style="font-size: 0.8rem; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;"
+                                            title="Cetak Perintah Kerja (A4 Half-Page)">
+                                            <i class="fas fa-print text-primary"></i>
+                                            <span>Cetak SPK</span>
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <form action="{{ route('spks.destroy', $row) }}" method="POST"
+                                            class="m-0 w-100"
+                                            onsubmit="return confirm('Apakah Anda yakin ingin menghapus seluruh data Produksi {{ $row->no_produksi ?: $row->no_spk }} ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1.5 text-danger transition-all hover-shadow"
+                                                style="font-size: 0.8rem; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca;"
+                                                title="Hapus Produksi Ini">
+                                                <i class="fas fa-trash-alt"></i>
+                                                <span>Hapus SPK</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
-            </div>
-        @empty
-            <div class="col-12">
-                <div class="card border-0 shadow-sm rounded-3 p-5 text-center bg-white">
-                    <i class="bi bi-inbox text-muted display-4 mb-3"></i>
-                    <h6 class="fw-bold text-dark mb-1">Tidak Ada Data SPK Produksi</h6>
-                    <p class="text-muted fs-13 mb-0">Belum ada dokumen SPK yang dibuat atau tidak ditemukan pencarian yang cocok.</p>
+            @empty
+                <div class="col-12 py-5">
+                    <div class="card border-0 shadow-sm rounded-4 text-center py-5 bg-white">
+                        <div class="card-body py-5">
+                            <div class="mb-3 text-muted opacity-30">
+                                <i class="fas fa-clipboard-list fa-4x"></i>
+                            </div>
+                            <h5 class="fw-extrabold text-dark mb-1">Tidak Ada Data SPK Produksi</h5>
+                            <p class="text-muted small mb-4">Belum ada SPK yang sesuai dengan filter atau kata kunci pencarian Anda.</p>
+                            @can('spks.create')
+                                <a href="{{ Route::has('v2.spk.create') ? route('v2.spk.create') : route('spks.create') }}"
+                                    class="btn btn-primary px-4 py-2 rounded-pill fw-bold shadow-sm">
+                                    <i class="fas fa-plus-circle me-1"></i> Buat SPK Baru
+                                </a>
+                            @endcan
+                        </div>
+                    </div>
                 </div>
+            @endforelse
+        </div>
+
+        {{-- PAGINATION --}}
+        @if ($spks->hasPages())
+            <div class="d-flex justify-content-center mt-4">
+                {{ $spks->links() }}
             </div>
-        @endforelse
+        @endif
     </div>
 
-    <!-- Pagination Links -->
-    <div class="d-flex justify-content-end">
-        {{ $spks->links() }}
+    {{-- MODAL LIGHTBOX PREVIEW DESAIN SPK 1 --}}
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden bg-dark text-white">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="imagePreviewTitle">
+                        <i class="fas fa-image text-primary"></i> Preview Desain SPK 1
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3 text-center position-relative">
+                    <img id="imagePreviewSrc" src="" alt="Desain SPK Full" class="img-fluid rounded-3 shadow"
+                        style="max-height: 75vh; object-fit: contain;">
+                </div>
+                <div class="modal-footer border-0 pt-0 justify-content-between">
+                    <span class="text-muted small fs-7"><i class="fas fa-info-circle me-1"></i>Foto desain utama dari SPK 1</span>
+                    <a id="imageDownloadBtn" href="" download target="_blank"
+                        class="btn btn-sm btn-primary rounded-pill px-3 fw-bold">
+                        <i class="fas fa-download me-1"></i> Buka Original
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Image Preview Modal Lightbox Trigger
+            const imageTriggers = document.querySelectorAll('.image-preview-trigger');
+            const modalEl = document.getElementById('imagePreviewModal');
+            const modalImg = document.getElementById('imagePreviewSrc');
+            const modalTitle = document.getElementById('imagePreviewTitle');
+            const downloadBtn = document.getElementById('imageDownloadBtn');
+
+            if (imageTriggers.length > 0 && modalEl) {
+                const previewModal = new bootstrap.Modal(modalEl);
+                imageTriggers.forEach(trigger => {
+                    trigger.addEventListener('click', function() {
+                        const imgSrc = this.getAttribute('data-image');
+                        const titleText = this.getAttribute('data-title') || 'Preview Desain SPK 1';
+
+                        if (imgSrc) {
+                            modalImg.src = imgSrc;
+                            modalTitle.innerHTML =
+                                `<i class="fas fa-image text-primary me-1"></i> Desain SPK 1: ${titleText}`;
+                            downloadBtn.href = imgSrc;
+                            previewModal.show();
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+@endpush
+
+@push('styles')
+    <style>
+        .spk-card {
+            zoom: 0.90;
+        }
+        .scrollbar-hidden::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hidden {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .transition-hover {
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .transition-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.1) !important;
+        }
+        .hover-shadow:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .fw-extrabold {
+            font-weight: 800;
+        }
+        .group-image-wrapper .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.35);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .group-image-wrapper:hover .image-overlay {
+            opacity: 1;
+        }
+        .transition-scale {
+            transition: transform 0.3s ease;
+        }
+        .group-image-wrapper:hover .transition-scale {
+            transform: scale(1.08);
+        }
+        @keyframes pulse-red {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+            70% {
+                transform: scale(1.03);
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+        .pulse-urgent {
+            animation: pulse-red 2s infinite;
+        }
+    </style>
+@endpush

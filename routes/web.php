@@ -286,10 +286,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/spk', [\App\Http\Controllers\V2\SpkController::class, 'index'])->name('spk.index');
         Route::get('/spk/create', [\App\Http\Controllers\V2\SpkController::class, 'create'])->name('spk.create');
         Route::post('/spk', [\App\Http\Controllers\V2\SpkController::class, 'store'])->name('spk.store');
+        Route::get('/spk/scan-karung', [\App\Http\Controllers\V2\SpkController::class, 'scanKarungPage'])->name('spk.scan_karung');
+        Route::post('/spk/scan-karung', [\App\Http\Controllers\V2\SpkController::class, 'processScanKarung'])->name('spk.process_scan_karung');
         Route::get('/spk/payments', [\App\Http\Controllers\V2\SpkController::class, 'paymentsIndex'])->name('spk.payments');
         Route::get('/spk/{spk}', [\App\Http\Controllers\V2\SpkController::class, 'show'])->name('spk.show');
         Route::put('/spk/{spk}', [\App\Http\Controllers\V2\SpkController::class, 'update'])->name('spk.update');
         Route::delete('/spk/{spk}', [\App\Http\Controllers\V2\SpkController::class, 'destroy'])->name('spk.destroy');
+        Route::get('/spk/{spk}/scan-pickup', [\App\Http\Controllers\V2\SpkController::class, 'scanPickupPage'])->name('spk.scan_pickup');
+        Route::post('/spk/{spk}/scan-pickup', [\App\Http\Controllers\V2\SpkController::class, 'processScanPickup'])->name('spk.process_scan_pickup');
 
         // Titipan Barang (Supplier Consignment) V2
         Route::prefix('titipan-barang')->name('titipan_barang.')->group(function () {

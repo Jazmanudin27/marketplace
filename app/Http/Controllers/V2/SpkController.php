@@ -73,4 +73,38 @@ class SpkController extends BaseSpkController
 
         return $response;
     }
+
+    /**
+     * Display V2 Scan Karung Page.
+     */
+    public function scanKarungPage(Request $request)
+    {
+        $response = parent::scanKarungPage($request);
+
+        if ($response instanceof \Illuminate\View\View) {
+            if (view()->exists('v2.spk.scan_karung')) {
+                return view('v2.spk.scan_karung', $response->getData());
+            }
+            return $response;
+        }
+
+        return $response;
+    }
+
+    /**
+     * Display V2 Scan Pickup Page.
+     */
+    public function scanPickupPage($spk)
+    {
+        $response = parent::scanPickupPage($spk);
+
+        if ($response instanceof \Illuminate\View\View) {
+            if (view()->exists('v2.spk.scan_pickup')) {
+                return view('v2.spk.scan_pickup', $response->getData());
+            }
+            return $response;
+        }
+
+        return $response;
+    }
 }
