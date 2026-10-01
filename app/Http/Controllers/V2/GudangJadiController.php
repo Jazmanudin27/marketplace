@@ -150,6 +150,7 @@ class GudangJadiController extends Controller
             'items'           => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:master_products,id',
             'items.*.quantity'   => 'required|integer|min:1',
+            'items.*.notes'      => 'nullable|string|max:255',
         ], [
             'type.required'            => 'Pilih jenis mutasi (Masuk / Keluar).',
             'category_reason.required' => 'Pilih atau isi kategori / alasan mutasi.',
@@ -175,11 +176,12 @@ class GudangJadiController extends Controller
                     ->firstOrFail();
 
                 $qty = (int) $item['quantity'];
+                $itemNote = !empty($item['notes']) ? " [Note: {$item['notes']}]" : '';
 
                 $product->recordStockMovement(
                     $qty,
                     $type,
-                    $fullReference,
+                    $fullReference . $itemNote,
                     Auth::id(),
                     $mutationDate
                 );
@@ -189,8 +191,10 @@ class GudangJadiController extends Controller
 
             DB::commit();
 
-            return redirect()->route('v2.gudang_jadi.index')
-                ->with('success', "✅ Berhasil mencatat Mutasi {$typeLabel} Gudang Jadi untuk {$processedCount} item produk.");
+            $redirectRoute = $type === 'in' ? 'v2.gudang_jadi.masuk' : 'v2.gudang_jadi.keluar';
+
+            return redirect()->route($redirectRoute)
+                ->with('success', "Berhasil mencatat Mutasi {$typeLabel} Gudang Jadi untuk {$processedCount} item produk.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withInput()->with('error', 'Gagal menyimpan mutasi Gudang Jadi: ' . $e->getMessage());

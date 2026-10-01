@@ -1,203 +1,343 @@
 @extends('v2.layouts.app')
 
-@section('title', 'Catat Mutasi Gudang Jadi V2')
+@section('title', old('type', $selectedType) === 'out' ? 'Catat Mutasi Barang Keluar (Gudang Jadi)' : 'Catat Mutasi Barang Masuk (Gudang Jadi)')
+
+@push('styles')
+<style>
+/* ── Mutasi Gudang Jadi V2 Create Styling ── */
+.gj-badge-in {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+}
+.gj-badge-out {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+.select2-container--bootstrap-5 .select2-selection--single {
+    height: 31px !important;
+    padding: 2px 8px !important;
+    font-size: 0.8rem !important;
+}
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    line-height: 25px !important;
+    font-size: 0.8rem !important;
+}
+</style>
+@endpush
 
 @section('content')
+
+@php
+    $isOutbound = old('type', $selectedType) === 'out';
+    $backRoute  = $isOutbound ? route('v2.gudang_jadi.keluar') : route('v2.gudang_jadi.masuk');
+@endphp
 
 {{-- ── Page Header ── --}}
 <div class="v2-page-header align-items-center mb-3">
     <div>
-        <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0">
-            <i class="bi bi-box-arrow-in-down text-primary fs-5"></i> Catat Mutasi Gudang Jadi
+        <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0" id="pageTitleHeading">
+            @if($isOutbound)
+                <i class="bi bi-box-arrow-up-right text-danger fs-5"></i> Catat Mutasi Barang Keluar (Gudang Jadi)
+            @else
+                <i class="bi bi-box-arrow-in-down text-success fs-5"></i> Catat Mutasi Barang Masuk (Gudang Jadi)
+            @endif
         </h1>
-        <p class="text-muted small mb-0">Input mutasi stok masuk, keluar, atau penyesuaian barang ke gudang jadi</p>
+        <p class="text-muted small mb-0">Input mutasi penambahan atau pengeluaran barang jadi secara langsung</p>
     </div>
     <div>
-        <a href="{{ route('v2.gudang_jadi.index') }}" class="btn btn-sm btn-outline-secondary px-3 fw-semibold">
+        <a href="{{ $backRoute }}" class="btn btn-sm text-white py-1.5 px-3 fw-semibold" style="background:#64748b; border:none;">
             <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
         </a>
     </div>
 </div>
 
-{{-- ── Alert Notifications ── --}}
-@foreach(['error','info'] as $type)
-    @if(session($type))
-        <div class="alert alert-{{ $type === 'error' ? 'danger' : 'info' }} alert-dismissible fade show mb-3 border-0 shadow-sm" role="alert" style="border-radius:10px;">
-            <i class="bi bi-exclamation-triangle me-2"></i>
-            {!! session($type) !!}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-@endforeach
+{{-- ── Error Notification ── --}}
+@if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show mb-3 border-0 shadow-sm" role="alert" style="border-radius:10px;">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Gagal menyimpan mutasi gudang:</strong>
+        <ul class="mb-0 mt-1 ps-3 small">
+            @foreach($errors->all() as $err)
+                <li>{{ $err }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
 
-{{-- ── Form Card ── --}}
-<div class="v2-card p-4 shadow-sm mb-4">
-    <form action="{{ route('v2.gudang_jadi.store') }}" method="POST" id="mutation-form">
-        @csrf
+<form action="{{ route('v2.gudang_jadi.store') }}" method="POST" id="gudangJadiForm">
+    @csrf
 
-        <div class="row g-3 mb-4">
-            <!-- Jenis Mutasi -->
-            <div class="col-12 col-md-4">
-                <label class="form-label small fw-semibold text-dark">Jenis Mutasi <span class="text-danger">*</span></label>
-                <select name="type" class="form-select @error('type') is-invalid @enderror" required id="mutation-type">
-                    <option value="in" {{ old('type', $selectedType) === 'in' ? 'selected' : '' }}> Barang Masuk (+ Add Stock)</option>
-                    <option value="out" {{ old('type', $selectedType) === 'out' ? 'selected' : '' }}> Barang Keluar (- Reduce Stock)</option>
-                </select>
-                @error('type')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
+    <div class="row g-3">
+        {{-- Kiri: Form Informasi Mutasi --}}
+        <div class="col-12 col-lg-3">
+            <div class="v2-card p-3 shadow-sm h-100 d-flex flex-column">
+                <h6 class="fw-bold text-dark border-bottom pb-2 mb-2 d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-file-earmark-text text-primary me-1.5"></i> Informasi Mutasi</span>
+                    <span id="typeBadgeHeader" class="badge {{ $isOutbound ? 'gj-badge-out' : 'gj-badge-in' }} px-2 py-1">
+                        {{ $isOutbound ? 'Barang Keluar' : 'Barang Masuk' }}
+                    </span>
+                </h6>
 
-            <!-- Kategori / Alasan Mutasi -->
-            <div class="col-12 col-md-4">
-                <label class="form-label small fw-semibold text-dark">Kategori / Alasan Mutasi <span class="text-danger">*</span></label>
-                <input type="text" name="category_reason" value="{{ old('category_reason', 'Hasil Produksi / Penyesuaian') }}" class="form-control @error('category_reason') is-invalid @enderror" placeholder="Contoh: Hasil Produksi SPK, Sample Toko, Pengembalian..." required>
-                @error('category_reason')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
+                <!-- Jenis Mutasi -->
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold text-dark mb-1">Jenis Mutasi <span class="text-danger">*</span></label>
+                    <select name="type" id="typeSelect" class="form-select form-select-sm fw-bold @error('type') is-invalid @enderror" required>
+                        <option value="in" {{ old('type', $selectedType) === 'in' ? 'selected' : '' }}>🟢 Barang Masuk (+ Tambah Stok)</option>
+                        <option value="out" {{ old('type', $selectedType) === 'out' ? 'selected' : '' }}>🔴 Barang Keluar (- Kurang Stok)</option>
+                    </select>
+                </div>
 
-            <!-- Tanggal Mutasi -->
-            <div class="col-12 col-md-4">
-                <label class="form-label small fw-semibold text-dark">Tanggal Mutasi</label>
-                <input type="date" name="date" value="{{ old('date', date('Y-m-d')) }}" class="form-control @error('date') is-invalid @enderror">
-                @error('date')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
+                <!-- Tanggal Mutasi -->
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold text-dark mb-1">Tanggal Mutasi <span class="text-danger">*</span></label>
+                    <input type="date" name="date" class="form-control form-control-sm @error('date') is-invalid @enderror" value="{{ old('date', date('Y-m-d')) }}" required>
+                </div>
 
-            <!-- Catatan Keterangan -->
-            <div class="col-12">
-                <label class="form-label small fw-semibold text-dark">Catatan Tambahan (Opsional)</label>
-                <input type="text" name="notes" value="{{ old('notes') }}" class="form-control" placeholder="Tuliskan nomor SPK, nama penerima, atau catatan pendukung lainnya...">
-            </div>
-        </div>
+                <!-- Kategori / Alasan Mutasi -->
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold text-dark mb-1">Kategori / Alasan <span class="text-danger">*</span></label>
+                    <input type="text" name="category_reason" id="categoryReasonInput" list="categoryReasonOptions" class="form-control form-control-sm @error('category_reason') is-invalid @enderror" value="{{ old('category_reason', $isOutbound ? 'Pengiriman SPK / Customer' : 'Hasil Produksi Internal') }}" placeholder="Ketik atau pilih alasan mutasi..." required>
+                    <datalist id="categoryReasonOptions">
+                        <option value="Hasil Produksi Internal"></option>
+                        <option value="Penerimaan Subkon / Percetakan"></option>
+                        <option value="Pengembalian (Retur Toko / Customer)"></option>
+                        <option value="Pengiriman SPK / Customer"></option>
+                        <option value="Sample Toko / Promosi"></option>
+                        <option value="Penyesuaian Stok Gudang"></option>
+                    </datalist>
+                </div>
 
-        {{-- ── Table Input Items ── --}}
-        <div class="border rounded-3 p-3 bg-light mb-4">
-            <div class="d-flex align-items-center justify-content-between mb-3">
-                <h6 class="fw-bold text-dark mb-0"><i class="bi bi-box-seam me-1"></i> Daftar Produk Mutasi</h6>
-                <button type="button" class="btn btn-sm btn-success px-3 fw-semibold" id="btn-add-item">
-                    <i class="bi bi-plus-circle me-1"></i> Tambah Baris Produk
-                </button>
-            </div>
+                <!-- Catatan / No. Referensi Dokumen -->
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark mb-1">No. Ref / Catatan (Opsional)</label>
+                    <textarea name="notes" class="form-control form-control-sm" rows="3" placeholder="Masukkan No. SPK, No. SJ, atau keterangan mutasi...">{{ old('notes') }}</textarea>
+                </div>
 
-            <div class="table-responsive">
-                <table class="table table-bordered align-middle bg-white mb-0" id="items-table">
-                    <thead class="bg-light small text-muted">
-                        <tr>
-                            <th style="min-width: 250px;">PRODUK MASTER <span class="text-danger">*</span></th>
-                            <th style="width: 150px;" class="text-center">STOK SAAT INI</th>
-                            <th style="width: 160px;" class="text-center">QTY MUTASI <span class="text-danger">*</span></th>
-                            <th style="width: 60px;" class="text-center">AKSI</th>
-                        </tr>
-                    </thead>
-                    <tbody id="items-container">
-                        <tr class="item-row">
-                            <td>
-                                <select name="items[0][product_id]" class="form-select form-select-sm product-select" required>
-                                    <option value="">-- Pilih Produk Master --</option>
-                                    @foreach($products as $p)
-                                        <option value="{{ $p->id }}" data-stock="{{ $p->stock }}" data-unit="{{ $p->unit ?: 'PCS' }}" {{ $selectedProductId == $p->id ? 'selected' : '' }}>
-                                            [{{ $p->sku }}] {{ $p->name }} (Stok: {{ number_format($p->stock) }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </td>
-                            <td class="text-center font-monospace fw-semibold current-stock-cell">
-                                -
-                            </td>
-                            <td>
-                                <div class="input-group input-group-sm">
-                                    <input type="number" name="items[0][quantity]" class="form-control text-center fw-bold qty-input" value="1" min="1" required>
-                                    <span class="input-group-text unit-label bg-light">PCS</span>
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" title="Hapus Baris">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <!-- Summary Box Container -->
+                <div class="p-2.5 bg-light rounded-3 border mt-auto" style="padding: 10px 12px;">
+                    <div class="d-flex justify-content-between align-items-center text-muted small mb-1">
+                        <span>Total Jenis Produk:</span>
+                        <strong id="totalProductCountDisplay" class="text-dark">0 Jenis</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-dark small">Total Qty Mutasi:</span>
+                        <strong id="totalQtyDisplay" class="fs-6 fw-bold font-monospace {{ $isOutbound ? 'text-danger' : 'text-success' }}">0 PCS</strong>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="d-flex align-items-center justify-content-end gap-2">
-            <a href="{{ route('v2.gudang_jadi.index') }}" class="btn btn-outline-secondary px-4 fw-semibold">Batal</a>
-            <button type="submit" class="btn btn-primary px-4 fw-semibold">
-                <i class="bi bi-check-circle me-1"></i> Simpan Mutasi Gudang
-            </button>
+        {{-- Kanan: Form Item Mutasi Gudang --}}
+        <div class="col-12 col-lg-9">
+            <div class="v2-card p-3 shadow-sm h-100 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-boxes text-primary me-1.5"></i> Rincian Produk Master Gudang
+                    </h6>
+                    <button type="button" class="btn btn-sm text-white fw-semibold" id="btnAddRow" style="background:#16a34a; border:none;">
+                        <i class="bi bi-plus-circle me-1"></i> Tambah Baris Produk
+                    </button>
+                </div>
+
+                <div class="table-responsive flex-grow-1 mb-2" style="overflow-x: hidden; overflow-y: visible;">
+                    <table class="table table-bordered align-middle m-0" id="itemsTable" style="font-size: 0.8rem; table-layout: fixed; width: 100%;">
+                        <thead class="bg-light text-muted">
+                            <tr>
+                                <th style="width: 46%;">PRODUK MASTER <span class="text-danger">*</span></th>
+                                <th style="width: 18%;" class="text-center">STOK SAAT INI</th>
+                                <th style="width: 16%;" class="text-center">QTY MUTASI <span class="text-danger">*</span></th>
+                                <th style="width: 16%;" class="text-center">CATATAN (OPT)</th>
+                                <th style="width: 4%;" class="text-center"><i class="bi bi-trash"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody">
+                            <!-- Dynamic rows appended via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                    <a href="{{ $backRoute }}" class="btn btn-sm text-white fw-semibold" style="background:#64748b; border:none;">
+                        Batal
+                    </a>
+                    <button type="submit" id="submitBtn" class="btn btn-sm text-white fw-semibold py-1.5 px-4" style="background: {{ $isOutbound ? '#dc2626' : '#16a34a' }}; border:none;">
+                        <i class="bi bi-save me-1"></i> Simpan Mutasi Gudang
+                    </button>
+                </div>
+            </div>
         </div>
-    </form>
-</div>
+    </div>
+</form>
+
+@endsection
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    let rowIndex = 1;
-    const container = document.getElementById('items-container');
+    const products = @json($products);
+    const selectedProductId = @json($selectedProductId);
+    const tbody = document.getElementById('itemsTableBody');
+    const btnAddRow = document.getElementById('btnAddRow');
+    const typeSelect = document.getElementById('typeSelect');
+    const submitBtn = document.getElementById('submitBtn');
+    const pageTitleHeading = document.getElementById('pageTitleHeading');
+    const typeBadgeHeader = document.getElementById('typeBadgeHeader');
+    const totalQtyDisplay = document.getElementById('totalQtyDisplay');
+    const categoryReasonInput = document.getElementById('categoryReasonInput');
 
-    function updateRowInfo(row) {
-        const select = row.querySelector('.product-select');
-        const stockCell = row.querySelector('.current-stock-cell');
-        const unitLabel = row.querySelector('.unit-label');
-
-        const option = select.options[select.selectedIndex];
-        if (option && option.value) {
-            const stock = option.getAttribute('data-stock');
-            const unit = option.getAttribute('data-unit') || 'PCS';
-            stockCell.textContent = Number(stock).toLocaleString() + ' ' + unit;
-            unitLabel.textContent = unit;
+    // Handle Change Type Dynamic Styling
+    typeSelect.addEventListener('change', function() {
+        const isOut = this.value === 'out';
+        if (isOut) {
+            pageTitleHeading.innerHTML = `<i class="bi bi-box-arrow-up-right text-danger fs-5"></i> Catat Mutasi Barang Keluar (Gudang Jadi)`;
+            typeBadgeHeader.className = 'badge gj-badge-out px-2 py-1';
+            typeBadgeHeader.textContent = 'Barang Keluar';
+            submitBtn.style.background = '#dc2626';
+            totalQtyDisplay.className = 'fs-6 fw-bold font-monospace text-danger';
+            if (categoryReasonInput.value === 'Hasil Produksi Internal') {
+                categoryReasonInput.value = 'Pengiriman SPK / Customer';
+            }
         } else {
-            stockCell.textContent = '-';
-            unitLabel.textContent = 'PCS';
+            pageTitleHeading.innerHTML = `<i class="bi bi-box-arrow-in-down text-success fs-5"></i> Catat Mutasi Barang Masuk (Gudang Jadi)`;
+            typeBadgeHeader.className = 'badge gj-badge-in px-2 py-1';
+            typeBadgeHeader.textContent = 'Barang Masuk';
+            submitBtn.style.background = '#16a34a';
+            totalQtyDisplay.className = 'fs-6 fw-bold font-monospace text-success';
+            if (categoryReasonInput.value === 'Pengiriman SPK / Customer') {
+                categoryReasonInput.value = 'Hasil Produksi Internal';
+            }
         }
-    }
-
-    container.addEventListener('change', function(e) {
-        if (e.target.classList.contains('product-select')) {
-            updateRowInfo(e.target.closest('tr'));
-        }
+        calculateGrandTotal();
     });
 
-    document.querySelectorAll('.item-row').forEach(row => updateRowInfo(row));
+    function createRow(productId = '', qty = 1, note = '') {
+        const index = tbody.children.length;
+        const tr = document.createElement('tr');
+        
+        let optionsHtml = '<option value="">-- Pilih Produk Master --</option>';
+        products.forEach(p => {
+            const selected = (p.id == productId) ? 'selected' : '';
+            optionsHtml += `<option value="${p.id}" data-stock="${p.stock}" data-unit="${p.unit || 'PCS'}" ${selected}>[${p.sku || 'PROD'}] ${p.name}</option>`;
+        });
 
-    document.getElementById('btn-add-item').addEventListener('click', function() {
-        const firstRow = container.querySelector('.item-row');
-        const newRow = firstRow.cloneNode(true);
+        tr.innerHTML = `
+            <td>
+                <select name="items[${index}][product_id]" class="form-select form-select-sm product-select" required>
+                    ${optionsHtml}
+                </select>
+            </td>
+            <td class="text-center font-monospace small current-stock-display text-muted fw-semibold">
+                -
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <input type="number" name="items[${index}][quantity]" class="form-control text-center fw-bold qty-input" min="1" step="1" value="${qty}" required>
+                    <span class="input-group-text bg-light px-1.5 unit-label small">PCS</span>
+                </div>
+            </td>
+            <td>
+                <input type="text" name="items[${index}][notes]" class="form-control form-control-sm note-input" placeholder="Catatan item..." value="${note}">
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1.5 remove-row-btn" title="Hapus Baris">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </td>
+        `;
 
-        newRow.querySelectorAll('select, input').forEach(el => {
-            if (el.name) {
-                el.name = el.name.replace(/\[\d+\]/, '[' + rowIndex + ']');
+        tbody.appendChild(tr);
+
+        const select = tr.querySelector('.product-select');
+        const qtyInput = tr.querySelector('.qty-input');
+        const stockDisplay = tr.querySelector('.current-stock-display');
+        const unitLabel = tr.querySelector('.unit-label');
+        const removeBtn = tr.querySelector('.remove-row-btn');
+
+        // Initialize Select2 if available
+        if (typeof $ !== 'undefined' && $.fn.select2) {
+            $(select).select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: '-- Pilih Produk Master --'
+            }).on('change', function() {
+                updateStockDisplay();
+                calculateGrandTotal();
+            });
+        } else {
+            select.addEventListener('change', function() {
+                updateStockDisplay();
+                calculateGrandTotal();
+            });
+        }
+
+        function updateStockDisplay() {
+            const selectedOpt = select.options[select.selectedIndex];
+            if (selectedOpt && selectedOpt.value) {
+                const stock = selectedOpt.getAttribute('data-stock') || 0;
+                const unit = selectedOpt.getAttribute('data-unit') || 'PCS';
+                stockDisplay.innerHTML = `<span class="badge bg-light text-dark border font-monospace px-2 py-1">${Number(stock).toLocaleString('id-ID')} ${unit}</span>`;
+                unitLabel.textContent = unit;
+            } else {
+                stockDisplay.innerHTML = '-';
+                unitLabel.textContent = 'PCS';
             }
-            if (el.tagName === 'SELECT') {
-                el.selectedIndex = 0;
-            } else if (el.type === 'number') {
-                el.value = 1;
+        }
+
+        qtyInput.addEventListener('input', calculateGrandTotal);
+
+        removeBtn.addEventListener('click', function() {
+            if (tbody.children.length > 1) {
+                tr.remove();
+                reindexRows();
+                calculateGrandTotal();
+            } else {
+                alert('Mutasi gudang minimal harus memiliki 1 item produk.');
             }
         });
 
-        container.appendChild(newRow);
-        updateRowInfo(newRow);
-        rowIndex++;
+        updateStockDisplay();
+    }
+
+    function calculateGrandTotal() {
+        let totalQty = 0;
+        let productCount = 0;
+
+        document.querySelectorAll('#itemsTableBody tr').forEach(tr => {
+            const select = tr.querySelector('.product-select');
+            const qty = parseFloat(tr.querySelector('.qty-input').value) || 0;
+            if (select && select.value) {
+                productCount++;
+                totalQty += qty;
+            }
+        });
+
+        const prefix = typeSelect.value === 'out' ? '-' : '+';
+        document.getElementById('totalProductCountDisplay').textContent = productCount + ' Jenis';
+        totalQtyDisplay.textContent = prefix + totalQty.toLocaleString('id-ID') + ' PCS';
+    }
+
+    function reindexRows() {
+        Array.from(tbody.children).forEach((tr, index) => {
+            const select = tr.querySelector('.product-select');
+            const qtyInput = tr.querySelector('.qty-input');
+            const noteInput = tr.querySelector('.note-input');
+            if (select) select.name = `items[${index}][product_id]`;
+            if (qtyInput) qtyInput.name = `items[${index}][quantity]`;
+            if (noteInput) noteInput.name = `items[${index}][notes]`;
+        });
+    }
+
+    btnAddRow.addEventListener('click', () => {
+        createRow();
+        calculateGrandTotal();
     });
 
-    container.addEventListener('click', function(e) {
-        const btn = e.target.closest('.btn-remove-row');
-        if (btn) {
-            const rows = container.querySelectorAll('.item-row');
-            if (rows.length > 1) {
-                btn.closest('tr').remove();
-            } else {
-                alert('Minimal 1 baris produk harus tersedia.');
-            }
-        }
-    });
+    // Create initial row
+    createRow(selectedProductId || '');
+    calculateGrandTotal();
 });
 </script>
 @endpush
-
-@endsection
