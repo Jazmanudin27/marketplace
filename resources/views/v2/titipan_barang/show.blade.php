@@ -348,4 +348,108 @@
 </div>
 @endif
 
+{{-- ── Riwayat Setoran / Pembayaran Supplier ── --}}
+@php
+    $allSettlementItems = collect();
+    foreach($consignment->items as $cItem) {
+        if ($cItem->settlementItems && $cItem->settlementItems->isNotEmpty()) {
+            $allSettlementItems = $allSettlementItems->concat($cItem->settlementItems);
+        }
+    }
+@endphp
+
+<div class="v2-card shadow-sm overflow-hidden mt-3">
+    <div class="px-3 py-2.5 border-bottom bg-light d-flex align-items-center justify-content-between">
+        <span class="fw-bold text-secondary small text-uppercase" style="font-size:0.73rem; letter-spacing:0.04em;">
+            <i class="bi bi-cash-stack text-success me-1"></i>
+            Riwayat Setoran & Pembayaran Ke Supplier
+        </span>
+        @if($allSettlementItems->isNotEmpty())
+            <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:0.7rem;">
+                {{ $allSettlementItems->pluck('settlement_id')->unique()->count() }} Transaksi Setoran
+            </span>
+        @else
+            <span class="badge bg-light text-muted border" style="font-size:0.7rem;">
+                Belum ada setoran
+            </span>
+        @endif
+    </div>
+
+    @if($allSettlementItems->isNotEmpty())
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size:0.8rem;">
+                <thead class="bg-light text-muted">
+                    <tr>
+                        <th class="ps-3 py-2.5">NO. SETORAN / TANGGAL</th>
+                        <th class="py-2.5">PRODUK (SKU)</th>
+                        <th class="py-2.5">METODE & REKENING</th>
+                        <th class="text-center py-2.5">QTY DISETORKAN</th>
+                        <th class="text-end py-2.5">HARGA TITIP (HPP)</th>
+                        <th class="text-end py-2.5">SUBTOTAL SETORAN</th>
+                        <th class="pe-3 py-2.5">PENCATAT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($allSettlementItems->sortByDesc(fn($si) => $si->settlement ? $si->settlement->settlement_date : $si->created_at) as $sItem)
+                        @php
+                            $settlement = $sItem->settlement;
+                            $pProduct   = $sItem->masterProduct ?: ($sItem->consignmentItem ? $sItem->consignmentItem->masterProduct : null);
+                        @endphp
+                        <tr>
+                            <td class="ps-3 py-2.5">
+                                <div class="fw-bold text-dark font-monospace">{{ $settlement ? $settlement->settlement_number : '-' }}</div>
+                                <small class="text-muted d-block" style="font-size:0.7rem;">
+                                    {{ $settlement && $settlement->settlement_date ? $settlement->settlement_date->format('d/m/Y') : '-' }}
+                                </small>
+                            </td>
+                            <td class="py-2.5">
+                                <div class="fw-semibold text-dark">{{ $pProduct ? $pProduct->name : '-' }}</div>
+                                <span class="badge bg-light text-secondary border font-monospace" style="font-size:0.65rem;">
+                                    SKU: {{ $pProduct ? $pProduct->sku : '-' }}
+                                </span>
+                            </td>
+                            <td class="py-2.5">
+                                @if($settlement)
+                                    <span class="badge {{ $settlement->payment_method === 'transfer' ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-success-subtle text-success border border-success-subtle' }} px-2 py-0.5" style="font-size:0.68rem;">
+                                        {{ $settlement->payment_method === 'transfer' ? 'Transfer Bank' : 'Tunai / Kas' }}
+                                    </span>
+                                    @if($settlement->bankAccount)
+                                        <div class="small text-muted mt-0.5" style="font-size:0.68rem;">
+                                            {{ $settlement->bankAccount->bank_name }} - {{ $settlement->bankAccount->account_number }}
+                                        </div>
+                                    @endif
+                                    @if($settlement->reference_number)
+                                        <div class="small text-muted" style="font-size:0.65rem;">Ref: {{ $settlement->reference_number }}</div>
+                                    @endif
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td class="text-center py-2.5">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold font-monospace">
+                                    {{ number_format($sItem->qty_settled) }} PCS
+                                </span>
+                            </td>
+                            <td class="text-end font-monospace py-2.5">
+                                Rp {{ number_format($sItem->unit_cost_price, 0, ',', '.') }}
+                            </td>
+                            <td class="text-end font-monospace fw-bold text-success py-2.5">
+                                Rp {{ number_format($sItem->subtotal, 0, ',', '.') }}
+                            </td>
+                            <td class="pe-3 text-muted py-2.5">
+                                {{ $settlement && $settlement->creator ? $settlement->creator->name : '-' }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="p-4 text-center text-muted small">
+            <i class="bi bi-info-circle fs-4 d-block mb-1 opacity-50"></i>
+            Belum ada histori setoran atau pembayaran ke supplier untuk penerimaan barang ini.
+        </div>
+    @endif
+</div>
+
 @endsection

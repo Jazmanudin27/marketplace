@@ -206,11 +206,6 @@
                         <i class="bi bi-card-checklist text-info me-1.5"></i>
                         <span>Kartu Stok Konsinyasi</span>
                     </a>
-                    <a href="{{ route('v2.titipan_barang.settlement.index') }}"
-                        class="v2-submenu-link {{ request()->routeIs('v2.titipan_barang.settlement.*') || request()->routeIs('supplier_consignments.settlement.*') ? 'active' : '' }}">
-                        <i class="bi bi-receipt text-warning me-1.5"></i>
-                        <span>Riwayat Setoran Supplier</span>
-                    </a>
                 </div>
             </div>
         </div>

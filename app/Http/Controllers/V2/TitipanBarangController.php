@@ -201,7 +201,15 @@ class TitipanBarangController extends Controller
     {
         abort_unless($consignment->tenant_id === Auth::user()->tenant_id, 403);
 
-        $consignment->load(['supplier', 'items.masterProduct', 'creator', 'approver', 'items.deductions.order']);
+        $consignment->load([
+            'supplier',
+            'items.masterProduct',
+            'creator',
+            'approver',
+            'items.deductions.order',
+            'items.settlementItems.settlement.bankAccount',
+            'items.settlementItems.settlement.creator'
+        ]);
 
         return view('v2.titipan_barang.show', compact('consignment'));
     }
