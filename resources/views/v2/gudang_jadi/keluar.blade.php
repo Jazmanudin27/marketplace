@@ -44,6 +44,65 @@
     opacity: 0.12;
     pointer-events: none;
 }
+
+/* ── Custom Badge & Table Styles ── */
+.bg-purple-subtle { background-color: #f3e8ff !important; }
+.text-purple { color: #7e22ce !important; }
+.border-purple-subtle { border-color: #e9d5ff !important; }
+
+.gj-table-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+    color: #ffffff !important;
+}
+.gj-table-header th {
+    color: #f8fafc !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    font-size: 0.74rem !important;
+    border: none !important;
+    padding: 12px 14px !important;
+}
+.gj-table-row {
+    transition: all 0.15s ease-in-out;
+}
+.gj-table-row:hover {
+    background-color: #fff1f2 !important;
+    box-shadow: inset 3px 0 0 #ef4444;
+}
+.gj-qty-badge-out {
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 5px 14px;
+    border-radius: 50rem;
+    box-shadow: 0 2px 6px rgba(244, 63, 94, 0.25);
+    display: inline-block;
+}
+.gj-product-icon-out {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.gj-avatar-initial-red {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.72rem;
+    flex-shrink: 0;
+}
 </style>
 @endpush
 
@@ -128,7 +187,10 @@
         <!-- Pencarian -->
         <div class="col-12 col-md-3">
             <label class="form-label small fw-semibold text-muted mb-1">Cari Nama Produk / SKU / Ref</label>
-            <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari nama, SKU, ref..." value="{{ request('search') }}">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control form-control-sm border-start-0" placeholder="Cari nama, SKU, ref..." value="{{ request('search') }}">
+            </div>
         </div>
 
         <!-- Pilih Produk Master -->
@@ -159,7 +221,7 @@
         <!-- Action Buttons Inline -->
         <div class="col-12 col-md-2 d-flex gap-1">
             <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1" style="background:#1e293b; border:none;" title="Terapkan Filter">
-                <i class="bi bi-funnel"></i> Filter
+                <i class="bi bi-funnel me-1"></i> Filter
             </button>
             @if(request()->anyFilled(['search', 'start_date', 'end_date', 'product_id']))
                 <a href="{{ route('v2.gudang_jadi.keluar') }}" class="btn btn-sm text-white fw-semibold" style="background:#64748b; border:none;" title="Reset Filter">
@@ -171,69 +233,173 @@
 </div>
 
 {{-- ── Data Table Section ── --}}
-<div class="v2-card shadow-sm overflow-hidden">
+<div class="v2-card p-0 shadow-sm overflow-hidden mb-4 border">
+    <!-- Card Toolbar Header -->
+    <div class="p-3 bg-white border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <div class="badge bg-danger bg-opacity-10 text-danger p-2 rounded-3 border border-danger border-opacity-25">
+                <i class="bi bi-journal-minus fs-5"></i>
+            </div>
+            <div>
+                <h6 class="fw-bold text-dark mb-0">Riwayat Mutasi Barang Keluar</h6>
+                <p class="text-muted small mb-0" style="font-size: 0.74rem;">Daftar pengeluaran dan pemakaian produk dari persediaan gudang jadi</p>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1.5 rounded-pill fw-semibold" style="font-size: 0.75rem;">
+                <i class="bi bi-layers-fill me-1"></i> Total {{ number_format($mutations->total(), 0, ',', '.') }} Records
+            </span>
+        </div>
+    </div>
+
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
-            <thead class="bg-light text-muted">
+        <table class="table align-middle mb-0" style="font-size: 0.82rem;">
+            <thead class="gj-table-header">
                 <tr>
-                    <th class="ps-3 py-2.5" style="width: 50px;">NO</th>
-                    <th class="py-2.5" style="width: 170px;">TANGGAL & WAKTU</th>
-                    <th class="py-2.5">PRODUK MASTER & SKU</th>
-                    <th class="py-2.5">KATEGORI / ALASAN / CATATAN</th>
-                    <th class="text-center py-2.5" style="width: 150px;">QTY KELUAR</th>
-                    <th class="text-center py-2.5" style="width: 140px;">STATUS</th>
-                    <th class="pe-3 py-2.5" style="width: 160px;">PETUGAS</th>
+                    <th class="ps-3 text-center" style="width: 50px;">NO</th>
+                    <th style="width: 150px;"><i class="bi bi-calendar3 me-1"></i> WAKTU</th>
+                    <th><i class="bi bi-box-seam me-1"></i> PRODUK MASTER & SKU</th>
+                    <th><i class="bi bi-bookmark-star me-1"></i> KATEGORI & CATATAN REFERENSI</th>
+                    <th class="text-center" style="width: 140px;"><i class="bi bi-dash-circle me-1"></i> QTY KELUAR</th>
+                    <th class="text-center" style="width: 130px;"><i class="bi bi-shield-check me-1"></i> STATUS</th>
+                    <th class="pe-3" style="width: 160px;"><i class="bi bi-person-badge me-1"></i> PETUGAS</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($mutations as $index => $m)
-                    <tr>
-                        <td class="ps-3 py-2.5 text-center text-muted fw-semibold">
-                            {{ $mutations->firstItem() + $index }}
-                        </td>
-                        <td>
-                            <div class="fw-bold text-dark">{{ $m->created_at ? $m->created_at->format('d/m/Y') : '-' }}</div>
-                            <span class="text-muted small" style="font-size: 0.72rem;">
-                                <i class="bi bi-clock me-1"></i> {{ $m->created_at ? $m->created_at->format('H:i') : '-' }} WIB
+                    @php
+                        // Parse Reference & Category
+                        $refText = $m->reference ?? 'Mutasi Keluar';
+                        $category = 'Pengeluaran Stok';
+                        $detail = '';
+                        $badgeClass = 'bg-danger-subtle text-danger border-danger-subtle';
+                        $iconClass = 'bi-box-arrow-up-right';
+
+                        $refLower = strtolower($refText);
+
+                        if (str_contains($refLower, 'penjualan') || str_contains($refLower, 'pesanan') || str_contains($refLower, 'order')) {
+                            $category = 'Pengeluaran Pesanan';
+                            $badgeClass = 'bg-primary-subtle text-primary border-primary-subtle';
+                            $iconClass = 'bi-cart-check-fill';
+                            $parts = explode(':', $refText, 2);
+                            $detail = isset($parts[1]) ? trim($parts[1]) : '';
+                        } elseif (str_contains($refLower, 'sample') || str_contains($refLower, 'sampel')) {
+                            $category = 'Sample / Display';
+                            $badgeClass = 'bg-purple-subtle text-purple border-purple-subtle';
+                            $iconClass = 'bi-gift-fill';
+                            $detail = $refText;
+                        } elseif (str_contains($refLower, 'rusak') || str_contains($refLower, 'afval')) {
+                            $category = 'Barang Rusak / Afval';
+                            $badgeClass = 'bg-warning-subtle text-warning-emphasis border-warning-subtle';
+                            $iconClass = 'bi-exclamation-triangle-fill';
+                            $detail = $refText;
+                        } else {
+                            $parts = explode(':', $refText, 2);
+                            if (count($parts) > 1) {
+                                $category = trim($parts[0]);
+                                $detail = trim($parts[1]);
+                            } else {
+                                $category = 'Pengeluaran Stok';
+                                $detail = $refText;
+                            }
+                        }
+
+                        $userName = $m->user->name ?? 'Ruang Seragam';
+                        $userInitial = strtoupper(substr($userName, 0, 2));
+                    @endphp
+                    <tr class="gj-table-row">
+                        <!-- NO -->
+                        <td class="ps-3 text-center">
+                            <span class="badge bg-light text-secondary border rounded-circle" style="width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; font-size:0.75rem;">
+                                {{ $mutations->firstItem() + $index }}
                             </span>
                         </td>
+
+                        <!-- WAKTU -->
                         <td>
-                            @if($m->masterProduct)
-                                <div class="fw-bold text-dark">{{ $m->masterProduct->name }}</div>
-                                <span class="badge bg-light text-dark border font-monospace px-1.5 py-0.5" style="font-size: 0.68rem;">
-                                    SKU: {{ $m->masterProduct->sku }}
-                                </span>
-                            @else
-                                <span class="text-muted italic">— (Produk Master Tidak Ditemukan)</span>
-                            @endif
-                        </td>
-                        <td>
-                            <div class="text-secondary fw-semibold" style="font-size: 0.78rem;">
-                                {{ $m->reference ?? '-' }}
+                            <div class="fw-bold text-dark" style="font-size: 0.83rem;">
+                                {{ $m->created_at ? $m->created_at->format('d/m/Y') : '-' }}
+                            </div>
+                            <div class="text-muted d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                <i class="bi bi-clock"></i> {{ $m->created_at ? $m->created_at->format('H:i') : '-' }} WIB
                             </div>
                         </td>
+
+                        <!-- PRODUK MASTER & SKU -->
+                        <td>
+                            <div class="d-flex align-items-start gap-2.5">
+                                <div class="gj-product-icon-out bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 mt-0.5">
+                                    <i class="bi bi-box-seam"></i>
+                                </div>
+                                <div class="overflow-hidden">
+                                    @if($m->masterProduct)
+                                        <div class="fw-bold text-dark text-truncate" style="max-width: 320px;" title="{{ $m->masterProduct->name }}">
+                                            {{ $m->masterProduct->name }}
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1.5 mt-0.5">
+                                            <span class="badge bg-slate-100 text-dark border font-monospace px-1.5 py-0.5" style="font-size: 0.68rem; background:#f1f5f9;">
+                                                <i class="bi bi-qr-code me-1 text-muted"></i>{{ $m->masterProduct->sku }}
+                                            </span>
+                                            <span class="text-muted" style="font-size: 0.68rem;">
+                                                • Stok saat ini: <b>{{ number_format($m->masterProduct->stock, 0, ',', '.') }}</b> {{ $m->masterProduct->unit ?? 'PCS' }}
+                                            </span>
+                                        </div>
+                                    @else
+                                        <span class="text-muted italic">— (Produk Master Tidak Ditemukan)</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- KATEGORI & CATATAN REFERENSI -->
+                        <td>
+                            <div class="mb-1">
+                                <span class="badge {{ $badgeClass }} border px-2.5 py-1 rounded-pill fw-semibold" style="font-size: 0.68rem;">
+                                    <i class="bi {{ $iconClass }} me-1"></i>{{ $category }}
+                                </span>
+                            </div>
+                            @if($detail)
+                                <div class="text-secondary small font-monospace text-truncate" style="max-width: 280px; font-size: 0.73rem;" title="{{ $detail }}">
+                                    <i class="bi bi-hash me-0.5 text-muted"></i>{{ $detail }}
+                                </div>
+                            @endif
+                        </td>
+
+                        <!-- QTY KELUAR -->
                         <td class="text-center">
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fw-bold fs-6">
+                            <span class="gj-qty-badge-out">
                                 -{{ number_format(abs($m->quantity), 0, ',', '.') }} {{ $m->masterProduct->unit ?? 'PCS' }}
                             </span>
                         </td>
+
+                        <!-- STATUS -->
                         <td class="text-center">
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
-                                <i class="bi bi-box-arrow-up-right me-1"></i> Keluar
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1" style="font-size: 0.7rem;">
+                                <i class="bi bi-box-arrow-up-right" style="font-size: 0.65rem;"></i> Dikeluarkan
                             </span>
                         </td>
+
+                        <!-- PETUGAS -->
                         <td class="pe-3">
-                            <div class="d-flex align-items-center gap-1.5">
-                                <i class="bi bi-person-circle text-secondary"></i>
-                                <span class="fw-semibold text-dark" style="font-size: 0.78rem;">{{ $m->user->name ?? 'Sistem / Admin' }}</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="gj-avatar-initial-red shadow-sm">
+                                    {{ $userInitial }}
+                                </div>
+                                <div class="overflow-hidden">
+                                    <div class="fw-bold text-dark text-truncate" style="max-width: 110px; font-size:0.78rem;" title="{{ $userName }}">
+                                        {{ $userName }}
+                                    </div>
+                                    <div class="text-muted" style="font-size:0.65rem;">Petugas Gudang</div>
+                                </div>
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center py-4 text-muted">
-                            <i class="bi bi-box-arrow-up-right fs-3 d-block mb-1 text-secondary opacity-50"></i>
-                            Belum ada riwayat pengeluaran barang keluar yang sesuai dengan filter.
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-25"></i>
+                            <h6 class="fw-bold text-dark mb-1">Belum Ada Riwayat Mutasi Keluar</h6>
+                            <p class="small text-muted mb-0">Tidak ada transaksi pengeluaran barang keluar yang sesuai dengan filter.</p>
                         </td>
                     </tr>
                 @endforelse
@@ -242,8 +408,9 @@
     </div>
 
     @if($mutations->hasPages())
-        <div class="p-3 border-top bg-light">
-            {{ $mutations->links() }}
+        <div class="p-3 border-top bg-light d-flex align-items-center justify-content-between">
+            <span class="text-muted small">Menampilkan {{ $mutations->firstItem() }} - {{ $mutations->lastItem() }} dari {{ $mutations->total() }} data</span>
+            <div>{{ $mutations->links() }}</div>
         </div>
     @endif
 </div>
