@@ -187,13 +187,13 @@
             </a>
             <div class="collapse v2-submenu {{ $isGudangJadiActive ? 'show' : '' }}" id="gudangJadiSubmenu">
                 <div class="v2-submenu-inner">
-                    <a href="{{ route('v2.gudang_jadi.index', ['type' => 'in']) }}"
-                        class="v2-submenu-link {{ request()->is('v2/gudang-jadi*') && request('type') === 'in' ? 'active' : '' }}">
+                    <a href="{{ route('v2.gudang_jadi.masuk') }}"
+                        class="v2-submenu-link {{ request()->routeIs('v2.gudang_jadi.masuk') ? 'active' : '' }}">
                         <i class="bi bi-box-arrow-in-down text-success me-1.5"></i>
                         <span>Mutasi Masuk</span>
                     </a>
-                    <a href="{{ route('v2.gudang_jadi.index', ['type' => 'out']) }}"
-                        class="v2-submenu-link {{ request()->is('v2/gudang-jadi*') && request('type') === 'out' ? 'active' : '' }}">
+                    <a href="{{ route('v2.gudang_jadi.keluar') }}"
+                        class="v2-submenu-link {{ request()->routeIs('v2.gudang_jadi.keluar') ? 'active' : '' }}">
                         <i class="bi bi-box-arrow-up-right text-danger me-1.5"></i>
                         <span>Mutasi Keluar</span>
                     </a>

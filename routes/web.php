@@ -269,6 +269,8 @@ Route::middleware('auth')->group(function () {
 
         // Gudang Jadi (Mutasi Stok Produk Jadi) V2
         Route::get('/gudang-jadi', [\App\Http\Controllers\V2\GudangJadiController::class, 'index'])->name('gudang_jadi.index');
+        Route::get('/gudang-jadi/masuk', [\App\Http\Controllers\V2\GudangJadiController::class, 'masuk'])->name('gudang_jadi.masuk');
+        Route::get('/gudang-jadi/keluar', [\App\Http\Controllers\V2\GudangJadiController::class, 'keluar'])->name('gudang_jadi.keluar');
         Route::get('/gudang-jadi/create', [\App\Http\Controllers\V2\GudangJadiController::class, 'create'])->name('gudang_jadi.create');
         Route::post('/gudang-jadi', [\App\Http\Controllers\V2\GudangJadiController::class, 'store'])->name('gudang_jadi.store');
         Route::get('/gudang-jadi/search-products', [\App\Http\Controllers\V2\GudangJadiController::class, 'searchProducts'])->name('gudang_jadi.search_products');
