@@ -47,7 +47,6 @@
                 request()->is('v2/produk*') ||
                 request()->is('v2/kategori*') ||
                 request()->is('v2/brand*') ||
-                request()->is('v2/gudang-jadi*') ||
                 request()->is('inventory-items*');
         @endphp
         <div class="v2-nav-item v2-nav-dropdown {{ $isDataMasterActive ? 'show' : '' }}">
@@ -77,11 +76,6 @@
                         class="v2-submenu-link {{ request()->is('v2/barang*') || request()->is('inventory-items*') ? 'active' : '' }}">
                         <i class="bi bi-boxes me-1.5"></i>
                         <span>Data Barang</span>
-                    </a>
-                    <a href="{{ Route::has('v2.gudang_jadi.index') ? route('v2.gudang_jadi.index') : url('/v2/gudang-jadi') }}"
-                        class="v2-submenu-link {{ request()->is('v2/gudang-jadi*') || request()->routeIs('v2.gudang_jadi.*') ? 'active' : '' }}">
-                        <i class="bi bi-building-gear text-primary me-1.5"></i>
-                        <span>Gudang Jadi</span>
                     </a>
                 </div>
             </div>
@@ -162,15 +156,61 @@
                         <i class="bi bi-box-arrow-up-right text-danger me-1.5"></i>
                         <span>Barang Keluar</span>
                     </a>
-                    <a href="{{ route('v2.gudang_jadi.index') }}"
-                        class="v2-submenu-link {{ request()->is('v2/gudang-jadi*') || request()->routeIs('v2.gudang_jadi.*') ? 'active' : '' }}">
-                        <i class="bi bi-building-gear text-primary me-1.5"></i>
-                        <span>Gudang Jadi</span>
-                    </a>
                     <a href="{{ url('/v2/barang') }}"
                         class="v2-submenu-link {{ request()->is('v2/barang*') || request()->is('pembelian/stock-report*') ? 'active' : '' }}">
                         <i class="bi bi-eye text-info me-1.5"></i>
                         <span>Memantau Stok</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gudang Jadi -->
+        <div class="v2-nav-section-title mt-2">GUDANG JADI</div>
+        @php
+            $isGudangJadiActive =
+                request()->is('v2/gudang-jadi*') ||
+                request()->is('v2/stock-opname*') ||
+                request()->routeIs('v2.gudang_jadi.*') ||
+                request()->routeIs('v2.stock_opname.*');
+        @endphp
+        <div class="v2-nav-item v2-nav-dropdown {{ $isGudangJadiActive ? 'show' : '' }}">
+            <a href="javascript:void(0)"
+                class="v2-nav-link v2-dropdown-toggle d-flex align-items-center justify-content-between {{ $isGudangJadiActive ? 'active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#gudangJadiSubmenu"
+                aria-expanded="{{ $isGudangJadiActive ? 'true' : 'false' }}">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-building-gear text-primary"></i>
+                    <span>Gudang Jadi</span>
+                </div>
+                <i class="bi bi-chevron-down v2-dropdown-arrow ms-auto" style="font-size: 0.65rem;"></i>
+            </a>
+            <div class="collapse v2-submenu {{ $isGudangJadiActive ? 'show' : '' }}" id="gudangJadiSubmenu">
+                <div class="v2-submenu-inner">
+                    <a href="{{ route('v2.gudang_jadi.index', ['type' => 'in']) }}"
+                        class="v2-submenu-link {{ request()->is('v2/gudang-jadi*') && request('type') === 'in' ? 'active' : '' }}">
+                        <i class="bi bi-box-arrow-in-down text-success me-1.5"></i>
+                        <span>Mutasi Masuk</span>
+                    </a>
+                    <a href="{{ route('v2.gudang_jadi.index', ['type' => 'out']) }}"
+                        class="v2-submenu-link {{ request()->is('v2/gudang-jadi*') && request('type') === 'out' ? 'active' : '' }}">
+                        <i class="bi bi-box-arrow-up-right text-danger me-1.5"></i>
+                        <span>Mutasi Keluar</span>
+                    </a>
+                    <a href="{{ route('v2.gudang_jadi.create') }}"
+                        class="v2-submenu-link {{ request()->is('v2/gudang-jadi/create') ? 'active' : '' }}">
+                        <i class="bi bi-plus-circle text-info me-1.5"></i>
+                        <span>Catat Mutasi Stok</span>
+                    </a>
+                    <a href="{{ route('v2.gudang_jadi.index') }}"
+                        class="v2-submenu-link {{ request()->routeIs('v2.gudang_jadi.index') && !request()->has('type') ? 'active' : '' }}">
+                        <i class="bi bi-journal-text text-primary me-1.5"></i>
+                        <span>Semua Mutasi Stok</span>
+                    </a>
+                    <a href="{{ Route::has('v2.stock_opname.index') ? route('v2.stock_opname.index') : url('/v2/stock-opname') }}"
+                        class="v2-submenu-link {{ request()->is('v2/stock-opname*') ? 'active' : '' }}">
+                        <i class="bi bi-clipboard-check text-warning me-1.5"></i>
+                        <span>Stock Opname</span>
                     </a>
                 </div>
             </div>
