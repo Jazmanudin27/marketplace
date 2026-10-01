@@ -12,103 +12,27 @@
             </div>
         @endif
 
-        {{-- HEADER SECTION --}}
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-            <div>
-                <h4 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
-                    <i class="fas fa-industry text-primary fs-5"></i>
-                    <span>Marketing &amp; Pengiriman (SPK Produksi)</span>
-                </h4>
-                <p class="text-secondary small mb-0">
-                    Pantau seluruh antrian pesanan SPK, bagikan link pelacakan pelanggan, dan atur prioritas Urgent.
-                </p>
-            </div>
+        {{-- COMPACT TOP BAR & ACTIONS (BTN-SM) --}}
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+            <h5 class="fw-bold text-dark mb-0">SPK Produksi</h5>
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <a href="{{ Route::has('v2.spk.scan_karung') ? route('v2.spk.scan_karung') : route('spks.scan_karung') }}"
-                    class="btn btn-success text-white px-3 py-2 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2" style="background: linear-gradient(135deg, #059669, #10b981);">
+                    class="btn btn-sm btn-success text-white px-2.5 py-1.5 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-1.5" style="background: linear-gradient(135deg, #059669, #10b981);">
                     <i class="fas fa-barcode"></i>
-                    <span>Scan Karung (Multi-SPK)</span>
+                    <span>Scan Karung</span>
                 </a>
                 <a href="{{ Route::has('v2.spk.payments') ? route('v2.spk.payments') : route('spks.payments.index') }}"
-                    class="btn btn-warning text-dark px-3 py-2 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
+                    class="btn btn-sm btn-warning text-dark px-2.5 py-1.5 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-1.5">
                     <i class="fas fa-wallet text-dark"></i>
                     <span>Pembayaran Produksi</span>
                 </a>
                 @can('spks.create')
                     <a href="{{ Route::has('v2.spk.create') ? route('v2.spk.create') : route('spks.create') }}"
-                        class="btn btn-primary px-3 py-2 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
+                        class="btn btn-sm btn-primary px-2.5 py-1.5 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-1.5">
                         <i class="fas fa-plus"></i>
                         <span>Buat SPK Baru</span>
                     </a>
                 @endcan
-            </div>
-        </div>
-
-        {{-- KPI STATS SUMMARY CARDS --}}
-        <div class="row g-3 mb-4">
-            {{-- Total Antrian Produksi --}}
-            <div class="col-12 col-sm-6 col-xl-4">
-                <div class="card border border-light-subtle shadow-sm rounded-3 bg-white h-100">
-                    <div class="card-body p-3">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="text-muted small fw-semibold text-uppercase tracking-wider">Total Antrian Produksi</span>
-                            <div class="rounded-2 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center"
-                                style="width: 38px; height: 38px;">
-                                <i class="fas fa-boxes-stacked fs-6"></i>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-baseline">
-                            <h3 class="fw-bold text-dark mb-0 me-2">{{ number_format($stats['total_produksi'] ?? $spks->total()) }}</h3>
-                            <span class="text-secondary small fw-medium">Grup</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Pesanan Urgent --}}
-            @php $urgentCount = (int)($stats['total_urgent'] ?? 0); @endphp
-            <div class="col-12 col-sm-6 col-xl-4">
-                <div class="card border border-light-subtle shadow-sm rounded-3 bg-white h-100">
-                    <div class="card-body p-3">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="text-muted small fw-semibold text-uppercase tracking-wider">Pesanan Urgent</span>
-                            <div class="rounded-2 {{ $urgentCount > 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-warning bg-opacity-10 text-warning' }} d-flex align-items-center justify-content-center"
-                                style="width: 38px; height: 38px;">
-                                <i class="fas fa-bolt fs-6"></i>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-baseline justify-content-between">
-                            <div class="d-flex align-items-baseline">
-                                <h3 class="fw-bold {{ $urgentCount > 0 ? 'text-danger' : 'text-dark' }} mb-0 me-2">{{ number_format($urgentCount) }}</h3>
-                                <span class="text-secondary small fw-medium">SPK</span>
-                            </div>
-                            @if($urgentCount > 0)
-                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle rounded-pill px-2 py-1 small fw-semibold">
-                                    Prioritas Tinggi
-                                </span>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Total Volume Pcs --}}
-            <div class="col-12 col-sm-12 col-xl-4">
-                <div class="card border border-light-subtle shadow-sm rounded-3 bg-white h-100">
-                    <div class="card-body p-3">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="text-muted small fw-semibold text-uppercase tracking-wider">Total Volume Pcs</span>
-                            <div class="rounded-2 bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center"
-                                style="width: 38px; height: 38px;">
-                                <i class="fas fa-shirt fs-6"></i>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-baseline">
-                            <h3 class="fw-bold text-success mb-0 me-2">{{ number_format($stats['total_pcs'] ?? 0) }}</h3>
-                            <span class="text-secondary small fw-medium">Pcs</span>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
 
