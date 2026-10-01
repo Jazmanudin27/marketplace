@@ -224,158 +224,20 @@ class GudangJadiController extends Controller
     }
 
     /**
-     * Halaman Mutasi Barang Masuk Gudang Jadi V2.
+     * Redirect Halaman Mutasi Barang Masuk Gudang Jadi V2 ke Index Tab Masuk.
      */
     public function masuk(Request $request)
     {
-        $tenantId = Auth::user()->tenant_id;
-
-        $query = StockMovement::with(['masterProduct', 'user'])
-            ->where('tenant_id', $tenantId)
-            ->whereNotNull('master_product_id')
-            ->where('type', 'in');
-
-        // Filter Produk Spesifik
-        if ($request->filled('product_id')) {
-            $query->where('master_product_id', $request->product_id);
-        }
-
-        // Filter Tanggal
-        if ($request->filled('start_date')) {
-            $query->whereDate('created_at', '>=', $request->start_date);
-        }
-        if ($request->filled('end_date')) {
-            $query->whereDate('created_at', '<=', $request->end_date);
-        }
-
-        // Filter Keyword (Referensi / Nama Produk / SKU)
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('reference', 'like', "%{$search}%")
-                  ->orWhereHas('masterProduct', function ($pq) use ($search) {
-                      $pq->where('name', 'like', "%{$search}%")
-                         ->orWhere('sku', 'like', "%{$search}%");
-                  });
-            });
-        }
-
-        $mutations = $query->orderBy('created_at', 'desc')
-            ->orderBy('id', 'desc')
-            ->paginate(20)
-            ->withQueryString();
-
-        // Summary Stats KPI (Mutasi Masuk)
-        $statsQuery = StockMovement::where('tenant_id', $tenantId)
-            ->whereNotNull('master_product_id')
-            ->where('type', 'in');
-
-        if ($request->filled('start_date')) {
-            $statsQuery->whereDate('created_at', '>=', $request->start_date);
-        }
-        if ($request->filled('end_date')) {
-            $statsQuery->whereDate('created_at', '<=', $request->end_date);
-        }
-
-        $stats = $statsQuery->selectRaw("
-            COUNT(*) as total_transactions,
-            COALESCE(SUM(quantity), 0) as total_inbound_qty,
-            COUNT(DISTINCT master_product_id) as total_unique_products
-        ")->first();
-
-        $totalTransactions   = $stats->total_transactions ?? 0;
-        $totalInboundQty     = $stats->total_inbound_qty ?? 0;
-        $totalUniqueProducts = $stats->total_unique_products ?? 0;
-
-        $products = MasterProduct::where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'sku', 'name', 'stock', 'unit']);
-
-        return view('v2.gudang_jadi.masuk', compact(
-            'mutations',
-            'totalTransactions',
-            'totalInboundQty',
-            'totalUniqueProducts',
-            'products'
-        ));
+        $params = array_merge(['type' => 'in'], $request->all());
+        return redirect()->route('v2.gudang_jadi.index', $params);
     }
 
     /**
-     * Halaman Mutasi Barang Keluar Gudang Jadi V2.
+     * Redirect Halaman Mutasi Barang Keluar Gudang Jadi V2 ke Index Tab Keluar.
      */
     public function keluar(Request $request)
     {
-        $tenantId = Auth::user()->tenant_id;
-
-        $query = StockMovement::with(['masterProduct', 'user'])
-            ->where('tenant_id', $tenantId)
-            ->whereNotNull('master_product_id')
-            ->where('type', 'out');
-
-        // Filter Produk Spesifik
-        if ($request->filled('product_id')) {
-            $query->where('master_product_id', $request->product_id);
-        }
-
-        // Filter Tanggal
-        if ($request->filled('start_date')) {
-            $query->whereDate('created_at', '>=', $request->start_date);
-        }
-        if ($request->filled('end_date')) {
-            $query->whereDate('created_at', '<=', $request->end_date);
-        }
-
-        // Filter Keyword (Referensi / Nama Produk / SKU)
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('reference', 'like', "%{$search}%")
-                  ->orWhereHas('masterProduct', function ($pq) use ($search) {
-                      $pq->where('name', 'like', "%{$search}%")
-                         ->orWhere('sku', 'like', "%{$search}%");
-                  });
-            });
-        }
-
-        $mutations = $query->orderBy('created_at', 'desc')
-            ->orderBy('id', 'desc')
-            ->paginate(20)
-            ->withQueryString();
-
-        // Summary Stats KPI (Mutasi Keluar)
-        $statsQuery = StockMovement::where('tenant_id', $tenantId)
-            ->whereNotNull('master_product_id')
-            ->where('type', 'out');
-
-        if ($request->filled('start_date')) {
-            $statsQuery->whereDate('created_at', '>=', $request->start_date);
-        }
-        if ($request->filled('end_date')) {
-            $statsQuery->whereDate('created_at', '<=', $request->end_date);
-        }
-
-        $stats = $statsQuery->selectRaw("
-            COUNT(*) as total_transactions,
-            COALESCE(SUM(ABS(quantity)), 0) as total_outbound_qty,
-            COUNT(DISTINCT master_product_id) as total_unique_products
-        ")->first();
-
-        $totalTransactions   = $stats->total_transactions ?? 0;
-        $totalOutboundQty    = $stats->total_outbound_qty ?? 0;
-        $totalUniqueProducts = $stats->total_unique_products ?? 0;
-
-        $products = MasterProduct::where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'sku', 'name', 'stock', 'unit']);
-
-        return view('v2.gudang_jadi.keluar', compact(
-            'mutations',
-            'totalTransactions',
-            'totalOutboundQty',
-            'totalUniqueProducts',
-            'products'
-        ));
+        $params = array_merge(['type' => 'out'], $request->all());
+        return redirect()->route('v2.gudang_jadi.index', $params);
     }
 }

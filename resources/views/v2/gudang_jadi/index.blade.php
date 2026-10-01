@@ -76,18 +76,19 @@
 
 @section('content')
 
-{{-- ── Page Header ── --}}
+{{-- ── Page Header & Tabs ── --}}
 <div class="v2-page-header align-items-center mb-3">
     <div>
         <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0">
-            Gudang Jadi
+            @if(request('type') == 'in')
+                <i class="bi bi-box-arrow-in-down text-success fs-5"></i> Mutasi Barang Masuk (Gudang Jadi)
+            @elseif(request('type') == 'out')
+                <i class="bi bi-box-arrow-up-right text-danger fs-5"></i> Mutasi Barang Keluar (Gudang Jadi)
+            @else
+                <i class="bi bi-building-gear text-primary fs-5"></i> Gudang Jadi
+            @endif
         </h1>
         <p class="text-muted small mb-0">Kelola riwayat mutasi barang masuk, keluar, dan penyesuaian stok produk jadi</p>
-    </div>
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-        <a href="{{ route('v2.gudang_jadi.create') }}" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#2563eb; border:none; border-radius:6px;">
-            + Catat Mutasi Gudang
-        </a>
     </div>
 </div>
 
@@ -100,6 +101,43 @@
         </div>
     @endif
 @endforeach
+
+{{-- ── Nav Tabs & Action Buttons ── --}}
+<div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 flex-wrap gap-2">
+    <ul class="nav nav-pills gap-1">
+        <li class="nav-item">
+            <a class="nav-link {{ !request('type') ? 'active bg-primary text-white' : 'text-dark bg-white border' }} fw-semibold px-3 py-1.5" style="font-size: 0.82rem; border-radius: 8px;" href="{{ route('v2.gudang_jadi.index') }}">
+                <i class="bi bi-journals me-1.5"></i> Semua Mutasi
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ request('type') == 'in' ? 'active bg-success text-white' : 'text-dark bg-white border' }} fw-semibold px-3 py-1.5" style="font-size: 0.82rem; border-radius: 8px;" href="{{ route('v2.gudang_jadi.index', ['type' => 'in']) }}">
+                <i class="bi bi-box-arrow-in-down me-1.5 text-success"></i> Mutasi Masuk
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ request('type') == 'out' ? 'active bg-danger text-white' : 'text-dark bg-white border' }} fw-semibold px-3 py-1.5" style="font-size: 0.82rem; border-radius: 8px;" href="{{ route('v2.gudang_jadi.index', ['type' => 'out']) }}">
+                <i class="bi bi-box-arrow-up-right me-1.5 text-danger"></i> Mutasi Keluar
+            </a>
+        </li>
+    </ul>
+
+    <div class="d-flex align-items-center gap-2">
+        @if(request('type') == 'in')
+            <a href="{{ route('v2.gudang_jadi.create', ['type' => 'in']) }}" class="btn btn-sm text-white fw-semibold py-1.5 px-3" style="background:#16a34a; border:none; border-radius:6px;">
+                + Catat Barang Masuk
+            </a>
+        @elseif(request('type') == 'out')
+            <a href="{{ route('v2.gudang_jadi.create', ['type' => 'out']) }}" class="btn btn-sm text-white fw-semibold py-1.5 px-3" style="background:#dc2626; border:none; border-radius:6px;">
+                + Catat Barang Keluar
+            </a>
+        @else
+            <a href="{{ route('v2.gudang_jadi.create') }}" class="btn btn-sm text-white fw-semibold py-1.5 px-3" style="background:#2563eb; border:none; border-radius:6px;">
+                + Catat Mutasi Gudang
+            </a>
+        @endif
+    </div>
+</div>
 
 {{-- ── KPI Summary Cards ── --}}
 <div class="row g-2.5 mb-3">
