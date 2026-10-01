@@ -36,6 +36,31 @@
     color: #9ca3af;
     margin-top: 4px;
 }
+
+/* ── Modal & Table Styling ── */
+.gj-modal-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #ffffff;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+.gj-hero-card-out {
+    background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+    border: 1px solid #fecdd3;
+    border-radius: 12px;
+}
+.gj-avatar-circle-red {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.78rem;
+}
 </style>
 @endpush
 
@@ -56,8 +81,8 @@
 </div>
 
 {{-- ── Alert Messages ── --}}
-@foreach(['success','error','info'] as $type)
-    @if(session($type))
+@foreach (['success', 'error', 'info'] as $type)
+    @if (session($type))
         <div class="alert alert-{{ $type === 'error' ? 'danger' : ($type === 'info' ? 'info' : 'success') }} alert-dismissible fade show mb-3 border-0 shadow-sm" role="alert" style="border-radius:10px;">
             {!! session($type) !!}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -67,6 +92,7 @@
 
 {{-- ── KPI Summary Cards ── --}}
 <div class="row g-2.5 mb-3">
+    <!-- Total Transaksi Keluar -->
     <div class="col-12 col-sm-6 col-lg-3">
         <div class="bk-kpi-card border-start border-danger border-3">
             <div class="bk-kpi-title text-danger">Total Transaksi Keluar</div>
@@ -76,6 +102,7 @@
             <div class="bk-kpi-sub">Total pengeluaran barang dari gudang</div>
         </div>
     </div>
+    <!-- Total Qty Dikeluarkan -->
     <div class="col-12 col-sm-6 col-lg-3">
         <div class="bk-kpi-card border-start border-warning border-3">
             <div class="bk-kpi-title text-warning">Total Qty Dikeluarkan</div>
@@ -85,6 +112,7 @@
             <div class="bk-kpi-sub">Akumulasi quantity produk dikeluarkan</div>
         </div>
     </div>
+    <!-- Variasi Produk -->
     <div class="col-12 col-sm-6 col-lg-3">
         <div class="bk-kpi-card border-start border-primary border-3">
             <div class="bk-kpi-title text-primary">Variasi Produk Master</div>
@@ -94,6 +122,7 @@
             <div class="bk-kpi-sub">Jumlah varian produk master</div>
         </div>
     </div>
+    <!-- Status Pengeluaran -->
     <div class="col-12 col-sm-6 col-lg-3">
         <div class="bk-kpi-card border-start border-dark border-3">
             <div class="bk-kpi-title text-dark">Status Pengeluaran</div>
@@ -117,7 +146,7 @@
             <label class="form-label small fw-semibold text-muted mb-1">Pilih Produk Master</label>
             <select name="product_id" class="form-select form-select-sm">
                 <option value="">Semua Produk Master</option>
-                @foreach($products as $p)
+                @foreach ($products as $p)
                     <option value="{{ $p->id }}" {{ request('product_id') == $p->id ? 'selected' : '' }}>
                         [{{ $p->sku }}] {{ $p->name }}
                     </option>
@@ -139,7 +168,7 @@
             <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1" style="background:#1e293b; border:none;">
                 Filter
             </button>
-            @if(request()->anyFilled(['search', 'start_date', 'end_date', 'product_id']))
+            @if (request()->anyFilled(['search', 'start_date', 'end_date', 'product_id']))
                 <a href="{{ route('v2.gudang_jadi.keluar') }}" class="btn btn-sm text-white fw-semibold" style="background:#64748b; border:none;">
                     Reset
                 </a>
@@ -149,8 +178,8 @@
 </div>
 
 {{-- ── Data Table Section ── --}}
-<div class="v2-card shadow-sm overflow-hidden mb-4">
-    <div class="table-responsive">
+<div class="v2-card p-3 p-md-4 shadow-sm mb-4">
+    <div class="table-responsive border rounded-3 overflow-hidden bg-white">
         <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.82rem;">
             <thead class="bg-light text-muted">
                 <tr>
@@ -159,43 +188,43 @@
                     <th class="py-2.5">PRODUK MASTER & SKU</th>
                     <th class="text-center py-2.5" style="width: 150px;">QTY KELUAR</th>
                     <th class="text-center py-2.5" style="width: 130px;">STATUS</th>
-                    <th class="text-end pe-3 py-2.5" style="width: 120px;">AKSI</th>
+                    <th class="text-end pe-3 py-2.5" style="width: 110px;">AKSI</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($mutations as $index => $m)
                     <tr>
-                        <td class="ps-3 py-2.5 text-center text-muted">
+                        <td class="ps-3 py-2 text-center text-muted">
                             {{ $mutations->firstItem() + $index }}
                         </td>
-                        <td class="py-2.5">
+                        <td class="py-2">
                             <div class="fw-bold text-dark">{{ $m->created_at ? $m->created_at->format('d/m/Y') : '-' }}</div>
                             <span class="text-muted small" style="font-size: 0.72rem;">
                                 {{ $m->created_at ? $m->created_at->format('H:i') : '-' }} WIB
                             </span>
                         </td>
-                        <td class="py-2.5">
-                            @if($m->masterProduct)
+                        <td class="py-2">
+                            @if ($m->masterProduct)
                                 <div class="fw-bold text-dark">{{ $m->masterProduct->name }}</div>
-                                <span class="badge bg-light text-dark border font-monospace px-1.5 py-0.5 mt-0.5" style="font-size: 0.68rem;">
+                                <span class="badge bg-light text-dark border font-monospace px-1.5 py-0.5" style="font-size: 0.68rem;">
                                     SKU: {{ $m->masterProduct->sku }}
                                 </span>
                             @else
                                 <span class="text-muted italic">— (Produk Master Tidak Ditemukan)</span>
                             @endif
                         </td>
-                        <td class="text-center py-2.5">
+                        <td class="text-center py-2">
                             <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fw-bold">
                                 -{{ number_format(abs($m->quantity), 0, ',', '.') }} {{ $m->masterProduct->unit ?? 'PCS' }}
                             </span>
                         </td>
-                        <td class="text-center py-2.5">
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">
+                        <td class="text-center py-2">
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-0.5 fw-semibold" style="font-size: 0.68rem;">
                                 Dikeluarkan
                             </span>
                         </td>
-                        <td class="text-end pe-3 py-2.5">
-                            <button type="button" class="btn btn-sm btn-outline-primary py-1 px-2.5 fw-semibold" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#detailModal{{ $m->id }}">
+                        <td class="text-end pe-3 py-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary py-0.5 px-2.5 fw-semibold" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#detailModal{{ $m->id }}">
                                 Detail
                             </button>
                         </td>
@@ -211,96 +240,120 @@
         </table>
     </div>
 
-    @if($mutations->hasPages())
-        <div class="p-3 border-top bg-light">
+    @if ($mutations->hasPages())
+        <div class="pt-3 border-top mt-3">
             {{ $mutations->links() }}
         </div>
     @endif
 </div>
 
-{{-- ── Modals Detail Spacious & Well-Padded ── --}}
-@foreach($mutations as $m)
+{{-- ── Premium Detail Modals ── --}}
+@foreach ($mutations as $m)
+    @php
+        $qtyBefore = ($m->balance_after ?? 0) + abs($m->quantity);
+        $userName = $m->user->name ?? 'Sistem / Admin';
+        $userInitial = strtoupper(substr($userName, 0, 2));
+    @endphp
     <div class="modal fade" id="detailModal{{ $m->id }}" tabindex="-1" aria-labelledby="detailModalLabel{{ $m->id }}" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-light py-3 px-4 border-bottom">
-                    <h5 class="modal-title fw-bold text-dark" id="detailModalLabel{{ $m->id }}">
-                        Detail Mutasi Barang Keluar #{{ $m->id }}
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+                <!-- Modal Header -->
+                <div class="modal-header gj-modal-header py-3 px-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <div>
+                            <h6 class="modal-title fw-bold mb-0 text-white" id="detailModalLabel{{ $m->id }}" style="letter-spacing: 0.02em;">
+                                RINCIAN MUTASI BARANG KELUAR #{{ $m->id }}
+                            </h6>
+                            <span class="text-white-50 small" style="font-size: 0.72rem;">Portal ERP V2 Gudang Jadi</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body p-4" style="font-size: 0.85rem;">
-                    <!-- Section 1: Summary Banner -->
-                    <div class="bg-light border rounded-3 p-3.5 mb-4">
-                        <div class="row g-3 align-items-center">
-                            <div class="col-12 col-md-6">
-                                <span class="text-muted d-block small mb-1 text-uppercase fw-semibold" style="letter-spacing: 0.03em;">WAKTU TRANSAKSI</span>
-                                <span class="fw-bold text-dark fs-6">{{ $m->created_at ? $m->created_at->format('d F Y, H:i') : '-' }} WIB</span>
+
+                <!-- Modal Body -->
+                <div class="modal-body p-4 bg-white" style="font-size: 0.84rem;">
+                    <!-- Top Hero Card Banner -->
+                    <div class="gj-hero-card-out p-3 mb-3.5 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div>
+                            <span class="text-danger text-uppercase fw-semibold d-block small" style="font-size: 0.68rem; letter-spacing: 0.05em;">JUMLAH PENGELUARAN STOK</span>
+                            <div class="fw-bold text-danger" style="font-size: 1.7rem; line-height: 1.1;">
+                                -{{ number_format(abs($m->quantity), 0, ',', '.') }} <span style="font-size: 1rem;">{{ $m->masterProduct->unit ?? 'PCS' }}</span>
                             </div>
-                            <div class="col-12 col-md-6 text-md-end">
-                                <span class="text-muted d-block small mb-1 text-uppercase fw-semibold" style="letter-spacing: 0.03em;">STATUS STOK</span>
-                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1.5 fw-bold" style="font-size: 0.78rem;">
-                                    Dikeluarkan / Barang Keluar (-)
-                                </span>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-danger text-white px-3 py-1.5 rounded-pill fw-semibold shadow-sm mb-1 d-inline-block" style="font-size: 0.72rem;">
+                                Dikeluarkan (Recorded)
+                            </span>
+                            <div class="text-secondary small fw-semibold" style="font-size: 0.75rem;">
+                                Tanggal: {{ $m->created_at ? $m->created_at->format('d/m/Y H:i') : '-' }} WIB
                             </div>
                         </div>
                     </div>
 
-                    <!-- Section 2: Produk Master -->
-                    <div class="border rounded-3 p-3.5 mb-4 bg-white shadow-sm">
-                        <span class="text-muted small d-block mb-1.5 text-uppercase fw-semibold" style="letter-spacing: 0.03em;">PRODUK MASTER</span>
-                        <h5 class="fw-bold text-dark mb-2">{{ $m->masterProduct->name ?? 'Produk Master Tidak Ditemukan' }}</h5>
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <span class="badge bg-light text-dark border font-monospace px-2 py-1" style="font-size: 0.75rem;">
+                    <!-- Produk Master Info Card -->
+                    <div class="card border rounded-3 p-3 mb-3 bg-light bg-opacity-50">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="text-muted fw-bold small uppercase" style="font-size: 0.68rem; letter-spacing: 0.04em;">PRODUK MASTER</span>
+                            <span class="badge bg-white text-dark border font-monospace px-2 py-0.5" style="font-size: 0.7rem;">
                                 SKU: {{ $m->masterProduct->sku ?? '-' }}
                             </span>
-                            <span class="text-muted small">
-                                Satuan Unit: <b>{{ $m->masterProduct->unit ?? 'PCS' }}</b>
-                            </span>
+                        </div>
+                        <div class="fw-bold text-dark fs-6 mb-1">
+                            {{ $m->masterProduct->name ?? '-' }}
+                        </div>
+                        <div class="text-muted small" style="font-size: 0.75rem;">
+                            Satuan Utama: <b>{{ $m->masterProduct->unit ?? 'PCS' }}</b>
                         </div>
                     </div>
 
-                    <!-- Section 3: Quantity Metrics Grid -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-12 col-md-6">
-                            <div class="p-3.5 border rounded-3 text-center bg-danger-subtle border-danger-subtle">
-                                <span class="text-muted d-block small mb-1.5 fw-semibold text-uppercase" style="letter-spacing: 0.03em;">JUMLAH BARANG KELUAR</span>
-                                <span class="fw-bold text-danger fs-3">
-                                    -{{ number_format(abs($m->quantity), 0, ',', '.') }} {{ $m->masterProduct->unit ?? 'PCS' }}
-                                </span>
+                    <!-- Stats Grid Comparison -->
+                    <div class="row g-2 mb-3.5">
+                        <div class="col-4">
+                            <div class="border rounded-3 p-2.5 text-center bg-white shadow-xs">
+                                <span class="text-muted d-block small mb-1" style="font-size: 0.7rem;">STOK SEBELUM</span>
+                                <span class="fw-bold text-secondary fs-6">{{ number_format($qtyBefore, 0, ',', '.') }} {{ $m->masterProduct->unit ?? 'PCS' }}</span>
                             </div>
                         </div>
-                        <div class="col-12 col-md-6">
-                            <div class="p-3.5 border rounded-3 text-center bg-light">
-                                <span class="text-muted d-block small mb-1.5 fw-semibold text-uppercase" style="letter-spacing: 0.03em;">STOK SETELAH MUTASI</span>
-                                <span class="fw-bold text-dark fs-3">
-                                    {{ number_format($m->balance_after ?? 0, 0, ',', '.') }} {{ $m->masterProduct->unit ?? 'PCS' }}
-                                </span>
+                        <div class="col-4">
+                            <div class="border rounded-3 p-2.5 text-center bg-danger bg-opacity-10 border-danger border-opacity-25 shadow-xs">
+                                <span class="text-danger d-block small fw-semibold mb-1" style="font-size: 0.7rem;">MUTASI KELUAR</span>
+                                <span class="fw-bold text-danger fs-6">-{{ number_format(abs($m->quantity), 0, ',', '.') }} {{ $m->masterProduct->unit ?? 'PCS' }}</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded-3 p-2.5 text-center bg-white shadow-xs">
+                                <span class="text-muted d-block small mb-1" style="font-size: 0.7rem;">STOK SESUDAH</span>
+                                <span class="fw-bold text-dark fs-6">{{ number_format($m->balance_after ?? 0, 0, ',', '.') }} {{ $m->masterProduct->unit ?? 'PCS' }}</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Section 4: Keterangan & Referensi -->
-                    <div class="border rounded-3 p-3.5 mb-4 bg-white">
-                        <span class="text-muted small d-block mb-2 text-uppercase fw-semibold" style="letter-spacing: 0.03em;">CATATAN REFERENSI & KETERANGAN</span>
-                        <div class="p-3 bg-light border rounded text-dark fw-medium" style="line-height: 1.6; min-height: 60px;">
-                            {{ $m->reference ?: 'Tidak ada catatan referensi khusus.' }}
+                    <!-- Keterangan & Referensi Box -->
+                    <div class="mb-3.5">
+                        <label class="text-muted fw-bold d-block mb-1" style="font-size: 0.7rem; letter-spacing: 0.04em;">KETERANGAN / REFERENSI DOKUMEN</label>
+                        <div class="p-2.5 border rounded-3 bg-light text-dark font-monospace" style="font-size: 0.8rem; word-break: break-word;">
+                            {{ $m->reference ?: 'Tidak ada catatan referensi tambahan.' }}
                         </div>
                     </div>
 
-                    <!-- Section 5: Log Activity / Petugas Operasional -->
-                    <div class="p-3.5 bg-light border rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                        <div>
-                            <span class="text-muted small d-block mb-0.5 fw-semibold text-uppercase" style="letter-spacing: 0.03em;">OPERATOR REKOD</span>
-                            <span class="fw-bold text-dark">{{ $m->user->name ?? 'Sistem / Admin' }}</span>
+                    <!-- Petugas Operasional Card -->
+                    <div class="d-flex align-items-center justify-content-between p-2.5 border rounded-3 bg-light">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="gj-avatar-circle-red shadow-sm">
+                                {{ $userInitial }}
+                            </div>
+                            <div>
+                                <span class="text-muted d-block" style="font-size: 0.65rem;">Operator Pencatat</span>
+                                <span class="fw-bold text-dark" style="font-size: 0.8rem;">{{ $userName }}</span>
+                            </div>
                         </div>
-                        <div>
-                            <a href="{{ route('v2.gudang_jadi.show', $m) }}" class="btn btn-sm btn-outline-primary px-3 fw-semibold">
-                                Buka Halaman Detail Lengkap &rarr;
-                            </a>
-                        </div>
+                        <span class="badge bg-secondary-subtle text-secondary border px-2.5 py-1" style="font-size: 0.68rem;">
+                            Log System Activity
+                        </span>
                     </div>
                 </div>
+
+                <!-- Modal Footer -->
                 <div class="modal-footer bg-light py-2.5 px-4 border-top">
                     <button type="button" class="btn btn-sm btn-secondary px-4 fw-semibold" data-bs-dismiss="modal">Tutup</button>
                 </div>

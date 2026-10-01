@@ -352,19 +352,4 @@ class GudangJadiController extends Controller
             'products'
         ));
     }
-
-    /**
-     * Detail Mutasi Stok Gudang Jadi V2.
-     */
-    public function show($id)
-    {
-        $tenantId = Auth::user()->tenant_id;
-
-        $mutation = StockMovement::with(['masterProduct', 'user'])
-            ->where('tenant_id', $tenantId)
-            ->where('id', $id)
-            ->firstOrFail();
-
-        return view('v2.gudang_jadi.show', compact('mutation'));
-    }
 }

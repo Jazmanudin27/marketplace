@@ -274,7 +274,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/gudang-jadi/create', [\App\Http\Controllers\V2\GudangJadiController::class, 'create'])->name('gudang_jadi.create');
         Route::post('/gudang-jadi', [\App\Http\Controllers\V2\GudangJadiController::class, 'store'])->name('gudang_jadi.store');
         Route::get('/gudang-jadi/search-products', [\App\Http\Controllers\V2\GudangJadiController::class, 'searchProducts'])->name('gudang_jadi.search_products');
-        Route::get('/gudang-jadi/{stockMovement}', [\App\Http\Controllers\V2\GudangJadiController::class, 'show'])->name('gudang_jadi.show');
 
         // Titipan Barang (Supplier Consignment) V2
         Route::prefix('titipan-barang')->name('titipan_barang.')->group(function () {
