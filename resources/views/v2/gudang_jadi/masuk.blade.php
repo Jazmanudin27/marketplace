@@ -3,470 +3,289 @@
 @section('title', 'Mutasi Barang Masuk - Gudang Jadi V2')
 
 @push('styles')
-    <style>
-        /* ─── Gudang Jadi V2 Custom Styles ─── */
-        .bm-kpi-card {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 14px 16px;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-
-        .bm-kpi-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        .bm-kpi-title {
-            font-size: 0.72rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            color: #6b7280;
-            margin-bottom: 4px;
-        }
-
-        .bm-kpi-value {
-            font-size: 1.15rem;
-            font-weight: 700;
-            line-height: 1.2;
-        }
-
-        .bm-kpi-sub {
-            font-size: 0.7rem;
-            color: #9ca3af;
-            margin-top: 4px;
-        }
-
-        .bm-kpi-icon {
-            position: absolute;
-            right: 12px;
-            bottom: 12px;
-            font-size: 2rem;
-            opacity: 0.12;
-            pointer-events: none;
-        }
-
-        /* ── Custom Badge & Table Styles ── */
-        .bg-purple-subtle {
-            background-color: #f3e8ff !important;
-        }
-
-        .text-purple {
-            color: #7e22ce !important;
-        }
-
-        .border-purple-subtle {
-            border-color: #e9d5ff !important;
-        }
-
-        .gj-table-header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
-            color: #ffffff !important;
-        }
-
-        .gj-table-header th {
-            color: #f8fafc !important;
-            font-weight: 600 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.04em !important;
-            font-size: 0.74rem !important;
-            border: none !important;
-            padding: 12px 14px !important;
-        }
-
-        .gj-table-row {
-            transition: all 0.15s ease-in-out;
-        }
-
-        .gj-table-row:hover {
-            background-color: #f8fafc !important;
-            box-shadow: inset 3px 0 0 #10b981;
-        }
-
-        .gj-qty-badge-in {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 0.85rem;
-            padding: 5px 14px;
-            border-radius: 50rem;
-            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
-            display: inline-block;
-        }
-
-        .gj-product-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            flex-shrink: 0;
-        }
-
-        .gj-avatar-initial {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.72rem;
-            flex-shrink: 0;
-        }
-    </style>
+<style>
+/* ─── Gudang Jadi V2 Custom Styles ─── */
+.bm-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.bm-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.bm-kpi-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+.bm-kpi-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+.bm-kpi-sub {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+</style>
 @endpush
 
 @section('content')
 
-    {{-- ── Page Header ── --}}
-    <div class="v2-page-header align-items-center mb-3">
-        <div>
-            <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0">
-                <i class="bi bi-box-arrow-in-down text-success fs-5"></i> Mutasi Barang Masuk (Gudang Jadi)
-            </h1>
+{{-- ── Page Header ── --}}
+<div class="v2-page-header align-items-center mb-3">
+    <div>
+        <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0">
+            Mutasi Barang Masuk (Gudang Jadi)
+        </h1>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <a href="{{ route('v2.gudang_jadi.create', ['type' => 'in']) }}" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#16a34a; border:none;">
+            + Catat Penerimaan Masuk
+        </a>
+    </div>
+</div>
+
+{{-- ── Alert Messages ── --}}
+@foreach(['success','error','info'] as $type)
+    @if(session($type))
+        <div class="alert alert-{{ $type === 'error' ? 'danger' : ($type === 'info' ? 'info' : 'success') }} alert-dismissible fade show mb-3 border-0 shadow-sm" role="alert" style="border-radius:10px;">
+            {!! session($type) !!}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            <a href="{{ route('v2.gudang_jadi.create', ['type' => 'in']) }}"
-                class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#16a34a; border:none;">
-                <i class="bi bi-plus-lg me-1"></i> Catat Penerimaan Masuk
-            </a>
+    @endif
+@endforeach
+
+{{-- ── KPI Summary Cards ── --}}
+<div class="row g-2.5 mb-3">
+    <!-- Total Transaksi -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="bm-kpi-card border-start border-primary border-3">
+            <div class="bm-kpi-title text-primary">Total Transaksi</div>
+            <div class="bm-kpi-value text-primary">
+                {{ number_format($totalTransactions, 0, ',', '.') }} Transaksi
+            </div>
+            <div class="bm-kpi-sub">Total mutasi masuk ke gudang jadi</div>
         </div>
     </div>
-
-    {{-- ── Alert Messages ── --}}
-    @foreach (['success', 'error', 'info'] as $type)
-        @if (session($type))
-            <div class="alert alert-{{ $type === 'error' ? 'danger' : ($type === 'info' ? 'info' : 'success') }} alert-dismissible fade show mb-3 border-0 shadow-sm"
-                role="alert" style="border-radius:10px;">
-                <i
-                    class="bi bi-{{ $type === 'error' ? 'exclamation-triangle' : ($type === 'info' ? 'info-circle' : 'check-circle') }} me-2"></i>
-                {!! session($type) !!}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <!-- Barang Masuk Disetujui -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="bm-kpi-card border-start border-success border-3">
+            <div class="bm-kpi-title text-success">Status Disetujui</div>
+            <div class="bm-kpi-value text-success">
+                {{ number_format($totalTransactions, 0, ',', '.') }} Transaksi
             </div>
-        @endif
-    @endforeach
-
-    {{-- ── KPI Summary Cards ── --}}
-    <div class="row g-2.5 mb-3">
-        <!-- Total Transaksi -->
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="bm-kpi-card border-start border-primary border-3">
-                <div class="bm-kpi-title text-primary">Total Transaksi</div>
-                <div class="bm-kpi-value text-primary">
-                    {{ number_format($totalTransactions, 0, ',', '.') }} Transaksi
-                </div>
-                <div class="bm-kpi-sub">Total mutasi masuk ke gudang jadi</div>
-                <i class="bi bi-box-arrow-in-down bm-kpi-icon text-primary"></i>
-            </div>
-        </div>
-        <!-- Barang Masuk Disetujui -->
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="bm-kpi-card border-start border-success border-3">
-                <div class="bm-kpi-title text-success">Status Disetujui</div>
-                <div class="bm-kpi-value text-success">
-                    {{ number_format($totalTransactions, 0, ',', '.') }} Transaksi
-                </div>
-                <div class="bm-kpi-sub">Stok telah resmi bertambah di gudang</div>
-                <i class="bi bi-check-circle-fill bm-kpi-icon text-success"></i>
-            </div>
-        </div>
-        <!-- Total Qty Masuk -->
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="bm-kpi-card border-start border-warning border-3">
-                <div class="bm-kpi-title text-warning">Total Qty Masuk</div>
-                <div class="bm-kpi-value text-warning">
-                    +{{ number_format($totalInboundQty, 0, ',', '.') }} PCS
-                </div>
-                <div class="bm-kpi-sub">Jumlah unit barang produk masuk</div>
-                <i class="bi bi-boxes bm-kpi-icon text-warning"></i>
-            </div>
-        </div>
-        <!-- Variasi Produk -->
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="bm-kpi-card border-start border-dark border-3">
-                <div class="bm-kpi-title text-dark">Variasi Produk</div>
-                <div class="bm-kpi-value text-dark">
-                    {{ number_format($totalUniqueProducts, 0, ',', '.') }} SKU
-                </div>
-                <div class="bm-kpi-sub">Varian produk master yang dimutasi</div>
-                <i class="bi bi-tags-fill bm-kpi-icon text-dark"></i>
-            </div>
+            <div class="bm-kpi-sub">Stok telah resmi bertambah di gudang</div>
         </div>
     </div>
-
-    {{-- ── Filter Section ── --}}
-    <div class="v2-card p-3 mb-3 shadow-sm">
-        <form method="GET" action="{{ route('v2.gudang_jadi.masuk') }}" class="row g-2 align-items-end">
-            <!-- Pencarian -->
-            <div class="col-12 col-md-3">
-                <label class="form-label small fw-semibold text-muted mb-1">Cari Nama Produk / SKU / Ref</label>
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                    <input type="text" name="search" class="form-control form-control-sm border-start-0"
-                        placeholder="Ketik nama, SKU, ref..." value="{{ request('search') }}">
-                </div>
+    <!-- Total Qty Masuk -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="bm-kpi-card border-start border-warning border-3">
+            <div class="bm-kpi-title text-warning">Total Qty Masuk</div>
+            <div class="bm-kpi-value text-warning">
+                +{{ number_format($totalInboundQty, 0, ',', '.') }} PCS
             </div>
-
-            <!-- Pilih Produk Master -->
-            <div class="col-6 col-md-3">
-                <label class="form-label small fw-semibold text-muted mb-1">Pilih Produk Master</label>
-                <select name="product_id" class="form-select form-select-sm">
-                    <option value="">Semua Produk Master</option>
-                    @foreach ($products as $p)
-                        <option value="{{ $p->id }}" {{ request('product_id') == $p->id ? 'selected' : '' }}>
-                            [{{ $p->sku }}] {{ $p->name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            <!-- Tanggal Mulai -->
-            <div class="col-6 col-md-2">
-                <label class="form-label small fw-semibold text-muted mb-1">Tanggal Mulai</label>
-                <input type="date" name="start_date" class="form-control form-control-sm"
-                    value="{{ request('start_date') }}">
-            </div>
-
-            <!-- Tanggal Selesai -->
-            <div class="col-6 col-md-2">
-                <label class="form-label small fw-semibold text-muted mb-1">Tanggal Selesai</label>
-                <input type="date" name="end_date" class="form-control form-control-sm"
-                    value="{{ request('end_date') }}">
-            </div>
-
-            <!-- Action Buttons Inline -->
-            <div class="col-12 col-md-2 d-flex gap-1">
-                <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1"
-                    style="background:#1e293b; border:none;" title="Terapkan Filter">
-                    <i class="bi bi-funnel me-1"></i> Filter
-                </button>
-                @if (request()->anyFilled(['search', 'start_date', 'end_date', 'product_id']))
-                    <a href="{{ route('v2.gudang_jadi.masuk') }}" class="btn btn-sm text-white fw-semibold"
-                        style="background:#64748b; border:none;" title="Reset Filter">
-                        <i class="bi bi-arrow-counterclockwise"></i>
-                    </a>
-                @endif
-            </div>
-        </form>
+            <div class="bm-kpi-sub">Jumlah unit barang produk masuk</div>
+        </div>
     </div>
+    <!-- Variasi Produk -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="bm-kpi-card border-start border-dark border-3">
+            <div class="bm-kpi-title text-dark">Variasi Produk</div>
+            <div class="bm-kpi-value text-dark">
+                {{ number_format($totalUniqueProducts, 0, ',', '.') }} SKU
+            </div>
+            <div class="bm-kpi-sub">Varian produk master yang dimutasi</div>
+        </div>
+    </div>
+</div>
 
-    {{-- ── Data Table Section ── --}}
-    <div class="v2-card p-0 shadow-sm overflow-hidden mb-4 border">
-        <!-- Card Toolbar Header -->
-        <div class="p-3 bg-white border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div class="d-flex align-items-center gap-2">
-                <div class="badge bg-emerald bg-success-subtle text-success p-2 rounded-3 border border-success-subtle">
-                    <i class="bi bi-journal-plus fs-5"></i>
-                </div>
-                <div>
-                    <h6 class="fw-bold text-dark mb-0">Riwayat Mutasi Barang Masuk</h6>
-                    <p class="text-muted small mb-0" style="font-size: 0.74rem;">Daftar lengkap penerimaan barang masuk ke
-                        persediaan gudang jadi</p>
-                </div>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <span
-                    class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold"
-                    style="font-size: 0.75rem;">
-                    <i class="bi bi-layers-fill me-1"></i> Total {{ number_format($mutations->total(), 0, ',', '.') }}
-                    Records
-                </span>
-            </div>
+{{-- ── Filter Section ── --}}
+<div class="v2-card p-3 mb-3 shadow-sm">
+    <form method="GET" action="{{ route('v2.gudang_jadi.masuk') }}" class="row g-2 align-items-end">
+        <div class="col-12 col-md-3">
+            <label class="form-label small fw-semibold text-muted mb-1">Cari Nama Produk / SKU / Ref</label>
+            <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari nama, SKU, ref..." value="{{ request('search') }}">
         </div>
 
-        <div class="table-responsive">
-            <table class="table align-middle mb-0" style="font-size: 0.82rem;">
-                <thead class="gj-table-header">
+        <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold text-muted mb-1">Pilih Produk Master</label>
+            <select name="product_id" class="form-select form-select-sm">
+                <option value="">Semua Produk Master</option>
+                @foreach($products as $p)
+                    <option value="{{ $p->id }}" {{ request('product_id') == $p->id ? 'selected' : '' }}>
+                        [{{ $p->sku }}] {{ $p->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold text-muted mb-1">Tanggal Mulai</label>
+            <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request('start_date') }}">
+        </div>
+
+        <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold text-muted mb-1">Tanggal Selesai</label>
+            <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request('end_date') }}">
+        </div>
+
+        <div class="col-12 col-md-2 d-flex gap-1">
+            <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1" style="background:#1e293b; border:none;">
+                Filter
+            </button>
+            @if(request()->anyFilled(['search', 'start_date', 'end_date', 'product_id']))
+                <a href="{{ route('v2.gudang_jadi.masuk') }}" class="btn btn-sm text-white fw-semibold" style="background:#64748b; border:none;">
+                    Reset
+                </a>
+            @endif
+        </div>
+    </form>
+</div>
+
+{{-- ── Data Table Section ── --}}
+<div class="v2-card shadow-sm overflow-hidden mb-4">
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.82rem;">
+            <thead class="bg-light text-muted">
+                <tr>
+                    <th class="ps-3 py-2.5 text-center" style="width: 50px;">NO</th>
+                    <th class="py-2.5" style="width: 170px;">TANGGAL & WAKTU</th>
+                    <th class="py-2.5">PRODUK MASTER & SKU</th>
+                    <th class="text-center py-2.5" style="width: 150px;">QTY MASUK</th>
+                    <th class="text-center py-2.5" style="width: 130px;">STATUS</th>
+                    <th class="text-end pe-3 py-2.5" style="width: 110px;">AKSI</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($mutations as $index => $m)
                     <tr>
-                        <th class="ps-3 text-center" style="width: 50px;">NO</th>
-                        <th style="width: 150px;"><i class="bi bi-calendar3 me-1"></i> WAKTU</th>
-                        <th><i class="bi bi-box-seam me-1"></i> PRODUK MASTER & SKU</th>
-                        <th><i class="bi bi-bookmark-star me-1"></i> KATEGORI & CATATAN REFERENSI</th>
-                        <th class="text-center" style="width: 140px;"><i class="bi bi-plus-circle me-1"></i> QTY MASUK
-                        </th>
-                        <th class="text-center" style="width: 130px;"><i class="bi bi-shield-check me-1"></i> STATUS</th>
-                        <th class="pe-3" style="width: 160px;"><i class="bi bi-person-badge me-1"></i> PETUGAS</th>
+                        <td class="ps-3 py-2 text-center text-muted">
+                            {{ $mutations->firstItem() + $index }}
+                        </td>
+                        <td class="py-2">
+                            <div class="fw-bold text-dark">{{ $m->created_at ? $m->created_at->format('d/m/Y') : '-' }}</div>
+                            <span class="text-muted small" style="font-size: 0.72rem;">
+                                {{ $m->created_at ? $m->created_at->format('H:i') : '-' }} WIB
+                            </span>
+                        </td>
+                        <td class="py-2">
+                            @if($m->masterProduct)
+                                <div class="fw-bold text-dark">{{ $m->masterProduct->name }}</div>
+                                <span class="badge bg-light text-dark border font-monospace px-1.5 py-0.5" style="font-size: 0.68rem;">
+                                    SKU: {{ $m->masterProduct->sku }}
+                                </span>
+                            @else
+                                <span class="text-muted italic">— (Produk Master Tidak Ditemukan)</span>
+                            @endif
+                        </td>
+                        <td class="text-center py-2">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold">
+                                +{{ number_format($m->quantity, 0, ',', '.') }} {{ $m->masterProduct->unit ?? 'PCS' }}
+                            </span>
+                        </td>
+                        <td class="text-center py-2">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-0.5 fw-semibold" style="font-size: 0.68rem;">
+                                Disetujui
+                            </span>
+                        </td>
+                        <td class="text-end pe-3 py-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary py-0.5 px-2.5 fw-semibold" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#detailModal{{ $m->id }}">
+                                Detail
+                            </button>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @forelse($mutations as $index => $m)
-                        @php
-                            // Parse Reference & Category
-                            $refText = $m->reference ?? 'Mutasi Masuk';
-                            $category = 'Penerimaan Stok';
-                            $detail = '';
-                            $badgeClass = 'bg-primary-subtle text-primary border-primary-subtle';
-                            $iconClass = 'bi-box-arrow-in-down';
-
-                            $refLower = strtolower($refText);
-
-                            if (str_contains($refLower, 'pembatalan')) {
-                                $category = 'Pembatalan Pesanan';
-                                $badgeClass = 'bg-warning-subtle text-warning-emphasis border-warning-subtle';
-                                $iconClass = 'bi-arrow-counterclockwise';
-                                $parts = explode(':', $refText, 2);
-                                $detail = isset($parts[1]) ? trim($parts[1]) : '';
-                            } elseif (str_contains($refLower, 'konsinyasi')) {
-                                $category = 'Penerimaan Konsinyasi';
-                                $badgeClass = 'bg-purple-subtle text-purple border-purple-subtle';
-                                $iconClass = 'bi-box-seam-fill';
-                                $parts = explode(':', $refText, 2);
-                                $detail = isset($parts[1]) ? trim($parts[1]) : '';
-                            } elseif (str_contains($refLower, 'spk')) {
-                                $category = 'Terima SPK Produksi';
-                                $badgeClass = 'bg-info-subtle text-info border-info-subtle';
-                                $iconClass = 'bi-gear-wide-connected';
-                                $detail = $refText;
-                            } elseif (str_contains($refLower, 'produksi')) {
-                                $category = 'Hasil Produksi';
-                                $badgeClass = 'bg-success-subtle text-success border-success-subtle';
-                                $iconClass = 'bi-check2-circle';
-                                $detail = $refText;
-                            } else {
-                                $parts = explode(':', $refText, 2);
-                                if (count($parts) > 1) {
-                                    $category = trim($parts[0]);
-                                    $detail = trim($parts[1]);
-                                } else {
-                                    $category = 'Penerimaan Stok';
-                                    $detail = $refText;
-                                }
-                            }
-
-                            $userName = $m->user->name ?? 'Ruang Seragam';
-                            $userInitial = strtoupper(substr($userName, 0, 2));
-                        @endphp
-                        <tr class="gj-table-row">
-                            <!-- NO -->
-                            <td class="ps-3 text-center">
-                                <span class="badge bg-light text-secondary border rounded-circle"
-                                    style="width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; font-size:0.75rem;">
-                                    {{ $mutations->firstItem() + $index }}
-                                </span>
-                            </td>
-
-                            <!-- WAKTU -->
-                            <td>
-                                <div class="fw-bold text-dark" style="font-size: 0.83rem;">
-                                    {{ $m->created_at ? $m->created_at->format('d/m/Y') : '-' }}
-                                </div>
-                                <div class="text-muted d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                    <i class="bi bi-clock"></i> {{ $m->created_at ? $m->created_at->format('H:i') : '-' }}
-                                    WIB
-                                </div>
-                            </td>
-
-                            <!-- PRODUK MASTER & SKU -->
-                            <td>
-                                <div class="d-flex align-items-start gap-2.5">
-                                    <div
-                                        class="gj-product-icon bg-success bg-opacity-10 text-success border border-success border-opacity-25 mt-0.5">
-                                        <i class="bi bi-box-seam-fill"></i>
-                                    </div>
-                                    <div class="overflow-hidden">
-                                        @if ($m->masterProduct)
-                                            <div class="fw-bold text-dark text-truncate" style="max-width: 320px;"
-                                                title="{{ $m->masterProduct->name }}">
-                                                {{ $m->masterProduct->name }}
-                                            </div>
-                                            <div class="d-flex align-items-center gap-1.5 mt-0.5">
-                                                <span
-                                                    class="badge bg-slate-100 text-dark border font-monospace px-1.5 py-0.5"
-                                                    style="font-size: 0.68rem; background:#f1f5f9;">
-                                                    <i
-                                                        class="bi bi-qr-code me-1 text-muted"></i>{{ $m->masterProduct->sku }}
-                                                </span>
-                                                <span class="text-muted" style="font-size: 0.68rem;">
-                                                    • Stok saat ini:
-                                                    <b>{{ number_format($m->masterProduct->stock, 0, ',', '.') }}</b>
-                                                    {{ $m->masterProduct->unit ?? 'PCS' }}
-                                                </span>
-                                            </div>
-                                        @else
-                                            <span class="text-muted italic">— (Produk Master Tidak Ditemukan)</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </td>
-
-                            <!-- KATEGORI & CATATAN REFERENSI -->
-                            <td>
-                                <div class="mb-1">
-                                    <span class="badge {{ $badgeClass }} border px-2.5 py-1 rounded-pill fw-semibold"
-                                        style="font-size: 0.68rem;">
-                                        <i class="bi {{ $iconClass }} me-1"></i>{{ $category }}
-                                    </span>
-                                </div>
-                                @if ($detail)
-                                    <div class="text-secondary small font-monospace text-truncate"
-                                        style="max-width: 280px; font-size: 0.73rem;" title="{{ $detail }}">
-                                        <i class="bi bi-hash me-0.5 text-muted"></i>{{ $detail }}
-                                    </div>
-                                @endif
-                            </td>
-
-                            <!-- QTY MASUK -->
-                            <td class="text-center">
-                                <span class="gj-qty-badge-in">
-                                    +{{ number_format($m->quantity, 0, ',', '.') }} {{ $m->masterProduct->unit ?? 'PCS' }}
-                                </span>
-                            </td>
-
-                            <!-- STATUS -->
-                            <td class="text-center">
-                                <span
-                                    class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1"
-                                    style="font-size: 0.7rem;">
-                                    <i class="bi bi-check-circle-fill" style="font-size: 0.65rem;"></i> Disetujui
-                                </span>
-                            </td>
-
-                            <!-- PETUGAS -->
-                            <td class="pe-3">
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="gj-avatar-initial shadow-sm">
-                                        {{ $userInitial }}
-                                    </div>
-                                    <div class="overflow-hidden">
-                                        <div class="fw-bold text-dark text-truncate"
-                                            style="max-width: 110px; font-size:0.78rem;" title="{{ $userName }}">
-                                            {{ $userName }}
-                                        </div>
-                                        <div class="text-muted" style="font-size:0.65rem;">Petugas Gudang</div>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-25"></i>
-                                <h6 class="fw-bold text-dark mb-1">Belum Ada Riwayat Mutasi Masuk</h6>
-                                <p class="small text-muted mb-0">Tidak ada transaksi penerimaan barang masuk yang sesuai
-                                    dengan filter.</p>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        @if ($mutations->hasPages())
-            <div class="p-3 border-top bg-light d-flex align-items-center justify-content-between">
-                <span class="text-muted small">Menampilkan {{ $mutations->firstItem() }} - {{ $mutations->lastItem() }}
-                    dari {{ $mutations->total() }} data</span>
-                <div>{{ $mutations->links() }}</div>
-            </div>
-        @endif
+                @empty
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            Belum ada riwayat penerimaan barang masuk yang sesuai dengan filter.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
+
+    @if($mutations->hasPages())
+        <div class="p-2.5 border-top bg-light">
+            {{ $mutations->links() }}
+        </div>
+    @endif
+</div>
+
+{{-- ── Modals Detail ── --}}
+@foreach($mutations as $m)
+    <div class="modal fade" id="detailModal{{ $m->id }}" tabindex="-1" aria-labelledby="detailModalLabel{{ $m->id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light py-2.5">
+                    <h6 class="modal-title fw-bold text-dark" id="detailModalLabel{{ $m->id }}">
+                        Detail Mutasi Barang Masuk #{{ $m->id }}
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3" style="font-size: 0.83rem;">
+                    <div class="border rounded p-2.5 bg-light mb-3">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <span class="text-muted d-block small">Waktu Transaksi</span>
+                                <span class="fw-bold text-dark">{{ $m->created_at ? $m->created_at->format('d/m/Y H:i') : '-' }} WIB</span>
+                            </div>
+                            <div class="col-6 text-end">
+                                <span class="text-muted d-block small">Jenis Mutasi</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-0.5">Barang Masuk (+)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted small fw-semibold d-block mb-1">PRODUK MASTER</label>
+                        <div class="fw-bold text-dark fs-6">{{ $m->masterProduct->name ?? '-' }}</div>
+                        <div class="text-muted font-monospace small">SKU: {{ $m->masterProduct->sku ?? '-' }}</div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div class="border rounded p-2 text-center bg-light">
+                                <span class="text-muted d-block small mb-1">Jumlah Mutasi</span>
+                                <span class="fw-bold text-success fs-5">+{{ number_format($m->quantity, 0, ',', '.') }} {{ $m->masterProduct->unit ?? 'PCS' }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 text-center bg-light">
+                                <span class="text-muted d-block small mb-1">Stok Setelah Mutasi</span>
+                                <span class="fw-bold text-dark fs-5">{{ number_format($m->balance_after ?? 0, 0, ',', '.') }} {{ $m->masterProduct->unit ?? 'PCS' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted small fw-semibold d-block mb-1">KETERANGAN / REFERENSI</label>
+                        <div class="p-2 border rounded bg-white text-dark">
+                            {{ $m->reference ?: 'Tidak ada catatan referensi.' }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-muted small fw-semibold d-block mb-1">PETUGAS OPERASIONAL</label>
+                        <div class="fw-semibold text-dark">{{ $m->user->name ?? 'Sistem / Admin' }}</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-sm btn-secondary px-3" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endforeach
 
 @endsection
