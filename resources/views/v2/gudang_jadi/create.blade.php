@@ -19,10 +19,34 @@
     height: 31px !important;
     padding: 2px 8px !important;
     font-size: 0.8rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
     line-height: 25px !important;
     font-size: 0.8rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+}
+.select2-container {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+.select2-dropdown {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+.select2-results__option {
+    white-space: normal !important;
+    word-break: break-word !important;
+    word-wrap: break-word !important;
+    font-size: 0.78rem !important;
+    padding: 6px 10px !important;
+    line-height: 1.35 !important;
 }
 </style>
 @endpush
@@ -257,10 +281,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const removeBtn = tr.querySelector('.remove-row-btn');
 
         // Initialize Select2 if available
-        if (typeof $ !== 'undefined' && $.fn.select2) {
-            $(select).select2({
+        if (window.initV2Select2) {
+            window.initV2Select2(tr);
+            $(select).on('select2:select change', function() {
+                updateStockDisplay();
+                calculateGrandTotal();
+            });
+        } else if (typeof $ !== 'undefined' && $.fn.select2) {
+            const $select = $(select);
+            if (!$select.parent().hasClass('select2-wrapper')) {
+                $select.wrap('<div class="select2-wrapper position-relative d-block w-100" style="max-width: 100%;"></div>');
+            }
+            $select.select2({
                 theme: 'bootstrap-5',
                 width: '100%',
+                dropdownParent: $select.parent(),
                 placeholder: '-- Pilih Produk Master --'
             }).on('change', function() {
                 updateStockDisplay();
