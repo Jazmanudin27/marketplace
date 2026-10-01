@@ -181,6 +181,13 @@
                 <span>Gudang Jadi</span>
             </a>
         </div>
+        <div class="v2-nav-item">
+            <a href="{{ route('v2.scanner_gudang.index') }}"
+                class="v2-nav-link d-flex align-items-center gap-2 {{ request()->is('v2/scanner-gudang*') || request()->routeIs('v2.scanner_gudang.*') ? 'active' : '' }}">
+                <i class="bi bi-qr-code-scan text-success"></i>
+                <span>Scanner Gudang</span>
+            </a>
+        </div>
 
         <!-- Titipan Barang -->
         <div class="v2-nav-section-title mt-2">TITIPAN BARANG</div>

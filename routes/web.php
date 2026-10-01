@@ -275,6 +275,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/gudang-jadi', [\App\Http\Controllers\V2\GudangJadiController::class, 'store'])->name('gudang_jadi.store');
         Route::get('/gudang-jadi/search-products', [\App\Http\Controllers\V2\GudangJadiController::class, 'searchProducts'])->name('gudang_jadi.search_products');
 
+        // Scanner Gudang V2 (Pick & Pack Barcode Scanner)
+        Route::get('/scanner-gudang', [\App\Http\Controllers\V2\ScannerGudangController::class, 'index'])->name('scanner_gudang.index');
+        Route::get('/scanner-gudang/order/{identifier}', [\App\Http\Controllers\V2\ScannerGudangController::class, 'getOrderDetails'])->name('scanner_gudang.order_details')->where('identifier', '.*');
+        Route::post('/scanner-gudang/order/{order}/complete', [\App\Http\Controllers\V2\ScannerGudangController::class, 'completePack'])->name('scanner_gudang.complete_pack');
+        Route::get('/scanner-gudang/products/search', [\App\Http\Controllers\V2\ScannerGudangController::class, 'searchProducts'])->name('scanner_gudang.products_search');
+        Route::post('/scanner-gudang/order-item/{orderItem}/substitute', [\App\Http\Controllers\V2\ScannerGudangController::class, 'substituteItem'])->name('scanner_gudang.item_substitute');
+
         // Titipan Barang (Supplier Consignment) V2
         Route::prefix('titipan-barang')->name('titipan_barang.')->group(function () {
             Route::get('/', [\App\Http\Controllers\V2\TitipanBarangController::class, 'index'])->name('index');
