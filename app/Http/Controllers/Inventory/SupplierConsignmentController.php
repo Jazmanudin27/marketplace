@@ -321,24 +321,18 @@ class SupplierConsignmentController extends Controller
             foreach ($consignment->items as $oldItem) {
                 if ($product = $oldItem->masterProduct) {
                     $product->decrement('stock', $oldItem->qty_received);
-                    $newStock = $product->fresh()->stock;
-
-                    StockMovement::create([
-                        'tenant_id'         => $tenantId,
-                        'master_product_id' => $product->id,
-                        'user_id'           => $userId,
-                        'type'              => 'out',
-                        'quantity'          => $oldItem->qty_received,
-                        'balance_after'     => $newStock,
-                        'reference'         => "Revert Stok Edit Konsinyasi: {$consignment->reference_number}",
-                    ]);
                 }
             }
 
-            // 2. Hapus item lama
+            // 2. Hapus log Mutasi Stok Gudang (Penerimaan Konsinyasi) lama terkait transaksi ini
+            StockMovement::where('tenant_id', $tenantId)
+                ->where('reference', 'like', "%{$consignment->reference_number}%")
+                ->delete();
+
+            // 3. Hapus item lama
             $consignment->items()->delete();
 
-            // 3. Tambahkan item baru & sesuaikan stok baru
+            // 4. Tambahkan item baru & perbarui stok serta mutasi gudang masuk
             $totalQtyReceived = 0;
             $totalAmountHpp   = 0;
 
@@ -375,12 +369,12 @@ class SupplierConsignmentController extends Controller
                         'type'              => 'in',
                         'quantity'          => $qty,
                         'balance_after'     => $newStock,
-                        'reference'         => "Update Stok Konsinyasi: {$consignment->reference_number}",
+                        'reference'         => "Penerimaan Konsinyasi: {$consignment->reference_number}",
                     ]);
                 }
             }
 
-            // 4. Update Header Consignment
+            // 5. Update Header Consignment
             $consignment->update([
                 'supplier_id'        => $request->supplier_id,
                 'consignment_date'   => $request->consignment_date,
@@ -407,30 +401,25 @@ class SupplierConsignmentController extends Controller
         DB::transaction(function () use ($consignment, $tenantId, $userId) {
             $consignment->load('items.masterProduct');
 
-            // Kembalikan/kurangi stok master product yang sebelumnya masuk
+            // 1. Kembalikan/kurangi stok master product yang sebelumnya masuk
             foreach ($consignment->items as $item) {
                 if ($product = $item->masterProduct) {
                     $product->decrement('stock', $item->qty_received);
-                    $newStock = $product->fresh()->stock;
-
-                    StockMovement::create([
-                        'tenant_id'         => $tenantId,
-                        'master_product_id' => $product->id,
-                        'user_id'           => $userId,
-                        'type'              => 'out',
-                        'quantity'          => $item->qty_received,
-                        'balance_after'     => $newStock,
-                        'reference'         => "Hapus Penerimaan Konsinyasi: {$consignment->reference_number}",
-                    ]);
                 }
             }
 
+            // 2. Hapus log Mutasi Stok Gudang Masuk agar transaksi otomatis hilang dari Gudang Masuk & tidak masuk stok
+            StockMovement::where('tenant_id', $tenantId)
+                ->where('reference', 'like', "%{$consignment->reference_number}%")
+                ->delete();
+
+            // 3. Hapus item & header konsinyasi
             $consignment->items()->delete();
             $consignment->delete();
         });
 
         return redirect()->route('supplier_consignments.index')
-            ->with('success', 'Transaksi penerimaan barang konsinyasi berhasil dihapus dan stok master produk telah dikurangi kembali.');
+            ->with('success', 'Transaksi penerimaan barang konsinyasi berhasil dihapus dan otomatis dibatalkan dari stok gudang masuk.');
     }
 
     /**

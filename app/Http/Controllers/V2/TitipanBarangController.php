@@ -316,25 +316,22 @@ class TitipanBarangController extends Controller
         DB::transaction(function () use ($request, $consignment, $tenantId, $userId) {
             $consignment->load('items.masterProduct');
 
+            // 1. Revert stok lama pada produk master
             foreach ($consignment->items as $oldItem) {
                 if ($product = $oldItem->masterProduct) {
                     $product->decrement('stock', $oldItem->qty_received);
-                    $newStock = $product->fresh()->stock;
-
-                    StockMovement::create([
-                        'tenant_id'         => $tenantId,
-                        'master_product_id' => $product->id,
-                        'user_id'           => $userId,
-                        'type'              => 'out',
-                        'quantity'          => $oldItem->qty_received,
-                        'balance_after'     => $newStock,
-                        'reference'         => "Revert Stok Edit Konsinyasi: {$consignment->reference_number}",
-                    ]);
                 }
             }
 
+            // 2. Hapus log Mutasi Stok Gudang (Penerimaan Konsinyasi) lama terkait transaksi ini
+            StockMovement::where('tenant_id', $tenantId)
+                ->where('reference', 'like', "%{$consignment->reference_number}%")
+                ->delete();
+
+            // 3. Hapus item lama
             $consignment->items()->delete();
 
+            // 4. Tambahkan item baru & perbarui stok serta mutasi gudang masuk
             $totalQtyReceived = 0;
             $totalAmountHpp   = 0;
 
@@ -371,7 +368,7 @@ class TitipanBarangController extends Controller
                         'type'              => 'in',
                         'quantity'          => $qty,
                         'balance_after'     => $newStock,
-                        'reference'         => "Update Stok Konsinyasi: {$consignment->reference_number}",
+                        'reference'         => "Penerimaan Konsinyasi: {$consignment->reference_number}",
                     ]);
                 }
             }
@@ -386,7 +383,7 @@ class TitipanBarangController extends Controller
         });
 
         return redirect()->route('supplier_consignments.show', $consignment)
-            ->with('success', 'Penerimaan barang konsinyasi berhasil diperbarui.');
+            ->with('success', 'Penerimaan barang konsinyasi berhasil diperbarui dan stok gudang terupdate.');
     }
 
     /**
@@ -402,29 +399,25 @@ class TitipanBarangController extends Controller
         DB::transaction(function () use ($consignment, $tenantId, $userId) {
             $consignment->load('items.masterProduct');
 
+            // 1. Kurangi/kembalikan stok produk master yang sebelumnya masuk
             foreach ($consignment->items as $item) {
                 if ($product = $item->masterProduct) {
                     $product->decrement('stock', $item->qty_received);
-                    $newStock = $product->fresh()->stock;
-
-                    StockMovement::create([
-                        'tenant_id'         => $tenantId,
-                        'master_product_id' => $product->id,
-                        'user_id'           => $userId,
-                        'type'              => 'out',
-                        'quantity'          => $item->qty_received,
-                        'balance_after'     => $newStock,
-                        'reference'         => "Hapus Penerimaan Konsinyasi: {$consignment->reference_number}",
-                    ]);
                 }
             }
 
+            // 2. Hapus log Mutasi Stok Gudang Masuk agar transaksi otomatis hilang dari Gudang Masuk & tidak masuk stok
+            StockMovement::where('tenant_id', $tenantId)
+                ->where('reference', 'like', "%{$consignment->reference_number}%")
+                ->delete();
+
+            // 3. Hapus item & header konsinyasi
             $consignment->items()->delete();
             $consignment->delete();
         });
 
         return redirect()->route('supplier_consignments.index')
-            ->with('success', 'Transaksi penerimaan barang konsinyasi berhasil dihapus.');
+            ->with('success', 'Transaksi penerimaan barang konsinyasi berhasil dihapus dan otomatis dibatalkan dari stok gudang masuk.');
     }
 
     /**
