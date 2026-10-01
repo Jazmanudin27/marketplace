@@ -50,12 +50,8 @@
 
                         {{-- STAGE & STATUS SELECT DROPDOWN --}}
                         <div class="col-12 col-md-5 col-lg-5">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-light-subtle text-muted">
-                                    <i class="fas fa-filter text-primary small"></i>
-                                </span>
-                                <select name="stage" class="form-select border-light-subtle bg-white text-dark fw-medium"
-                                    style="cursor: pointer;" onchange="this.form.submit()">
+                            <select name="stage" class="form-select border-light-subtle bg-white text-dark fw-medium"
+                                style="cursor: pointer;" onchange="this.form.submit()">
                                     <option value="" {{ $selectedFilter === '' ? 'selected' : '' }}>🌐 Semua SPK (Semua Status)</option>
                                     <option value="urgent" {{ $selectedFilter === 'urgent' ? 'selected' : '' }}>⚡ Pesanan Urgent</option>
                                     <option value="draft" {{ $selectedFilter === 'draft' ? 'selected' : '' }}>📝 DRAFT (Belum Deal / Menunggu DP)</option>
@@ -71,7 +67,6 @@
                                     <option value="selesai" {{ $selectedFilter === 'selesai' ? 'selected' : '' }}>✅ Selesai (Finished Good)</option>
                                     <option value="dikirim" {{ $selectedFilter === 'dikirim' ? 'selected' : '' }}>🚀 Telah Dikirim (Shipped)</option>
                                 </select>
-                            </div>
                         </div>
 
                         {{-- TIPE SPK FILTER --}}
