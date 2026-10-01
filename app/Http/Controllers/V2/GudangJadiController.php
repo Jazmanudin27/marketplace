@@ -106,33 +106,55 @@ class GudangJadiController extends Controller
         $products = MasterProduct::where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->orderBy('name')
+            ->limit(100)
             ->get(['id', 'sku', 'name', 'stock', 'unit']);
+
+        if ($selectedProductId && !$products->contains('id', $selectedProductId)) {
+            $selectedProduct = MasterProduct::find($selectedProductId);
+            if ($selectedProduct) {
+                $products->prepend($selectedProduct);
+            }
+        }
 
         return view('v2.gudang_jadi.create', compact('selectedType', 'selectedProductId', 'products'));
     }
 
     /**
-     * API Search Master Product untuk Select2 / Auto-complete.
+     * API Search Master Product untuk Select2 (Dibatasi Maksimal 100 Produk).
      */
     public function searchProducts(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
-        $keyword  = trim($request->get('q', ''));
+        $search   = trim($request->input('q', ''));
 
         $query = MasterProduct::where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->orderBy('name');
+            ->where('is_active', true);
 
-        if ($keyword !== '') {
-            $query->where(function ($q) use ($keyword) {
-                $q->where('name', 'like', "%{$keyword}%")
-                  ->orWhere('sku',  'like', "%{$keyword}%");
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('sku', 'like', '%' . $search . '%')
+                  ->orWhere('sku_induk', 'like', '%' . $search . '%');
             });
         }
 
-        $products = $query->limit(20)->get(['id', 'sku', 'name', 'stock', 'unit']);
+        $products = $query->select(['id', 'sku', 'name', 'stock', 'unit'])
+            ->orderBy('name')
+            ->limit(100)
+            ->get();
 
-        return response()->json($products);
+        $results = $products->map(function ($p) {
+            return [
+                'id'    => $p->id,
+                'text'  => '[' . $p->sku . '] ' . $p->name . ' (Stok: ' . number_format($p->stock) . ')',
+                'sku'   => $p->sku,
+                'name'  => $p->name,
+                'stock' => (int) $p->stock,
+                'unit'  => $p->unit ?: 'PCS',
+            ];
+        });
+
+        return response()->json(['results' => $results]);
     }
 
     /**

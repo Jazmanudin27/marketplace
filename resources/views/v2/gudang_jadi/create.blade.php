@@ -280,14 +280,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const unitLabel = tr.querySelector('.unit-label');
         const removeBtn = tr.querySelector('.remove-row-btn');
 
-        // Initialize Select2 if available
-        if (window.initV2Select2) {
-            window.initV2Select2(tr);
-            $(select).on('select2:select change', function() {
-                updateStockDisplay();
-                calculateGrandTotal();
-            });
-        } else if (typeof $ !== 'undefined' && $.fn.select2) {
+        // Initialize Select2 with AJAX (Limited to 100 products max per search query)
+        if (typeof $ !== 'undefined' && $.fn.select2) {
             const $select = $(select);
             if (!$select.parent().hasClass('select2-wrapper')) {
                 $select.wrap('<div class="select2-wrapper position-relative d-block w-100" style="max-width: 100%;"></div>');
@@ -296,9 +290,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 theme: 'bootstrap-5',
                 width: '100%',
                 dropdownParent: $select.parent(),
-                placeholder: '-- Pilih Produk Master --'
-            }).on('change', function() {
-                updateStockDisplay();
+                placeholder: '-- Pilih Produk Master --',
+                allowClear: true,
+                ajax: {
+                    url: '{{ route("v2.gudang_jadi.search_products") }}',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return { q: params.term || '' };
+                    },
+                    processResults: function(data) {
+                        return { results: data.results || [] };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 0
+            }).on('select2:select change', function(e) {
+                if (e.params && e.params.data) {
+                    const data = e.params.data;
+                    stockDisplay.innerHTML = `<span class="badge bg-light text-dark border font-monospace px-2 py-1">${Number(data.stock || 0).toLocaleString('id-ID')} ${data.unit || 'PCS'}</span>`;
+                    unitLabel.textContent = data.unit || 'PCS';
+                } else {
+                    updateStockDisplay();
+                }
                 calculateGrandTotal();
             });
         } else {
