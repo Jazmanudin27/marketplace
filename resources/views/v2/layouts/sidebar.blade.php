@@ -188,6 +188,13 @@
                 <span>Scanner Gudang</span>
             </a>
         </div>
+        <div class="v2-nav-item">
+            <a href="{{ route('v2.spk.index') }}"
+                class="v2-nav-link d-flex align-items-center gap-2 {{ request()->is('v2/spk*') || request()->is('spks*') || request()->routeIs('v2.spk.*') ? 'active' : '' }}">
+                <i class="bi bi-tools text-warning"></i>
+                <span>SPK Produksi</span>
+            </a>
+        </div>
 
         <!-- Titipan Barang -->
         <div class="v2-nav-section-title mt-2">TITIPAN BARANG</div>
