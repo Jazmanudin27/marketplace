@@ -49,17 +49,13 @@
 
 @section('content')
 
-{{-- ── Page Header ── --}}
+{{-- ── Page Header & Tabs ── --}}
 <div class="v2-page-header align-items-center mb-3">
     <div>
         <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0">
-            <i class="bi bi-clipboard-check text-warning fs-5"></i> Stock Opname V2
+            <i class="bi bi-clipboard-check text-warning fs-5"></i> Stock Opname (Gudang Jadi)
         </h1>
-    </div>
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-        <a href="{{ route('v2.stock_opname.create') }}" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#d97706; border:none;">
-            <i class="bi bi-plus-lg me-1"></i> Catat Stock Opname
-        </a>
+        <p class="text-muted small mb-0">Pencatatan dan audit stok fisik persediaan barang secara berkala</p>
     </div>
 </div>
 
@@ -73,6 +69,38 @@
         </div>
     @endif
 @endforeach
+
+{{-- ── Nav Tabs & Action Buttons ── --}}
+<div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 flex-wrap gap-2">
+    <ul class="nav nav-pills gap-1">
+        <li class="nav-item">
+            <a class="nav-link text-dark bg-white border fw-semibold px-3 py-1.5" style="font-size: 0.82rem; border-radius: 8px;" href="{{ route('v2.gudang_jadi.index') }}">
+                <i class="bi bi-journals me-1.5"></i> Semua Mutasi
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-dark bg-white border fw-semibold px-3 py-1.5" style="font-size: 0.82rem; border-radius: 8px;" href="{{ route('v2.gudang_jadi.index', ['type' => 'in']) }}">
+                <i class="bi bi-box-arrow-in-down me-1.5 text-success"></i> Mutasi Masuk
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-dark bg-white border fw-semibold px-3 py-1.5" style="font-size: 0.82rem; border-radius: 8px;" href="{{ route('v2.gudang_jadi.index', ['type' => 'out']) }}">
+                <i class="bi bi-box-arrow-up-right me-1.5 text-danger"></i> Mutasi Keluar
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active bg-warning text-dark fw-semibold px-3 py-1.5" style="font-size: 0.82rem; border-radius: 8px;" href="{{ Route::has('v2.stock_opname.index') ? route('v2.stock_opname.index') : url('/v2/stock-opname') }}">
+                <i class="bi bi-clipboard-check me-1.5 text-dark"></i> Stock Opname
+            </a>
+        </li>
+    </ul>
+
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ route('v2.stock_opname.create') }}" class="btn btn-sm text-white fw-semibold py-1.5 px-3" style="background:#d97706; border:none; border-radius:6px;">
+            + Catat Stock Opname
+        </a>
+    </div>
+</div>
 
 {{-- ── KPI Summary Cards ── --}}
 <div class="row g-2.5 mb-3">

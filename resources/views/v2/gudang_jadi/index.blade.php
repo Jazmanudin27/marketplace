@@ -106,7 +106,7 @@
 <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 flex-wrap gap-2">
     <ul class="nav nav-pills gap-1">
         <li class="nav-item">
-            <a class="nav-link {{ !request('type') ? 'active bg-primary text-white' : 'text-dark bg-white border' }} fw-semibold px-3 py-1.5" style="font-size: 0.82rem; border-radius: 8px;" href="{{ route('v2.gudang_jadi.index') }}">
+            <a class="nav-link {{ !request('type') && !request()->is('v2/stock-opname*') ? 'active bg-primary text-white' : 'text-dark bg-white border' }} fw-semibold px-3 py-1.5" style="font-size: 0.82rem; border-radius: 8px;" href="{{ route('v2.gudang_jadi.index') }}">
                 <i class="bi bi-journals me-1.5"></i> Semua Mutasi
             </a>
         </li>
@@ -118,6 +118,11 @@
         <li class="nav-item">
             <a class="nav-link {{ request('type') == 'out' ? 'active bg-danger text-white' : 'text-dark bg-white border' }} fw-semibold px-3 py-1.5" style="font-size: 0.82rem; border-radius: 8px;" href="{{ route('v2.gudang_jadi.index', ['type' => 'out']) }}">
                 <i class="bi bi-box-arrow-up-right me-1.5 text-danger"></i> Mutasi Keluar
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ request()->is('v2/stock-opname*') ? 'active bg-warning text-dark' : 'text-dark bg-white border' }} fw-semibold px-3 py-1.5" style="font-size: 0.82rem; border-radius: 8px;" href="{{ Route::has('v2.stock_opname.index') ? route('v2.stock_opname.index') : url('/v2/stock-opname') }}">
+                <i class="bi bi-clipboard-check me-1.5 text-warning"></i> Stock Opname
             </a>
         </li>
     </ul>
