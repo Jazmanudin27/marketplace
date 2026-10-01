@@ -170,9 +170,8 @@
         @php
             $isGudangJadiActive =
                 request()->is('v2/gudang-jadi*') ||
-                request()->routeIs('v2.gudang_jadi.*');
-            $isStockOpnameActive =
                 request()->is('v2/stock-opname*') ||
+                request()->routeIs('v2.gudang_jadi.*') ||
                 request()->routeIs('v2.stock_opname.*');
         @endphp
         <div class="v2-nav-item">
@@ -180,13 +179,6 @@
                 class="v2-nav-link d-flex align-items-center gap-2 {{ $isGudangJadiActive ? 'active' : '' }}">
                 <i class="bi bi-building-gear text-primary"></i>
                 <span>Gudang Jadi</span>
-            </a>
-        </div>
-        <div class="v2-nav-item">
-            <a href="{{ Route::has('v2.stock_opname.index') ? route('v2.stock_opname.index') : url('/v2/stock-opname') }}"
-                class="v2-nav-link d-flex align-items-center gap-2 {{ $isStockOpnameActive ? 'active' : '' }}">
-                <i class="bi bi-clipboard-check text-warning"></i>
-                <span>Stock Opname</span>
             </a>
         </div>
 
