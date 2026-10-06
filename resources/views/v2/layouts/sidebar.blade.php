@@ -264,7 +264,6 @@
             $isKeuanganActive =
                 request()->is('v2/mutasi-keuangan*') ||
                 request()->is('v2/saldo-marketplace*') ||
-                request()->is('reports*') ||
                 request()->is('finance*');
         @endphp
         <div class="v2-nav-item v2-nav-dropdown {{ $isKeuanganActive ? 'show' : '' }}">
@@ -289,11 +288,6 @@
                         class="v2-submenu-link {{ request()->is('v2/saldo-marketplace*') ? 'active' : '' }}">
                         <i class="bi bi-wallet2 text-warning me-1.5"></i>
                         <span>Saldo Marketplace</span>
-                    </a>
-                    <a href="{{ Route::has('reports.income_statement') ? route('reports.income_statement') : url('/reports') }}"
-                        class="v2-submenu-link {{ request()->is('reports*') ? 'active' : '' }}">
-                        <i class="bi bi-bar-chart-line-fill text-success me-1.5"></i>
-                        <span>Laba Rugi & Keuangan</span>
                     </a>
                 </div>
             </div>
