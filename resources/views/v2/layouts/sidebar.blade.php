@@ -45,6 +45,9 @@
         @php
             $isDataMasterActive =
                 request()->is('v2/produk*') ||
+                request()->is('v2/marketplace-produk*') ||
+                request()->is('v2/produk-marketplace*') ||
+                request()->is('marketplace-products*') ||
                 request()->is('v2/kategori*') ||
                 request()->is('v2/brand*') ||
                 request()->is('inventory-items*');
@@ -63,9 +66,14 @@
             <div class="collapse v2-submenu {{ $isDataMasterActive ? 'show' : '' }}" id="dataMasterSubmenu">
                 <div class="v2-submenu-inner">
                     <a href="{{ url('/v2/produk') }}"
-                        class="v2-submenu-link {{ request()->is('v2/produk*') ? 'active' : '' }}">
+                        class="v2-submenu-link {{ request()->is('v2/produk*') && !request()->is('v2/produk-marketplace*') ? 'active' : '' }}">
                         <i class="bi bi-box-seam me-1.5"></i>
                         <span>Master Produk</span>
+                    </a>
+                    <a href="{{ url('/v2/marketplace-produk') }}"
+                        class="v2-submenu-link {{ request()->is('v2/marketplace-produk*') || request()->is('v2/produk-marketplace*') || request()->is('marketplace-products*') ? 'active' : '' }}">
+                        <i class="bi bi-tags-fill text-primary me-1.5"></i>
+                        <span>Produk Marketplace</span>
                     </a>
                     <a href="{{ url('/v2/kategori-brand') }}"
                         class="v2-submenu-link {{ request()->is('v2/kategori*') || request()->is('v2/brand*') ? 'active' : '' }}">
@@ -118,20 +126,6 @@
                     </a>
                 </div>
             </div>
-        </div>
-        <div class="v2-nav-item">
-            <a href="{{ url('/v2/marketplace-produk') }}"
-                class="v2-nav-link {{ request()->is('v2/marketplace-produk*') || request()->is('v2/produk-marketplace*') || request()->is('marketplace-products*') ? 'active' : '' }}">
-                <i class="bi bi-tags-fill"></i>
-                <span>Produk Marketplace</span>
-            </a>
-        </div>
-        <div class="v2-nav-item">
-            <a href="{{ Route::has('stock_sync.index') ? route('stock_sync.index') : url('/v2/produk') }}"
-                class="v2-nav-link">
-                <i class="bi bi-arrow-repeat"></i>
-                <span>Sinkronisasi Stok</span>
-            </a>
         </div>
 
         <!-- Pembelian & Stok -->
