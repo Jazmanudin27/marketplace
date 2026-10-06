@@ -95,6 +95,8 @@
             $isMarketingActive =
                 request()->is('v2/pesanan*') ||
                 request()->is('v2/retur*') ||
+                request()->is('v2/spk*') ||
+                request()->is('spks*') ||
                 request()->is('orders*') ||
                 request()->is('returns*');
         @endphp
@@ -123,6 +125,11 @@
                         class="v2-submenu-link {{ request()->is('v2/retur*') || request()->is('returns*') ? 'active' : '' }}">
                         <i class="bi bi-arrow-counterclockwise text-warning me-1.5"></i>
                         <span>Pesanan Retur</span>
+                    </a>
+                    <a href="{{ route('v2.spk.index') }}"
+                        class="v2-submenu-link {{ request()->is('v2/spk*') || request()->is('spks*') || request()->routeIs('v2.spk.*') ? 'active' : '' }}">
+                        <i class="bi bi-tools text-warning me-1.5"></i>
+                        <span>SPK</span>
                     </a>
                 </div>
             </div>
@@ -175,7 +182,9 @@
             $isGudangJadiActive =
                 request()->is('v2/gudang-jadi*') ||
                 request()->is('v2/stock-opname*') ||
+                request()->is('v2/scanner-gudang*') ||
                 request()->routeIs('v2.gudang_jadi.*') ||
+                request()->routeIs('v2.scanner_gudang.*') ||
                 request()->routeIs('v2.stock_opname.*');
         @endphp
         <div class="v2-nav-item v2-nav-dropdown {{ $isGudangJadiActive ? 'show' : '' }}">
@@ -206,22 +215,13 @@
                         <i class="bi bi-building-gear text-primary me-1.5"></i>
                         <span>Gudang Jadi (Semua)</span>
                     </a>
+                    <a href="{{ route('v2.scanner_gudang.index') }}"
+                        class="v2-submenu-link {{ request()->is('v2/scanner-gudang*') || request()->routeIs('v2.scanner_gudang.*') ? 'active' : '' }}">
+                        <i class="bi bi-qr-code-scan text-success me-1.5"></i>
+                        <span>Scanner Gudang</span>
+                    </a>
                 </div>
             </div>
-        </div>
-        <div class="v2-nav-item">
-            <a href="{{ route('v2.scanner_gudang.index') }}"
-                class="v2-nav-link d-flex align-items-center gap-2 {{ request()->is('v2/scanner-gudang*') || request()->routeIs('v2.scanner_gudang.*') ? 'active' : '' }}">
-                <i class="bi bi-qr-code-scan text-success"></i>
-                <span>Scanner Gudang</span>
-            </a>
-        </div>
-        <div class="v2-nav-item">
-            <a href="{{ route('v2.spk.index') }}"
-                class="v2-nav-link d-flex align-items-center gap-2 {{ request()->is('v2/spk*') || request()->is('spks*') || request()->routeIs('v2.spk.*') ? 'active' : '' }}">
-                <i class="bi bi-tools text-warning"></i>
-                <span>SPK Produksi</span>
-            </a>
         </div>
 
         <!-- Titipan Barang -->
