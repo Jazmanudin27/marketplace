@@ -129,8 +129,8 @@
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2"
                             style="font-size: 0.78rem; border-radius: 8px;">
                             <li><a class="dropdown-item py-1.5"
-                                    href="{{ Route::has('settings.users.index') ? route('settings.users.index') : (Route::has('users.index') ? route('users.index') : url('/settings')) }}"><i
-                                        class="bi bi-person me-2"></i>Pengaturan Akun</a></li>
+                                    href="{{ route('v2.users.index') }}"><i
+                                        class="bi bi-people me-2"></i>Pengguna Sistem</a></li>
                             <li><a class="dropdown-item py-1.5" href="{{ url('/v2/produk') }}"><i
                                         class="bi bi-box-seam me-2"></i>Katalog Produk V2</a></li>
                             <li>

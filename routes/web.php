@@ -318,6 +318,13 @@ Route::middleware('auth')->group(function () {
             Route::get('/{consignment}/print-labels', [\App\Http\Controllers\V2\TitipanBarangController::class, 'printItemLabels'])->name('print_labels');
             Route::post('/{consignment}/approve', [\App\Http\Controllers\V2\TitipanBarangController::class, 'approve'])->name('approve');
         });
+
+        // Pengguna Sistem (User Management) V2
+        Route::get('/users/{user}/permissions', [\App\Http\Controllers\V2\UserController::class, 'editPermissions'])->name('users.permissions.edit');
+        Route::put('/users/{user}/permissions', [\App\Http\Controllers\V2\UserController::class, 'updatePermissions'])->name('users.permissions.update');
+        Route::post('/users/{user}/impersonate', [\App\Http\Controllers\V2\UserController::class, 'impersonate'])->name('users.impersonate');
+        Route::resource('/users', \App\Http\Controllers\V2\UserController::class)->except(['create', 'show', 'edit']);
+        Route::get('/pengguna', [\App\Http\Controllers\V2\UserController::class, 'index'])->name('pengguna.index');
     });
 
     // =========================================================================

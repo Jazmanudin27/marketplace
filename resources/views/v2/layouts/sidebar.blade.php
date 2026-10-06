@@ -296,6 +296,13 @@
         <!-- Pengaturan -->
         <div class="v2-nav-section-title mt-2">PENGATURAN</div>
         <div class="v2-nav-item">
+            <a href="{{ route('v2.users.index') }}"
+                class="v2-nav-link d-flex align-items-center gap-2 {{ request()->is('v2/users*') || request()->is('v2/pengguna*') ? 'active' : '' }}">
+                <i class="bi bi-people text-info"></i>
+                <span>Pengguna Sistem</span>
+            </a>
+        </div>
+        <div class="v2-nav-item">
             <a href="{{ url('/v2/toko') }}"
                 class="v2-nav-link d-flex align-items-center gap-2 {{ request()->is('v2/toko*') || request()->is('stores*') ? 'active' : '' }}">
                 <i class="bi bi-shop text-primary"></i>
@@ -304,7 +311,7 @@
         </div>
         <div class="v2-nav-item">
             <a href="{{ Route::has('settings.users.index') ? route('settings.users.index') : (Route::has('users.index') ? route('users.index') : url('/settings')) }}"
-                class="v2-nav-link d-flex align-items-center gap-2 {{ request()->is('settings*') || request()->is('users*') ? 'active' : '' }}">
+                class="v2-nav-link d-flex align-items-center gap-2 {{ request()->is('settings*') ? 'active' : '' }}">
                 <i class="bi bi-gear text-secondary"></i>
                 <span>Pengaturan Akun</span>
             </a>
