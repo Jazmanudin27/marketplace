@@ -284,6 +284,45 @@
             timerProgressBar: true,
         });
     @endif
+    <!-- Global Automatic Thousands Separator (Numeric Dot Format) Handler -->
+    <script>
+    (function() {
+        window.formatNumberWithDots = function(val) {
+            if (val === null || val === undefined) return '';
+            var str = val.toString().replace(/\D/g, '');
+            return str.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        };
+
+        window.cleanNumberFromDots = function(val) {
+            if (!val) return 0;
+            return parseFloat(val.toString().replace(/\./g, '')) || 0;
+        };
+
+        // Live formatting listener for inputs with class .numeric-dot-format or data-format="number"
+        document.addEventListener('input', function(e) {
+            if (e.target && (e.target.classList.contains('numeric-dot-format') || e.target.getAttribute('data-format') === 'number')) {
+                var cursorPosition = e.target.selectionStart;
+                var oldLength = e.target.value.length;
+
+                var formatted = window.formatNumberWithDots(e.target.value);
+                e.target.value = formatted;
+
+                var newLength = formatted.length;
+                var newPosition = cursorPosition + (newLength - oldLength);
+                if (newPosition < 0) newPosition = 0;
+                e.target.setSelectionRange(newPosition, newPosition);
+            }
+        });
+
+        // Initialize formatting on DOM ready for pre-filled values
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.numeric-dot-format, input[data-format="number"]').forEach(function(input) {
+                if (input.value) {
+                    input.value = window.formatNumberWithDots(input.value);
+                }
+            });
+        });
+    })();
     </script>
 
     @stack('scripts')

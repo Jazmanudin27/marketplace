@@ -1782,49 +1782,81 @@
     {{-- POPUP MODAL 3: PEMBAYARAN PRODUKSI & CICILAN SPK --}}
     <div class="modal fade" id="modalPayLabor" tabindex="-1" aria-labelledby="modalPayLaborLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="modal-header bg-warning text-dark py-3 px-4">
-                    <div>
-                        <h6 class="modal-title fw-bold d-flex align-items-center gap-1.5 mb-0" id="modalPayLaborLabel">
-                            💳 Pembayaran Produksi &amp; Cicilan SPK (#{{ $spk->no_produksi ?: $spk->no_spk }})
-                        </h6>
-                        <small class="text-dark opacity-75">Pencatatan cicilan biaya produksi ke vendor / konveksi / penjahit</small>
+            <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+                {{-- Header with modern dark slate gradient header --}}
+                <div class="modal-header text-white py-3 px-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-bottom: 2px solid #f59e0b;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="p-2 rounded-3 d-flex align-items-center justify-content-center border" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3) !important; width: 44px; height: 44px;">
+                            <i class="fas fa-wallet text-warning fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="modal-title fw-bold text-white mb-0 fs-6 d-flex align-items-center gap-2" id="modalPayLaborLabel">
+                                Pembayaran Produksi &amp; Cicilan SPK 
+                                <span class="badge bg-warning text-dark font-monospace fw-bold" style="font-size: 11px;">#{{ $spk->no_produksi ?: $spk->no_spk }}</span>
+                            </h6>
+                            <small class="text-white-50" style="font-size: 11.5px;">Kelola pencatatan cicilan &amp; pelunasan biaya produksi vendor/konveksi/penjahit</small>
+                        </div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white opacity-75" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body p-4" style="background:#f8fafc;">
 
-                    {{-- TOP SUMMARY CARDS FOR PRODUCTION COSTS & UNPAID BALANCE --}}
-                    <div class="row g-2 mb-3">
-                        <div class="col-4">
-                            <div class="bg-white p-2.5 rounded-3 border shadow-2xs text-center">
-                                <span class="text-muted d-block text-uppercase fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">Target Biaya Produksi</span>
-                                <span class="fw-extrabold text-dark fs-6 font-monospace">Rp {{ number_format($spk->total_biaya_produksi, 0, ',', '.') }}</span>
+                <div class="modal-body p-4" style="background: #f8fafc;">
+
+                    {{-- TOP KPI SUMMARY & PROGRESS BAR --}}
+                    @php
+                        $targetCostVal = (float)$spk->total_biaya_produksi;
+                        $paidCostVal = (float)$spk->total_paid_production;
+                        $remainingCostVal = (float)$spk->remaining_production_cost;
+                        $pctVal = (float)$spk->production_payment_percentage;
+                    @endphp
+                    <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white overflow-hidden">
+                        <div class="card-body p-3">
+                            <div class="row g-2 align-items-center mb-2">
+                                <div class="col-4">
+                                    <div class="p-2 rounded-2 bg-light border text-center">
+                                        <span class="text-muted d-block text-uppercase fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">🎯 Target Biaya Produksi</span>
+                                        <span class="fw-extrabold text-dark fs-6 font-monospace">Rp {{ number_format($targetCostVal, 0, ',', '.') }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-2 rounded-2 border text-center" style="background-color: #f0fdf4; border-color: #bbf7d0 !important;">
+                                        <span class="text-success d-block text-uppercase fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">✅ Total Sudah Dibayar</span>
+                                        <span class="fw-extrabold text-success fs-6 font-monospace">Rp {{ number_format($paidCostVal, 0, ',', '.') }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-2 rounded-2 border text-center" style="background-color: #fef2f2; border-color: #fecaca !important;">
+                                        <span class="text-danger d-block text-uppercase fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">⏳ Sisa Belum Dibayar</span>
+                                        <span class="fw-extrabold text-danger fs-6 font-monospace">Rp {{ number_format($remainingCostVal, 0, ',', '.') }}</span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="bg-white p-2.5 rounded-3 border border-success-subtle shadow-2xs text-center" style="background-color: #f0fdf4 !important;">
-                                <span class="text-success d-block text-uppercase fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">Sudah Dibayar</span>
-                                <span class="fw-extrabold text-success fs-6 font-monospace">Rp {{ number_format($spk->total_paid_production, 0, ',', '.') }}</span>
+                            
+                            {{-- Progress Bar --}}
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted fw-semibold" style="font-size: 11px;">Status Kelunasan Produksi</small>
+                                <span class="badge {{ $pctVal >= 100 ? 'bg-success' : ($pctVal > 0 ? 'bg-warning text-dark' : 'bg-danger') }} fw-bold" style="font-size: 10.5px;">
+                                    {{ $pctVal }}% Terbayar
+                                </span>
                             </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="bg-white p-2.5 rounded-3 border border-danger-subtle shadow-2xs text-center" style="background-color: #fffbeb !important;">
-                                <span class="text-danger d-block text-uppercase fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">Sisa Tagihan</span>
-                                <span class="fw-extrabold text-danger fs-6 font-monospace">Rp {{ number_format($spk->remaining_production_cost, 0, ',', '.') }}</span>
+                            <div class="progress rounded-pill shadow-inner" style="height: 8px; background-color: #e2e8f0;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated {{ $pctVal >= 100 ? 'bg-success' : 'bg-warning' }}" 
+                                     role="progressbar" 
+                                     style="width: {{ $pctVal }}%;" 
+                                     aria-valuenow="{{ $pctVal }}" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
                     </div>
 
-                    {{-- NAV TABS: CICILAN UMUM VS PER RINCIAN JASA --}}
-                    <ul class="nav nav-pills nav-fill mb-3 bg-white p-1 rounded-3 border" id="payModalTab" role="tablist">
+                    {{-- NAV TABS --}}
+                    <ul class="nav nav-pills nav-fill mb-3 bg-white p-1 rounded-3 border shadow-2xs" id="payModalTab" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active fw-bold py-1.5 px-3" id="tab-installment" data-bs-toggle="pill" data-bs-target="#content-installment" type="button" role="tab">
+                            <button class="nav-link active fw-bold py-2 px-3 rounded-2" id="tab-installment" data-bs-toggle="pill" data-bs-target="#content-installment" type="button" role="tab">
                                 💰 Catat Cicilan Pembayaran
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-bold py-1.5 px-3" id="tab-breakdown" data-bs-toggle="pill" data-bs-target="#content-breakdown" type="button" role="tab">
+                            <button class="nav-link fw-bold py-2 px-3 rounded-2" id="tab-breakdown" data-bs-toggle="pill" data-bs-target="#content-breakdown" type="button" role="tab">
                                 📋 Bayar Per Rincian Jasa (Vendor)
                             </button>
                         </li>
@@ -1835,43 +1867,56 @@
                         <div class="tab-pane fade show active" id="content-installment" role="tabpanel">
                             <form action="{{ route('spks.payments.store', $spk) }}" method="POST">
                                 @csrf
-                                <div class="bg-white p-3 rounded-3 border mb-3">
+                                <div class="bg-white p-3.5 rounded-3 border mb-3 shadow-sm">
                                     <div class="mb-3">
-                                        <label class="form-label fw-semibold text-dark small mb-1">
-                                            Nominal Cicilan Dibayar (Rp) <span class="text-danger">*</span>
+                                        <label class="form-label fw-bold text-dark small mb-1 d-flex justify-content-between align-items-center">
+                                            <span>Nominal Cicilan Dibayar (Rp) <span class="text-danger">*</span></span>
+                                            <span class="text-muted fw-normal" style="font-size: 11px;">Max: Rp {{ number_format($remainingCostVal, 0, ',', '.') }}</span>
                                         </label>
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-light fw-bold">Rp</span>
-                                            <input type="number" name="amount" id="showModalInputAmount"
-                                                   class="form-control fw-extrabold fs-6 text-end font-monospace"
-                                                   min="1" max="{{ (int) $spk->remaining_production_cost }}"
-                                                   value="{{ (int) $spk->remaining_production_cost }}"
-                                                   step="1" required placeholder="0"
-                                                   {{ $spk->remaining_production_cost <= 0 ? 'disabled' : '' }}>
+                                        
+                                        <div class="input-group input-group-lg shadow-2xs rounded-3 overflow-hidden border">
+                                            <span class="input-group-text bg-light text-dark fw-extrabold px-3 border-0">Rp</span>
+                                            <input type="text" id="showModalInputAmountFormatted"
+                                                   class="form-control fw-extrabold fs-5 text-end font-monospace text-primary border-0"
+                                                   placeholder="0"
+                                                   value="{{ number_format($remainingCostVal, 0, ',', '.') }}"
+                                                   {{ $remainingCostVal <= 0 ? 'disabled' : '' }}>
+                                            <input type="hidden" name="amount" id="showModalInputAmount"
+                                                   value="{{ (int) $remainingCostVal }}">
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center mt-1">
-                                            <div class="d-flex gap-1">
-                                                <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2" id="btnShowQuick50" style="font-size: 11px;" {{ $spk->remaining_production_cost <= 0 ? 'disabled' : '' }}>
+
+                                        {{-- Live Rupiah Spelled / Formatted Indicator --}}
+                                        <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+                                            <div class="d-flex gap-1.5 flex-wrap">
+                                                <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2.5 rounded-pill fw-semibold" id="btnShowQuick25" style="font-size: 11px;" {{ $remainingCostVal <= 0 ? 'disabled' : '' }}>
+                                                    25%
+                                                </button>
+                                                <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2.5 rounded-pill fw-semibold" id="btnShowQuick50" style="font-size: 11px;" {{ $remainingCostVal <= 0 ? 'disabled' : '' }}>
                                                     50%
                                                 </button>
-                                                <button type="button" class="btn btn-xs btn-outline-success py-0 px-2 fw-bold" id="btnShowQuickLunas" style="font-size: 11px;" {{ $spk->remaining_production_cost <= 0 ? 'disabled' : '' }}>
-                                                    Pelunasan (100%)
+                                                <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2.5 rounded-pill fw-semibold" id="btnShowQuick75" style="font-size: 11px;" {{ $remainingCostVal <= 0 ? 'disabled' : '' }}>
+                                                    75%
+                                                </button>
+                                                <button type="button" class="btn btn-xs btn-outline-success py-1 px-2.5 rounded-pill fw-bold" id="btnShowQuickLunas" style="font-size: 11px;" {{ $remainingCostVal <= 0 ? 'disabled' : '' }}>
+                                                    <i class="fas fa-check-circle me-1"></i>Pelunasan (100%)
                                                 </button>
                                             </div>
-                                            <small class="text-muted" style="font-size: 11px;">Maksimal: Rp {{ number_format($spk->remaining_production_cost, 0, ',', '.') }}</small>
+                                            <span id="showModalRupiahLive" class="badge bg-success-subtle text-success border border-success-subtle fw-extrabold font-monospace py-1 px-2" style="font-size: 11.5px;">
+                                                Rp {{ number_format($remainingCostVal, 0, ',', '.') }}
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <div class="row g-2 mb-3">
+                                    <div class="row g-3 mb-3">
                                         <div class="col-md-6">
                                             <label class="form-label fw-semibold text-dark small mb-1">
-                                                Tanggal Pembayaran <span class="text-danger">*</span>
+                                                <i class="far fa-calendar-alt text-muted me-1"></i>Tanggal Pembayaran <span class="text-danger">*</span>
                                             </label>
                                             <input type="date" name="payment_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label fw-semibold text-dark small mb-1">
-                                                Sumber Kas / Bank <span class="text-danger">*</span>
+                                                <i class="fas fa-university text-muted me-1"></i>Sumber Kas / Bank <span class="text-danger">*</span>
                                             </label>
                                             <select name="payment_source" class="form-select form-select-sm" required>
                                                 <option value="kas_besar" selected>Kas Besar (Main Cash)</option>
@@ -1887,9 +1932,11 @@
                                         </div>
                                     </div>
 
-                                    <div class="row g-2 mb-3">
+                                    <div class="row g-3 mb-3">
                                         <div class="col-md-6">
-                                            <label class="form-label fw-semibold text-dark small mb-1">Penerima / Vendor / Penjahit</label>
+                                            <label class="form-label fw-semibold text-dark small mb-1">
+                                                <i class="fas fa-user-tag text-muted me-1"></i>Penerima / Vendor / Penjahit
+                                            </label>
                                             <input type="text" name="recipient_name" class="form-control form-control-sm"
                                                    placeholder="Nama Vendor / Penjahit" list="tailorListShow">
                                             <datalist id="tailorListShow">
@@ -1913,7 +1960,9 @@
                                             </datalist>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label fw-semibold text-dark small mb-1">Jenis Ongkos</label>
+                                            <label class="form-label fw-semibold text-dark small mb-1">
+                                                <i class="fas fa-tags text-muted me-1"></i>Jenis Ongkos
+                                            </label>
                                             <select name="payment_type" class="form-select form-select-sm">
                                                 <option value="biaya_produksi" selected>Ongkos Jasa Produksi</option>
                                                 <option value="jasa_jahit">Jasa Jahit</option>
@@ -1927,14 +1976,16 @@
                                     </div>
 
                                     <div class="mb-3">
-                                        <label class="form-label fw-semibold text-dark small mb-1">Catatan / Keterangan</label>
+                                        <label class="form-label fw-semibold text-dark small mb-1">
+                                            <i class="fas fa-comment-alt text-muted me-1"></i>Catatan / Keterangan
+                                        </label>
                                         <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Catatan cicilan (opsional, misal: DP Konveksi 50%)..."></textarea>
                                     </div>
 
                                     <div class="text-end">
-                                        <button type="submit" class="btn btn-sm btn-success fw-bold px-4"
-                                                {{ $spk->remaining_production_cost <= 0 ? 'disabled' : '' }}>
-                                            <i class="fas fa-save me-1"></i>Simpan Cicilan Pembayaran
+                                        <button type="submit" class="btn btn-sm btn-success fw-bold px-4 py-2 shadow-sm rounded-2"
+                                                {{ $remainingCostVal <= 0 ? 'disabled' : '' }}>
+                                            <i class="fas fa-save me-1.5"></i>Simpan Cicilan Pembayaran
                                         </button>
                                     </div>
                                 </div>
@@ -1945,9 +1996,11 @@
                         <div class="tab-pane fade" id="content-breakdown" role="tabpanel">
                             <form action="{{ route('spks.pay_labor', $spk) }}" method="POST">
                                 @csrf
-                                <div class="alert alert-info py-2 px-3 mb-3 border-0 shadow-sm" style="font-size:12px;">
-                                    Pilih item ongkos jasa vendor/pekerja yang ingin dibayar. Sistem akan membuat <strong>pencatatan
-                                        pengeluaran kas terpisah (per vendor)</strong> dan menyimpan histori transaksi pembayaran.
+                                <div class="alert alert-info py-2.5 px-3 mb-3 border-0 shadow-2xs d-flex align-items-center gap-2 rounded-3" style="font-size:12px; background: #e0f2fe; color: #0369a1;">
+                                    <i class="fas fa-info-circle fs-5"></i>
+                                    <div>
+                                        Pilih item ongkos jasa vendor/pekerja yang ingin dibayar. Sistem akan membuat <strong>pencatatan pengeluaran kas terpisah (per vendor)</strong> dan menyimpan histori transaksi.
+                                    </div>
                                 </div>
 
                                 <div class="row g-3 mb-3">
@@ -1972,7 +2025,7 @@
                                 </div>
 
                                 <label class="form-label fw-semibold text-secondary mb-2" style="font-size:12px;">RINCIAN ONGKOS JASA VENDOR / TIM OPERASIONAL</label>
-                                <div class="table-responsive bg-white rounded border shadow-sm mb-3">
+                                <div class="table-responsive bg-white rounded-3 border shadow-sm mb-3">
                                     <table class="table table-sm table-hover align-middle mb-0" style="font-size:11.5px;">
                                         <thead class="table-light">
                                             <tr>
@@ -2046,13 +2099,13 @@
                                     </table>
                                 </div>
 
-                                <div class="d-flex justify-content-between align-items-center bg-warning-subtle text-warning-emphasis p-2.5 rounded-3 border border-warning-subtle mb-3">
-                                    <span class="fw-bold small">Total Pembayaran Terpilih:</span>
-                                    <span class="fw-extrabold fs-6" id="displayTotalSelectedPay">Rp 0</span>
+                                <div class="d-flex justify-content-between align-items-center p-3 rounded-3 border mb-3" style="background-color: #fffbeb; border-color: #fef3c7 !important;">
+                                    <span class="fw-bold small text-dark">Total Pembayaran Terpilih:</span>
+                                    <span class="fw-extrabold fs-5 font-monospace text-dark" id="displayTotalSelectedPay">Rp 0</span>
                                 </div>
 
                                 <div class="text-end">
-                                    <button type="submit" class="btn btn-sm btn-warning fw-bold px-4 text-dark"
+                                    <button type="submit" class="btn btn-sm btn-warning fw-bold px-4 py-2 text-dark shadow-sm rounded-2"
                                         {{ count($laborBreakdown) == 0 || $totalSpkLaborUnpaid <= 0 ? 'disabled' : '' }}>
                                         💳 Proses Bayar Per Vendor Terpilih
                                     </button>
@@ -2062,17 +2115,17 @@
                     </div>
 
                     {{-- HISTORI CICILAN PEMBAYARAN PRODUKSI (SPK_PAYMENTS) --}}
-                    <div class="bg-white rounded border p-3 shadow-2xs mt-3">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <h6 class="fw-bold text-dark m-0 d-flex align-items-center gap-1.5" style="font-size: 13px;">
-                                📜 Riwayat Cicilan Pembayaran Produksi
+                    <div class="bg-white rounded-3 border p-3.5 shadow-sm mt-3">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="fw-bold text-dark m-0 d-flex align-items-center gap-2" style="font-size: 13.5px;">
+                                <i class="fas fa-history text-primary"></i> Riwayat Cicilan Pembayaran Produksi
                             </h6>
-                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle fw-bold" style="font-size: 10px;">
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle fw-bold py-1 px-2" style="font-size: 10.5px;">
                                 {{ count($spkPayments) }} Transaksi Cicilan
                             </span>
                         </div>
-                        <div class="table-responsive rounded border">
-                            <table class="table table-sm table-striped table-hover align-middle mb-0" style="font-size: 11px;">
+                        <div class="table-responsive rounded-3 border">
+                            <table class="table table-sm table-striped table-hover align-middle mb-0" style="font-size: 11.5px;">
                                 <thead class="table-light">
                                     <tr>
                                         <th style="width: 14%;">Tanggal &amp; No.</th>
@@ -2111,7 +2164,7 @@
                                                     <small class="text-secondary d-block" style="font-size: 9px;">Oleh: {{ $pPay->user->name }}</small>
                                                 @endif
                                             </td>
-                                            <td class="text-end fw-extrabold text-success font-monospace">
+                                            <td class="text-end fw-extrabold text-success font-monospace fs-6">
                                                 Rp {{ number_format($pPay->amount, 0, ',', '.') }}
                                             </td>
                                             <td class="text-center">
@@ -2120,7 +2173,7 @@
                                                           onsubmit="return confirm('Hapus cicilan pembayaran Rp {{ number_format($pPay->amount, 0, ',', '.') }} ini? Saldo kas/bank akan dikembalikan.')" class="m-0">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="btn btn-xs btn-outline-danger p-1" title="Hapus Pembayaran">
+                                                        <button type="submit" class="btn btn-xs btn-outline-danger p-1 rounded-2" title="Hapus Pembayaran">
                                                             <i class="fas fa-trash-alt"></i>
                                                         </button>
                                                     </form>
@@ -2129,7 +2182,8 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="6" class="text-center text-muted py-3">
+                                            <td colspan="6" class="text-center text-muted py-3.5">
+                                                <i class="fas fa-receipt opacity-25 d-block fs-3 mb-1"></i>
                                                 Belum ada riwayat cicilan pembayaran produksi yang dicatat untuk SPK ini.
                                             </td>
                                         </tr>
@@ -2141,7 +2195,7 @@
 
                 </div>
                 <div class="modal-footer bg-white border-top py-2 px-4">
-                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-4 rounded-2" data-bs-dismiss="modal">Tutup</button>
                 </div>
             </div>
         </div>
@@ -3527,13 +3581,41 @@
                 modalPayLaborEl.addEventListener('shown.bs.modal', calculateTotalPaySelected);
             }
 
+            // Live Rupiah input formatting for modalPayLabor
+            const showModalInputFormatted = document.getElementById('showModalInputAmountFormatted');
+            const showModalInputHidden = document.getElementById('showModalInputAmount');
+            const showModalRupiahLive = document.getElementById('showModalRupiahLive');
+            const maxRemaining = {{ (int) $spk->remaining_production_cost }};
+
+            function updateShowModalRupiahDisplay(val) {
+                let num = Math.min(Math.max(0, val), maxRemaining);
+                if (showModalInputHidden) showModalInputHidden.value = num;
+                if (showModalInputFormatted) showModalInputFormatted.value = num > 0 ? num.toLocaleString('id-ID') : '';
+                if (showModalRupiahLive) showModalRupiahLive.textContent = 'Rp ' + num.toLocaleString('id-ID');
+            }
+
+            if (showModalInputFormatted) {
+                showModalInputFormatted.addEventListener('input', function() {
+                    let cleanStr = this.value.replace(/\D/g, '');
+                    let val = parseInt(cleanStr, 10) || 0;
+                    if (val > maxRemaining) val = maxRemaining;
+                    this.value = val > 0 ? val.toLocaleString('id-ID') : '';
+                    if (showModalInputHidden) showModalInputHidden.value = val;
+                    if (showModalRupiahLive) showModalRupiahLive.textContent = 'Rp ' + val.toLocaleString('id-ID');
+                });
+            }
+
+            document.getElementById('btnShowQuick25')?.addEventListener('click', function() {
+                if (maxRemaining > 0) updateShowModalRupiahDisplay(Math.round(maxRemaining * 0.25));
+            });
             document.getElementById('btnShowQuick50')?.addEventListener('click', function() {
-                const max = {{ (int) $spk->remaining_production_cost }};
-                if (max > 0) document.getElementById('showModalInputAmount').value = Math.round(max * 0.5);
+                if (maxRemaining > 0) updateShowModalRupiahDisplay(Math.round(maxRemaining * 0.50));
+            });
+            document.getElementById('btnShowQuick75')?.addEventListener('click', function() {
+                if (maxRemaining > 0) updateShowModalRupiahDisplay(Math.round(maxRemaining * 0.75));
             });
             document.getElementById('btnShowQuickLunas')?.addEventListener('click', function() {
-                const max = {{ (int) $spk->remaining_production_cost }};
-                if (max > 0) document.getElementById('showModalInputAmount').value = max;
+                if (maxRemaining > 0) updateShowModalRupiahDisplay(maxRemaining);
             });
         });
 

@@ -453,7 +453,7 @@
                         @can('supplier-consignments.stock_card')
                             <a href="{{ route('supplier_consignments.stock_card') }}"
                                 class="nav-link py-1 {{ request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
-                                Kartu Stok Konsinyasi
+                                Kartu Stok Titipan Barang
                             </a>
                         @endcan
                         @can('supplier-consignments.settlement')

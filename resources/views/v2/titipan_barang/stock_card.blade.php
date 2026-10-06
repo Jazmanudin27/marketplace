@@ -1,10 +1,10 @@
 @extends('v2.layouts.app')
 
-@section('title', 'Kartu Stok & Persediaan Konsinyasi Supplier V2')
+@section('title', 'Kartu Stok Titipan Barang V2')
 
 @push('styles')
 <style>
-/* ─── Kartu Stok Konsinyasi V2 Styles ─── */
+/* ─── Kartu Stok Titipan Barang V2 Styles ─── */
 .ks-kpi-card {
     background: #ffffff;
     border: 1px solid #e5e7eb;
@@ -53,7 +53,7 @@
 <div class="v2-page-header align-items-center mb-3">
     <div>
         <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0">
-            <i class="bi bi-card-checklist text-info fs-5"></i> Kartu Stok & Persediaan Konsinyasi
+            <i class="bi bi-card-checklist text-info fs-5"></i> Kartu Stok Titipan Barang
         </h1>
         <p class="text-muted small mb-0 mt-1">Laporan mutasi persediaan, penjualan, sisa stok, setoran supplier, dan profit toko</p>
     </div>

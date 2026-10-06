@@ -311,17 +311,22 @@
 {{-- MODAL RECORD SPK INSTALLMENT PAYMENT --}}
 <div class="modal fade" id="modalRecordSpkPayment" tabindex="-1" aria-labelledby="modalRecordSpkPaymentLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
             <form id="formRecordSpkPayment" method="POST" action="">
                 @csrf
-                <div class="modal-header bg-warning text-dark py-3 px-4">
-                    <div>
-                        <h6 class="modal-title fw-bold mb-0" id="modalRecordSpkPaymentLabel">
-                            <i class="fas fa-wallet me-1"></i> Catat Cicilan Pembayaran Produksi
-                        </h6>
-                        <small class="text-dark opacity-75" id="modalSpkSubtitle">SPK #</small>
+                <div class="modal-header text-white py-3 px-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-bottom: 2px solid #f59e0b;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="p-2 rounded-3 d-flex align-items-center justify-content-center border" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3) !important; width: 42px; height: 42px;">
+                            <i class="fas fa-wallet text-warning fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="modal-title fw-bold text-white mb-0 fs-6" id="modalRecordSpkPaymentLabel">
+                                Catat Cicilan Pembayaran Produksi
+                            </h6>
+                            <small class="text-warning font-monospace fw-bold" id="modalSpkSubtitle">SPK #</small>
+                        </div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white opacity-75" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
                 <div class="modal-body p-4" style="background: #f8fafc;">
@@ -329,15 +334,15 @@
                     <div class="bg-white rounded-3 p-3 border mb-3 shadow-2xs">
                         <div class="row g-2 text-center">
                             <div class="col-4 border-end">
-                                <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 9.5px;">Target Ongkos</span>
+                                <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 9.5px;">🎯 Target Ongkos</span>
                                 <span class="fw-bold text-dark font-monospace" id="modalTargetCost">Rp 0</span>
                             </div>
                             <div class="col-4 border-end">
-                                <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 9.5px;">Sudah Dibayar</span>
+                                <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 9.5px;">✅ Sudah Dibayar</span>
                                 <span class="fw-bold text-success font-monospace" id="modalPaidCost">Rp 0</span>
                             </div>
                             <div class="col-4">
-                                <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 9.5px;">Sisa Tagihan</span>
+                                <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 9.5px;">⏳ Sisa Tagihan</span>
                                 <span class="fw-extrabold text-danger font-monospace" id="modalRemainingCost">Rp 0</span>
                             </div>
                         </div>
@@ -345,38 +350,50 @@
 
                     {{-- Form Fields --}}
                     <div class="mb-3">
-                        <label class="form-label fw-semibold text-dark small mb-1">
-                            Nominal Cicilan Pembayaran (Rp) <span class="text-danger">*</span>
+                        <label class="form-label fw-bold text-dark small mb-1 d-flex justify-content-between align-items-center">
+                            <span>Nominal Cicilan Pembayaran (Rp) <span class="text-danger">*</span></span>
+                            <span class="text-muted fw-normal" style="font-size: 11px;">Maks: <span id="modalMaxAmountText" class="fw-bold text-dark font-monospace">Rp 0</span></span>
                         </label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light fw-bold">Rp</span>
-                            <input type="number" name="amount" id="modalInputAmount"
-                                   class="form-control fw-extrabold fs-6 text-end font-monospace"
-                                   min="1" step="1" required placeholder="0">
+                        <div class="input-group input-group-lg shadow-2xs rounded-3 overflow-hidden border">
+                            <span class="input-group-text bg-light text-dark fw-extrabold px-3 border-0">Rp</span>
+                            <input type="text" id="modalInputAmountFormatted"
+                                   class="form-control fw-extrabold fs-5 text-end font-monospace text-primary border-0"
+                                   placeholder="0" required>
+                            <input type="hidden" name="amount" id="modalInputAmount">
                         </div>
-                        <div class="d-flex justify-content-between align-items-center mt-1">
-                            <div class="d-flex gap-1">
-                                <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2" id="btnQuick50" style="font-size: 11px;">
+
+                        {{-- Quick Percentage Buttons & Live Preview --}}
+                        <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+                            <div class="d-flex gap-1.5 flex-wrap">
+                                <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2.5 rounded-pill fw-semibold" id="btnQuick25" style="font-size: 11px;">
+                                    25%
+                                </button>
+                                <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2.5 rounded-pill fw-semibold" id="btnQuick50" style="font-size: 11px;">
                                     50%
                                 </button>
-                                <button type="button" class="btn btn-xs btn-outline-success py-0 px-2 fw-bold" id="btnQuickLunas" style="font-size: 11px;">
-                                    Pelunasan (100%)
+                                <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2.5 rounded-pill fw-semibold" id="btnQuick75" style="font-size: 11px;">
+                                    75%
+                                </button>
+                                <button type="button" class="btn btn-xs btn-outline-success py-1 px-2.5 rounded-pill fw-bold" id="btnQuickLunas" style="font-size: 11px;">
+                                    <i class="fas fa-check-circle me-1"></i>Pelunasan (100%)
                                 </button>
                             </div>
-                            <small class="text-muted" style="font-size: 11px;">Maks: <span id="modalMaxAmountText">Rp 0</span></small>
+                            <span id="modalRupiahLive" class="badge bg-success-subtle text-success border border-success-subtle fw-extrabold font-monospace py-1 px-2" style="font-size: 11.5px;">
+                                Rp 0
+                            </span>
                         </div>
                     </div>
 
                     <div class="row g-2 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark small mb-1">
-                                Tanggal Pembayaran <span class="text-danger">*</span>
+                                <i class="far fa-calendar-alt text-muted me-1"></i>Tanggal Pembayaran <span class="text-danger">*</span>
                             </label>
                             <input type="date" name="payment_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-dark small mb-1">
-                                Sumber Kas / Bank <span class="text-danger">*</span>
+                                <i class="fas fa-university text-muted me-1"></i>Sumber Kas / Bank <span class="text-danger">*</span>
                             </label>
                             <select name="payment_source" class="form-select form-select-sm" required>
                                 <option value="kas_besar" selected>Kas Besar (Main Cash)</option>
@@ -394,7 +411,9 @@
 
                     <div class="row g-2 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold text-dark small mb-1">Penerima / Vendor / Penjahit</label>
+                            <label class="form-label fw-semibold text-dark small mb-1">
+                                <i class="fas fa-user-tag text-muted me-1"></i>Penerima / Vendor / Penjahit
+                            </label>
                             <input type="text" name="recipient_name" id="modalRecipientInput"
                                    class="form-control form-control-sm"
                                    placeholder="Nama Vendor / Penjahit"
@@ -412,7 +431,9 @@
                             </datalist>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold text-dark small mb-1">Jenis Ongkos</label>
+                            <label class="form-label fw-semibold text-dark small mb-1">
+                                <i class="fas fa-tags text-muted me-1"></i>Jenis Ongkos
+                            </label>
                             <select name="payment_type" class="form-select form-select-sm">
                                 <option value="biaya_produksi" selected>Ongkos Jasa Produksi</option>
                                 <option value="jasa_jahit">Jasa Jahit</option>
@@ -426,15 +447,17 @@
                     </div>
 
                     <div class="mb-2">
-                        <label class="form-label fw-semibold text-dark small mb-1">Catatan / Keterangan</label>
+                        <label class="form-label fw-semibold text-dark small mb-1">
+                            <i class="fas fa-comment-alt text-muted me-1"></i>Catatan / Keterangan
+                        </label>
                         <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Catatan cicilan (opsional, misal: DP Jahit Tahap 1)..."></textarea>
                     </div>
                 </div>
 
                 <div class="modal-footer bg-light py-2 px-3 border-top">
-                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-sm btn-success fw-bold px-3">
-                        <i class="fas fa-save me-1"></i>Simpan Cicilan
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 rounded-2" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-success fw-bold px-4 rounded-2">
+                        <i class="fas fa-save me-1.5"></i>Simpan Cicilan
                     </button>
                 </div>
             </form>
@@ -446,6 +469,27 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let currentRemaining = 0;
+    const formattedInput = document.getElementById('modalInputAmountFormatted');
+    const hiddenInput = document.getElementById('modalInputAmount');
+    const rupiahLiveBadge = document.getElementById('modalRupiahLive');
+
+    function updateModalRupiahVal(val) {
+        let num = Math.min(Math.max(0, val), currentRemaining);
+        if (hiddenInput) hiddenInput.value = num;
+        if (formattedInput) formattedInput.value = num > 0 ? num.toLocaleString('id-ID') : '';
+        if (rupiahLiveBadge) rupiahLiveBadge.textContent = 'Rp ' + num.toLocaleString('id-ID');
+    }
+
+    if (formattedInput) {
+        formattedInput.addEventListener('input', function() {
+            let cleanStr = this.value.replace(/\D/g, '');
+            let val = parseInt(cleanStr, 10) || 0;
+            if (val > currentRemaining) val = currentRemaining;
+            this.value = val > 0 ? val.toLocaleString('id-ID') : '';
+            if (hiddenInput) hiddenInput.value = val;
+            if (rupiahLiveBadge) rupiahLiveBadge.textContent = 'Rp ' + val.toLocaleString('id-ID');
+        });
+    }
 
     // Trigger modal bayar cicilan
     document.querySelectorAll('.btn-record-pay').forEach(function(btn) {
@@ -466,9 +510,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modalRemainingCost').textContent = 'Rp ' + currentRemaining.toLocaleString('id-ID');
             document.getElementById('modalMaxAmountText').textContent = 'Rp ' + currentRemaining.toLocaleString('id-ID');
 
-            const amountInput = document.getElementById('modalInputAmount');
-            amountInput.max = currentRemaining;
-            amountInput.value = currentRemaining; // Default to full remaining
+            updateModalRupiahVal(currentRemaining);
 
             const modal = new bootstrap.Modal(document.getElementById('modalRecordSpkPayment'));
             modal.show();
@@ -476,16 +518,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Quick buttons
+    document.getElementById('btnQuick25')?.addEventListener('click', function() {
+        if (currentRemaining > 0) updateModalRupiahVal(Math.round(currentRemaining * 0.25));
+    });
+
     document.getElementById('btnQuick50')?.addEventListener('click', function() {
-        if (currentRemaining > 0) {
-            document.getElementById('modalInputAmount').value = Math.round(currentRemaining * 0.5);
-        }
+        if (currentRemaining > 0) updateModalRupiahVal(Math.round(currentRemaining * 0.50));
+    });
+
+    document.getElementById('btnQuick75')?.addEventListener('click', function() {
+        if (currentRemaining > 0) updateModalRupiahVal(Math.round(currentRemaining * 0.75));
     });
 
     document.getElementById('btnQuickLunas')?.addEventListener('click', function() {
-        if (currentRemaining > 0) {
-            document.getElementById('modalInputAmount').value = currentRemaining;
-        }
+        if (currentRemaining > 0) updateModalRupiahVal(currentRemaining);
     });
 });
 </script>
