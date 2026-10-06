@@ -83,31 +83,41 @@
 
         <!-- Marketplace & Sales -->
         <div class="v2-nav-section-title mt-2">MARKETPLACE & SALES</div>
-        <div class="v2-nav-item">
-            <a href="{{ Route::has('v2.pesanan.index') ? route('v2.pesanan.index') : (Route::has('orders.index') ? route('orders.index') : url('/orders')) }}"
-                class="v2-nav-link d-flex align-items-center justify-content-between {{ request()->is('v2/pesanan*') ? 'active' : '' }}">
+        @php
+            $isMarketingActive =
+                request()->is('v2/pesanan*') ||
+                request()->is('v2/retur*') ||
+                request()->is('orders*') ||
+                request()->is('returns*');
+        @endphp
+        <div class="v2-nav-item v2-nav-dropdown {{ $isMarketingActive ? 'show' : '' }}">
+            <a href="javascript:void(0)"
+                class="v2-nav-link v2-dropdown-toggle d-flex align-items-center justify-content-between {{ $isMarketingActive ? 'active' : '' }}"
+                data-bs-toggle="collapse" data-bs-target="#marketingSubmenu"
+                aria-expanded="{{ $isMarketingActive ? 'true' : 'false' }}">
                 <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-cart-check-fill"></i>
-                    <span>Pesanan Masuk</span>
+                    <i class="bi bi-megaphone-fill text-danger"></i>
+                    <span>Marketing</span>
                 </div>
-                <span class="badge bg-danger rounded-pill py-0.5 px-1.5" style="font-size: 0.62rem;">Live</span>
+                <i class="bi bi-chevron-down v2-dropdown-arrow ms-auto" style="font-size: 0.65rem;"></i>
             </a>
-        </div>
-        <div class="v2-nav-item">
-            <a href="{{ Route::has('v2.retur.index') ? route('v2.retur.index') : (Route::has('returns.index') ? route('returns.index') : url('/returns')) }}"
-                class="v2-nav-link d-flex align-items-center justify-content-between {{ request()->is('v2/retur*') || request()->is('returns*') ? 'active' : '' }}">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-arrow-counterclockwise"></i>
-                    <span>Pesanan Retur</span>
+            <div class="collapse v2-submenu {{ $isMarketingActive ? 'show' : '' }}" id="marketingSubmenu">
+                <div class="v2-submenu-inner">
+                    <a href="{{ Route::has('v2.pesanan.index') ? route('v2.pesanan.index') : (Route::has('orders.index') ? route('orders.index') : url('/orders')) }}"
+                        class="v2-submenu-link d-flex align-items-center justify-content-between {{ request()->is('v2/pesanan*') || request()->is('orders*') ? 'active' : '' }}">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-cart-check-fill text-success me-1.5"></i>
+                            <span>Pesanan Masuk</span>
+                        </div>
+                        <span class="badge bg-danger rounded-pill py-0.5 px-1.5" style="font-size: 0.62rem;">Live</span>
+                    </a>
+                    <a href="{{ Route::has('v2.retur.index') ? route('v2.retur.index') : (Route::has('returns.index') ? route('returns.index') : url('/returns')) }}"
+                        class="v2-submenu-link {{ request()->is('v2/retur*') || request()->is('returns*') ? 'active' : '' }}">
+                        <i class="bi bi-arrow-counterclockwise text-warning me-1.5"></i>
+                        <span>Pesanan Retur</span>
+                    </a>
                 </div>
-            </a>
-        </div>
-        <div class="v2-nav-item">
-            <a href="{{ url('/v2/toko') }}"
-                class="v2-nav-link {{ request()->is('v2/toko*') || request()->is('stores*') ? 'active' : '' }}">
-                <i class="bi bi-shop"></i>
-                <span>Toko Terhubung</span>
-            </a>
+            </div>
         </div>
         <div class="v2-nav-item">
             <a href="{{ url('/v2/marketplace-produk') }}"
@@ -293,6 +303,23 @@
                     </a>
                 </div>
             </div>
+        </div>
+
+        <!-- Pengaturan -->
+        <div class="v2-nav-section-title mt-2">PENGATURAN</div>
+        <div class="v2-nav-item">
+            <a href="{{ url('/v2/toko') }}"
+                class="v2-nav-link d-flex align-items-center gap-2 {{ request()->is('v2/toko*') || request()->is('stores*') ? 'active' : '' }}">
+                <i class="bi bi-shop text-primary"></i>
+                <span>Toko Terhubung</span>
+            </a>
+        </div>
+        <div class="v2-nav-item">
+            <a href="{{ Route::has('settings.users.index') ? route('settings.users.index') : (Route::has('users.index') ? route('users.index') : url('/settings')) }}"
+                class="v2-nav-link d-flex align-items-center gap-2 {{ request()->is('settings*') || request()->is('users*') ? 'active' : '' }}">
+                <i class="bi bi-gear text-secondary"></i>
+                <span>Pengaturan Akun</span>
+            </a>
         </div>
     </nav>
 
