@@ -18,8 +18,7 @@ class DashboardController extends Controller
         $today = Carbon::today();
         $thisMonth = Carbon::now()->startOfMonth();
 
-        // Filter Parameters for Omset Chart & Analytics
-        $selectedMonth = (int) $request->input('month', date('n'));
+        // Filter Parameters for Omset Chart & Analytics (Per Tahun)
         $selectedYear  = (int) $request->input('year', date('Y'));
         $selectedStore = $request->input('store_id');
 
@@ -50,7 +49,7 @@ class DashboardController extends Controller
             ->where('tenant_id', $tenantId)
             ->get();
 
-        // 3. Omset Chart Query (Harian per Bulan & Tahun & Toko Terpilih)
+        // 3. Omset Chart Query (Bulanan per Tahun & Toko Terpilih)
         $availableYears = Order::where('tenant_id', $tenantId)
             ->selectRaw('YEAR(created_at) as year')
             ->distinct()
@@ -65,38 +64,41 @@ class DashboardController extends Controller
             array_unshift($availableYears, (int) date('Y'));
         }
 
-        $daysInMonth = Carbon::createFromDate($selectedYear, $selectedMonth, 1)->daysInMonth;
-
         $chartQuery = Order::where('tenant_id', $tenantId)
-            ->whereYear('created_at', $selectedYear)
-            ->whereMonth('created_at', $selectedMonth);
+            ->whereYear('created_at', $selectedYear);
 
         if (!empty($selectedStore)) {
             $chartQuery->where('store_id', $selectedStore);
         }
 
-        $salesByDay = (clone $chartQuery)
-            ->selectRaw('DAY(created_at) as day, SUM(total_amount) as total_sales')
-            ->groupBy('day')
-            ->pluck('total_sales', 'day')
+        $salesByMonth = (clone $chartQuery)
+            ->selectRaw('MONTH(created_at) as month, SUM(total_amount) as total_sales')
+            ->groupBy('month')
+            ->pluck('total_sales', 'month')
             ->toArray();
 
-        $ordersByDay = (clone $chartQuery)
-            ->selectRaw('DAY(created_at) as day, COUNT(*) as total_orders')
-            ->groupBy('day')
-            ->pluck('total_orders', 'day')
+        $ordersByMonth = (clone $chartQuery)
+            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total_orders')
+            ->groupBy('month')
+            ->pluck('total_orders', 'month')
             ->toArray();
 
-        $chartLabels     = [];
-        $chartSalesData  = [];
-        $chartOrdersData = [];
+        $monthNames = [
+            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+            5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu',
+            9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'
+        ];
+
+        $chartLabels       = [];
+        $chartSalesData    = [];
+        $chartOrdersData   = [];
         $periodTotalSales  = 0;
         $periodTotalOrders = 0;
 
-        for ($d = 1; $d <= $daysInMonth; $d++) {
-            $chartLabels[] = sprintf('%02d/%02d', $d, $selectedMonth);
-            $salesVal  = (float) ($salesByDay[$d] ?? 0);
-            $ordersVal = (int) ($ordersByDay[$d] ?? 0);
+        for ($m = 1; $m <= 12; $m++) {
+            $chartLabels[]     = $monthNames[$m];
+            $salesVal          = (float) ($salesByMonth[$m] ?? 0);
+            $ordersVal         = (int) ($ordersByMonth[$m] ?? 0);
 
             $chartSalesData[]  = $salesVal;
             $chartOrdersData[] = $ordersVal;
@@ -132,7 +134,6 @@ class DashboardController extends Controller
             'connectedStores',
             'recentOrders',
             'lowStockProducts',
-            'selectedMonth',
             'selectedYear',
             'selectedStore',
             'availableYears',

@@ -141,30 +141,11 @@
             <h6 class="v2-card-title d-flex align-items-center gap-2 mb-0 text-dark fw-bold">
                 <i class="bi bi-graph-up-arrow text-primary fs-5"></i> Grafik Omset Penjualan &amp; Analytics
             </h6>
-            <small class="text-muted" style="font-size: 11px;">Tren penjualan harian berdasarkan filter bulan, tahun, dan toko marketplace</small>
+            <small class="text-muted" style="font-size: 11px;">Tren penjualan bulanan (Jan - Des) berdasarkan filter tahun dan toko marketplace</small>
         </div>
 
         {{-- Filter Form --}}
         <form method="GET" action="{{ url('/v2/dashboard') }}" class="d-flex align-items-center gap-2 flex-wrap m-0">
-            {{-- Filter Bulan --}}
-            <div class="d-flex align-items-center gap-1">
-                <label class="form-label form-label-sm fw-semibold mb-0 text-muted" style="font-size: 11px;">Bulan:</label>
-                @php
-                    $monthsMap = [
-                        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-                        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-                        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
-                    ];
-                @endphp
-                <select name="month" class="form-select form-select-sm fw-semibold text-dark no-select2" style="font-size: 11.5px; width: 120px;">
-                    @foreach($monthsMap as $mNum => $mName)
-                        <option value="{{ $mNum }}" {{ (int)$selectedMonth === $mNum ? 'selected' : '' }}>
-                            {{ $mName }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
             {{-- Filter Tahun --}}
             <div class="d-flex align-items-center gap-1">
                 <label class="form-label form-label-sm fw-semibold mb-0 text-muted" style="font-size: 11px;">Tahun:</label>
@@ -193,7 +174,7 @@
             <button type="submit" class="btn btn-sm btn-primary py-1 px-3 fw-bold shadow-2xs">
                 <i class="bi bi-filter me-1"></i>Filter
             </button>
-            @if(request()->has('month') || request()->has('year') || request()->has('store_id'))
+            @if(request()->has('year') || request()->has('store_id'))
                 <a href="{{ url('/v2/dashboard') }}" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Reset Filter">
                     <i class="bi bi-x-lg"></i>
                 </a>
@@ -210,7 +191,7 @@
                         <i class="bi bi-cash-stack fs-4"></i>
                     </div>
                     <div>
-                        <span class="text-muted d-block text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing: 0.5px;">Total Omset Periode Ini</span>
+                        <span class="text-muted d-block text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing: 0.5px;">Total Omset {{ $selectedYear }}</span>
                         <h6 class="fw-extrabold text-primary font-monospace mb-0" style="font-size: 1.15rem;">
                             Rp {{ number_format($periodTotalSales, 0, ',', '.') }}
                         </h6>
@@ -236,9 +217,9 @@
                         <i class="bi bi-speedometer fs-4"></i>
                     </div>
                     <div>
-                        <span class="text-muted d-block text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing: 0.5px;">Rata-rata Harian</span>
+                        <span class="text-muted d-block text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing: 0.5px;">Rata-rata Bulanan</span>
                         <h6 class="fw-extrabold text-dark font-monospace mb-0" style="font-size: 1.15rem;">
-                            Rp {{ number_format($periodTotalSales / max(1, count($chartLabels)), 0, ',', '.') }}
+                            Rp {{ number_format($periodTotalSales / 12, 0, ',', '.') }}
                         </h6>
                     </div>
                 </div>
