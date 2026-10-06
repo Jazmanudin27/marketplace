@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\V2;
 
 use App\Http\Controllers\Inventory\SpkController as BaseSpkController;
+use App\Models\Spk;
 use Illuminate\Http\Request;
 
 class SpkController extends BaseSpkController
@@ -42,7 +43,7 @@ class SpkController extends BaseSpkController
     /**
      * Display V2 SPK Produksi Show/Detail Page.
      */
-    public function show($spk)
+    public function show(Spk $spk)
     {
         $response = parent::show($spk);
 
@@ -94,7 +95,7 @@ class SpkController extends BaseSpkController
     /**
      * Display V2 Scan Pickup Page.
      */
-    public function scanPickupPage($spk)
+    public function scanPickupPage(Spk $spk)
     {
         $response = parent::scanPickupPage($spk);
 
