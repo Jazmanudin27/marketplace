@@ -134,6 +134,122 @@
             <i class="bi bi-exclamation-octagon position-absolute" style="right: -10px; bottom: -15px; font-size: 5.5rem; color: rgba(255, 255, 255, 0.12); pointer-events: none; transform: rotate(-10deg);"></i>
         </div>
     </div>
+<!-- Grafik Analitik Omset Penjualan & Filter (Bulan, Tahun, Toko) -->
+<div class="v2-card mb-3 shadow-sm border rounded-3 bg-white">
+    <div class="v2-card-header bg-white py-3 px-3.5 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+            <h6 class="v2-card-title d-flex align-items-center gap-2 mb-0 text-dark fw-bold">
+                <i class="bi bi-graph-up-arrow text-primary fs-5"></i> Grafik Omset Penjualan &amp; Analytics
+            </h6>
+            <small class="text-muted" style="font-size: 11px;">Tren penjualan harian berdasarkan filter bulan, tahun, dan toko marketplace</small>
+        </div>
+
+        {{-- Filter Form --}}
+        <form method="GET" action="{{ url('/v2/dashboard') }}" class="d-flex align-items-center gap-2 flex-wrap m-0">
+            {{-- Filter Bulan --}}
+            <div class="d-flex align-items-center gap-1">
+                <label class="form-label form-label-sm fw-semibold mb-0 text-muted" style="font-size: 11px;">Bulan:</label>
+                @php
+                    $monthsMap = [
+                        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                    ];
+                @endphp
+                <select name="month" class="form-select form-select-sm fw-semibold text-dark no-select2" style="font-size: 11.5px; width: 120px;">
+                    @foreach($monthsMap as $mNum => $mName)
+                        <option value="{{ $mNum }}" {{ (int)$selectedMonth === $mNum ? 'selected' : '' }}>
+                            {{ $mName }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Filter Tahun --}}
+            <div class="d-flex align-items-center gap-1">
+                <label class="form-label form-label-sm fw-semibold mb-0 text-muted" style="font-size: 11px;">Tahun:</label>
+                <select name="year" class="form-select form-select-sm fw-semibold text-dark no-select2" style="font-size: 11.5px; width: 95px;">
+                    @foreach($availableYears as $yVal)
+                        <option value="{{ $yVal }}" {{ (int)$selectedYear === (int)$yVal ? 'selected' : '' }}>
+                            {{ $yVal }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Filter Toko --}}
+            <div class="d-flex align-items-center gap-1">
+                <label class="form-label form-label-sm fw-semibold mb-0 text-muted" style="font-size: 11px;">Toko:</label>
+                <select name="store_id" class="form-select form-select-sm fw-semibold text-dark no-select2" style="font-size: 11.5px; max-width: 170px;">
+                    <option value="">-- Semua Toko --</option>
+                    @foreach($connectedStores as $st)
+                        <option value="{{ $st->id }}" {{ (string)$selectedStore === (string)$st->id ? 'selected' : '' }}>
+                            {{ $st->store_name }} ({{ $st->channel->name ?? 'Marketplace' }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-sm btn-primary py-1 px-3 fw-bold shadow-2xs">
+                <i class="bi bi-filter me-1"></i>Filter
+            </button>
+            @if(request()->has('month') || request()->has('year') || request()->has('store_id'))
+                <a href="{{ url('/v2/dashboard') }}" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Reset Filter">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            @endif
+        </form>
+    </div>
+
+    <div class="v2-card-body p-3">
+        {{-- Periode KPI Summary Strip --}}
+        <div class="row g-2 mb-3">
+            <div class="col-12 col-md-4">
+                <div class="p-2.5 rounded-3 bg-light border d-flex align-items-center gap-2.5">
+                    <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3">
+                        <i class="bi bi-cash-stack fs-4"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted d-block text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing: 0.5px;">Total Omset Periode Ini</span>
+                        <h6 class="fw-extrabold text-primary font-monospace mb-0" style="font-size: 1.15rem;">
+                            Rp {{ number_format($periodTotalSales, 0, ',', '.') }}
+                        </h6>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="p-2.5 rounded-3 bg-light border d-flex align-items-center gap-2.5">
+                    <div class="p-2 bg-success bg-opacity-10 text-success rounded-3">
+                        <i class="bi bi-bag-check-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted d-block text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing: 0.5px;">Total Volume Pesanan</span>
+                        <h6 class="fw-extrabold text-success font-monospace mb-0" style="font-size: 1.15rem;">
+                            {{ number_format($periodTotalOrders) }} <small class="fs-6 fw-normal text-muted">Order</small>
+                        </h6>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="p-2.5 rounded-3 bg-light border d-flex align-items-center gap-2.5">
+                    <div class="p-2 bg-warning bg-opacity-10 text-warning-emphasis rounded-3">
+                        <i class="bi bi-speedometer fs-4"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted d-block text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing: 0.5px;">Rata-rata Harian</span>
+                        <h6 class="fw-extrabold text-dark font-monospace mb-0" style="font-size: 1.15rem;">
+                            Rp {{ number_format($periodTotalSales / max(1, count($chartLabels)), 0, ',', '.') }}
+                        </h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Canvas Container --}}
+        <div style="position: relative; height: 280px; width: 100%;">
+            <canvas id="omsetChartCanvas"></canvas>
+        </div>
+    </div>
 </div>
 
 <!-- Marketplace Store Hub Integrasi -->
@@ -301,3 +417,137 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('omsetChartCanvas');
+    if (!ctx) return;
+
+    const labels = @json($chartLabels);
+    const salesData = @json($chartSalesData);
+    const ordersData = @json($chartOrdersData);
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Omset Penjualan (Rp)',
+                    data: salesData,
+                    borderColor: '#0284c7',
+                    backgroundColor: 'rgba(2, 132, 199, 0.08)',
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.35,
+                    pointBackgroundColor: '#0284c7',
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Jumlah Pesanan (Trx)',
+                    data: ordersData,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.0)',
+                    borderWidth: 2,
+                    borderDash: [4, 4],
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#10b981',
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        font: {
+                            size: 11,
+                            family: "'Inter', sans-serif"
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            let label = context.dataset.label || '';
+                            if (label) label += ': ';
+                            if (context.datasetIndex === 0) {
+                                label += 'Rp ' + new Intl.NumberFormat('id-ID').format(context.raw);
+                            } else {
+                                label += new Intl.NumberFormat('id-ID').format(context.raw) + ' Trx';
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 10
+                        }
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        font: { size: 10 },
+                        callback: function (value) {
+                            if (value >= 1000000) {
+                                return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+                            } else if (value >= 1000) {
+                                return 'Rp ' + (value / 1000).toFixed(0) + 'k';
+                            }
+                            return 'Rp ' + value;
+                        }
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    ticks: {
+                        font: { size: 10 },
+                        callback: function (value) {
+                            return value + ' Trx';
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+@endpush
+

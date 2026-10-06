@@ -18,6 +18,11 @@ class DashboardController extends Controller
         $today = Carbon::today();
         $thisMonth = Carbon::now()->startOfMonth();
 
+        // Filter Parameters for Omset Chart & Analytics
+        $selectedMonth = (int) $request->input('month', date('n'));
+        $selectedYear  = (int) $request->input('year', date('Y'));
+        $selectedStore = $request->input('store_id');
+
         // 1. Stat Summary Metrics
         $todaySales = Order::where('tenant_id', $tenantId)
             ->whereDate('created_at', $today)
@@ -40,19 +45,73 @@ class DashboardController extends Controller
             ->whereColumn('stock', '<=', 'min_stock')
             ->count();
 
-        // 2. Connected Marketplace Stores Status
+        // 2. Connected Marketplace Stores
         $connectedStores = Store::with('channel')
             ->where('tenant_id', $tenantId)
             ->get();
 
-        // 3. Recent Transactions & Orders (High Density Table)
+        // 3. Omset Chart Query (Harian per Bulan & Tahun & Toko Terpilih)
+        $availableYears = Order::where('tenant_id', $tenantId)
+            ->selectRaw('YEAR(created_at) as year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->toArray();
+
+        if (empty($availableYears)) {
+            $availableYears = [(int) date('Y')];
+        }
+        if (!in_array((int) date('Y'), $availableYears)) {
+            array_unshift($availableYears, (int) date('Y'));
+        }
+
+        $daysInMonth = Carbon::createFromDate($selectedYear, $selectedMonth, 1)->daysInMonth;
+
+        $chartQuery = Order::where('tenant_id', $tenantId)
+            ->whereYear('created_at', $selectedYear)
+            ->whereMonth('created_at', $selectedMonth);
+
+        if (!empty($selectedStore)) {
+            $chartQuery->where('store_id', $selectedStore);
+        }
+
+        $salesByDay = (clone $chartQuery)
+            ->selectRaw('DAY(created_at) as day, SUM(total_amount) as total_sales')
+            ->groupBy('day')
+            ->pluck('total_sales', 'day')
+            ->toArray();
+
+        $ordersByDay = (clone $chartQuery)
+            ->selectRaw('DAY(created_at) as day, COUNT(*) as total_orders')
+            ->groupBy('day')
+            ->pluck('total_orders', 'day')
+            ->toArray();
+
+        $chartLabels     = [];
+        $chartSalesData  = [];
+        $chartOrdersData = [];
+        $periodTotalSales  = 0;
+        $periodTotalOrders = 0;
+
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $chartLabels[] = sprintf('%02d/%02d', $d, $selectedMonth);
+            $salesVal  = (float) ($salesByDay[$d] ?? 0);
+            $ordersVal = (int) ($ordersByDay[$d] ?? 0);
+
+            $chartSalesData[]  = $salesVal;
+            $chartOrdersData[] = $ordersVal;
+            $periodTotalSales  += $salesVal;
+            $periodTotalOrders += $ordersVal;
+        }
+
+        // 4. Recent Transactions & Orders (High Density Table)
         $recentOrders = Order::with(['store.channel'])
             ->where('tenant_id', $tenantId)
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
 
-        // 4. Low Stock Warning Items
+        // 5. Low Stock Warning Items
         $lowStockProducts = MasterProduct::where('tenant_id', $tenantId)
             ->whereColumn('stock', '<=', 'min_stock')
             ->orderBy('stock', 'asc')
@@ -72,7 +131,16 @@ class DashboardController extends Controller
             'stats',
             'connectedStores',
             'recentOrders',
-            'lowStockProducts'
+            'lowStockProducts',
+            'selectedMonth',
+            'selectedYear',
+            'selectedStore',
+            'availableYears',
+            'chartLabels',
+            'chartSalesData',
+            'chartOrdersData',
+            'periodTotalSales',
+            'periodTotalOrders'
         ));
     }
 }
