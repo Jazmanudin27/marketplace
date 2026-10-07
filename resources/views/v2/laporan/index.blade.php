@@ -15,28 +15,28 @@
 .filter-box-header {
     background: #f0fdf4;
     border-bottom: 1px solid #dcfce7;
-    padding: 12px 18px;
+    padding: 10px 16px;
 }
 .filter-box-header-blue {
     background: #eff6ff;
     border-bottom: 1px solid #dbeafe;
-    padding: 12px 18px;
+    padding: 10px 16px;
 }
 
 /* Form Group Spacing */
 .filter-form-group {
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.95rem;
 }
 .filter-form-group label {
     display: block;
-    margin-bottom: 0.45rem;
-    font-size: 0.82rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    line-height: 1.3;
+    line-height: 1.25;
 }
 .filter-form-group .form-select,
 .filter-form-group .form-control {
-    padding: 0.45rem 0.75rem;
+    padding: 0.4rem 0.75rem;
     font-size: 0.84rem;
     border-radius: 6px;
 }
@@ -46,10 +46,10 @@
     border-bottom: 2px solid #e2e8f0;
     display: flex;
     gap: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 .v2-tab-item {
-    padding: 10px 20px;
+    padding: 9px 18px;
     font-size: 0.85rem;
     font-weight: 700;
     color: #64748b;
@@ -95,12 +95,12 @@
     <div class="col-12 col-md-8 col-lg-6">
         <div class="filter-box-card">
             <div class="filter-box-header d-flex align-items-center justify-content-between">
-                <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2" style="font-size:0.88rem;">
+                <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2" style="font-size:0.86rem;">
                     <i class="bi bi-funnel-fill text-success"></i>
                     <span>Filter Penjualan Dilepas (Escrow Released)</span>
                 </h6>
             </div>
-            <div class="p-3.5" style="padding: 20px;">
+            <div class="p-3.5" style="padding: 16px 18px;">
                 <form id="releasedFilterForm" action="{{ route('reports.released_sales.print') }}" method="GET" target="_blank">
                     <input type="hidden" name="tab" value="dilepas">
 
@@ -113,28 +113,6 @@
                             <option value="per_channel" {{ $reportFormat === 'per_channel' ? 'selected' : '' }}>🏪 Laporan Per Channel Marketplace (Dilepas)</option>
                             <option value="detail" {{ $reportFormat === 'detail' ? 'selected' : '' }}>📑 Laporan Detail Transaksi (Dilepas)</option>
                             <option value="per_tanggal" {{ $reportFormat === 'per_tanggal' ? 'selected' : '' }}>📅 Laporan Per Tanggal (Dilepas)</option>
-                        </select>
-                    </div>
-
-                    {{-- Kategori Produk --}}
-                    <div class="filter-form-group">
-                        <label class="form-label text-muted">Kategori Produk</label>
-                        <select name="category_id" class="form-select form-select-sm v2-input">
-                            <option value="">Semua Kategori</option>
-                            @foreach ($categories as $category)
-                                <option value="{{ $category->id }}" {{ $categoryId == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- Merk --}}
-                    <div class="filter-form-group">
-                        <label class="form-label text-muted">Merk</label>
-                        <select name="brand_id" class="form-select form-select-sm v2-input">
-                            <option value="">Semua Merk</option>
-                            @foreach ($brands as $brand)
-                                <option value="{{ $brand->id }}" {{ $brandId == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
-                            @endforeach
                         </select>
                     </div>
 
@@ -152,7 +130,7 @@
                     </div>
 
                     {{-- Rentang Tanggal --}}
-                    <div class="row g-2.5 filter-form-group mb-4">
+                    <div class="row g-2 filter-form-group mb-3">
                         <div class="col-6">
                             <label class="form-label text-success">
                                 <i class="bi bi-calendar-check me-1"></i>Dari Tanggal (Dilepas / Cair)
@@ -168,7 +146,7 @@
                     </div>
 
                     {{-- Action Buttons Matching Screenshot --}}
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2.5 border-top">
                         <button type="button" class="btn btn-sm btn-outline-success fw-bold px-3 py-1.5" onclick="exportReleasedCsv()">
                             <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
                         </button>
@@ -188,12 +166,12 @@
     <div class="col-12 col-md-8 col-lg-6">
         <div class="filter-box-card">
             <div class="filter-box-header-blue d-flex align-items-center justify-content-between">
-                <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2" style="font-size:0.88rem;">
+                <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2" style="font-size:0.86rem;">
                     <i class="bi bi-funnel-fill text-primary"></i>
                     <span>Filter Rekap Penjualan (Semua)</span>
                 </h6>
             </div>
-            <div class="p-3.5" style="padding: 20px;">
+            <div class="p-3.5" style="padding: 16px 18px;">
                 <form id="salesFilterForm" action="{{ route('reports.sales.print') }}" method="GET" target="_blank">
                     <input type="hidden" name="tab" value="semua">
 
@@ -206,28 +184,6 @@
                             <option value="detail" {{ $reportFormat === 'detail' ? 'selected' : '' }}>📑 Laporan Detail Transaksi</option>
                             <option value="per_tanggal" {{ $reportFormat === 'per_tanggal' ? 'selected' : '' }}>📅 Laporan Per Tanggal</option>
                             <option value="per_kategori_pelanggan" {{ $reportFormat === 'per_kategori_pelanggan' ? 'selected' : '' }}>👥 Laporan Per Kategori Pelanggan</option>
-                        </select>
-                    </div>
-
-                    {{-- Kategori Produk --}}
-                    <div class="filter-form-group">
-                        <label class="form-label text-muted">Kategori Produk</label>
-                        <select name="category_id" class="form-select form-select-sm v2-input">
-                            <option value="">Semua Kategori</option>
-                            @foreach ($categories as $category)
-                                <option value="{{ $category->id }}" {{ $categoryId == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- Merk --}}
-                    <div class="filter-form-group">
-                        <label class="form-label text-muted">Merk</label>
-                        <select name="brand_id" class="form-select form-select-sm v2-input">
-                            <option value="">Semua Merk</option>
-                            @foreach ($brands as $brand)
-                                <option value="{{ $brand->id }}" {{ $brandId == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
-                            @endforeach
                         </select>
                     </div>
 
@@ -293,7 +249,7 @@
                     </div>
 
                     {{-- Rentang Tanggal --}}
-                    <div class="row g-2.5 filter-form-group mb-4">
+                    <div class="row g-2 filter-form-group mb-3">
                         <div class="col-6">
                             <label class="form-label text-primary">
                                 <i class="bi bi-calendar-check me-1"></i>Dari Tanggal Order
@@ -309,7 +265,7 @@
                     </div>
 
                     {{-- Action Buttons Matching Screenshot --}}
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2.5 border-top">
                         <button type="button" class="btn btn-sm btn-outline-primary fw-bold px-3 py-1.5" onclick="exportSalesCsv()">
                             <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
                         </button>
