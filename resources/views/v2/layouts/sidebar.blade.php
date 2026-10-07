@@ -106,7 +106,9 @@
                 request()->is('spks*') ||
                 request()->is('orders*') ||
                 request()->is('returns*') ||
-                request()->is('offline-sales*');
+                request()->is('offline-sales*') ||
+                request()->is('reports/released-sales*') ||
+                request()->is('reports/sales*');
         @endphp
         <div class="v2-nav-item v2-nav-dropdown {{ $isMarketingActive ? 'show' : '' }}">
             <a href="javascript:void(0)"
@@ -143,6 +145,11 @@
                         class="v2-submenu-link {{ request()->is('v2/spk*') || request()->is('spks*') || request()->routeIs('v2.spk.*') ? 'active' : '' }}">
                         <i class="bi bi-tools text-warning me-1.5"></i>
                         <span>SPK</span>
+                    </a>
+                    <a href="{{ Route::has('reports.released_sales') ? route('reports.released_sales') : url('/reports/released-sales') }}"
+                        class="v2-submenu-link {{ request()->is('reports/released-sales*') || request()->is('reports/sales*') ? 'active' : '' }}">
+                        <i class="bi bi-file-earmark-bar-graph text-info me-1.5"></i>
+                        <span>Laporan</span>
                     </a>
                 </div>
             </div>
