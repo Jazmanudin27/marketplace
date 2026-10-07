@@ -304,6 +304,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/spk/{spk}/scan-pickup', [\App\Http\Controllers\V2\SpkController::class, 'scanPickupPage'])->name('spk.scan_pickup');
         Route::post('/spk/{spk}/scan-pickup', [\App\Http\Controllers\V2\SpkController::class, 'processScanPickup'])->name('spk.process_scan_pickup');
 
+        // Laporan Penjualan V2
+        Route::get('/laporan', [\App\Http\Controllers\V2\LaporanPenjualanController::class, 'index'])->name('laporan.index');
+        Route::get('/laporan-penjualan', [\App\Http\Controllers\V2\LaporanPenjualanController::class, 'index']);
+
         // Titipan Barang (Supplier Consignment) V2
         Route::prefix('titipan-barang')->name('titipan_barang.')->group(function () {
             Route::get('/', [\App\Http\Controllers\V2\TitipanBarangController::class, 'index'])->name('index');
