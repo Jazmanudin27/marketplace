@@ -229,6 +229,10 @@ Route::middleware('auth')->group(function () {
         // Pesanan Masuk V2
         Route::get('/pesanan', [\App\Http\Controllers\V2\PesananController::class, 'index'])->name('pesanan.index');
 
+        // Penjualan Offline (POS Store) V2
+        Route::get('/penjualan-offline', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'index'])->name('penjualan_offline.index');
+        Route::get('/penjualan-offline/{id}', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'show'])->name('penjualan_offline.show');
+
         // Pesanan Retur V2
         Route::get('/retur', [\App\Http\Controllers\V2\ReturController::class, 'index'])->name('retur.index');
         Route::get('/retur/export', [\App\Http\Controllers\V2\ReturController::class, 'export'])->name('retur.export');

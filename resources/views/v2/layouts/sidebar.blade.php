@@ -94,11 +94,13 @@
         @php
             $isMarketingActive =
                 request()->is('v2/pesanan*') ||
+                request()->is('v2/penjualan-offline*') ||
                 request()->is('v2/retur*') ||
                 request()->is('v2/spk*') ||
                 request()->is('spks*') ||
                 request()->is('orders*') ||
-                request()->is('returns*');
+                request()->is('returns*') ||
+                request()->is('offline-sales*');
         @endphp
         <div class="v2-nav-item v2-nav-dropdown {{ $isMarketingActive ? 'show' : '' }}">
             <a href="javascript:void(0)"
@@ -107,7 +109,7 @@
                 aria-expanded="{{ $isMarketingActive ? 'true' : 'false' }}">
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-megaphone-fill text-danger"></i>
-                    <span>Marketing</span>
+                    <span>Marketplace & POS</span>
                 </div>
                 <i class="bi bi-chevron-down v2-dropdown-arrow ms-auto" style="font-size: 0.65rem;"></i>
             </a>
@@ -120,6 +122,11 @@
                             <span>Pesanan Masuk</span>
                         </div>
                         <span class="badge bg-danger rounded-pill py-0.5 px-1.5" style="font-size: 0.62rem;">Live</span>
+                    </a>
+                    <a href="{{ route('v2.penjualan_offline.index') }}"
+                        class="v2-submenu-link {{ request()->is('v2/penjualan-offline*') || request()->is('offline-sales*') ? 'active' : '' }}">
+                        <i class="bi bi-shop-window text-primary me-1.5"></i>
+                        <span>Penjualan Offline</span>
                     </a>
                     <a href="{{ Route::has('v2.retur.index') ? route('v2.retur.index') : (Route::has('returns.index') ? route('returns.index') : url('/returns')) }}"
                         class="v2-submenu-link {{ request()->is('v2/retur*') || request()->is('returns*') ? 'active' : '' }}">
