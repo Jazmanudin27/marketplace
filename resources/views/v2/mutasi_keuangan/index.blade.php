@@ -173,18 +173,18 @@
 {{-- ── Filter Section ── --}}
 <div class="v2-card p-3 mb-3 shadow-sm">
     <form method="GET" action="{{ route('v2.mutasi_keuangan.index') }}" class="row g-2 align-items-end">
-        <div class="col-6 col-md-1.5" style="width: 13.5%;">
+        <div class="col-6 col-md-4 col-xl-2">
             <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Dari Tanggal</label>
-            <input type="date" name="date_from" value="{{ $dateFrom }}" class="form-control form-control-sm px-1.5" style="font-size: 0.78rem;">
+            <input type="date" name="date_from" value="{{ $dateFrom }}" class="form-control form-control-sm px-2" style="font-size: 0.78rem;">
         </div>
-        <div class="col-6 col-md-1.5" style="width: 13.5%;">
+        <div class="col-6 col-md-4 col-xl-2">
             <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Sampai Tanggal</label>
-            <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control form-control-sm px-1.5" style="font-size: 0.78rem;">
+            <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control form-control-sm px-2" style="font-size: 0.78rem;">
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-md-4 col-xl-2">
             <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Akun Kas / Bank</label>
             <select name="account" class="form-select form-select-sm" style="font-size: 0.78rem;">
-                <option value="all" {{ $account === 'all' ? 'selected' : '' }}>Semua Akun Kas / Bank</option>
+                <option value="all" {{ $account === 'all' ? 'selected' : '' }}>Semua Akun Kas/Bank</option>
                 @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
                     @foreach($bankAccounts as $bank)
                         <option value="{{ $bank->bank_name }}" {{ strcasecmp((string)$account, (string)$bank->bank_name) === 0 || (string)$account === (string)$bank->id ? 'selected' : '' }}>
@@ -197,7 +197,7 @@
                 @endif
             </select>
         </div>
-        <div class="col-6 col-md-2.5">
+        <div class="col-6 col-md-4 col-xl-2">
             <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Kategori Keuangan</label>
             <select name="category" class="form-select form-select-sm" style="font-size: 0.78rem;">
                 <option value="all" {{ ($category ?? 'all') === 'all' ? 'selected' : '' }}>Semua Kategori</option>
@@ -218,20 +218,20 @@
                 @endif
             </select>
         </div>
-        <div class="col-6 col-md-2">
+        <div class="col-6 col-md-4 col-xl-2">
             <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Arah Mutasi</label>
             <select name="direction" class="form-select form-select-sm" style="font-size: 0.78rem;">
-                <option value="all" {{ $direction === 'all' ? 'selected' : '' }}>Semua (Masuk & Keluar)</option>
+                <option value="all" {{ $direction === 'all' ? 'selected' : '' }}>Semua (Masuk/Keluar)</option>
                 <option value="in" {{ $direction === 'in' ? 'selected' : '' }}>Uang Masuk (+)</option>
                 <option value="out" {{ $direction === 'out' ? 'selected' : '' }}>Uang Keluar (-)</option>
             </select>
         </div>
         <!-- Action Buttons Inline -->
-        <div class="col-6 col-md-1.5 d-flex gap-1 ms-auto">
-            <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1" style="background:#1e293b; border:none;" title="Terapkan Filter">
+        <div class="col-12 col-md-4 col-xl-2 d-flex gap-1">
+            <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1" style="background:#1e293b; border:none; height:31px; font-size:0.78rem;" title="Terapkan Filter">
                 <i class="bi bi-funnel me-1"></i> Filter
             </button>
-            <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm text-white fw-semibold" style="background:#64748b; border:none;" title="Reset Filter">
+            <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm text-white fw-semibold d-flex align-items-center justify-content-center px-2.5" style="background:#64748b; border:none; height:31px;" title="Reset Filter">
                 <i class="bi bi-arrow-counterclockwise"></i>
             </a>
         </div>
