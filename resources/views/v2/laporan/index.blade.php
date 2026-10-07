@@ -15,12 +15,30 @@
 .filter-box-header {
     background: #f0fdf4;
     border-bottom: 1px solid #dcfce7;
-    padding: 10px 16px;
+    padding: 12px 18px;
 }
 .filter-box-header-blue {
     background: #eff6ff;
     border-bottom: 1px solid #dbeafe;
-    padding: 10px 16px;
+    padding: 12px 18px;
+}
+
+/* Form Group Spacing */
+.filter-form-group {
+    margin-bottom: 1.25rem;
+}
+.filter-form-group label {
+    display: block;
+    margin-bottom: 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+.filter-form-group .form-select,
+.filter-form-group .form-control {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.84rem;
+    border-radius: 6px;
 }
 
 /* Nav Tabs Styling */
@@ -28,10 +46,10 @@
     border-bottom: 2px solid #e2e8f0;
     display: flex;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 .v2-tab-item {
-    padding: 9px 18px;
+    padding: 10px 20px;
     font-size: 0.85rem;
     font-weight: 700;
     color: #64748b;
@@ -77,18 +95,18 @@
     <div class="col-12 col-md-8 col-lg-6">
         <div class="filter-box-card">
             <div class="filter-box-header d-flex align-items-center justify-content-between">
-                <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2" style="font-size:0.85rem;">
+                <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2" style="font-size:0.88rem;">
                     <i class="bi bi-funnel-fill text-success"></i>
                     <span>Filter Penjualan Dilepas (Escrow Released)</span>
                 </h6>
             </div>
-            <div class="p-3">
+            <div class="p-3.5" style="padding: 20px;">
                 <form id="releasedFilterForm" action="{{ route('reports.released_sales.print') }}" method="GET" target="_blank">
                     <input type="hidden" name="tab" value="dilepas">
 
                     {{-- Format Laporan --}}
-                    <div class="mb-2.5">
-                        <label class="form-label mb-1 fw-bold text-success small" style="font-size:0.75rem;">Format Laporan Penjualan Dilepas</label>
+                    <div class="filter-form-group">
+                        <label class="form-label text-success fw-bold">Format Laporan Penjualan Dilepas</label>
                         <select name="report_format" class="form-select form-select-sm border-success fw-bold text-success bg-success bg-opacity-10">
                             <option value="per_produk" {{ $reportFormat === 'per_produk' ? 'selected' : '' }}>📦 Laporan Per Produk (Dilepas)</option>
                             <option value="ringkasan_penghasilan" {{ $reportFormat === 'ringkasan_penghasilan' ? 'selected' : '' }}>📄 Laporan Ringkasan Penghasilan & Biaya Escrow (Format Shopee/Marketplace)</option>
@@ -99,8 +117,8 @@
                     </div>
 
                     {{-- Kategori Produk --}}
-                    <div class="mb-2.5">
-                        <label class="form-label mb-1 fw-semibold text-muted small" style="font-size:0.75rem;">Kategori Produk</label>
+                    <div class="filter-form-group">
+                        <label class="form-label text-muted">Kategori Produk</label>
                         <select name="category_id" class="form-select form-select-sm v2-input">
                             <option value="">Semua Kategori</option>
                             @foreach ($categories as $category)
@@ -110,8 +128,8 @@
                     </div>
 
                     {{-- Merk --}}
-                    <div class="mb-2.5">
-                        <label class="form-label mb-1 fw-semibold text-muted small" style="font-size:0.75rem;">Merk</label>
+                    <div class="filter-form-group">
+                        <label class="form-label text-muted">Merk</label>
                         <select name="brand_id" class="form-select form-select-sm v2-input">
                             <option value="">Semua Merk</option>
                             @foreach ($brands as $brand)
@@ -121,8 +139,8 @@
                     </div>
 
                     {{-- Toko Marketplace --}}
-                    <div class="mb-2.5">
-                        <label class="form-label mb-1 fw-semibold text-muted small" style="font-size:0.75rem;">Toko Marketplace</label>
+                    <div class="filter-form-group">
+                        <label class="form-label text-muted">Toko Marketplace</label>
                         <select name="store_id" class="form-select form-select-sm v2-input">
                             <option value="" {{ empty($storeId) ? 'selected' : '' }}>🛒 Semua Toko Marketplace</option>
                             @foreach ($stores as $store)
@@ -134,15 +152,15 @@
                     </div>
 
                     {{-- Rentang Tanggal --}}
-                    <div class="row g-2 mb-3">
+                    <div class="row g-2.5 filter-form-group mb-4">
                         <div class="col-6">
-                            <label class="form-label mb-1 fw-semibold text-success small" style="font-size:0.75rem;">
+                            <label class="form-label text-success">
                                 <i class="bi bi-calendar-check me-1"></i>Dari Tanggal (Dilepas / Cair)
                             </label>
                             <input type="date" name="date_from" class="form-control form-control-sm border-success" value="{{ $dateFrom }}">
                         </div>
                         <div class="col-6">
-                            <label class="form-label mb-1 fw-semibold text-success small" style="font-size:0.75rem;">
+                            <label class="form-label text-success">
                                 <i class="bi bi-calendar-check me-1"></i>Sampai Tanggal (Dilepas / Cair)
                             </label>
                             <input type="date" name="date_to" class="form-control form-control-sm border-success" value="{{ $dateTo }}">
@@ -150,7 +168,7 @@
                     </div>
 
                     {{-- Action Buttons Matching Screenshot --}}
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
                         <button type="button" class="btn btn-sm btn-outline-success fw-bold px-3 py-1.5" onclick="exportReleasedCsv()">
                             <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
                         </button>
@@ -170,18 +188,18 @@
     <div class="col-12 col-md-8 col-lg-6">
         <div class="filter-box-card">
             <div class="filter-box-header-blue d-flex align-items-center justify-content-between">
-                <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2" style="font-size:0.85rem;">
+                <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2" style="font-size:0.88rem;">
                     <i class="bi bi-funnel-fill text-primary"></i>
                     <span>Filter Rekap Penjualan (Semua)</span>
                 </h6>
             </div>
-            <div class="p-3">
+            <div class="p-3.5" style="padding: 20px;">
                 <form id="salesFilterForm" action="{{ route('reports.sales.print') }}" method="GET" target="_blank">
                     <input type="hidden" name="tab" value="semua">
 
                     {{-- Format Laporan Penjualan --}}
-                    <div class="mb-2.5">
-                        <label class="form-label mb-1 fw-bold text-primary small" style="font-size:0.75rem;">Format Laporan Penjualan</label>
+                    <div class="filter-form-group">
+                        <label class="form-label text-primary fw-bold">Format Laporan Penjualan</label>
                         <select name="report_format" class="form-select form-select-sm border-primary fw-bold text-primary bg-primary bg-opacity-10">
                             <option value="per_produk" {{ $reportFormat === 'per_produk' ? 'selected' : '' }}>📦 Laporan Per Produk</option>
                             <option value="per_channel" {{ $reportFormat === 'per_channel' ? 'selected' : '' }}>🏪 Laporan Per Channel / Saluran</option>
@@ -192,8 +210,8 @@
                     </div>
 
                     {{-- Kategori Produk --}}
-                    <div class="mb-2.5">
-                        <label class="form-label mb-1 fw-semibold text-muted small" style="font-size:0.75rem;">Kategori Produk</label>
+                    <div class="filter-form-group">
+                        <label class="form-label text-muted">Kategori Produk</label>
                         <select name="category_id" class="form-select form-select-sm v2-input">
                             <option value="">Semua Kategori</option>
                             @foreach ($categories as $category)
@@ -203,8 +221,8 @@
                     </div>
 
                     {{-- Merk --}}
-                    <div class="mb-2.5">
-                        <label class="form-label mb-1 fw-semibold text-muted small" style="font-size:0.75rem;">Merk</label>
+                    <div class="filter-form-group">
+                        <label class="form-label text-muted">Merk</label>
                         <select name="brand_id" class="form-select form-select-sm v2-input">
                             <option value="">Semua Merk</option>
                             @foreach ($brands as $brand)
@@ -214,8 +232,8 @@
                     </div>
 
                     {{-- Tipe PO --}}
-                    <div class="mb-2.5">
-                        <label class="form-label mb-1 fw-semibold text-muted small" style="font-size:0.75rem;">Tipe Pre-Order (PO)</label>
+                    <div class="filter-form-group">
+                        <label class="form-label text-muted">Tipe Pre-Order (PO)</label>
                         <select name="po_status" class="form-select form-select-sm v2-input">
                             <option value="">Semua Tipe (PO & Reguler)</option>
                             <option value="1" {{ $poStatus === '1' ? 'selected' : '' }}>⏳ Pre-Order (PO)</option>
@@ -224,8 +242,8 @@
                     </div>
 
                     {{-- Toko Marketplace --}}
-                    <div class="mb-2.5">
-                        <label class="form-label mb-1 fw-semibold text-muted small" style="font-size:0.75rem;">Toko Marketplace</label>
+                    <div class="filter-form-group">
+                        <label class="form-label text-muted">Toko Marketplace</label>
                         <select name="store_id" class="form-select form-select-sm v2-input">
                             <option value="" {{ empty($storeId) ? 'selected' : '' }}>🛒 Semua Toko Marketplace</option>
                             @foreach ($stores as $store)
@@ -237,8 +255,8 @@
                     </div>
 
                     {{-- Kategori Pelanggan --}}
-                    <div class="mb-2.5">
-                        <label class="form-label mb-1 fw-semibold text-muted small" style="font-size:0.75rem;">Kategori Pelanggan (Master Data)</label>
+                    <div class="filter-form-group">
+                        <label class="form-label text-muted">Kategori Pelanggan (Master Data)</label>
                         <select name="customer_category" class="form-select form-select-sm v2-input">
                             <option value="all" {{ $customerCat === 'all' ? 'selected' : '' }}>Semua Kategori Pelanggan</option>
                             @foreach ($customerCategories as $catVal)
@@ -251,8 +269,8 @@
                     </div>
 
                     {{-- Tipe Dropship --}}
-                    <div class="mb-2.5">
-                        <label class="form-label mb-1 fw-semibold text-muted small" style="font-size:0.75rem;">Tipe Penjualan Dropship</label>
+                    <div class="filter-form-group">
+                        <label class="form-label text-muted">Tipe Penjualan Dropship</label>
                         <select name="is_dropship" class="form-select form-select-sm v2-input">
                             <option value="all" {{ ($dropshipFilter ?? 'all') === 'all' ? 'selected' : '' }}>Semua Transaksi (Dropship & Non-Dropship)</option>
                             <option value="1" {{ ($dropshipFilter ?? '') === '1' ? 'selected' : '' }}>🚚 Khusus Penjualan Dropship</option>
@@ -261,8 +279,8 @@
                     </div>
 
                     {{-- Status Transaksi --}}
-                    <div class="mb-2.5">
-                        <label class="form-label mb-1 fw-semibold text-muted small" style="font-size:0.75rem;">Status Transaksi</label>
+                    <div class="filter-form-group">
+                        <label class="form-label text-muted">Status Transaksi</label>
                         <select name="status" class="form-select form-select-sm v2-input">
                             <option value="all" {{ ($statusFilter ?? 'all') === 'all' ? 'selected' : '' }}>Semua Status Transaksi (Default: Tanpa Batal)</option>
                             <option value="completed" {{ ($statusFilter ?? '') === 'completed' ? 'selected' : '' }}>✅ Selesai / Completed</option>
@@ -275,15 +293,15 @@
                     </div>
 
                     {{-- Rentang Tanggal --}}
-                    <div class="row g-2 mb-3">
+                    <div class="row g-2.5 filter-form-group mb-4">
                         <div class="col-6">
-                            <label class="form-label mb-1 fw-semibold text-primary small" style="font-size:0.75rem;">
+                            <label class="form-label text-primary">
                                 <i class="bi bi-calendar-check me-1"></i>Dari Tanggal Order
                             </label>
                             <input type="date" name="date_from" class="form-control form-control-sm border-primary" value="{{ $dateFrom }}">
                         </div>
                         <div class="col-6">
-                            <label class="form-label mb-1 fw-semibold text-primary small" style="font-size:0.75rem;">
+                            <label class="form-label text-primary">
                                 <i class="bi bi-calendar-check me-1"></i>Sampai Tanggal Order
                             </label>
                             <input type="date" name="date_to" class="form-control form-control-sm border-primary" value="{{ $dateTo }}">
@@ -291,7 +309,7 @@
                     </div>
 
                     {{-- Action Buttons Matching Screenshot --}}
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
                         <button type="button" class="btn btn-sm btn-outline-primary fw-bold px-3 py-1.5" onclick="exportSalesCsv()">
                             <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
                         </button>
