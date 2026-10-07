@@ -70,7 +70,7 @@
         <a href="{{ route('v2.penjualan_offline.index') }}" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:8px;" title="Refresh Data">
             <i class="bi bi-arrow-clockwise me-1"></i> Refresh
         </a>
-        <a href="{{ url('/offline-sales/create') }}" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#16a34a; border:none; border-radius:8px;">
+        <a href="{{ route('v2.penjualan_offline.create') }}" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#16a34a; border:none; border-radius:8px;">
             <i class="bi bi-plus-circle me-1"></i> Buka Kasir POS Baru
         </a>
     </div>
@@ -212,13 +212,15 @@
                         </td>
                         <td class="text-center">
                             @if($sale->status === 'completed')
-                                <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 px-2 py-1">Selesai</span>
+                                <span class="badge bg-success text-white px-2 py-1" style="font-size: 0.7rem;">Selesai</span>
                             @elseif($sale->status === 'cancelled')
-                                <span class="badge bg-danger bg-opacity-15 text-danger border border-danger border-opacity-25 px-2 py-1">Batal</span>
+                                <span class="badge bg-danger text-white px-2 py-1" style="font-size: 0.7rem;">Batal</span>
                             @elseif($sale->status === 'waiting_dp')
-                                <span class="badge bg-warning bg-opacity-15 text-warning border border-warning border-opacity-25 px-2 py-1">Menunggu DP</span>
+                                <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.7rem;">Menunggu DP</span>
+                            @elseif($sale->status === 'pending_spk' || $sale->status === 'spk_processing')
+                                <span class="badge bg-info text-dark px-2 py-1" style="font-size: 0.7rem;">{{ strtoupper(str_replace('_', ' ', $sale->status)) }}</span>
                             @else
-                                <span class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-25 px-2 py-1">{{ strtoupper($sale->status) }}</span>
+                                <span class="badge bg-primary text-white px-2 py-1" style="font-size: 0.7rem;">{{ strtoupper(str_replace('_', ' ', $sale->status)) }}</span>
                             @endif
                         </td>
                         <td class="text-center">

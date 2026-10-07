@@ -126,6 +126,41 @@ class PenjualanOfflineController extends Controller
     }
 
     /**
+     * Show form to create new offline POS sale (V2).
+     */
+    public function create()
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $products = MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->nonBundle()
+            ->orderBy('name')
+            ->get();
+
+        $customers = \App\Models\Customer::where('tenant_id', $tenantId)
+            ->offline()
+            ->orderBy('name')
+            ->get();
+
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('bank_name')
+            ->get();
+
+        return view('v2.penjualan_offline.create', compact('products', 'customers', 'bankAccounts'));
+    }
+
+    /**
+     * Store new offline POS sale.
+     */
+    public function store(Request $request)
+    {
+        $controller = new \App\Http\Controllers\OfflineSaleController();
+        $controller->store($request);
+        return redirect()->route('v2.penjualan_offline.index')->with('success', 'Transaksi Penjualan Offline (POS) berhasil disimpan!');
+    }
+
+    /**
      * Show detail of offline sale.
      */
     public function show($id)
