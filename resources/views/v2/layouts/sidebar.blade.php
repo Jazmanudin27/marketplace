@@ -50,6 +50,7 @@
                 request()->is('marketplace-products*') ||
                 request()->is('v2/kategori*') ||
                 request()->is('v2/brand*') ||
+                request()->is('v2/supplier*') ||
                 request()->is('inventory-items*');
         @endphp
         <div class="v2-nav-item v2-nav-dropdown {{ $isDataMasterActive ? 'show' : '' }}">
@@ -79,6 +80,11 @@
                         class="v2-submenu-link {{ request()->is('v2/kategori*') || request()->is('v2/brand*') ? 'active' : '' }}">
                         <i class="bi bi-tags me-1.5"></i>
                         <span>Kategori & Varian</span>
+                    </a>
+                    <a href="{{ url('/v2/supplier') }}"
+                        class="v2-submenu-link {{ request()->is('v2/supplier*') ? 'active' : '' }}">
+                        <i class="bi bi-truck me-1.5"></i>
+                        <span>Master Supplier</span>
                     </a>
                     <a href="{{ url('/v2/barang') }}"
                         class="v2-submenu-link {{ request()->is('v2/barang*') || request()->is('inventory-items*') ? 'active' : '' }}">

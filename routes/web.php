@@ -328,6 +328,12 @@ Route::middleware('auth')->group(function () {
             Route::post('/{consignment}/approve', [\App\Http\Controllers\V2\TitipanBarangController::class, 'approve'])->name('approve');
         });
 
+        // Data Master Supplier V2
+        Route::get('/supplier', [\App\Http\Controllers\V2\SupplierController::class, 'index'])->name('supplier.index');
+        Route::post('/supplier', [\App\Http\Controllers\V2\SupplierController::class, 'store'])->name('supplier.store');
+        Route::put('/supplier/{id}', [\App\Http\Controllers\V2\SupplierController::class, 'update'])->name('supplier.update');
+        Route::delete('/supplier/{id}', [\App\Http\Controllers\V2\SupplierController::class, 'destroy'])->name('supplier.destroy');
+
         // Pengguna Sistem (User Management) V2
         Route::get('/users/{user}/permissions', [\App\Http\Controllers\V2\UserController::class, 'editPermissions'])->name('users.permissions.edit');
         Route::put('/users/{user}/permissions', [\App\Http\Controllers\V2\UserController::class, 'updatePermissions'])->name('users.permissions.update');
