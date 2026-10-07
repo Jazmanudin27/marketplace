@@ -240,9 +240,6 @@
         <a href="{{ url('/v2/pesanan') }}" class="btn btn-sm btn-v2-secondary py-1 px-2" title="Refresh">
             <i class="bi bi-arrow-clockwise"></i>
         </a>
-        <button type="button" class="btn btn-sm btn-outline-success fw-semibold py-1 px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#cetakLaporanModal">
-            <i class="bi bi-file-earmark-bar-graph me-1"></i> Cetak Laporan
-        </button>
         <button type="submit" form="mass-print-form" class="btn btn-sm btn-v2-primary py-1 px-3 shadow-sm">
             <i class="bi bi-printer me-1"></i> Cetak Massal
         </button>
@@ -798,85 +795,6 @@ function submitReportModalForm(actionType) {
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg" id="psrDetailContent" style="border-radius:10px; overflow:hidden;">
             {{-- Content loaded dynamically via AJAX --}}
-        </div>
-    </div>
-</div>
-
-{{-- ── Modal Cetak Laporan Penjualan (Dana Cair / Escrow Released) ── --}}
-<div class="modal fade" id="cetakLaporanModal" tabindex="-1" aria-labelledby="cetakLaporanModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
-            <div class="modal-header text-white px-4 py-3" style="background: linear-gradient(135deg, #15803d, #166534);">
-                <h5 class="modal-title fw-bold fs-6 d-flex align-items-center gap-2 mb-0" id="cetakLaporanModalLabel">
-                    <i class="bi bi-file-earmark-bar-graph fs-5"></i> Filter Laporan Penjualan (Dana Cair / Escrow Released)
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4 bg-light">
-                <form id="reportFilterModalForm" method="GET" action="{{ route('reports.released_sales.print') }}" target="_blank">
-                    
-                    {{-- Jenis Laporan --}}
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-dark mb-1">Jenis Data Laporan</label>
-                        <select name="report_type" id="modal_report_type" class="form-select form-select-sm fw-semibold text-primary border-primary">
-                            <option value="released" selected>💰 Laporan Penjualan Dilepas (Dana Cair / Escrow Released)</option>
-                            <option value="all">📦 Rekap Semua Penjualan Masuk (Semua Status)</option>
-                        </select>
-                    </div>
-
-                    {{-- Format Laporan --}}
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-dark mb-1">Format Laporan Penjualan</label>
-                        <select name="report_format" class="form-select form-select-sm border-success bg-success bg-opacity-10 fw-semibold text-success">
-                            <option value="per_produk" selected>📋 Laporan Per Produk (Dilepas / Omset)</option>
-                            <option value="ringkasan_penghasilan">📊 Ringkasan Penghasilan & Biaya Escrow MP</option>
-                            <option value="per_channel">🏪 Laporan Per Toko Marketplace</option>
-                            <option value="detail">📝 Laporan Detail Transaksi</option>
-                            <option value="per_tanggal">📅 Laporan Per Tanggal</option>
-                        </select>
-                    </div>
-
-                    {{-- Toko Marketplace --}}
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-dark mb-1">Toko Marketplace</label>
-                        <select name="store_id" class="form-select form-select-sm">
-                            <option value="">🛒 Semua Toko Marketplace</option>
-                            @if(isset($stores))
-                                @foreach($stores as $st)
-                                    <option value="{{ $st->id }}">{{ $st->store_name }} ({{ strtoupper($st->channel->channel_name ?? $st->channel_code ?? 'MP') }})</option>
-                                @endforeach
-                            @endif
-                        </select>
-                    </div>
-
-                    {{-- Dates --}}
-                    <div class="row g-3 mb-2">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-dark mb-1">
-                                <i class="bi bi-calendar-event text-success me-1"></i>Dari Tanggal (Dilepas / Cair)
-                            </label>
-                            <input type="date" name="date_from" value="{{ date('Y-m-01') }}" class="form-control form-control-sm border-success">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-dark mb-1">
-                                <i class="bi bi-calendar-event text-success me-1"></i>Sampai Tanggal (Dilepas / Cair)
-                            </label>
-                            <input type="date" name="date_to" value="{{ date('Y-m-d') }}" class="form-control form-control-sm border-success">
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer bg-white px-4 py-3 d-flex justify-content-between">
-                <button type="button" class="btn btn-outline-success border-2 fw-semibold px-3" onclick="submitReportModalForm('export')">
-                    <i class="bi bi-file-earmark-excel me-1"></i> Export CSV
-                </button>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-light border px-3" data-bs-dismiss="modal">Tutup</button>
-                    <button type="button" class="btn btn-success fw-bold px-4 text-white" style="background:#15803d; border:none;" onclick="submitReportModalForm('print')">
-                        <i class="bi bi-printer me-1"></i> Cetak Rekap
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 </div>
