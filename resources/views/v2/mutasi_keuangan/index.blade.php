@@ -173,17 +173,17 @@
 {{-- ── Filter Section ── --}}
 <div class="v2-card p-3 mb-3 shadow-sm">
     <form method="GET" action="{{ route('v2.mutasi_keuangan.index') }}" class="row g-2 align-items-end">
-        <div class="col-6 col-md-2">
-            <label class="form-label small fw-semibold text-muted mb-1">Dari Tanggal</label>
-            <input type="date" name="date_from" value="{{ $dateFrom }}" class="form-control form-control-sm">
+        <div class="col-6 col-md-1.5" style="width: 13.5%;">
+            <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Dari Tanggal</label>
+            <input type="date" name="date_from" value="{{ $dateFrom }}" class="form-control form-control-sm px-1.5" style="font-size: 0.78rem;">
         </div>
-        <div class="col-6 col-md-2">
-            <label class="form-label small fw-semibold text-muted mb-1">Sampai Tanggal</label>
-            <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control form-control-sm">
+        <div class="col-6 col-md-1.5" style="width: 13.5%;">
+            <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Sampai Tanggal</label>
+            <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control form-control-sm px-1.5" style="font-size: 0.78rem;">
         </div>
-        <div class="col-12 col-md-4">
-            <label class="form-label small fw-semibold text-muted mb-1">Akun Kas / Bank</label>
-            <select name="account" class="form-select form-select-sm">
+        <div class="col-12 col-md-3">
+            <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Akun Kas / Bank</label>
+            <select name="account" class="form-select form-select-sm" style="font-size: 0.78rem;">
                 <option value="all" {{ $account === 'all' ? 'selected' : '' }}>Semua Akun Kas / Bank</option>
                 @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
                     @foreach($bankAccounts as $bank)
@@ -197,18 +197,39 @@
                 @endif
             </select>
         </div>
-        <div class="col-6 col-md-3">
-            <label class="form-label small fw-semibold text-muted mb-1">Arah Mutasi</label>
-            <select name="direction" class="form-select form-select-sm">
+        <div class="col-6 col-md-2.5">
+            <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Kategori Keuangan</label>
+            <select name="category" class="form-select form-select-sm" style="font-size: 0.78rem;">
+                <option value="all" {{ ($category ?? 'all') === 'all' ? 'selected' : '' }}>Semua Kategori</option>
+                <option value="transfer" {{ ($category ?? '') === 'transfer' ? 'selected' : '' }}>-- Transfer Internal --</option>
+                @if(isset($allCategories) && $allCategories->isNotEmpty())
+                    @foreach($allCategories as $cat)
+                        <option value="{{ $cat->code }}" {{ ($category ?? '') === $cat->code ? 'selected' : '' }}>
+                            {{ $cat->name }} ({{ strtoupper($cat->type) }})
+                        </option>
+                    @endforeach
+                @else
+                    <option value="salary" {{ ($category ?? '') === 'salary' ? 'selected' : '' }}>Gaji Karyawan</option>
+                    <option value="rent" {{ ($category ?? '') === 'rent' ? 'selected' : '' }}>Sewa Tempat</option>
+                    <option value="utilities" {{ ($category ?? '') === 'utilities' ? 'selected' : '' }}>Utilitas & Operasional</option>
+                    <option value="pembelian_supplier" {{ ($category ?? '') === 'pembelian_supplier' ? 'selected' : '' }}>Bayar Hutang Supplier</option>
+                    <option value="investment" {{ ($category ?? '') === 'investment' ? 'selected' : '' }}>Investasi / Modal</option>
+                    <option value="other" {{ ($category ?? '') === 'other' ? 'selected' : '' }}>Lain-lain</option>
+                @endif
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Arah Mutasi</label>
+            <select name="direction" class="form-select form-select-sm" style="font-size: 0.78rem;">
                 <option value="all" {{ $direction === 'all' ? 'selected' : '' }}>Semua (Masuk & Keluar)</option>
                 <option value="in" {{ $direction === 'in' ? 'selected' : '' }}>Uang Masuk (+)</option>
                 <option value="out" {{ $direction === 'out' ? 'selected' : '' }}>Uang Keluar (-)</option>
             </select>
         </div>
         <!-- Action Buttons Inline -->
-        <div class="col-6 col-md-1 d-flex gap-1">
+        <div class="col-6 col-md-1.5 d-flex gap-1 ms-auto">
             <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1" style="background:#1e293b; border:none;" title="Terapkan Filter">
-                <i class="bi bi-funnel"></i>
+                <i class="bi bi-funnel me-1"></i> Filter
             </button>
             <a href="{{ route('v2.mutasi_keuangan.index') }}" class="btn btn-sm text-white fw-semibold" style="background:#64748b; border:none;" title="Reset Filter">
                 <i class="bi bi-arrow-counterclockwise"></i>

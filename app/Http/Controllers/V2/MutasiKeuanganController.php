@@ -109,6 +109,7 @@ class MutasiKeuanganController extends Controller
         $dateFrom = $request->get('date_from', now()->startOfMonth()->toDateString());
         $dateTo   = $request->get('date_to', now()->toDateString());
         $account  = $request->get('account', 'all');
+        $category = $request->get('category', 'all');
         $direction = $request->get('direction', 'all');
         $sourceType = $request->get('source_type', 'all');
         $search   = trim($request->get('search', ''));
@@ -217,6 +218,10 @@ class MutasiKeuanganController extends Controller
             
             $accountFilterApply($incomesQuery, 'payment_destination');
 
+            if ($category !== 'all') {
+                $incomesQuery->where('category', $category);
+            }
+
             if ($search) {
                 $incomesQuery->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")
@@ -258,6 +263,10 @@ class MutasiKeuanganController extends Controller
                 ->whereDate('expense_date', '<=', $dateTo);
 
             $accountFilterApply($expensesQuery, 'payment_source');
+
+            if ($category !== 'all') {
+                $expensesQuery->where('category', $category);
+            }
 
             if ($search) {
                 $expensesQuery->where(function ($q) use ($search) {
@@ -301,7 +310,7 @@ class MutasiKeuanganController extends Controller
         }
 
         // C. Fund Transfers
-        if ($sourceType === 'all' || $sourceType === 'transfer') {
+        if (($sourceType === 'all' || $sourceType === 'transfer') && ($category === 'all' || $category === 'transfer')) {
             $transfersQuery = FundTransfer::where('tenant_id', $tenantId)
                 ->whereDate('transfer_date', '>=', $dateFrom)
                 ->whereDate('transfer_date', '<=', $dateTo);
@@ -418,7 +427,7 @@ class MutasiKeuanganController extends Controller
             ->orderBy('name')
             ->get();
 
-        $employees = Employee::where('tenant_id', $tenantId)
+        $allCategories = FinanceCategory::where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -427,6 +436,7 @@ class MutasiKeuanganController extends Controller
             'dateFrom',
             'dateTo',
             'account',
+            'category',
             'direction',
             'sourceType',
             'search',
@@ -440,6 +450,7 @@ class MutasiKeuanganController extends Controller
             'mutations',
             'expenseCategories',
             'incomeCategories',
+            'allCategories',
             'employees'
         );
     }
