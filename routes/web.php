@@ -247,6 +247,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/saldo-marketplace/{store}/pending', [\App\Http\Controllers\V2\SaldoMarketplaceController::class, 'pending'])->name('saldo_marketplace.pending');
         Route::get('/saldo-marketplace/{store}/sync', [\App\Http\Controllers\V2\SaldoMarketplaceController::class, 'sync'])->name('saldo_marketplace.sync');
 
+        // Laba Rugi V2
+        Route::get('/laba-rugi', [\App\Http\Controllers\V2\LabaRugiController::class, 'index'])->name('laba_rugi.index');
+
         // Barang Masuk (Penerimaan Barang) V2
         Route::get('/barang-masuk', [\App\Http\Controllers\V2\BarangMasukController::class, 'index'])->name('barang_masuk.index');
         Route::get('/barang-masuk/create', [\App\Http\Controllers\V2\BarangMasukController::class, 'create'])->name('barang_masuk.create');

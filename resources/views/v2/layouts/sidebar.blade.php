@@ -262,6 +262,7 @@
         <div class="v2-nav-section-title mt-2">KEUANGAN</div>
         @php
             $isKeuanganActive =
+                request()->is('v2/laba-rugi*') ||
                 request()->is('v2/mutasi-keuangan*') ||
                 request()->is('v2/saldo-marketplace*') ||
                 request()->is('finance*');
@@ -279,6 +280,11 @@
             </a>
             <div class="collapse v2-submenu {{ $isKeuanganActive ? 'show' : '' }}" id="keuanganSubmenu">
                 <div class="v2-submenu-inner">
+                    <a href="{{ route('v2.laba_rugi.index') }}"
+                        class="v2-submenu-link {{ request()->is('v2/laba-rugi*') ? 'active' : '' }}">
+                        <i class="bi bi-graph-up-arrow text-success me-1.5"></i>
+                        <span>Laba Rugi</span>
+                    </a>
                     <a href="{{ route('v2.mutasi_keuangan.index') }}"
                         class="v2-submenu-link {{ request()->is('v2/mutasi-keuangan*') ? 'active' : '' }}">
                         <i class="bi bi-journal-text text-primary me-1.5"></i>
