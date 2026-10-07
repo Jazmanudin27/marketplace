@@ -311,7 +311,7 @@
                                 <span
                                     class="badge bg-success text-white px-3 py-1.5 rounded-pill fw-semibold shadow-sm mb-1 d-inline-block"
                                     style="font-size: 0.72rem;">
-                                    Disetujui (Approved)
+                                    Disetujui
                                 </span>
                                 <div class="text-secondary small fw-semibold" style="font-size: 0.75rem;">
                                     Tanggal: {{ $m->created_at ? $m->created_at->format('d/m/Y H:i') : '-' }} WIB

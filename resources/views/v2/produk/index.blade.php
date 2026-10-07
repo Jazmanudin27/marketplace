@@ -300,11 +300,11 @@
                                             data-name="{{ $prod->name }}"
                                             data-sku="{{ $prod->sku }}"
                                             data-stores="{{ json_encode($storeData) }}">
-                                        <i class="bi bi-check-circle-fill me-1"></i>Terhubung ({{ $linkedStoresCount }} Toko)
+                                        <i class="bi bi-shop me-1"></i>{{ $linkedStoresCount }} Toko
                                     </button>
                                 @else
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size: 0.68rem;">
-                                        <i class="bi bi-x-circle me-1"></i>Belum Terhubung
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1" style="font-size: 0.68rem;" title="Belum Terhubung Toko Marketplace">
+                                        <i class="bi bi-x-circle"></i>
                                     </span>
                                 @endif
                             </td>
