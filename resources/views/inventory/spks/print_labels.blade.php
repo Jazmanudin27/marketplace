@@ -65,6 +65,7 @@
         .sticker-card {
             background: #ffffff;
             border: 1.5px solid #000000;
+            border-top: 3.5px solid #d97706;
             border-radius: 6px;
             padding: 8px 4px;
             page-break-inside: avoid;
@@ -76,6 +77,18 @@
             gap: 4px;
             text-align: center;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .badge-spk {
+            font-size: 7px;
+            font-weight: 800;
+            background: #d97706;
+            color: #ffffff;
+            padding: 1px 5px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1px;
         }
 
         .spk-tag {
@@ -173,6 +186,7 @@
 
             @for($i = 1; $i <= $repeatQty; $i++)
                 <div class="sticker-card">
+                    <span class="badge-spk">SPK</span>
                     <div class="spk-tag" title="{{ $spk->no_spk }}">#{{ $spk->no_spk }}</div>
 
                     <div class="qr-wrapper">

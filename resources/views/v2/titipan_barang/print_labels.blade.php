@@ -87,6 +87,7 @@
         .sticker-card {
             background: #ffffff;
             border: 1.5px solid #000000;
+            border-top: 3.5px solid #0284c7;
             border-radius: 6px;
             padding: 7px 4px;
             page-break-inside: avoid;
@@ -104,7 +105,7 @@
         .badge-titipan {
             font-size: 7px;
             font-weight: 800;
-            background: #000000;
+            background: #0284c7;
             color: #ffffff;
             padding: 1px 5px;
             border-radius: 3px;
