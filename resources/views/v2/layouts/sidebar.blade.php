@@ -31,6 +31,7 @@
     <!-- Sidebar Navigation -->
     <nav class="v2-sidebar-nav">
         <!-- Main Navigation -->
+        <div class="v2-nav-section-title">MAIN MENU</div>
         <div class="v2-nav-item">
             <a href="{{ url('/v2/dashboard') }}"
                 class="v2-nav-link {{ request()->is('v2') || request()->is('v2/dashboard') ? 'active' : '' }}">
@@ -40,6 +41,7 @@
         </div>
 
         <!-- Data Master -->
+        <div class="v2-nav-section-title mt-2">DATA MASTER</div>
         @php
             $isDataMasterActive =
                 request()->is('v2/produk*') ||
@@ -93,7 +95,8 @@
             </div>
         </div>
 
-        <!-- Marketplace & Sales -->
+        <!-- Transaksi -->
+        <div class="v2-nav-section-title mt-2">TRANSAKSI</div>
         @php
             $isMarketingActive =
                 request()->is('v2/pesanan*') ||
@@ -306,6 +309,7 @@
         </div>
 
         <!-- Pengaturan -->
+        <div class="v2-nav-section-title mt-2">PENGATURAN</div>
         <div class="v2-nav-item">
             <a href="{{ route('v2.users.index') }}"
                 class="v2-nav-link d-flex align-items-center gap-2 {{ request()->is('v2/users*') || request()->is('v2/pengguna*') ? 'active' : '' }}">
