@@ -96,11 +96,11 @@
         </div>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
-        <a href="{{ route('v2.saldo_marketplace.mutasi', $store) }}" class="btn btn-sm btn-v2-primary py-2 px-3 shadow-sm fw-semibold" style="border-radius:8px;">
-            <i class="bi bi-clock-history me-1.5"></i> Lihat Mutasi Dompet
+        <a href="{{ route('v2.saldo_marketplace.mutasi', $store) }}" class="btn btn-sm btn-v2-primary py-1 px-2.5 shadow-sm fw-semibold" style="border-radius:6px; font-size:0.75rem;">
+            <i class="bi bi-clock-history me-1"></i> Lihat Mutasi Dompet
         </a>
-        <a href="{{ route('v2.saldo_marketplace.index') }}" class="btn btn-sm py-2 px-3 shadow-sm fw-semibold text-white" style="background:#1e293b; border:none; border-radius:8px;">
-            <i class="bi bi-arrow-left me-1.5"></i> Kembali ke Dompet
+        <a href="{{ route('v2.saldo_marketplace.index') }}" class="btn btn-sm py-1 px-2.5 shadow-sm fw-semibold text-white" style="background:#1e293b; border:none; border-radius:6px; font-size:0.75rem;">
+            <i class="bi bi-arrow-left me-1"></i> Kembali ke Dompet
         </a>
     </div>
 </div>

@@ -305,11 +305,11 @@
                                 <i class="bi bi-list-ul me-1"></i> Rincian Saldo Tertahan ({{ $balance['pending_count'] }})
                             </a>
                             <div class="d-flex gap-2">
-                                <a href="{{ route('v2.saldo_marketplace.mutasi', $store) }}" class="btn btn-sm btn-v2-primary flex-grow-1 py-2 fw-semibold d-flex align-items-center justify-content-center gap-1.5" style="border-radius: 8px;">
+                                <a href="{{ route('v2.saldo_marketplace.mutasi', $store) }}" class="btn btn-sm btn-v2-primary flex-grow-1 py-1.5 fw-semibold d-flex align-items-center justify-content-center gap-1.5" style="border-radius: 6px; font-size: 0.75rem;">
                                     <i class="bi bi-clock-history"></i> Lihat Mutasi Dompet
                                 </a>
-                                <a href="{{ route('v2.saldo_marketplace.sync', [$store, 'days' => 60]) }}" class="btn btn-sm py-2 px-2.5 fw-semibold d-flex align-items-center justify-content-center" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius: 8px;" title="Sinkronkan saldo toko ini" onclick="return confirm('Tarik data mutasi terbaru dari toko {{ $store->store_name }}?')">
-                                    <i class="bi bi-arrow-repeat fs-6"></i>
+                                <a href="{{ route('v2.saldo_marketplace.sync', [$store, 'days' => 60]) }}" class="btn btn-sm py-1.5 px-2.5 fw-semibold d-flex align-items-center justify-content-center" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius: 6px; font-size: 0.75rem;" title="Sinkronkan saldo toko ini" onclick="return confirm('Tarik data mutasi terbaru dari toko {{ $store->store_name }}?')">
+                                    <i class="bi bi-arrow-repeat"></i>
                                 </a>
                             </div>
                         </div>
