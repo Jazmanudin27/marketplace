@@ -1967,7 +1967,7 @@ class ReportController extends Controller
         return redirect()->back()->with('success', "✅ Berhasil menyinkronkan Biaya Admin & Escrow resmi dari API Marketplace untuk No. Order {$orderSn}!");
     }
 
-    private function getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode = 'online', $customerCat = 'all', $storeId = null)
+    public function getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode = 'online', $customerCat = 'all', $storeId = null)
     {
         $totalOrders = 0;
         $grossRevenue = 0.0;
