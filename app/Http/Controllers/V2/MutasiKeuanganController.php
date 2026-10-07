@@ -432,6 +432,11 @@ class MutasiKeuanganController extends Controller
             ->orderBy('name')
             ->get();
 
+        $employees = Employee::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
         return compact(
             'dateFrom',
             'dateTo',
