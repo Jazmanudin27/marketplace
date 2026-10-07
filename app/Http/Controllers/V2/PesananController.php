@@ -98,9 +98,11 @@ class PesananController extends Controller
             ->paginate(50)
             ->withQueryString();
 
-        // Data pendukung UI filter
-        $channels = Channel::all();
-        $stores   = Store::with('channel')->where('tenant_id', $tenantId)->get();
+        // Data pendukung UI filter & modal laporan
+        $channels   = Channel::all();
+        $stores     = Store::with('channel')->where('tenant_id', $tenantId)->get();
+        $categories = \App\Models\Category::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $brands     = \App\Models\Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
 
         // ── Tab counts ──
         $countBase = Order::where('tenant_id', $tenantId);
@@ -168,7 +170,7 @@ class PesananController extends Controller
         ];
 
         return view('v2.pesanan.index', compact(
-            'orders', 'channels', 'stores',
+            'orders', 'channels', 'stores', 'categories', 'brands',
             'tabCounts', 'processCounts', 'toProcessCount'
         ));
     }
