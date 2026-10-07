@@ -31,7 +31,6 @@
     <!-- Sidebar Navigation -->
     <nav class="v2-sidebar-nav">
         <!-- Main Navigation -->
-        <div class="v2-nav-section-title">MAIN MENU</div>
         <div class="v2-nav-item">
             <a href="{{ url('/v2/dashboard') }}"
                 class="v2-nav-link {{ request()->is('v2') || request()->is('v2/dashboard') ? 'active' : '' }}">
@@ -41,7 +40,6 @@
         </div>
 
         <!-- Data Master -->
-        <div class="v2-nav-section-title mt-2">DATA MASTER</div>
         @php
             $isDataMasterActive =
                 request()->is('v2/produk*') ||
@@ -96,7 +94,6 @@
         </div>
 
         <!-- Marketplace & Sales -->
-        <div class="v2-nav-section-title mt-2">MARKETPLACE & SALES</div>
         @php
             $isMarketingActive =
                 request()->is('v2/pesanan*') ||
@@ -149,7 +146,6 @@
         </div>
 
         <!-- Pembelian & Stok -->
-        <div class="v2-nav-section-title mt-2">PEMBELIAN & STOK</div>
         @php
             $isPembelianActive =
                 request()->is('v2/barang-masuk*') ||
@@ -190,7 +186,6 @@
         </div>
 
         <!-- Gudang Jadi -->
-        <div class="v2-nav-section-title mt-2">GUDANG JADI</div>
         @php
             $isGudangJadiActive =
                 request()->is('v2/gudang-jadi*') ||
@@ -238,7 +233,6 @@
         </div>
 
         <!-- Titipan Barang -->
-        <div class="v2-nav-section-title mt-2">TITIPAN BARANG</div>
         @php
             $isTitipanActive =
                 request()->is('v2/titipan*') ||
@@ -272,7 +266,6 @@
         </div>
 
         <!-- Keuangan -->
-        <div class="v2-nav-section-title mt-2">KEUANGAN</div>
         @php
             $isKeuanganActive =
                 request()->is('v2/laba-rugi*') ||
@@ -313,7 +306,6 @@
         </div>
 
         <!-- Pengaturan -->
-        <div class="v2-nav-section-title mt-2">PENGATURAN</div>
         <div class="v2-nav-item">
             <a href="{{ route('v2.users.index') }}"
                 class="v2-nav-link d-flex align-items-center gap-2 {{ request()->is('v2/users*') || request()->is('v2/pengguna*') ? 'active' : '' }}">
