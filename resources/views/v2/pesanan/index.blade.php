@@ -836,32 +836,6 @@ function submitReportModalForm(actionType) {
                         </select>
                     </div>
 
-                    {{-- Kategori Produk --}}
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-dark mb-1">Kategori Produk</label>
-                        <select name="category_id" class="form-select form-select-sm">
-                            <option value="">Semua Kategori</option>
-                            @if(isset($categories))
-                                @foreach($categories as $cat)
-                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                @endforeach
-                            @endif
-                        </select>
-                    </div>
-
-                    {{-- Merk --}}
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-dark mb-1">Merk / Brand</label>
-                        <select name="brand_id" class="form-select form-select-sm">
-                            <option value="">Semua Merk</option>
-                            @if(isset($brands))
-                                @foreach($brands as $brand)
-                                    <option value="{{ $brand->id }}">{{ $brand->name }}</option>
-                                @endforeach
-                            @endif
-                        </select>
-                    </div>
-
                     {{-- Toko Marketplace --}}
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-dark mb-1">Toko Marketplace</label>
