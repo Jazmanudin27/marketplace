@@ -289,6 +289,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/scanner-gudang/order/{identifier}', [\App\Http\Controllers\V2\ScannerGudangController::class, 'getOrderDetails'])->name('scanner_gudang.order_details')->where('identifier', '.*');
         Route::post('/scanner-gudang/order/{order}/complete', [\App\Http\Controllers\V2\ScannerGudangController::class, 'completePack'])->name('scanner_gudang.complete_pack');
         Route::get('/scanner-gudang/products/search', [\App\Http\Controllers\V2\ScannerGudangController::class, 'searchProducts'])->name('scanner_gudang.products_search');
+        Route::get('/scanner-gudang/resolve-barcode', [\App\Http\Controllers\V2\ScannerGudangController::class, 'resolveBarcode'])->name('scanner_gudang.resolve_barcode');
         Route::post('/scanner-gudang/order-item/{orderItem}/substitute', [\App\Http\Controllers\V2\ScannerGudangController::class, 'substituteItem'])->name('scanner_gudang.item_substitute');
 
         // SPK Produksi V2

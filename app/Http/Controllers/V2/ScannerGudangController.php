@@ -10,6 +10,7 @@ use App\Models\MarketplaceProduct;
 use App\Models\StockMovement;
 use App\Models\SupplierConsignmentItem;
 use App\Models\SupplierConsignmentDeduction;
+use App\Models\SpkItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -209,6 +210,29 @@ class ScannerGudangController extends Controller
                 ];
             }
         }
+
+        // Preload SPK Item IDs untuk pencocokan barcode SPK: SPK-xxxx|ITEM-yyy
+        $allMasterProductIds = collect($items)->pluck('master_product_id')->filter()->unique();
+        $allSkus = collect($items)->pluck('sku')->filter()->map(fn($s) => strtolower(trim($s)))->unique();
+
+        $spkItems = SpkItem::where(function($q) use ($allMasterProductIds, $allSkus) {
+            if ($allMasterProductIds->isNotEmpty()) {
+                $q->whereIn('master_product_id', $allMasterProductIds);
+            }
+            if ($allSkus->isNotEmpty()) {
+                $q->orWhereIn('sku', $allSkus);
+            }
+        })->get(['id', 'master_product_id', 'sku']);
+
+        foreach ($items as &$it) {
+            $matchedSpkIds = $spkItems->filter(function($si) use ($it) {
+                return (!empty($it['master_product_id']) && $si->master_product_id == $it['master_product_id']) ||
+                       (!empty($it['sku']) && strtolower(trim($si->sku)) === strtolower(trim($it['sku'])));
+            })->pluck('id')->values()->toArray();
+
+            $it['spk_item_ids'] = $matchedSpkIds;
+        }
+        unset($it);
 
         return response()->json([
             'success' => true,
@@ -437,5 +461,37 @@ class ScannerGudangController extends Controller
                 'gudang_stock' => (int) $newProduct->stock,
             ]
         ]);
+    }
+
+    /**
+     * Resolusi Barcode Khusus (SPK Item, Konsinyasi, dsb.) secara realtime.
+     */
+    public function resolveBarcode(Request $request)
+    {
+        $code = trim($request->input('code', ''));
+        if (empty($code)) {
+            return response()->json(['success' => false, 'message' => 'Barcode kosong.'], 400);
+        }
+
+        // Cek pola SPK: misal SPK-20261007-0003|ITEM-401 atau ITEM-401
+        if (preg_match('/item-(\d+)/i', $code, $matches)) {
+            $spkItemId = (int) $matches[1];
+            $spkItem = SpkItem::with('masterProduct')->find($spkItemId);
+            if ($spkItem) {
+                return response()->json([
+                    'success'           => true,
+                    'type'              => 'spk',
+                    'spk_item_id'       => $spkItem->id,
+                    'sku'               => $spkItem->sku ?: ($spkItem->masterProduct->sku ?? null),
+                    'master_product_id' => $spkItem->master_product_id,
+                    'product_name'      => $spkItem->nama_produk ?: ($spkItem->masterProduct->name ?? null),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Barcode tidak ditemukan dalam data SPK/Produk.'
+        ], 404);
     }
 }

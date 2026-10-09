@@ -180,7 +180,7 @@
         @foreach($spk->items as $item)
             @php
                 $skuDisplay = $item->sku ?: ($item->masterProduct->sku ?? ('ITEM-' . $item->id));
-                $barcodeVal = $spk->no_spk . "|ITEM-" . $item->id;
+                $barcodeVal = $spk->no_spk . "|ITEM-" . $item->id . "|" . $skuDisplay;
                 $repeatQty = max(1, (int) $item->quantity);
             @endphp
 
@@ -203,7 +203,8 @@
         document.addEventListener("DOMContentLoaded", function() {
             @foreach($spk->items as $item)
                 @php
-                    $barcodeVal = $spk->no_spk . "|ITEM-" . $item->id;
+                    $skuDisplay = $item->sku ?: ($item->masterProduct->sku ?? ('ITEM-' . $item->id));
+                    $barcodeVal = $spk->no_spk . "|ITEM-" . $item->id . "|" . $skuDisplay;
                     $repeatQty = max(1, (int) $item->quantity);
                 @endphp
                 @for($i = 1; $i <= $repeatQty; $i++)

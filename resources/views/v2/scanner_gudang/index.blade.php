@@ -684,31 +684,121 @@ $(document).ready(function() {
     function processItemScan(scannedCode) {
         if (!currentOrder || !currentOrder.items) return;
 
-        const cleanCode = scannedCode.toLowerCase();
+        const rawBarcode = scannedCode.trim();
+        const cleanCode = rawBarcode.toLowerCase();
         let matchedItem = null;
 
-        // Matching logic: check SKU or Barcode exactly or partially
-        for (let item of currentOrder.items) {
-            let itemSku = (item.sku || '').toLowerCase();
-            let itemBarcode = (item.barcode || '').toLowerCase();
+        let isSpkScan = false;
+        let detectedSpkNo = null;
+        let detectedSpkItemId = null;
 
-            if (itemSku === cleanCode || itemBarcode === cleanCode) {
-                matchedItem = item;
-                break;
+        let isTitipanScan = false;
+        let detectedConsignmentItemId = null;
+        let detectedConsignmentRef = null;
+        let cleanSku = cleanCode;
+
+        // 1. Deteksi Barcode Titipan (Konsinyasi)
+        // Format: KNS|{ref}|ITEM-{id}|{sku} atau KNS|... atau KNS-ITEM-{id}
+        if (cleanCode.startsWith('kns|') || (cleanCode.includes('|item-') && cleanCode.includes('kns')) || cleanCode.startsWith('kns-')) {
+            isTitipanScan = true;
+            const parts = rawBarcode.split('|');
+            if (parts.length >= 2) detectedConsignmentRef = parts[1].trim();
+            if (parts.length >= 3) {
+                const m = parts[2].match(/item-(\d+)/i);
+                if (m) detectedConsignmentItemId = parseInt(m[1]);
+            }
+            if (parts.length >= 4) cleanSku = parts[3].trim().toLowerCase();
+            if (!detectedConsignmentItemId) {
+                const m2 = rawBarcode.match(/(?:kns-)?item-(\d+)/i);
+                if (m2) detectedConsignmentItemId = parseInt(m2[1]);
+            }
+        }
+        // 2. Deteksi Barcode SPK Produksi Gudang
+        // Format: SPK-20261007-0003|ITEM-401 atau SPK-20261007-0003|ITEM-401|SKU
+        else if (cleanCode.startsWith('spk-') || (cleanCode.includes('spk') && cleanCode.includes('|')) || cleanCode.includes('|item-')) {
+            isSpkScan = true;
+            const parts = rawBarcode.split('|');
+            detectedSpkNo = parts[0].trim();
+            const m = rawBarcode.match(/item-(\d+)/i);
+            if (m) {
+                detectedSpkItemId = parseInt(m[1]);
+            }
+            if (parts.length >= 3) {
+                cleanSku = parts[2].trim().toLowerCase();
             }
         }
 
-        // Fallback matching
-        if (!matchedItem) {
-            for (let item of currentOrder.items) {
-                let itemSku = (item.sku || '').toLowerCase();
-                let itemBarcode = (item.barcode || '').toLowerCase();
+        // 3. Pencocokan ke Item Pesanan
+        for (let item of currentOrder.items) {
+            let itemSku = (item.sku || '').trim().toLowerCase();
+            let itemBarcode = (item.barcode || '').trim().toLowerCase();
 
-                if (cleanCode.includes(itemSku) || (itemBarcode && cleanCode.includes(itemBarcode))) {
+            // A. Cocok langsung SKU atau Barcode
+            if ((itemSku && (itemSku === cleanCode || itemSku === cleanSku)) ||
+                (itemBarcode && (itemBarcode === cleanCode || itemBarcode === cleanSku))) {
+                matchedItem = item;
+                break;
+            }
+
+            // B. Cocok via SPK Item ID (ITEM-401 preloaded)
+            if (isSpkScan && detectedSpkItemId && item.spk_item_ids && item.spk_item_ids.includes(detectedSpkItemId)) {
+                matchedItem = item;
+                break;
+            }
+
+            // C. Cocok via Titipan Consignment Item ID
+            if (isTitipanScan && detectedConsignmentItemId && item.active_consignments) {
+                if (item.active_consignments.some(c => c.consignment_item_id === detectedConsignmentItemId)) {
                     matchedItem = item;
                     break;
                 }
             }
+
+            // D. Cocok via Titipan Reference Number
+            if (isTitipanScan && detectedConsignmentRef && item.active_consignments) {
+                if (item.active_consignments.some(c => c.reference_number.toLowerCase() === detectedConsignmentRef.toLowerCase())) {
+                    matchedItem = item;
+                    break;
+                }
+            }
+        }
+
+        // 4. Fallback: Parsial match SKU
+        if (!matchedItem) {
+            for (let item of currentOrder.items) {
+                let itemSku = (item.sku || '').trim().toLowerCase();
+                let itemBarcode = (item.barcode || '').trim().toLowerCase();
+
+                if ((itemSku && cleanCode.includes(itemSku)) || (itemBarcode && cleanCode.includes(itemBarcode))) {
+                    matchedItem = item;
+                    break;
+                }
+            }
+        }
+
+        // 5. Fallback Online Lookup: Jika SPK barcode belum cocok di memori, query resolver backend
+        if (!matchedItem && (isSpkScan || detectedSpkItemId)) {
+            $.ajax({
+                url: '{{ route("v2.scanner_gudang.resolve_barcode") }}',
+                type: 'GET',
+                data: { code: rawBarcode },
+                async: false,
+                dataType: 'json',
+                success: function(res) {
+                    if (res.success) {
+                        for (let item of currentOrder.items) {
+                            let itemSku = (item.sku || '').trim().toLowerCase();
+                            if ((res.sku && itemSku === res.sku.trim().toLowerCase()) ||
+                                (res.master_product_id && item.master_product_id === res.master_product_id)) {
+                                matchedItem = item;
+                                isSpkScan = true;
+                                detectedSpkItemId = res.spk_item_id;
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         if (!matchedItem) {
@@ -716,7 +806,7 @@ $(document).ready(function() {
             Swal.fire({
                 icon: 'error',
                 title: 'Item Tidak Sesuai!',
-                text: `Barcode / SKU '${scannedCode}' TIDAK ADA dalam daftar pesanan ini!`,
+                text: `Barcode / SKU '${rawBarcode}' TIDAK ADA dalam daftar pesanan ini!`,
                 timer: 1500,
                 showConfirmButton: false,
                 returnFocus: false
@@ -750,10 +840,22 @@ $(document).ready(function() {
         // Record scan
         scannedItems[matchedItem.id] = currentScanned + 1;
 
-        // Check source (consignment vs warehouse)
+        // Check source (consignment vs spk vs warehouse)
         let srcType = 'warehouse';
         let consId = null;
-        if (matchedItem.active_consignments && matchedItem.active_consignments.length > 0) {
+        if (isTitipanScan) {
+            srcType = 'consignment';
+            consId = detectedConsignmentItemId;
+            if (matchedItem.active_consignments && matchedItem.active_consignments.length > 0) {
+                let activeCons = matchedItem.active_consignments.find(c => (!consId || c.consignment_item_id === consId) && c.sisa_stok > 0);
+                if (activeCons) {
+                    consId = activeCons.consignment_item_id;
+                    activeCons.sisa_stok -= 1;
+                }
+            }
+        } else if (isSpkScan) {
+            srcType = 'spk';
+        } else if (matchedItem.active_consignments && matchedItem.active_consignments.length > 0) {
             let activeCons = matchedItem.active_consignments.find(c => c.sisa_stok > 0);
             if (activeCons) {
                 srcType = 'consignment';
@@ -765,7 +867,9 @@ $(document).ready(function() {
         scannedSources[matchedItem.id].push({
             source: srcType,
             consignment_item_id: consId,
-            barcode: scannedCode
+            spk_no: detectedSpkNo,
+            spk_item_id: detectedSpkItemId,
+            barcode: rawBarcode
         });
 
         playSuccessBeep();
