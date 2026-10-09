@@ -112,6 +112,77 @@
     .v2-modal-header {
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         color: #ffffff;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+
+    #modalSubstitute .modal-content {
+        border-radius: 12px !important;
+        overflow: visible !important;
+    }
+
+    #modalSubstitute .modal-footer {
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+    }
+
+    #substituteSelectWrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    #substituteSelectWrapper .select2-container {
+        width: 100% !important;
+        display: block !important;
+    }
+
+    #substituteSelectWrapper .select2-container--bootstrap-5 .select2-selection {
+        min-height: 42px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+    }
+
+    #substituteSelectWrapper .select2-container--bootstrap-5.select2-container--open .select2-selection {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    #substituteSelectWrapper .select2-dropdown {
+        z-index: 1065 !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    #substituteSelectWrapper .select2-search--dropdown {
+        padding: 8px 10px !important;
+    }
+
+    #substituteSelectWrapper .select2-search--dropdown .select2-search__field {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 7px 12px !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        font-size: 0.85rem !important;
+    }
+
+    #substituteSelectWrapper .select2-results__option {
+        padding: 8px 12px !important;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    #substituteSelectWrapper .select2-results__option:last-child {
+        border-bottom: none;
+    }
+
+    .fs-10 {
+        font-size: 0.65rem !important;
     }
 </style>
 @endpush
@@ -287,7 +358,7 @@
 <!-- Modal Substitusi / Tukar Produk -->
 <div class="modal fade" id="modalSubstitute" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-3 overflow-hidden">
+        <div class="modal-content border-0 shadow-lg rounded-3">
             <div class="v2-modal-header p-3 d-flex justify-content-between align-items-center">
                 <h6 class="modal-title fw-bold text-white mb-0 d-flex align-items-center gap-2">
                     <i class="bi bi-arrow-repeat text-warning"></i> Tukar Produk / Substitusi Item
@@ -303,10 +374,12 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold text-dark fs-12">Pilih Produk Pengganti</label>
-                    <select class="form-select select2-substitute" id="selectSubstituteProduct" style="width: 100%;">
-                        <option value="">-- Cari Nama / SKU / Barcode Produk --</option>
-                    </select>
+                    <label class="form-label fw-semibold text-dark fs-12 mb-1">Pilih Produk Pengganti</label>
+                    <div id="substituteSelectWrapper" class="position-relative w-100">
+                        <select class="form-select no-select2" id="selectSubstituteProduct" style="width: 100%;">
+                            <option value="">-- Cari Nama / SKU / Barcode Produk --</option>
+                        </select>
+                    </div>
                     <div class="form-text text-muted fs-11 mt-1">Pilih produk aktif yang memiliki stok fisik di gudang.</div>
                 </div>
 
@@ -391,11 +464,25 @@ $(document).ready(function() {
     // Auto-focus Logic for Hardware Barcode Scanner
     // -------------------------------------------------------------
     function focusOrderInput() {
-        $('#inputScanOrder').focus().select();
+        setTimeout(() => {
+            $('#inputScanOrder').trigger('focus').select();
+        }, 50);
+        setTimeout(() => {
+            $('#inputScanOrder').trigger('focus').select();
+        }, 200);
     }
 
     function focusItemInput() {
-        $('#inputScanItem').focus().select();
+        if ($('#inputScanItem').is(':disabled')) return;
+        setTimeout(() => {
+            $('#inputScanItem').trigger('focus').select();
+        }, 50);
+        setTimeout(() => {
+            $('#inputScanItem').trigger('focus').select();
+        }, 200);
+        setTimeout(() => {
+            $('#inputScanItem').trigger('focus').select();
+        }, 400);
     }
 
     $('#btnClearOrderInput').on('click', function() {
@@ -415,8 +502,8 @@ $(document).ready(function() {
     // -------------------------------------------------------------
     // Step 1: Submit Scan Resi / Invoice
     // -------------------------------------------------------------
-    $('#inputScanOrder').on('keypress', function(e) {
-        if (e.which === 13) {
+    $('#inputScanOrder').on('keydown', function(e) {
+        if (e.key === 'Enter' || e.which === 13) {
             e.preventDefault();
             const identifier = $(this).val().trim();
             if (identifier) {
@@ -426,36 +513,57 @@ $(document).ready(function() {
     });
 
     function fetchOrderDetails(identifier) {
-        Swal.fire({
-            title: 'Memuat Pesanan...',
-            text: 'Mencari resi / invoice ' + identifier,
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
-        });
+        // Visual indicator in status badge without blocking SweetAlert modal that steals focus
+        $('#orderStatusBadge')
+            .removeClass('bg-secondary bg-success bg-danger')
+            .addClass('bg-primary text-white')
+            .html('<span class="spinner-border spinner-border-sm me-1" style="width:0.75rem;height:0.75rem;"></span> MEMUAT...');
+        $('#inputScanOrder').prop('disabled', true);
 
         $.ajax({
             url: '/v2/scanner-gudang/order/' + encodeURIComponent(identifier),
             type: 'GET',
             dataType: 'json',
             success: function(res) {
-                Swal.close();
+                $('#inputScanOrder').prop('disabled', false);
                 if (res.success && res.order) {
                     playSuccessBeep();
                     loadOrderIntoScanner(res.order);
                 } else {
                     playErrorBuzzer();
-                    Swal.fire('Gagal', res.message || 'Pesanan tidak ditemukan.', 'error');
+                    $('#orderStatusBadge')
+                        .removeClass('bg-primary bg-success')
+                        .addClass('bg-danger text-white')
+                        .text('TIDAK DITEMUKAN');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Pesanan Tidak Ditemukan',
+                        text: res.message || 'Pesanan tidak ditemukan.',
+                        returnFocus: false
+                    }).then(() => {
+                        focusOrderInput();
+                    });
                 }
             },
             error: function(xhr) {
-                Swal.close();
+                $('#inputScanOrder').prop('disabled', false);
                 playErrorBuzzer();
+                $('#orderStatusBadge')
+                    .removeClass('bg-primary bg-success')
+                    .addClass('bg-danger text-white')
+                    .text('ERROR');
                 let errMsg = 'Pesanan tidak ditemukan atau bermasalah.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errMsg = xhr.responseJSON.message;
                 }
-                Swal.fire('Perhatian', errMsg, 'warning');
-                $('#inputScanOrder').select();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Perhatian',
+                    text: errMsg,
+                    returnFocus: false
+                }).then(() => {
+                    focusOrderInput();
+                });
             }
         });
     }
@@ -562,10 +670,11 @@ $(document).ready(function() {
     // -------------------------------------------------------------
     // Step 2: Scan Barcode SKU Item
     // -------------------------------------------------------------
-    $('#inputScanItem').on('keypress', function(e) {
-        if (e.which === 13) {
+    $('#inputScanItem').on('keydown', function(e) {
+        if (e.key === 'Enter' || e.which === 13) {
             e.preventDefault();
             const scannedCode = $(this).val().trim();
+            $(this).val('');
             if (scannedCode) {
                 processItemScan(scannedCode);
             }
@@ -608,10 +717,14 @@ $(document).ready(function() {
                 icon: 'error',
                 title: 'Item Tidak Sesuai!',
                 text: `Barcode / SKU '${scannedCode}' TIDAK ADA dalam daftar pesanan ini!`,
-                timer: 2000,
-                showConfirmButton: false
+                timer: 1500,
+                showConfirmButton: false,
+                returnFocus: false
+            }).then(() => {
+                focusItemInput();
             });
-            $('#inputScanItem').val('').focus();
+            $('#inputScanItem').val('');
+            focusItemInput();
             return;
         }
 
@@ -623,10 +736,14 @@ $(document).ready(function() {
                 icon: 'warning',
                 title: 'Kuantitas Sudah Terpenuhi',
                 text: `Item '${matchedItem.name}' sudah lengkap di-scan (${matchedItem.quantity} pcs).`,
-                timer: 1800,
-                showConfirmButton: false
+                timer: 1500,
+                showConfirmButton: false,
+                returnFocus: false
+            }).then(() => {
+                focusItemInput();
             });
-            $('#inputScanItem').val('').focus();
+            $('#inputScanItem').val('');
+            focusItemInput();
             return;
         }
 
@@ -658,6 +775,15 @@ $(document).ready(function() {
         updateProgressUI();
         focusItemInput();
     }
+
+    // Klik di area Step 2 otomatis kembalikan fokus ke scan SKU jika aktif
+    $('#cardStep2, #itemsContainer').on('click', function(e) {
+        if ($(e.target).closest('.btn-substitute-item, button, input, .modal, a').length === 0) {
+            if (!$('#inputScanItem').prop('disabled')) {
+                focusItemInput();
+            }
+        }
+    });
 
     function updateItemUI(itemId, scannedQty, targetQty) {
         const card = $(`#itemCard_${itemId}`);
@@ -820,27 +946,71 @@ $(document).ready(function() {
 
     // Select2 Ajax for Product Substitution
     $('#selectSubstituteProduct').select2({
-        dropdownParent: $('#modalSubstitute'),
+        theme: 'bootstrap-5',
+        dropdownParent: $('#substituteSelectWrapper'),
         placeholder: '-- Cari Produk Pengganti (Nama / SKU / Barcode) --',
+        width: '100%',
+        allowClear: true,
+        minimumInputLength: 0,
         ajax: {
             url: '{{ route("v2.scanner_gudang.products_search") }}',
             dataType: 'json',
             delay: 250,
             data: function(params) {
-                return { q: params.term };
+                return { q: params.term || '' };
             },
             processResults: function(data) {
                 return {
-                    results: $.map(data.products, function(prod) {
+                    results: $.map(data.products || [], function(prod) {
                         return {
                             id: prod.id,
-                            text: `[${prod.sku}] ${prod.name} (Stok: ${prod.stock} ${prod.unit || 'pcs'})`
+                            text: `[${prod.sku}] ${prod.name}`,
+                            name: prod.name,
+                            sku: prod.sku,
+                            barcode: prod.barcode || '',
+                            stock: prod.stock || 0,
+                            unit: prod.unit || 'pcs'
                         };
                     })
                 };
             },
             cache: true
-        }
+        },
+        templateResult: function(item) {
+            if (item.loading) return item.text;
+            if (!item.id) return item.text;
+            let stockBadge = item.stock > 0 
+                ? `<span class="badge bg-success-subtle text-success border border-success-subtle fs-11 fw-semibold">Stok: ${item.stock} ${item.unit}</span>`
+                : `<span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-semibold">Habis (${item.stock})</span>`;
+            return $(`
+                <div class="d-flex justify-content-between align-items-center py-1">
+                    <div class="overflow-hidden pe-2">
+                        <div class="fw-semibold text-dark fs-12 text-truncate">${item.name}</div>
+                        <div class="d-flex align-items-center gap-1.5 mt-0.5">
+                            <span class="badge bg-dark fs-10">SKU: ${item.sku}</span>
+                            ${item.barcode ? `<span class="badge bg-light text-secondary border fs-10"><i class="bi bi-barcode me-0.5"></i>${item.barcode}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 text-end">
+                        ${stockBadge}
+                    </div>
+                </div>
+            `);
+        },
+        templateSelection: function(item) {
+            return item.text || '-- Cari Produk Pengganti --';
+        },
+        escapeMarkup: function(m) { return m; }
+    });
+
+    $('#modalSubstitute').on('shown.bs.modal', function() {
+        setTimeout(function() {
+            $('#selectSubstituteProduct').select2('open');
+        }, 100);
+    });
+
+    $('#modalSubstitute').on('hidden.bs.modal', function() {
+        focusItemInput();
     });
 
     $('#btnSaveSubstitute').on('click', function() {

@@ -213,26 +213,16 @@
                 aria-expanded="{{ $isGudangJadiActive ? 'true' : 'false' }}">
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-arrow-left-right text-primary"></i>
-                    <span>Mutasi Produk</span>
+                    <span>Gudang Jadi</span>
                 </div>
                 <i class="bi bi-chevron-down v2-dropdown-arrow ms-auto" style="font-size: 0.65rem;"></i>
             </a>
             <div class="collapse v2-submenu {{ $isGudangJadiActive ? 'show' : '' }}" id="gudangJadiSubmenu">
                 <div class="v2-submenu-inner">
-                    <a href="{{ route('v2.gudang_jadi.masuk') }}"
-                        class="v2-submenu-link {{ request()->routeIs('v2.gudang_jadi.masuk') || (request()->routeIs('v2.gudang_jadi.index') && request('type') === 'in') ? 'active' : '' }}">
-                        <i class="bi bi-box-arrow-in-down text-success me-1.5"></i>
-                        <span>Barang Masuk</span>
-                    </a>
-                    <a href="{{ route('v2.gudang_jadi.keluar') }}"
-                        class="v2-submenu-link {{ request()->routeIs('v2.gudang_jadi.keluar') || (request()->routeIs('v2.gudang_jadi.index') && request('type') === 'out') ? 'active' : '' }}">
-                        <i class="bi bi-box-arrow-up-right text-danger me-1.5"></i>
-                        <span>Barang Keluar</span>
-                    </a>
                     <a href="{{ route('v2.gudang_jadi.index') }}"
-                        class="v2-submenu-link {{ request()->routeIs('v2.gudang_jadi.index') && !request()->has('type') ? 'active' : '' }}">
-                        <i class="bi bi-building-gear text-primary me-1.5"></i>
-                        <span>Gudang Jadi (Semua)</span>
+                        class="v2-submenu-link {{ request()->routeIs('v2.gudang_jadi.*') ? 'active' : '' }}">
+                        <i class="bi bi-arrow-left-right text-primary me-1.5"></i>
+                        <span>Mutasi Masuk & Keluar</span>
                     </a>
                     <a href="{{ route('v2.scanner_gudang.index') }}"
                         class="v2-submenu-link {{ request()->is('v2/scanner-gudang*') || request()->routeIs('v2.scanner_gudang.*') ? 'active' : '' }}">
