@@ -57,10 +57,13 @@ class MarketingTeamController extends Controller
 
         // Hitung nilai aktual per tim berdasarkan tanggal dana cair terkunci yang tersimpan di DB
         foreach ($teams as $team) {
-            $team->custom_actual_qty   = $team->actual_qty;
-            $team->custom_actual_value = $team->actual_value;
-            $team->custom_actual_omset = $team->actual_omset;
-            $team->custom_total_reward = $team->total_reward;
+            $metrics = $team->calculateActualMetrics();
+            $team->custom_actual_qty    = $metrics['qty'];
+            $team->custom_actual_value  = $metrics['value'];
+            $team->custom_actual_omset  = $metrics['omset'];
+            $team->custom_actual_hpp    = $metrics['hpp'];
+            $team->custom_actual_margin = $metrics['margin'];
+            $team->custom_total_reward  = $team->total_reward;
             $team->custom_progress_percent = $team->value_progress_percent;
         }
 
@@ -80,9 +83,12 @@ class MarketingTeamController extends Controller
         $activeTeams = $teams->where('is_active', true)->count();
         $totalStoresLinked = $teams->pluck('stores')->flatten()->unique('id')->count();
         $totalTargetQty = $teams->where('is_active', true)->sum('target_qty');
-        $totalTargetValue = $teams->where('is_active', true)->sum('target_omset');
+        $totalTargetMargin = $teams->where('is_active', true)->sum('target_omset');
+        $totalTargetValue = $totalTargetMargin;
         $totalActualQty = $teams->where('is_active', true)->sum('custom_actual_qty');
+        $totalActualMargin = $teams->where('is_active', true)->sum('custom_actual_margin');
         $totalActualValue = $teams->where('is_active', true)->sum('custom_actual_value');
+        $totalActualHpp = $teams->where('is_active', true)->sum('custom_actual_hpp');
         $totalEarnedReward = $teams->where('is_active', true)->sum('custom_total_reward');
 
         return view('marketing.teams.index', compact(
@@ -92,9 +98,12 @@ class MarketingTeamController extends Controller
             'activeTeams',
             'totalStoresLinked',
             'totalTargetQty',
+            'totalTargetMargin',
             'totalTargetValue',
             'totalActualQty',
+            'totalActualMargin',
             'totalActualValue',
+            'totalActualHpp',
             'totalEarnedReward',
             'reqMonth',
             'reqYear',
@@ -352,6 +361,8 @@ class MarketingTeamController extends Controller
             $totalQty = 0;
             $totalOmset = 0.0;
             $totalValue = 0.0;
+            $totalHpp = 0.0;
+            $totalMargin = 0.0;
             $totalEarnedReward = 0.0;
 
             $commType = $marketingTeam->commission_type ?: 'percentage';
@@ -360,6 +371,7 @@ class MarketingTeamController extends Controller
             foreach ($orders as $order) {
                 $orderQty = 0;
                 $totalOrderItemsQty = $order->items->sum('quantity');
+                $orderEligibleHpp = 0.0;
 
                 foreach ($order->items as $item) {
                     $isExcluded = false;
@@ -386,7 +398,22 @@ class MarketingTeamController extends Controller
                             }
                         }
                         
-                        $orderQty += max(0, $item->quantity - $returnedQty);
+                        $itemNetQty = max(0, $item->quantity - $returnedQty);
+                        $orderQty += $itemNetQty;
+
+                        // HPP unit
+                        $unitHpp = 0.0;
+                        if ($item->hpp_subtotal > 0 && $item->quantity > 0) {
+                            $unitHpp = (float)$item->hpp_subtotal / (float)$item->quantity;
+                        } elseif ($item->cost_price > 0) {
+                            $unitHpp = (float)$item->cost_price;
+                        } elseif ($item->masterProduct && $item->masterProduct->cost_price > 0) {
+                            $unitHpp = (float)$item->masterProduct->cost_price;
+                        } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->cost_price > 0) {
+                            $unitHpp = (float)$item->marketplaceProduct->masterProduct->cost_price;
+                        }
+
+                        $orderEligibleHpp += ($unitHpp * $itemNetQty);
                     }
                 }
                 
@@ -409,12 +436,17 @@ class MarketingTeamController extends Controller
                     $orderReleased = $orderReleased * $ratio;
                 }
 
-                $orderReleased = round($orderReleased, 2);
-                $order->calculated_released_value = $orderReleased;
+                $orderReleased = max(0.0, round($orderReleased, 2));
+                $orderHpp = round($orderEligibleHpp, 2);
+                $orderMargin = round($orderReleased - $orderHpp, 2);
 
-                // Hitung komisi pesanan ini
+                $order->calculated_released_value = $orderReleased;
+                $order->calculated_hpp = $orderHpp;
+                $order->calculated_margin = $orderMargin;
+
+                // Hitung komisi pesanan ini berdasarkan Margin (Rp)
                 if ($commType === 'percentage') {
-                    $orderComm = round($orderReleased * ($commRate / 100), 2);
+                    $orderComm = round(max(0.0, $orderMargin) * ($commRate / 100), 2);
                 } elseif ($commType === 'nominal') {
                     $orderComm = 0.0;
                 } else {
@@ -424,18 +456,20 @@ class MarketingTeamController extends Controller
                 $order->calculated_commission = $orderComm;
 
                 $totalValue += $orderReleased;
+                $totalHpp += $orderHpp;
+                $totalMargin += $orderMargin;
                 $totalEarnedReward += $orderComm;
             }
 
-            // Jika tipe nominal flat bonus saat mencapai target value
+            // Jika tipe nominal flat bonus saat mencapai target margin
             if ($commType === 'nominal') {
-                if ($marketingTeam->target_omset > 0 && $totalValue >= $marketingTeam->target_omset) {
+                if ($marketingTeam->target_omset > 0 && $totalMargin >= $marketingTeam->target_omset) {
                     $totalEarnedReward = (float) $marketingTeam->reward_fixed_nominal;
                 } else {
                     $totalEarnedReward = 0.0;
                 }
             } elseif ($commType === 'percentage') {
-                if ($marketingTeam->target_omset > 0 && $totalValue >= $marketingTeam->target_omset && $marketingTeam->reward_fixed_nominal > 0) {
+                if ($marketingTeam->target_omset > 0 && $totalMargin >= $marketingTeam->target_omset && $marketingTeam->reward_fixed_nominal > 0) {
                     $totalEarnedReward += (float) $marketingTeam->reward_fixed_nominal;
                 }
             }
@@ -447,6 +481,8 @@ class MarketingTeamController extends Controller
             'totalQty',
             'totalOmset',
             'totalValue',
+            'totalHpp',
+            'totalMargin',
             'totalEarnedReward',
             'rewardPerQty',
             'reqMonth',

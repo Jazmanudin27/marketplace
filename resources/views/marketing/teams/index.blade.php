@@ -12,7 +12,7 @@
                 <i class="bi bi-bullseye text-primary fs-5"></i>
                 <span>Target & Komisi Penjualan</span>
             </h5>
-            <p class="text-muted small mb-0">Kelola alokasi toko marketplace, target penjualan yang dilepas (Value Rp), dan persentase komisi.</p>
+            <p class="text-muted small mb-0">Kelola alokasi toko marketplace, target Margin (Rp), dan persentase komisi tim.</p>
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2">
             <button type="button" class="btn btn-sm btn-outline-danger px-2.5 py-1.5 rounded-2 fw-semibold shadow-xs d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#excludeProductsModal" style="font-size: 0.78rem;">
@@ -58,8 +58,8 @@
                     <i class="bi bi-graph-up-arrow"></i>
                 </div>
                 <div class="v2-stat-info">
-                    <span class="v2-stat-num" style="font-size: 0.95rem;">Rp {{ number_format($totalTargetValue, 0, ',', '.') }}</span>
-                    <span class="v2-stat-lbl text-success fw-semibold">Realisasi: Rp {{ number_format($totalActualValue, 0, ',', '.') }}</span>
+                    <span class="v2-stat-num" style="font-size: 0.95rem;">Rp {{ number_format($totalTargetMargin ?? $totalTargetValue, 0, ',', '.') }}</span>
+                    <span class="v2-stat-lbl text-success fw-semibold">Margin Realisasi: Rp {{ number_format($totalActualMargin ?? 0, 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>
@@ -217,10 +217,10 @@
                 <tr>
                     <th class="ps-4 py-3">#</th>
                     <th class="py-3"><i class="bi bi-people me-1 text-primary"></i>Tim & Toko Terhubung</th>
-                    <th class="py-3 text-end"><i class="bi bi-graph-up-arrow me-1 text-primary"></i>Target Penjualan (Rp)</th>
+                    <th class="py-3 text-end"><i class="bi bi-graph-up-arrow me-1 text-primary"></i>Target Margin (Rp)</th>
                     <th class="py-3 text-end"><i class="bi bi-percent me-1 text-primary"></i>Skema Komisi</th>
                     <th class="py-3 text-end"><i class="bi bi-wallet2 me-1 text-primary"></i>Total Komisi</th>
-                    <th class="py-3 text-center" style="min-width: 200px;"><i class="bi bi-bar-chart-line me-1 text-primary"></i>Realisasi & Progress Nilai</th>
+                    <th class="py-3 text-center" style="min-width: 200px;"><i class="bi bi-bar-chart-line me-1 text-primary"></i>Realisasi & Progress Margin</th>
                     <th class="py-3 text-center"><i class="bi bi-toggle-on me-1 text-primary"></i>Status</th>
                     <th class="py-3 pe-4 text-end"><i class="bi bi-gear me-1 text-primary"></i>Aksi</th>
                 </tr>
@@ -228,10 +228,11 @@
             <tbody>
                 @forelse($teams as $index => $team)
                     @php
-                        $actVal = $team->custom_actual_value ?? $team->actual_value;
-                        $totRew = $team->custom_total_reward ?? $team->total_reward;
-                        $pct    = $team->custom_progress_percent ?? $team->value_progress_percent;
-                        $cType  = $team->commission_type ?: 'percentage';
+                        $actMargin = $team->custom_actual_margin ?? $team->actual_margin;
+                        $actVal    = $team->custom_actual_value ?? $team->actual_value;
+                        $totRew    = $team->custom_total_reward ?? $team->total_reward;
+                        $pct       = $team->custom_progress_percent ?? $team->value_progress_percent;
+                        $cType     = $team->commission_type ?: 'percentage';
                     @endphp
                     <tr>
                         <td class="ps-4 text-muted fw-medium">{{ $index + 1 }}</td>
@@ -289,17 +290,17 @@
                             </div>
                         </td>
 
-                        <!-- Target Penjualan (Rp) -->
+                        <!-- Target Margin (Rp) -->
                         <td class="text-end py-3">
                             <span class="fw-bold text-dark fs-6">Rp {{ number_format($team->target_omset, 0, ',', '.') }}</span>
-                            <span class="text-muted small d-block">Target Nilai Dilepas</span>
+                            <span class="text-muted small d-block">Target Margin (Rp)</span>
                         </td>
 
                         <!-- Skema Komisi -->
                         <td class="text-end py-3">
                             @if($cType === 'percentage')
                                 <span class="fw-bold text-primary">{{ number_format($team->commission_rate, 2) }}%</span>
-                                <span class="text-muted small d-block">dari Penjualan Dilepas</span>
+                                <span class="text-muted small d-block">dari Margin (Rp)</span>
                                 @if($team->reward_fixed_nominal > 0)
                                     <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-0.5 mt-1 small" style="font-size:0.7rem;">
                                         + Bonus Rp {{ number_format($team->reward_fixed_nominal, 0, ',', '.') }}
@@ -318,15 +319,15 @@
                         <td class="text-end py-3">
                             <span class="fw-bold text-success fs-6">Rp {{ number_format($totRew, 0, ',', '.') }}</span>
                             @if($cType === 'percentage')
-                                <span class="text-muted small d-block">({{ number_format($team->commission_rate, 2) }}% × Rp {{ number_format($actVal, 0, ',', '.') }})</span>
+                                <span class="text-muted small d-block">({{ number_format($team->commission_rate, 2) }}% × Rp {{ number_format($actMargin, 0, ',', '.') }})</span>
                             @elseif($cType === 'nominal')
-                                <span class="text-muted small d-block">{{ $actVal >= $team->target_omset ? 'Target Tercapai' : 'Belum Capai Target' }}</span>
+                                <span class="text-muted small d-block">{{ $actMargin >= $team->target_omset ? 'Target Tercapai' : 'Belum Capai Target' }}</span>
                             @else
                                 <span class="text-muted small d-block">({{ number_format($team->custom_actual_qty ?? $team->actual_qty) }} Qty × Rp {{ number_format($team->reward_per_qty, 0, ',', '.') }})</span>
                             @endif
                         </td>
 
-                        <!-- Realisasi & Progress Nilai -->
+                        <!-- Realisasi & Progress Margin -->
                         <td class="py-3 px-3">
                             @php
                                 $barClass = 'bg-danger';
@@ -335,7 +336,7 @@
                             @endphp
                             <div class="d-flex justify-content-between align-items-center mb-1 small">
                                 <span class="fw-semibold text-dark">
-                                    <i class="bi bi-cash-stack text-secondary me-1"></i>Rp {{ number_format($actVal, 0, ',', '.') }}
+                                    <i class="bi bi-cash-stack text-secondary me-1"></i>Rp {{ number_format($actMargin, 0, ',', '.') }}
                                 </span>
                                 <span class="badge bg-light text-dark border rounded-pill"><i class="bi bi-graph-up-arrow text-primary me-1"></i>{{ $pct }}%</span>
                             </div>
@@ -464,17 +465,17 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Target Nilai Penjualan Dilepas (Value) -->
+                                            <!-- Target Margin (Rp) -->
                                             <div class="col-12 col-md-6">
                                                 <label class="form-label fw-semibold small text-dark">
-                                                    <i class="bi bi-graph-up-arrow text-primary me-1"></i>Target Penjualan Dilepas (Value Rp) <span class="text-danger">*</span>
+                                                    <i class="bi bi-graph-up-arrow text-primary me-1"></i>Target Margin (Rp) <span class="text-danger">*</span>
                                                 </label>
                                                 <div class="input-group">
                                                     <span class="input-group-text bg-light text-muted">Rp</span>
                                                     <input type="number" name="target_omset" class="form-control fw-bold" value="{{ old('target_omset', $team->target_omset) }}" min="0" required placeholder="50000000">
                                                 </div>
                                                 <div class="form-text text-muted" style="font-size:0.72rem;">
-                                                    Target omset / nilai rupiah pesanan selesai yang dilepas.
+                                                    Target margin / laba kotor rupiah (Nilai Dilepas - HPP) pesanan selesai.
                                                 </div>
                                             </div>
 
@@ -483,10 +484,10 @@
                                                 <label class="form-label fw-semibold small text-dark">Tipe Skema Komisi</label>
                                                 <select name="commission_type" class="form-select" id="edit_comm_type_{{ $team->id }}">
                                                     <option value="percentage" {{ old('commission_type', $team->commission_type ?? 'percentage') === 'percentage' ? 'selected' : '' }}>
-                                                        Persentase Nilai (% dari Value)
+                                                        Persentase Margin (% dari Margin Rp)
                                                     </option>
                                                     <option value="nominal" {{ old('commission_type', $team->commission_type) === 'nominal' ? 'selected' : '' }}>
-                                                        Bonus Nominal Flat jika Target Tercapai
+                                                        Bonus Nominal Flat jika Target Margin Tercapai
                                                     </option>
                                                     <option value="qty" {{ old('commission_type', $team->commission_type) === 'qty' ? 'selected' : '' }}>
                                                         Per Qty Produk (Legacy)
@@ -501,7 +502,7 @@
                                                     <span class="input-group-text bg-light text-muted">%</span>
                                                 </div>
                                                 <div class="form-text text-muted" style="font-size:0.72rem;">
-                                                    % dihitung dari total nilai penjualan yang dilepas.
+                                                    % dihitung dari total Margin (Rp) yang dicapai.
                                                 </div>
                                             </div>
 
@@ -512,7 +513,7 @@
                                                     <input type="number" name="reward_fixed_nominal" class="form-control" value="{{ old('reward_fixed_nominal', $team->reward_fixed_nominal) }}" min="0" placeholder="0">
                                                 </div>
                                                 <div class="form-text text-muted" style="font-size:0.72rem;">
-                                                    Bonus tambahan jika target nilai terpenuhi.
+                                                    Bonus tambahan jika target margin (Rp) terpenuhi.
                                                 </div>
                                             </div>
 
@@ -669,17 +670,17 @@
                             </div>
                         </div>
 
-                        <!-- Target Nilai Penjualan Dilepas (Value) -->
+                        <!-- Target Margin (Rp) -->
                         <div class="col-12 col-md-6">
                             <label class="form-label fw-semibold small text-dark">
-                                <i class="bi bi-graph-up-arrow text-primary me-1"></i>Target Penjualan Dilepas (Value Rp) <span class="text-danger">*</span>
+                                <i class="bi bi-graph-up-arrow text-primary me-1"></i>Target Margin (Rp) <span class="text-danger">*</span>
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light text-muted">Rp</span>
                                 <input type="number" name="target_omset" class="form-control fw-bold" value="{{ old('target_omset', 50000000) }}" min="0" required placeholder="50000000">
                             </div>
                             <div class="form-text text-muted" style="font-size:0.72rem;">
-                                Target omset / nilai nominal rupiah pesanan selesai yang dilepas.
+                                Target margin / laba kotor rupiah (Nilai Dilepas - HPP) pesanan selesai.
                             </div>
                         </div>
 
@@ -688,10 +689,10 @@
                             <label class="form-label fw-semibold small text-dark">Tipe Skema Komisi</label>
                             <select name="commission_type" class="form-select" id="create_comm_type">
                                 <option value="percentage" {{ old('commission_type', 'percentage') === 'percentage' ? 'selected' : '' }}>
-                                    Persentase Nilai (% dari Value)
+                                    Persentase Margin (% dari Margin Rp)
                                 </option>
                                 <option value="nominal" {{ old('commission_type') === 'nominal' ? 'selected' : '' }}>
-                                    Bonus Nominal Flat jika Target Tercapai
+                                    Bonus Nominal Flat jika Target Margin Tercapai
                                 </option>
                                 <option value="qty" {{ old('commission_type') === 'qty' ? 'selected' : '' }}>
                                     Per Qty Produk (Legacy)
@@ -706,7 +707,7 @@
                                 <span class="input-group-text bg-light text-muted">%</span>
                             </div>
                             <div class="form-text text-muted" style="font-size:0.72rem;">
-                                % dihitung langsung dari total nilai penjualan yang dilepas.
+                                % dihitung langsung dari total Margin (Rp) yang dicapai.
                             </div>
                         </div>
 
@@ -717,7 +718,7 @@
                                 <input type="number" name="reward_fixed_nominal" class="form-control" value="{{ old('reward_fixed_nominal', 0) }}" min="0" placeholder="0">
                             </div>
                             <div class="form-text text-muted" style="font-size:0.72rem;">
-                                Bonus tambahan jika target nilai terpenuhi (opsional).
+                                Bonus tambahan jika target margin (Rp) terpenuhi (opsional).
                             </div>
                         </div>
 

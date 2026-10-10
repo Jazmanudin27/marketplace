@@ -31,14 +31,14 @@
                 @endphp
                 @if($cType === 'percentage')
                     <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1 small fw-semibold">
-                        <i class="bi bi-percent me-1"></i>Komisi: {{ number_format($marketingTeam->commission_rate, 2) }}% dari Penjualan Dilepas
+                        <i class="bi bi-percent me-1"></i>Komisi: {{ number_format($marketingTeam->commission_rate, 2) }}% dari Margin (Rp)
                         @if($marketingTeam->reward_fixed_nominal > 0)
                             (+ Bonus Rp {{ number_format($marketingTeam->reward_fixed_nominal, 0, ',', '.') }})
                         @endif
                     </span>
                 @elseif($cType === 'nominal')
                     <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1 small fw-semibold">
-                        <i class="bi bi-trophy me-1"></i>Bonus Target: Rp {{ number_format($marketingTeam->reward_fixed_nominal, 0, ',', '.') }}
+                        <i class="bi bi-trophy me-1"></i>Bonus Target Margin: Rp {{ number_format($marketingTeam->reward_fixed_nominal, 0, ',', '.') }}
                     </span>
                 @else
                     <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1 small fw-semibold">
@@ -69,7 +69,7 @@
             </div>
         </div>
 
-        <!-- Target Penjualan Dilepas -->
+        <!-- Target Margin (Rp) -->
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="v2-stat-widget widget-amber">
                 <div class="v2-stat-icon-wrapper amber">
@@ -78,22 +78,22 @@
                 <div class="v2-stat-info">
                     <span class="v2-stat-num" style="font-size: 0.95rem;">Rp {{ number_format($marketingTeam->target_omset, 0, ',', '.') }}</span>
                     @php
-                        $progressValPct = $marketingTeam->target_omset > 0 ? min(100.0, round(($totalValue / $marketingTeam->target_omset) * 100, 1)) : 0;
+                        $progressMarginPct = $marketingTeam->target_omset > 0 ? min(100.0, round(($totalMargin / $marketingTeam->target_omset) * 100, 1)) : 0;
                     @endphp
-                    <span class="v2-stat-lbl text-primary fw-semibold">Progress: {{ $progressValPct }}%</span>
+                    <span class="v2-stat-lbl text-primary fw-semibold">Progress Target: {{ $progressMarginPct }}%</span>
                 </div>
             </div>
         </div>
 
-        <!-- Total Penjualan Dilepas (Value) -->
+        <!-- Realisasi Margin (Rp) -->
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="v2-stat-widget widget-green">
                 <div class="v2-stat-icon-wrapper green">
-                    <i class="bi bi-cash-stack"></i>
+                    <i class="bi bi-cash-coin"></i>
                 </div>
                 <div class="v2-stat-info">
-                    <span class="v2-stat-num" style="font-size: 0.95rem;">Rp {{ number_format($totalValue, 0, ',', '.') }}</span>
-                    <span class="v2-stat-lbl">Total Qty: {{ number_format($totalQty) }} pcs</span>
+                    <span class="v2-stat-num" style="font-size: 0.95rem;">Rp {{ number_format($totalMargin, 0, ',', '.') }}</span>
+                    <span class="v2-stat-lbl" style="font-size: 0.68rem;">Dilepas: Rp {{ number_format($totalValue, 0, ',', '.') }} | HPP: Rp {{ number_format($totalHpp, 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>
@@ -166,8 +166,10 @@
                         <th class="py-3">Pembeli</th>
                         <th class="py-3 text-center">Status</th>
                         <th class="py-3 text-end">Qty Bersih</th>
-                        <th class="py-3 text-end"><i class="bi bi-cash-stack me-1 text-primary"></i>Penjualan Dilepas (Value)</th>
-                        <th class="py-3 text-end pe-4"><i class="bi bi-wallet2 me-1 text-primary"></i>Komisi Transaksi</th>
+                        <th class="py-3 text-end"><i class="bi bi-cash-stack me-1 text-primary"></i>Dilepas (Rp)</th>
+                        <th class="py-3 text-end"><i class="bi bi-box me-1 text-secondary"></i>HPP (Modal)</th>
+                        <th class="py-3 text-end"><i class="bi bi-cash-coin me-1 text-success"></i>Margin (Rp)</th>
+                        <th class="py-3 text-end pe-4"><i class="bi bi-wallet2 me-1 text-primary"></i>Komisi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -204,8 +206,10 @@
                                 }
                             }
 
-                            $orderVal  = $order->calculated_released_value ?? (float)($order->net_amount > 0 ? $order->net_amount : max(0.0, (float)$order->total_amount - (float)$order->refund_amount));
-                            $orderComm = $order->calculated_commission ?? 0;
+                            $orderVal    = $order->calculated_released_value ?? (float)($order->net_amount > 0 ? $order->net_amount : max(0.0, (float)$order->total_amount - (float)$order->refund_amount));
+                            $orderHpp    = $order->calculated_hpp ?? 0;
+                            $orderMargin = $order->calculated_margin ?? round($orderVal - $orderHpp, 2);
+                            $orderComm   = $order->calculated_commission ?? 0;
                             
                             $chName = strtolower($order->store->channel->name ?? '');
                             $badgeClass = 'bg-secondary text-white';
@@ -279,28 +283,36 @@
                                     </span>
                                 @endif
                             </td>
-                            <!-- Nilai Penjualan Dilepas (Value) -->
-                            <td class="py-3 text-end fw-semibold text-primary">
+                            <!-- Nilai Penjualan Dilepas -->
+                            <td class="py-3 text-end fw-semibold text-dark">
                                 Rp {{ number_format($orderVal, 0, ',', '.') }}
                                 @if($order->refund_amount > 0)
                                     <span class="text-danger small d-block" style="font-size:0.72rem; font-weight:normal;">
-                                        (Dipotong retur/refund)
+                                        (Dipotong refund)
                                     </span>
                                 @endif
+                            </td>
+                            <!-- HPP Modal -->
+                            <td class="py-3 text-end fw-normal text-muted">
+                                Rp {{ number_format($orderHpp, 0, ',', '.') }}
+                            </td>
+                            <!-- Margin (Rp) -->
+                            <td class="py-3 text-end fw-semibold {{ $orderMargin >= 0 ? 'text-primary' : 'text-danger' }}">
+                                Rp {{ number_format($orderMargin, 0, ',', '.') }}
                             </td>
                             <!-- Komisi Transaksi -->
                             <td class="py-3 text-end fw-bold text-success pe-4">
                                 Rp {{ number_format($orderComm, 0, ',', '.') }}
                                 @if($cType === 'percentage' && $marketingTeam->commission_rate > 0)
                                     <span class="text-muted small d-block fw-normal" style="font-size:0.72rem;">
-                                        {{ number_format($marketingTeam->commission_rate, 2) }}%
+                                        ({{ number_format($marketingTeam->commission_rate, 2) }}%)
                                     </span>
                                 @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-5">
+                            <td colspan="11" class="text-center py-5">
                                 <div class="py-4 text-muted">
                                     <i class="bi bi-receipt fs-1 opacity-50 d-block mb-2"></i>
                                     <h6 class="fw-semibold">Tidak Ada Transaksi Ditemukan</h6>
@@ -315,7 +327,9 @@
                         <tr>
                             <td colspan="6" class="ps-4 py-3 text-start text-uppercase fw-bold">TOTAL</td>
                             <td class="py-3 text-end">{{ number_format($totalQty) }} pcs</td>
-                            <td class="py-3 text-end text-primary">Rp {{ number_format($totalValue, 0, ',', '.') }}</td>
+                            <td class="py-3 text-end text-dark">Rp {{ number_format($totalValue, 0, ',', '.') }}</td>
+                            <td class="py-3 text-end text-muted">Rp {{ number_format($totalHpp, 0, ',', '.') }}</td>
+                            <td class="py-3 text-end text-primary">Rp {{ number_format($totalMargin, 0, ',', '.') }}</td>
                             <td class="py-3 text-end text-success pe-4">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</td>
                         </tr>
                     </tfoot>
