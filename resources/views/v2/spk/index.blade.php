@@ -36,73 +36,169 @@
             </div>
         </div>
 
-        {{-- FILTER & SEARCH BAR --}}
-        <div class="card border border-light-subtle shadow-sm rounded-3 bg-white mb-4">
-            <div class="card-body p-3">
-                <form action="{{ Route::has('v2.spk.index') ? route('v2.spk.index') : route('spks.index') }}" method="GET" class="m-0">
+        {{-- SPK PRODUCTION STATUS TABS & FILTER CARD (PESANAN STYLE) --}}
+        <div class="card border border-light-subtle shadow-sm rounded-3 bg-white mb-4 overflow-hidden">
+            {{-- Horizontal Stage Tabs --}}
+            @php
+                $currentStage = request('urgent') == '1' ? 'urgent' : request('stage', '');
+                $tabStages = [
+                    ''              => ['label' => 'Semua', 'icon' => 'bi bi-grid-fill', 'countKey' => '__all__'],
+                    'urgent'        => ['label' => 'Urgent ⚡', 'icon' => 'bi bi-lightning-charge-fill text-danger', 'countKey' => 'urgent'],
+                    'in_progress'   => ['label' => 'Sedang Diproses', 'icon' => 'bi bi-gear-wide-connected text-primary', 'countKey' => 'in_progress'],
+                    'potong'        => ['label' => 'Potong', 'icon' => 'bi bi-scissors text-danger', 'countKey' => 'potong'],
+                    'sablon_bordir' => ['label' => 'Sablon/Bordir', 'icon' => 'bi bi-palette text-warning', 'countKey' => 'sablon_bordir'],
+                    'jahit'         => ['label' => 'Jahit', 'icon' => 'bi bi-pin-angle text-primary', 'countKey' => 'jahit'],
+                    'lkpk'          => ['label' => 'LKPK', 'icon' => 'bi bi-disc text-secondary', 'countKey' => 'lkpk'],
+                    'qc'            => ['label' => 'QC', 'icon' => 'bi bi-search text-info', 'countKey' => 'qc'],
+                    'packing'       => ['label' => 'Packing', 'icon' => 'bi bi-box-seam text-dark', 'countKey' => 'packing'],
+                    'desain'        => ['label' => 'Desain', 'icon' => 'bi bi-brush text-indigo', 'countKey' => 'desain'],
+                    'pesanan_baru'  => ['label' => 'Pesanan Baru', 'icon' => 'bi bi-clipboard-check text-success', 'countKey' => 'pesanan_baru'],
+                    'sampling'      => ['label' => 'Sampling', 'icon' => 'bi bi-hourglass-split text-muted', 'countKey' => 'sampling'],
+                    'draft'         => ['label' => 'Draft', 'icon' => 'bi bi-file-earmark-text text-secondary', 'countKey' => 'draft'],
+                    'selesai'       => ['label' => 'Selesai', 'icon' => 'bi bi-check-circle-fill text-success', 'countKey' => 'selesai'],
+                    'dikirim'       => ['label' => 'Dikirim', 'icon' => 'bi bi-truck text-info', 'countKey' => 'dikirim'],
+                ];
+            @endphp
+            <div class="spk-tab-bar" role="tablist">
+                @foreach($tabStages as $tabKey => $tabInfo)
                     @php
-                        $currStage = request('stage');
-                        $isUrgent = request('urgent') == '1';
-                        $selectedFilter = $isUrgent ? 'urgent' : ($currStage ?: '');
-                        $hasActiveFilter = !empty($selectedFilter) || request()->filled('tipe_spk') || request()->filled('search');
+                        $tabUrl = route('v2.spk.index', array_merge(
+                            request()->except(['stage', 'urgent', 'page']),
+                            $tabKey === 'urgent' ? ['urgent' => '1'] : ($tabKey !== '' ? ['stage' => $tabKey] : [])
+                        ));
+                        $isActive = $currentStage === $tabKey;
+                        $count = $tabCounts[$tabInfo['countKey']] ?? 0;
                     @endphp
-                    <div class="row g-2.5 align-items-center">
-
-                        {{-- STAGE & STATUS SELECT DROPDOWN --}}
-                        <div class="col-12 col-md-5 col-lg-5">
-                            <select name="stage" class="form-select border-light-subtle bg-white text-dark fw-medium"
-                                style="cursor: pointer;" onchange="this.form.submit()">
-                                    <option value="" {{ $selectedFilter === '' ? 'selected' : '' }}>🌐 Semua SPK (Semua Status)</option>
-                                    <option value="urgent" {{ $selectedFilter === 'urgent' ? 'selected' : '' }}>⚡ Pesanan Urgent</option>
-                                    <option value="draft" {{ $selectedFilter === 'draft' ? 'selected' : '' }}>📝 DRAFT (Belum Deal / Menunggu DP)</option>
-                                    <option value="desain" {{ $selectedFilter === 'desain' ? 'selected' : '' }}>🎨 Tahap Desain &amp; Mockup</option>
-                                    <option value="pesanan_baru" {{ $selectedFilter === 'pesanan_baru' ? 'selected' : '' }}>📋 Pesanan Baru / Perencanaan</option>
-                                    <option value="sampling" {{ $selectedFilter === 'sampling' ? 'selected' : '' }}>⏳ Antrian &amp; Sampling</option>
-                                    <option value="potong" {{ $selectedFilter === 'potong' ? 'selected' : '' }}>✂️ Tahap Pemotongan (Potong)</option>
-                                    <option value="sablon_bordir" {{ $selectedFilter === 'sablon_bordir' ? 'selected' : '' }}>🎨 Sablon / Bordir</option>
-                                    <option value="jahit" {{ $selectedFilter === 'jahit' ? 'selected' : '' }}>🪡 Tahap Jahit</option>
-                                    <option value="lkpk" {{ $selectedFilter === 'lkpk' ? 'selected' : '' }}>💿 Tahap LKPK (Kancing)</option>
-                                    <option value="qc" {{ $selectedFilter === 'qc' ? 'selected' : '' }}>🔍 Quality Control (QC)</option>
-                                    <option value="packing" {{ $selectedFilter === 'packing' ? 'selected' : '' }}>📦 Packing / Finishing</option>
-                                    <option value="selesai" {{ $selectedFilter === 'selesai' ? 'selected' : '' }}>✅ Selesai (Finished Good)</option>
-                                    <option value="dikirim" {{ $selectedFilter === 'dikirim' ? 'selected' : '' }}>🚀 Telah Dikirim (Shipped)</option>
-                                </select>
-                        </div>
-
-                        {{-- TIPE SPK FILTER --}}
-                        <div class="col-12 col-md-3 col-lg-3">
-                            <select name="tipe_spk" class="form-select border-light-subtle bg-white text-dark fw-medium"
-                                style="cursor: pointer;" onchange="this.form.submit()">
-                                <option value="">🏢 Semua Tipe SPK</option>
-                                <option value="stok_gudang" {{ request('tipe_spk') === 'stok_gudang' ? 'selected' : '' }}>🏬 Stok Gudang</option>
-                                <option value="pesanan_pelanggan" {{ request('tipe_spk') === 'pesanan_pelanggan' ? 'selected' : '' }}>🛒 Pesanan Pelanggan</option>
-                            </select>
-                        </div>
-
-                        {{-- SEARCH BOX --}}
-                        <div class="col-12 col-md-{{ $hasActiveFilter ? '3' : '4' }} col-lg-{{ $hasActiveFilter ? '3' : '4' }}">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-light-subtle text-muted">
-                                    <i class="fas fa-search small"></i>
-                                </span>
-                                <input type="text" name="search"
-                                    class="form-control border-light-subtle bg-white text-dark"
-                                    placeholder="Cari SPK / Pemesan / Instansi..."
-                                    value="{{ request('search') }}" onchange="this.form.submit()">
-                            </div>
-                        </div>
-
-                        {{-- RESET FILTER (IF ACTIVE) --}}
-                        @if($hasActiveFilter)
-                            <div class="col-12 col-md-1 col-lg-1 text-md-end">
-                                <a href="{{ Route::has('v2.spk.index') ? route('v2.spk.index') : route('spks.index') }}" class="btn btn-outline-secondary btn-sm w-100 py-2 rounded-2" title="Reset Filter">
-                                    <i class="fas fa-rotate-left me-1"></i>Reset
-                                </a>
-                            </div>
+                    <a class="spk-tab {{ $isActive ? 'active' : '' }}" href="{{ $tabUrl }}" role="tab">
+                        <i class="{{ $tabInfo['icon'] }}" style="font-size: .8rem;"></i>
+                        <span>{{ $tabInfo['label'] }}</span>
+                        @if($count > 0)
+                            <span class="tab-badge {{ $tabKey === 'urgent' ? 'badge-urgent' : '' }}">{{ $count > 999 ? '999+' : $count }}</span>
                         @endif
+                    </a>
+                @endforeach
+            </div>
 
+            {{-- Process & Category Sub-Bar --}}
+            @php
+                $currTipe = request('tipe_spk', '');
+                $currDeadline = request('deadline_filter', '');
+            @endphp
+            <div class="spk-sub-bar">
+                <span class="spk-sub-label"><i class="bi bi-funnel me-1"></i>Tipe SPK:</span>
+                @php
+                    $tipeOptions = [
+                        '' => 'Semua Tipe',
+                        'pesanan_pelanggan' => '🛒 Pesanan Pelanggan',
+                        'stok_gudang' => '🏬 Stok Gudang',
+                    ];
+                @endphp
+                @foreach($tipeOptions as $tpKey => $tpLabel)
+                    @php
+                        $tpUrl = route('v2.spk.index', array_merge(
+                            request()->except(['tipe_spk', 'page']),
+                            $tpKey !== '' ? ['tipe_spk' => $tpKey] : []
+                        ));
+                        $isTpActive = $currTipe === $tpKey;
+                    @endphp
+                    <a href="{{ $tpUrl }}" class="spk-sub-pill {{ $isTpActive ? 'active' : '' }}">
+                        {{ $tpLabel }}
+                    </a>
+                @endforeach
+
+                <span class="spk-sub-label ms-md-3"><i class="bi bi-clock-history me-1"></i>Deadline:</span>
+                @php
+                    $deadlineOptions = [
+                        '' => 'Semua Deadline',
+                        'overdue' => '🔥 Lewat Deadline',
+                        'near' => '⚡ Mendekati (≤ 3 Hari)',
+                    ];
+                @endphp
+                @foreach($deadlineOptions as $dlKey => $dlLabel)
+                    @php
+                        $dlUrl = route('v2.spk.index', array_merge(
+                            request()->except(['deadline_filter', 'page']),
+                            $dlKey !== '' ? ['deadline_filter' => $dlKey] : []
+                        ));
+                        $isDlActive = $currDeadline === $dlKey;
+                    @endphp
+                    <a href="{{ $dlUrl }}" class="spk-sub-pill {{ $isDlActive ? 'active' : '' }}">
+                        {{ $dlLabel }}
+                    </a>
+                @endforeach
+            </div>
+
+            {{-- Search & Additional Filter Inputs Bar --}}
+            <div class="spk-filter-bar">
+                <form action="{{ route('v2.spk.index') }}" method="GET" class="m-0" id="spk-filter-form">
+                    @if(request('stage'))
+                        <input type="hidden" name="stage" value="{{ request('stage') }}">
+                    @endif
+                    @if(request('urgent') == '1')
+                        <input type="hidden" name="urgent" value="1">
+                    @endif
+                    @if(request('tipe_spk'))
+                        <input type="hidden" name="tipe_spk" value="{{ request('tipe_spk') }}">
+                    @endif
+                    @if(request('deadline_filter'))
+                        <input type="hidden" name="deadline_filter" value="{{ request('deadline_filter') }}">
+                    @endif
+
+                    @php
+                        $hasActiveExtra = request()->filled('search') || request()->filled('date_from') || request()->filled('date_to') || !empty($currentStage) || request()->filled('tipe_spk') || request()->filled('deadline_filter');
+                    @endphp
+
+                    <div class="row g-2 align-items-end">
+                        {{-- Search Input --}}
+                        <div class="col-12 col-md-5 col-lg-5">
+                            <label class="form-label"><i class="bi bi-search me-1"></i>Pencarian Cepat</label>
+                            <input type="text" name="search" class="form-control"
+                                placeholder="Cari No. SPK, No. Produksi, Pemesan, Produk..."
+                                value="{{ request('search') }}">
+                        </div>
+
+                        {{-- Date From --}}
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <label class="form-label"><i class="bi bi-calendar3 me-1"></i>Dari Tgl SPK</label>
+                            <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
+                        </div>
+
+                        {{-- Date To --}}
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <label class="form-label"><i class="bi bi-calendar-check me-1"></i>Deadline Hingga</label>
+                            <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
+                        </div>
+
+                        {{-- Action Buttons --}}
+                        <div class="col-12 col-md-1 col-lg-3 d-flex gap-2">
+                            <button type="submit" class="btn btn-sm btn-primary px-3 py-1 rounded-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" style="height: 31px;">
+                                <i class="bi bi-funnel"></i>
+                                <span>Filter</span>
+                            </button>
+                            @if($hasActiveExtra)
+                                <a href="{{ route('v2.spk.index') }}" class="btn btn-sm btn-outline-secondary px-2.5 py-1 rounded-2 d-inline-flex align-items-center gap-1" style="height: 31px;" title="Reset Semua Filter">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                    <span>Reset</span>
+                                </a>
+                            @endif
+                        </div>
                     </div>
                 </form>
+            </div>
+
+            {{-- Summary bar --}}
+            <div class="spk-summary-bar">
+                <div>
+                    <span>Menampilkan <strong class="text-dark">{{ $spks->total() }}</strong> kelompok produksi</span>
+                    @if(!empty($currentStage))
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2">
+                            Filter Tahap: {{ $tabStages[$currentStage]['label'] ?? ucfirst($currentStage) }}
+                        </span>
+                    @endif
+                </div>
+                <div class="d-none d-sm-flex align-items-center gap-3">
+                    <span class="small text-muted"><i class="bi bi-info-circle me-1"></i>Klik tab proses di atas untuk melihat SPK yang sedang berjalan</span>
+                </div>
             </div>
         </div>
 
@@ -648,6 +744,122 @@
         }
         .pulse-urgent {
             animation: pulse-red 2s infinite;
+        }
+
+        /* ─── SPK Tab Bar (Pesanan Style) ─── */
+        .spk-tab-bar {
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: none;
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            gap: 0;
+        }
+        .spk-tab-bar::-webkit-scrollbar { display: none; }
+
+        .spk-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 11px 16px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #64748b;
+            white-space: nowrap;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: color .15s, border-color .15s, background .15s;
+            position: relative;
+        }
+        .spk-tab:hover { color: #2563eb; text-decoration: none; background: #f8fafc; }
+        .spk-tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            font-weight: 700;
+            background: #eff6ff;
+        }
+        .spk-tab .tab-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 1px 7px;
+            background: #e2e8f0;
+            color: #475569;
+            min-width: 18px;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .spk-tab.active .tab-badge {
+            background: #2563eb;
+            color: #ffffff;
+        }
+        .spk-tab .tab-badge.badge-urgent {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        /* sub-bar */
+        .spk-sub-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+            flex-wrap: wrap;
+        }
+        .spk-sub-label { font-size: 0.74rem; font-weight: 600; color: #64748b; white-space: nowrap; }
+        .spk-sub-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 12px;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 500;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            color: #64748b;
+            text-decoration: none;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+        .spk-sub-pill:hover { border-color: #2563eb; color: #2563eb; text-decoration: none; }
+        .spk-sub-pill.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(37,99,235,.25);
+        }
+
+        /* filter bar */
+        .spk-filter-bar {
+            padding: 10px 14px;
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .spk-filter-bar .form-label { font-size: 0.72rem; font-weight: 600; color: #64748b; margin-bottom: 3px; }
+        .spk-filter-bar .form-control {
+            font-size: 0.79rem;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            padding: 5px 9px;
+            height: 31px;
+        }
+        .spk-filter-bar .form-control:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37,99,235,.15);
+        }
+
+        /* summary bar */
+        .spk-summary-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 14px;
+            background: #f8fafc;
+            font-size: 0.79rem;
+            color: #64748b;
         }
     </style>
 @endpush

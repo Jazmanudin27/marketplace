@@ -10,12 +10,12 @@
         <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill fw-semibold mb-1">
             <i class="bi bi-bullseye me-1"></i> MODUL MARKETING
         </span>
-        <h3 class="fw-bold text-dark mb-1">Target & Tim Marketing</h3>
+        <h3 class="fw-bold text-dark mb-1">Target & Komisi Penjualan Dilepas</h3>
         <p class="text-secondary small mb-1">
-            Kelola alokasi toko marketplace, target penjualan Qty, dan insentif komisi rupiah per-Qty.
+            Kelola alokasi toko marketplace, target nilai penjualan dilepas (Value Rp), dan persentase komisi marketing.
         </p>
         <div class="text-primary small">
-            <i class="bi bi-info-circle me-1"></i>Realisasi dihitung khusus pesanan <strong>Selesai / Dilepas (Completed)</strong> berdasarkan <strong>Tanggal Diterima (`completed_at`)</strong>. Pesanan Retur/Refund & Batal otomatis dikecualikan.
+            <i class="bi bi-info-circle me-1"></i>Target dan realisasi dihitung dari <strong>Nilai Penjualan yang Dilepas (Dana Cair / Completed)</strong> berdasarkan tanggal diterima (<code>completed_at</code>). Retur/refund otomatis dipotong.
         </div>
     </div>
 
@@ -59,14 +59,14 @@
             <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Target Qty (Aktif)</span>
-                        <h4 class="fw-bold text-dark mb-0">{{ number_format($totalTargetQty) }} <span class="fs-6 fw-normal text-muted">Qty</span></h4>
+                        <span class="text-secondary small fw-medium d-block mb-1">Target Penjualan Dilepas</span>
+                        <h4 class="fw-bold text-dark mb-0" style="font-size: 1.15rem;">Rp {{ number_format($totalTargetValue, 0, ',', '.') }}</h4>
                         <span class="text-success small mt-2 d-block fw-semibold">
-                            Realisasi: {{ number_format($totalActualQty) }} Qty
+                            Realisasi: Rp {{ number_format($totalActualValue, 0, ',', '.') }}
                         </span>
                     </div>
                     <div class="bg-warning bg-opacity-10 text-warning rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-crosshair fs-4"></i>
+                        <i class="bi bi-graph-up-arrow fs-4"></i>
                     </div>
                 </div>
             </div>
@@ -76,10 +76,10 @@
             <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Insentif Realisasi</span>
-                        <h4 class="fw-bold text-success mb-0">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</h4>
+                        <span class="text-secondary small fw-medium d-block mb-1">Total Komisi Realisasi</span>
+                        <h4 class="fw-bold text-success mb-0" style="font-size: 1.15rem;">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</h4>
                         <span class="text-muted small mt-2 d-block">
-                            (Actual Qty × Rp/Qty)
+                            Basis Nilai (Value) Dilepas
                         </span>
                     </div>
                     <div class="bg-success bg-opacity-10 text-success rounded-3 p-3 d-flex align-items-center justify-content-center">
@@ -230,10 +230,10 @@
                 <tr>
                     <th class="ps-4 py-3">#</th>
                     <th class="py-3"><i class="bi bi-people me-1 text-primary"></i>Tim & Toko Terhubung</th>
-                    <th class="py-3 text-end"><i class="bi bi-box-seam me-1 text-primary"></i>Target Qty</th>
-                    <th class="py-3 text-end"><i class="bi bi-currency-dollar me-1 text-primary"></i>Rupiah / Qty</th>
-                    <th class="py-3 text-end"><i class="bi bi-wallet2 me-1 text-primary"></i>Total Insentif</th>
-                    <th class="py-3 text-center"><i class="bi bi-bar-chart-line me-1 text-primary"></i>Progress Qty</th>
+                    <th class="py-3 text-end"><i class="bi bi-graph-up-arrow me-1 text-primary"></i>Target Penjualan (Rp)</th>
+                    <th class="py-3 text-end"><i class="bi bi-percent me-1 text-primary"></i>Skema Komisi</th>
+                    <th class="py-3 text-end"><i class="bi bi-wallet2 me-1 text-primary"></i>Total Komisi</th>
+                    <th class="py-3 text-center" style="min-width: 200px;"><i class="bi bi-bar-chart-line me-1 text-primary"></i>Realisasi & Progress Nilai</th>
                     <th class="py-3 text-center"><i class="bi bi-toggle-on me-1 text-primary"></i>Status</th>
                     <th class="py-3 pe-4 text-end"><i class="bi bi-gear me-1 text-primary"></i>Aksi</th>
                 </tr>
@@ -241,9 +241,10 @@
             <tbody>
                 @forelse($teams as $index => $team)
                     @php
-                        $actQty = $team->custom_actual_qty ?? $team->actual_qty;
+                        $actVal = $team->custom_actual_value ?? $team->actual_value;
                         $totRew = $team->custom_total_reward ?? $team->total_reward;
-                        $pct    = $team->custom_progress_percent ?? $team->qty_progress_percent;
+                        $pct    = $team->custom_progress_percent ?? $team->value_progress_percent;
+                        $cType  = $team->commission_type ?: 'percentage';
                     @endphp
                     <tr>
                         <td class="ps-4 text-muted fw-medium">{{ $index + 1 }}</td>
@@ -301,25 +302,44 @@
                             </div>
                         </td>
 
-                        <!-- Target Qty -->
+                        <!-- Target Penjualan (Rp) -->
                         <td class="text-end py-3">
-                            <span class="fw-bold text-dark fs-6">{{ number_format($team->target_qty) }}</span>
-                            <span class="text-muted small d-block">Qty</span>
+                            <span class="fw-bold text-dark fs-6">Rp {{ number_format($team->target_omset, 0, ',', '.') }}</span>
+                            <span class="text-muted small d-block">Target Nilai Dilepas</span>
                         </td>
 
-                        <!-- Rupiah per Qty -->
+                        <!-- Skema Komisi -->
                         <td class="text-end py-3">
-                            <span class="fw-bold text-primary">Rp {{ number_format($team->reward_per_qty, 0, ',', '.') }}</span>
-                            <span class="text-muted small d-block">/ Qty</span>
+                            @if($cType === 'percentage')
+                                <span class="fw-bold text-primary">{{ number_format($team->commission_rate, 2) }}%</span>
+                                <span class="text-muted small d-block">dari Penjualan Dilepas</span>
+                                @if($team->reward_fixed_nominal > 0)
+                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-0.5 mt-1 small" style="font-size:0.7rem;">
+                                        + Bonus Rp {{ number_format($team->reward_fixed_nominal, 0, ',', '.') }}
+                                    </span>
+                                @endif
+                            @elseif($cType === 'nominal')
+                                <span class="fw-bold text-primary">Rp {{ number_format($team->reward_fixed_nominal, 0, ',', '.') }}</span>
+                                <span class="text-muted small d-block">saat Target Tercapai</span>
+                            @else
+                                <span class="fw-bold text-primary">Rp {{ number_format($team->reward_per_qty, 0, ',', '.') }}</span>
+                                <span class="text-muted small d-block">/ Qty Produk</span>
+                            @endif
                         </td>
 
-                        <!-- Total Insentif -->
+                        <!-- Total Komisi -->
                         <td class="text-end py-3">
-                            <span class="fw-bold text-success">Rp {{ number_format($totRew, 0, ',', '.') }}</span>
-                            <span class="text-muted small d-block">({{ number_format($actQty) }} Qty × Rp {{ number_format($team->reward_per_qty, 0, ',', '.') }})</span>
+                            <span class="fw-bold text-success fs-6">Rp {{ number_format($totRew, 0, ',', '.') }}</span>
+                            @if($cType === 'percentage')
+                                <span class="text-muted small d-block">({{ number_format($team->commission_rate, 2) }}% × Rp {{ number_format($actVal, 0, ',', '.') }})</span>
+                            @elseif($cType === 'nominal')
+                                <span class="text-muted small d-block">{{ $actVal >= $team->target_omset ? 'Target Tercapai' : 'Belum Capai Target' }}</span>
+                            @else
+                                <span class="text-muted small d-block">({{ number_format($team->custom_actual_qty ?? $team->actual_qty) }} Qty × Rp {{ number_format($team->reward_per_qty, 0, ',', '.') }})</span>
+                            @endif
                         </td>
 
-                        <!-- Progress Bar -->
+                        <!-- Realisasi & Progress Nilai -->
                         <td class="py-3 px-3">
                             @php
                                 $barClass = 'bg-danger';
@@ -327,11 +347,16 @@
                                 elseif ($pct >= 50) $barClass = 'bg-warning';
                             @endphp
                             <div class="d-flex justify-content-between align-items-center mb-1 small">
-                                <span class="fw-semibold text-dark"><i class="bi bi-box-seam text-secondary me-1"></i>{{ number_format($actQty) }} / {{ number_format($team->target_qty) }}</span>
+                                <span class="fw-semibold text-dark">
+                                    <i class="bi bi-cash-stack text-secondary me-1"></i>Rp {{ number_format($actVal, 0, ',', '.') }}
+                                </span>
                                 <span class="badge bg-light text-dark border rounded-pill"><i class="bi bi-graph-up-arrow text-primary me-1"></i>{{ $pct }}%</span>
                             </div>
                             <div class="progress rounded-pill" style="height: 8px;">
                                 <div class="progress-bar {{ $barClass }} rounded-pill" role="progressbar" style="width: {{ $pct }}%;" aria-valuenow="{{ $pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <div class="text-muted small mt-1 text-center" style="font-size:0.7rem;">
+                                Target: Rp {{ number_format($team->target_omset, 0, ',', '.') }}
                             </div>
                         </td>
 
@@ -452,32 +477,84 @@
                                                 </div>
                                             </div>
 
+                                            <!-- Target Nilai Penjualan Dilepas (Value) -->
                                             <div class="col-12 col-md-6">
-                                                <label class="form-label fw-semibold small text-dark">Target Qty (Jumlah Pesanan) <span class="text-danger">*</span></label>
-                                                <div class="input-group">
-                                                    <input type="number" name="target_qty" class="form-control" value="{{ old('target_qty', $team->target_qty) }}" min="0" required placeholder="1000">
-                                                    <span class="input-group-text bg-light text-muted">Qty</span>
-                                                </div>
-                                            </div>
-
-                                            <div class="col-12 col-md-6">
-                                                <label class="form-label fw-semibold small text-dark">Rupiah per Qty (Insentif/Komisi) <span class="text-danger">*</span></label>
+                                                <label class="form-label fw-semibold small text-dark">
+                                                    <i class="bi bi-graph-up-arrow text-primary me-1"></i>Target Penjualan Dilepas (Value Rp) <span class="text-danger">*</span>
+                                                </label>
                                                 <div class="input-group">
                                                     <span class="input-group-text bg-light text-muted">Rp</span>
-                                                    <input type="number" name="reward_per_qty" class="form-control" value="{{ old('reward_per_qty', $team->reward_per_qty) }}" min="0" required placeholder="1000">
-                                                    <span class="input-group-text bg-light text-muted">/ Qty</span>
+                                                    <input type="number" name="target_omset" class="form-control fw-bold" value="{{ old('target_omset', $team->target_omset) }}" min="0" required placeholder="50000000">
+                                                </div>
+                                                <div class="form-text text-muted" style="font-size:0.72rem;">
+                                                    Target omset / nilai rupiah pesanan selesai yang dilepas.
                                                 </div>
                                             </div>
 
+                                            <!-- Skema Komisi -->
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label fw-semibold small text-dark">Tipe Skema Komisi</label>
+                                                <select name="commission_type" class="form-select" id="edit_comm_type_{{ $team->id }}">
+                                                    <option value="percentage" {{ old('commission_type', $team->commission_type ?? 'percentage') === 'percentage' ? 'selected' : '' }}>
+                                                        Persentase Nilai (% dari Value)
+                                                    </option>
+                                                    <option value="nominal" {{ old('commission_type', $team->commission_type) === 'nominal' ? 'selected' : '' }}>
+                                                        Bonus Nominal Flat jika Target Tercapai
+                                                    </option>
+                                                    <option value="qty" {{ old('commission_type', $team->commission_type) === 'qty' ? 'selected' : '' }}>
+                                                        Per Qty Produk (Legacy)
+                                                    </option>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label fw-semibold small text-dark">Persentase Komisi (%)</label>
+                                                <div class="input-group">
+                                                    <input type="number" step="0.01" name="commission_rate" class="form-control" value="{{ old('commission_rate', $team->commission_rate) }}" min="0" placeholder="1.5">
+                                                    <span class="input-group-text bg-light text-muted">%</span>
+                                                </div>
+                                                <div class="form-text text-muted" style="font-size:0.72rem;">
+                                                    % dihitung dari total nilai penjualan yang dilepas.
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-md-4">
+                                                <label class="form-label fw-semibold small text-dark">Bonus Flat Capai Target (Rp)</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-light text-muted">Rp</span>
+                                                    <input type="number" name="reward_fixed_nominal" class="form-control" value="{{ old('reward_fixed_nominal', $team->reward_fixed_nominal) }}" min="0" placeholder="0">
+                                                </div>
+                                                <div class="form-text text-muted" style="font-size:0.72rem;">
+                                                    Bonus tambahan jika target nilai terpenuhi.
+                                                </div>
+                                            </div>
+
+                                            <!-- Legacy Qty Fields in Accordion -->
                                             <div class="col-12">
-                                                <label class="form-label fw-semibold small text-dark mb-1">Pilih Toko Terhubung</label>
-                                                <div class="card border rounded-3 p-3 bg-light">
-                                                    <div class="row g-2">
-                                                        @php $selectedStoreIds = $team->stores->pluck('id')->toArray(); @endphp
-                                                        @forelse($stores as $st)
-                                                            <div class="col-12 col-md-6">
-                                                                <div class="form-check">
-                                                                    <input class="form-check-input" type="checkbox" name="store_ids[]" value="{{ $st->id }}" id="edit_st_{{ $team->id }}_{{ $st->id }}" {{ in_array($st->id, $selectedStoreIds) ? 'checked' : '' }}>
+                                                <div class="accordion" id="accordionEditQty_{{ $team->id }}">
+                                                    <div class="accordion-item border rounded-2">
+                                                        <h2 class="accordion-header">
+                                                            <button class="accordion-button collapsed py-2 px-3 small text-muted bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEditQty_{{ $team->id }}" aria-expanded="false">
+                                                                <i class="bi bi-sliders me-2"></i>Pengaturan Tambahan Target Qty (Opsional / Legacy)
+                                                            </button>
+                                                        </h2>
+                                                        <div id="collapseEditQty_{{ $team->id }}" class="accordion-collapse collapse" data-bs-parent="#accordionEditQty_{{ $team->id }}">
+                                                            <div class="accordion-body p-3">
+                                                                <div class="row g-2">
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-dark">Target Qty (Pcs)</label>
+                                                                        <input type="number" name="target_qty" class="form-control form-control-sm" value="{{ old('target_qty', $team->target_qty) }}" min="0">
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <label class="form-label small text-dark">Komisi per Qty (Rp)</label>
+                                                                        <input type="number" name="reward_per_qty" class="form-control form-control-sm" value="{{ old('reward_per_qty', $team->reward_per_qty) }}" min="0">
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                                                     <label class="form-check-label small text-dark" for="edit_st_{{ $team->id }}_{{ $st->id }}">
                                                                         <strong>{{ $st->store_name }}</strong>
                                                                         @if($st->channel)
@@ -595,20 +672,82 @@
                             </div>
                         </div>
 
+                        <!-- Target Nilai Penjualan Dilepas (Value) -->
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-semibold small text-dark">Target Qty (Jumlah Pesanan) <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold small text-dark">
+                                <i class="bi bi-graph-up-arrow text-primary me-1"></i>Target Penjualan Dilepas (Value Rp) <span class="text-danger">*</span>
+                            </label>
                             <div class="input-group">
-                                <input type="number" name="target_qty" class="form-control" value="{{ old('target_qty', 1000) }}" min="0" required placeholder="1000">
-                                <span class="input-group-text bg-light text-muted">Qty</span>
+                                <span class="input-group-text bg-light text-muted">Rp</span>
+                                <input type="number" name="target_omset" class="form-control fw-bold" value="{{ old('target_omset', 50000000) }}" min="0" required placeholder="50000000">
+                            </div>
+                            <div class="form-text text-muted" style="font-size:0.72rem;">
+                                Target omset / nilai nominal rupiah pesanan selesai yang dilepas.
                             </div>
                         </div>
 
-                        <div class="col-12 col-md-6">
-                            <label class="form-label fw-semibold small text-dark">Rupiah per Qty (Insentif/Komisi) <span class="text-danger">*</span></label>
+                        <!-- Skema Komisi -->
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-semibold small text-dark">Tipe Skema Komisi</label>
+                            <select name="commission_type" class="form-select" id="create_comm_type">
+                                <option value="percentage" {{ old('commission_type', 'percentage') === 'percentage' ? 'selected' : '' }}>
+                                    Persentase Nilai (% dari Value)
+                                </option>
+                                <option value="nominal" {{ old('commission_type') === 'nominal' ? 'selected' : '' }}>
+                                    Bonus Nominal Flat jika Target Tercapai
+                                </option>
+                                <option value="qty" {{ old('commission_type') === 'qty' ? 'selected' : '' }}>
+                                    Per Qty Produk (Legacy)
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-semibold small text-dark">Persentase Komisi (%)</label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" name="commission_rate" class="form-control" value="{{ old('commission_rate', 1.0) }}" min="0" placeholder="1.0">
+                                <span class="input-group-text bg-light text-muted">%</span>
+                            </div>
+                            <div class="form-text text-muted" style="font-size:0.72rem;">
+                                % dihitung langsung dari total nilai penjualan yang dilepas.
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label fw-semibold small text-dark">Bonus Flat Capai Target (Rp)</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light text-muted">Rp</span>
-                                <input type="number" name="reward_per_qty" class="form-control" value="{{ old('reward_per_qty', 1000) }}" min="0" required placeholder="1000">
-                                <span class="input-group-text bg-light text-muted">/ Qty</span>
+                                <input type="number" name="reward_fixed_nominal" class="form-control" value="{{ old('reward_fixed_nominal', 0) }}" min="0" placeholder="0">
+                            </div>
+                            <div class="form-text text-muted" style="font-size:0.72rem;">
+                                Bonus tambahan jika target nilai terpenuhi (opsional).
+                            </div>
+                        </div>
+
+                        <!-- Legacy Qty Fields in Accordion -->
+                        <div class="col-12">
+                            <div class="accordion" id="accordionCreateQty">
+                                <div class="accordion-item border rounded-2">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed py-2 px-3 small text-muted bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCreateQty" aria-expanded="false">
+                                            <i class="bi bi-sliders me-2"></i>Pengaturan Tambahan Target Qty (Opsional / Legacy)
+                                        </button>
+                                    </h2>
+                                    <div id="collapseCreateQty" class="accordion-collapse collapse" data-bs-parent="#accordionCreateQty">
+                                        <div class="accordion-body p-3">
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <label class="form-label small text-dark">Target Qty (Pcs)</label>
+                                                    <input type="number" name="target_qty" class="form-control form-control-sm" value="{{ old('target_qty', 0) }}" min="0">
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small text-dark">Komisi per Qty (Rp)</label>
+                                                    <input type="number" name="reward_per_qty" class="form-control form-control-sm" value="{{ old('reward_per_qty', 0) }}" min="0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

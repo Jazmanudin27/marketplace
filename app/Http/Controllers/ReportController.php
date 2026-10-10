@@ -1780,7 +1780,6 @@ class ReportController extends Controller
                     'Dana Dilepas Net (Rp)',
                     'HPP (Rp)',
                     'Margin (Rp)',
-                    '1% Margin (Rp)',
                     'Margin %',
                     'Status'
                 ]);
@@ -1811,7 +1810,6 @@ class ReportController extends Controller
                         (int)$row['net_released'],
                         (int)($row['hpp'] ?? 0),
                         (int)($row['margin_rp'] ?? 0),
-                        (int)round($row['margin_1_pct_rp'] ?? 0),
                         ($row['margin_pct'] ?? 0) . '%',
                         $row['status']
                     ]);
@@ -1836,7 +1834,6 @@ class ReportController extends Controller
                     (int)($detailData['grandTotalNetReleased'] ?? 0),
                     (int)($detailData['grandTotalHpp'] ?? 0),
                     (int)($detailData['grandTotalMarginRp'] ?? 0),
-                    (int)round($detailData['grandTotalMargin1PctRp'] ?? 0),
                     ($detailData['grandOverallMarginPct'] ?? 0) . '%',
                     ''
                 ]);

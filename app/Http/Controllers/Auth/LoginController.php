@@ -10,8 +10,11 @@ class LoginController extends Controller
 {
     public function showLogin()
     {
+        if (Auth::guard('employee')->check()) {
+            return redirect()->route('employee.dashboard');
+        }
         if (Auth::check()) {
-            return redirect()->route('dashboard');
+            return redirect()->route('v2.dashboard');
         }
         return view('auth.login');
     }
@@ -44,7 +47,7 @@ class LoginController extends Controller
 
             if (Auth::guard('web')->attempt($credentials, $remember)) {
                 $request->session()->regenerate();
-                return redirect()->intended(route('dashboard'));
+                return redirect()->intended(route('v2.dashboard'));
             }
 
             return back()->withErrors([

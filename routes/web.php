@@ -85,10 +85,19 @@ Route::prefix('employee')->name('employee.')->group(function () {
 });
 
 // =========================================================================
+// Domain Utama (Direct ke Halaman V2)
+// =========================================================================
+Route::get('/', function () {
+    if (\Illuminate\Support\Facades\Auth::guard('employee')->check()) {
+        return redirect()->route('employee.dashboard');
+    }
+    return redirect()->route('v2.dashboard');
+})->name('home');
+
+// =========================================================================
 // Auth Routes (hanya untuk guest)
 // =========================================================================
 Route::middleware('guest')->group(function () {
-    Route::get('/', fn() => redirect()->route('login'));
     Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 

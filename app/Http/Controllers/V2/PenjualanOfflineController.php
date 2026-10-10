@@ -155,6 +155,23 @@ class PenjualanOfflineController extends Controller
      */
     public function store(Request $request)
     {
+        // Bersihkan pemisah ribuan (titik/koma) agar validasi numeric di backend sukses
+        $input = $request->all();
+        if (isset($input['discount_amount'])) {
+            $input['discount_amount'] = (float) preg_replace('/[^0-9]/', '', (string) $input['discount_amount']);
+        }
+        if (isset($input['paid_amount'])) {
+            $input['paid_amount'] = (float) preg_replace('/[^0-9]/', '', (string) $input['paid_amount']);
+        }
+        if (isset($input['items']) && is_array($input['items'])) {
+            foreach ($input['items'] as $k => $item) {
+                if (isset($item['unit_price'])) {
+                    $input['items'][$k]['unit_price'] = (float) preg_replace('/[^0-9]/', '', (string) $item['unit_price']);
+                }
+            }
+        }
+        $request->merge($input);
+
         $controller = new \App\Http\Controllers\OfflineSaleController();
         $controller->store($request);
         return redirect()->route('v2.penjualan_offline.index')->with('success', 'Transaksi Penjualan Offline (POS) berhasil disimpan!');

@@ -58,9 +58,10 @@ class MarketingTeamController extends Controller
         // Hitung nilai aktual per tim berdasarkan tanggal dana cair terkunci yang tersimpan di DB
         foreach ($teams as $team) {
             $team->custom_actual_qty   = $team->actual_qty;
+            $team->custom_actual_value = $team->actual_value;
             $team->custom_actual_omset = $team->actual_omset;
             $team->custom_total_reward = $team->total_reward;
-            $team->custom_progress_percent = $team->qty_progress_percent;
+            $team->custom_progress_percent = $team->value_progress_percent;
         }
 
         // Ambil daftar seluruh Toko milik tenant
@@ -79,9 +80,9 @@ class MarketingTeamController extends Controller
         $activeTeams = $teams->where('is_active', true)->count();
         $totalStoresLinked = $teams->pluck('stores')->flatten()->unique('id')->count();
         $totalTargetQty = $teams->where('is_active', true)->sum('target_qty');
-        $totalTargetOmset = $teams->where('is_active', true)->sum('target_omset');
+        $totalTargetValue = $teams->where('is_active', true)->sum('target_omset');
         $totalActualQty = $teams->where('is_active', true)->sum('custom_actual_qty');
-        $totalActualOmset = $teams->where('is_active', true)->sum('custom_actual_omset');
+        $totalActualValue = $teams->where('is_active', true)->sum('custom_actual_value');
         $totalEarnedReward = $teams->where('is_active', true)->sum('custom_total_reward');
 
         return view('marketing.teams.index', compact(
@@ -91,9 +92,9 @@ class MarketingTeamController extends Controller
             'activeTeams',
             'totalStoresLinked',
             'totalTargetQty',
-            'totalTargetOmset',
+            'totalTargetValue',
             'totalActualQty',
-            'totalActualOmset',
+            'totalActualValue',
             'totalEarnedReward',
             'reqMonth',
             'reqYear',
@@ -110,9 +111,12 @@ class MarketingTeamController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'target_qty' => 'required|numeric|min:0',
-            'reward_per_qty' => 'required|numeric|min:0',
-            'target_omset' => 'nullable|numeric|min:0',
+            'target_omset' => 'required|numeric|min:0',
+            'commission_type' => 'nullable|string|in:percentage,nominal,qty',
+            'commission_rate' => 'nullable|numeric|min:0',
+            'reward_fixed_nominal' => 'nullable|numeric|min:0',
+            'target_qty' => 'nullable|numeric|min:0',
+            'reward_per_qty' => 'nullable|numeric|min:0',
             'period_month' => 'nullable|integer|between:1,12',
             'period_year' => 'nullable|integer|min:2020|max:2099',
             'date_from' => 'nullable|date',
@@ -141,9 +145,12 @@ class MarketingTeamController extends Controller
             'name' => $request->name,
             'code' => $request->code ?? null,
             'description' => $request->description,
+            'target_omset' => $request->target_omset ?? 0,
+            'commission_type' => $request->commission_type ?: 'percentage',
+            'commission_rate' => $request->commission_rate ?? 0,
+            'reward_fixed_nominal' => $request->reward_fixed_nominal ?? 0,
             'target_qty' => $request->target_qty ?? 0,
             'reward_per_qty' => $request->reward_per_qty ?? 0,
-            'target_omset' => $request->target_omset ?? 0,
             'period_month' => $pMonth,
             'period_year' => $pYear,
             'date_from' => $dateFrom,
@@ -156,7 +163,7 @@ class MarketingTeamController extends Controller
         }
 
         return redirect()->route('marketing.teams.index')
-            ->with('success', "Tim Marketing '{$team->name}' & Target berhasil dibuat dengan acuan tanggal {$team->period_label}!");
+            ->with('success', "Tim Marketing '{$team->name}' & Target Nilai Rp " . number_format($team->target_omset, 0, ',', '.') . " berhasil dibuat!");
     }
 
     /**
@@ -168,9 +175,12 @@ class MarketingTeamController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'target_qty' => 'required|numeric|min:0',
-            'reward_per_qty' => 'required|numeric|min:0',
-            'target_omset' => 'nullable|numeric|min:0',
+            'target_omset' => 'required|numeric|min:0',
+            'commission_type' => 'nullable|string|in:percentage,nominal,qty',
+            'commission_rate' => 'nullable|numeric|min:0',
+            'reward_fixed_nominal' => 'nullable|numeric|min:0',
+            'target_qty' => 'nullable|numeric|min:0',
+            'reward_per_qty' => 'nullable|numeric|min:0',
             'period_month' => 'nullable|integer|between:1,12',
             'period_year' => 'nullable|integer|min:2020|max:2099',
             'date_from' => 'nullable|date',
@@ -195,9 +205,12 @@ class MarketingTeamController extends Controller
             'name' => $request->name,
             'code' => $request->code ?? $marketingTeam->code,
             'description' => $request->description,
+            'target_omset' => $request->target_omset ?? 0,
+            'commission_type' => $request->commission_type ?: 'percentage',
+            'commission_rate' => $request->commission_rate ?? 0,
+            'reward_fixed_nominal' => $request->reward_fixed_nominal ?? 0,
             'target_qty' => $request->target_qty ?? 0,
             'reward_per_qty' => $request->reward_per_qty ?? 0,
-            'target_omset' => $request->target_omset ?? 0,
             'period_month' => $pMonth,
             'period_year' => $pYear,
             'date_from' => $dateFrom,
@@ -338,8 +351,16 @@ class MarketingTeamController extends Controller
             // Summary metrics
             $totalQty = 0;
             $totalOmset = 0.0;
+            $totalValue = 0.0;
+            $totalEarnedReward = 0.0;
+
+            $commType = $marketingTeam->commission_type ?: 'percentage';
+            $commRate = (float) ($marketingTeam->commission_rate ?? 0);
+
             foreach ($orders as $order) {
                 $orderQty = 0;
+                $totalOrderItemsQty = $order->items->sum('quantity');
+
                 foreach ($order->items as $item) {
                     $isExcluded = false;
                     if ($item->masterProduct && $item->masterProduct->exclude_commission) {
@@ -372,9 +393,52 @@ class MarketingTeamController extends Controller
                 $totalQty += $orderQty;
                 $effectiveOmset = (float) $order->total_amount - (float) $order->refund_amount;
                 $totalOmset += max(0.0, $effectiveOmset);
+
+                // Hitung Value Penjualan yang Dilepas (Net Released / Omset Bersih)
+                $orderReleased = (float) $order->net_amount;
+                if ($orderReleased <= 0) {
+                    $orderReleased = max(0.0, (float) $order->total_amount - (float) $order->refund_amount - (float) $order->marketplace_fee);
+                    if ($orderReleased <= 0) {
+                        $orderReleased = max(0.0, (float) $order->total_amount - (float) $order->refund_amount);
+                    }
+                }
+
+                // Proporsionalitas jika ada item yang di-exclude komisi
+                if ($totalOrderItemsQty > 0 && $orderQty < $totalOrderItemsQty) {
+                    $ratio = max(0.0, min(1.0, $orderQty / $totalOrderItemsQty));
+                    $orderReleased = $orderReleased * $ratio;
+                }
+
+                $orderReleased = round($orderReleased, 2);
+                $order->calculated_released_value = $orderReleased;
+
+                // Hitung komisi pesanan ini
+                if ($commType === 'percentage') {
+                    $orderComm = round($orderReleased * ($commRate / 100), 2);
+                } elseif ($commType === 'nominal') {
+                    $orderComm = 0.0;
+                } else {
+                    $orderComm = $orderQty * $rewardPerQty;
+                }
+
+                $order->calculated_commission = $orderComm;
+
+                $totalValue += $orderReleased;
+                $totalEarnedReward += $orderComm;
             }
 
-            $totalEarnedReward = $totalQty * $rewardPerQty;
+            // Jika tipe nominal flat bonus saat mencapai target value
+            if ($commType === 'nominal') {
+                if ($marketingTeam->target_omset > 0 && $totalValue >= $marketingTeam->target_omset) {
+                    $totalEarnedReward = (float) $marketingTeam->reward_fixed_nominal;
+                } else {
+                    $totalEarnedReward = 0.0;
+                }
+            } elseif ($commType === 'percentage') {
+                if ($marketingTeam->target_omset > 0 && $totalValue >= $marketingTeam->target_omset && $marketingTeam->reward_fixed_nominal > 0) {
+                    $totalEarnedReward += (float) $marketingTeam->reward_fixed_nominal;
+                }
+            }
         }
 
         return view('marketing.teams.transactions', compact(
@@ -382,6 +446,7 @@ class MarketingTeamController extends Controller
             'orders',
             'totalQty',
             'totalOmset',
+            'totalValue',
             'totalEarnedReward',
             'rewardPerQty',
             'reqMonth',
