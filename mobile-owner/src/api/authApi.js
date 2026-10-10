@@ -28,32 +28,15 @@ export async function loginOwner({ login, password }) {
     } else {
       return { 
         success: false, 
-        message: data.message || 'Login gagal. Silakan periksa kembali email & sandi Anda.' 
+        message: data.message || 'Login gagal. Email atau kata sandi tidak cocok.' 
       };
     }
   } catch (error) {
-    console.warn('[AuthApi] Server fetch error / offline fallback:', error);
-    
-    // Fallback realistis untuk demo jika server offline
-    if (login && password) {
-      const fallbackUser = {
-        id: 1,
-        name: 'Dina Saparinda, S.Kom',
-        email: login.includes('@') ? login : `${login}@ruangseragam.com`,
-        role: 'super-admin',
-        tenant_id: 1,
-        tenant_name: 'Ruang Seragam',
-        avatar_initials: 'DS',
-      };
-      localStorage.setItem('owner_token', 'demo-owner-session-token');
-      localStorage.setItem('owner_user', JSON.stringify(fallbackUser));
-      return { 
-        success: true, 
-        user: fallbackUser, 
-        message: 'Login berhasil (Mode Demo Terhubung).' 
-      };
-    }
-    return { success: false, message: 'Tidak dapat menghubungi server API.' };
+    console.error('[AuthApi] Server fetch error:', error);
+    return { 
+      success: false, 
+      message: 'Gagal menghubungi server database: ' + error.message 
+    };
   }
 }
 
