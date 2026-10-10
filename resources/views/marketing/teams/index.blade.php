@@ -3,229 +3,190 @@
 @section('title', 'Target & Tim Marketing V2')
 
 @section('content')
-<div class="container-fluid px-3 py-3">
-
-    {{-- Top bar V2 --}}
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
-        <div>
-            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                <i class="bi bi-bullseye text-primary fs-5"></i>
-                <span>Target & Komisi Penjualan</span>
-            </h5>
-            <p class="text-muted small mb-0">Kelola alokasi toko marketplace, target Margin (Rp), dan persentase komisi tim.</p>
-        </div>
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            <button type="button" class="btn btn-sm btn-outline-danger px-2.5 py-1.5 rounded-2 fw-semibold shadow-xs d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#excludeProductsModal" style="font-size: 0.78rem;">
-                <i class="bi bi-slash-circle"></i>
-                <span>Pengecualian Produk</span>
-            </button>
-            <button type="button" class="btn btn-sm btn-primary px-2.5 py-1.5 rounded-2 fw-semibold shadow-xs d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#createTeamModal" style="font-size: 0.78rem;">
-                <i class="bi bi-plus-lg"></i>
-                <span>Tambah Tim Baru</span>
-            </button>
-        </div>
+<!-- Page Header Compact -->
+<div class="v2-page-header align-items-center mb-3">
+    <div>
+        <h1 class="v2-page-title d-flex align-items-center gap-2">
+            <i class="bi bi-bullseye text-primary fs-5"></i> Target & Komisi Penjualan V2
+        </h1>
+        <p class="v2-page-subtitle mb-0">Kelola alokasi toko marketplace, target Margin (Rp), dan persentase komisi tim</p>
     </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ url('/v2/target-komisi') }}" class="btn btn-sm btn-v2-secondary py-1.5 px-2.5" title="Refresh Page">
+            <i class="bi bi-arrow-clockwise"></i>
+        </a>
+        <button type="button" class="btn btn-sm btn-outline-danger py-1.5 px-3 shadow-sm d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#excludeProductsModal">
+            <i class="bi bi-slash-circle me-1"></i> Pengecualian Komisi
+        </button>
+        <button type="button" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#createTeamModal">
+            <i class="bi bi-plus-lg me-1"></i> Tambah Tim Baru
+        </button>
+    </div>
+</div>
 
-    <!-- Summary Widgets (KPI Cards V2) -->
-    <div class="row g-2 mb-3">
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="v2-stat-widget widget-blue">
-                <div class="v2-stat-icon-wrapper blue">
-                    <i class="bi bi-people-fill"></i>
-                </div>
-                <div class="v2-stat-info">
-                    <span class="v2-stat-num">{{ number_format($totalTeams) }} <small class="fs-7 fw-normal text-muted">Tim</small></span>
-                    <span class="v2-stat-lbl">{{ number_format($activeTeams) }} Tim Aktif</span>
-                </div>
+<!-- Header Summary Widgets (KPI Cards) -->
+<div class="row g-2 mb-3">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="v2-stat-widget widget-blue">
+            <div class="v2-stat-icon-wrapper blue">
+                <i class="bi bi-people-fill"></i>
             </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="v2-stat-widget widget-green">
-                <div class="v2-stat-icon-wrapper green">
-                    <i class="bi bi-shop"></i>
-                </div>
-                <div class="v2-stat-info">
-                    <span class="v2-stat-num">{{ number_format($totalStoresLinked) }} <small class="fs-7 fw-normal text-muted">Toko</small></span>
-                    <span class="v2-stat-lbl">Dari {{ $stores->count() }} Toko Terdaftar</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="v2-stat-widget widget-amber">
-                <div class="v2-stat-icon-wrapper amber">
-                    <i class="bi bi-graph-up-arrow"></i>
-                </div>
-                <div class="v2-stat-info">
-                    <span class="v2-stat-num" style="font-size: 0.95rem;">Rp {{ number_format($totalTargetMargin ?? $totalTargetValue, 0, ',', '.') }}</span>
-                    <span class="v2-stat-lbl text-success fw-semibold">Margin Realisasi: Rp {{ number_format($totalActualMargin ?? 0, 0, ',', '.') }}</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="v2-stat-widget widget-purple">
-                <div class="v2-stat-icon-wrapper purple">
-                    <i class="bi bi-wallet2"></i>
-                </div>
-                <div class="v2-stat-info">
-                    <span class="v2-stat-num text-success" style="font-size: 0.95rem;">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</span>
-                    <span class="v2-stat-lbl">Komisi Realisasi</span>
-                </div>
+            <div class="v2-stat-info">
+                <span class="v2-stat-num">{{ number_format($totalTeams) }} <small class="fs-7 fw-normal text-muted">Tim</small></span>
+                <span class="v2-stat-lbl">{{ number_format($activeTeams) }} Tim Aktif</span>
             </div>
         </div>
     </div>
 
-    <!-- Filter Header & Quick Actions -->
-    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 mt-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="v2-stat-widget widget-green">
+            <div class="v2-stat-icon-wrapper green">
+                <i class="bi bi-shop"></i>
+            </div>
+            <div class="v2-stat-info">
+                <span class="v2-stat-num">{{ number_format($totalStoresLinked) }} <small class="fs-7 fw-normal text-muted">Toko</small></span>
+                <span class="v2-stat-lbl">Dari {{ $stores->count() }} Toko Terdaftar</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="v2-stat-widget widget-amber">
+            <div class="v2-stat-icon-wrapper amber">
+                <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <div class="v2-stat-info">
+                <span class="v2-stat-num" style="font-size: 0.95rem;">Rp {{ number_format($totalTargetMargin ?? $totalTargetValue, 0, ',', '.') }}</span>
+                <span class="v2-stat-lbl text-success fw-semibold">Margin Realisasi: Rp {{ number_format($totalActualMargin ?? 0, 0, ',', '.') }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="v2-stat-widget widget-purple">
+            <div class="v2-stat-icon-wrapper purple">
+                <i class="bi bi-wallet2"></i>
+            </div>
+            <div class="v2-stat-info">
+                <span class="v2-stat-num text-success" style="font-size: 0.95rem;">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</span>
+                <span class="v2-stat-lbl">Komisi Realisasi</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Box Compact -->
+<div class="v2-card mb-3">
+    <div class="v2-card-body p-2.5">
+        <form id="filterForm" action="{{ route('marketing.teams.index') }}" method="GET" class="row g-2 align-items-center">
+            <div class="col-12 col-md-4">
+                <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari nama tim atau catatan..." value="{{ request('search') }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <select id="filterMonth" name="month" class="form-select form-select-sm">
+                    <option value="">-- Semua Bulan --</option>
+                    @for($m = 1; $m <= 12; $m++)
+                        <option value="{{ $m }}" {{ request('month') == $m ? 'selected' : '' }}>
+                            {{ date('F', mktime(0, 0, 0, $m, 1)) }}
+                        </option>
+                    @endfor
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select id="filterYear" name="year" class="form-select form-select-sm">
+                    <option value="">-- Semua Tahun --</option>
+                    @foreach($availableYears as $yr)
+                        <option value="{{ $yr }}" {{ request('year') == $yr ? 'selected' : '' }}>
+                            {{ $yr }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-12 col-md-3 d-flex align-items-center gap-1">
+                <button type="submit" class="btn btn-sm btn-v2-primary w-100 justify-content-center py-1" title="Terapkan Filter">
+                    <i class="bi bi-search me-1"></i> Terapkan Filter
+                </button>
+                @if(request()->anyFilled(['month', 'year', 'search']))
+                    <a href="{{ route('marketing.teams.index') }}" class="btn btn-sm btn-v2-secondary py-1" title="Reset Filter">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                @endif
+            </div>
+        </form>
+
+        {{-- Status Acuan Realisasi --}}
+        <div class="mt-2 pt-2 border-top d-flex align-items-center gap-2 flex-wrap" style="font-size: 0.75rem;">
+            <span class="text-muted fw-medium">Status Acuan Realisasi:</span>
+            @if($hasExplicitMonthYear)
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-0.5">
+                    <i class="bi bi-calendar3 me-1"></i>
+                    Filter Periode:
+                    {{ request('month') ? date('F', mktime(0,0,0,request('month'),1)) : 'Semua Bulan' }}
+                    {{ request('year') ? request('year') : '' }}
+                </span>
+            @else
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-0.5">
+                    <i class="bi bi-lock-fill me-1"></i>
+                    Tanggal Dana Cair Terkunci Otomatis Sesuai Pengaturan Masing-Masing Tim
+                </span>
+            @endif
+        </div>
+    </div>
+</div>
+
+<!-- Alert Flash -->
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show border-0 rounded-3 shadow-sm mb-3" role="alert">
         <div class="d-flex align-items-center gap-2">
-            <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                <i class="bi bi-funnel-fill small"></i>
-            </div>
-            <h5 class="fw-bold text-dark mb-0" style="font-size: 1.05rem;">Filter Periode</h5>
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <div>{{ session('success') }}</div>
         </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#excludeProductsModal" style="font-size: 0.8rem;">
-                <i class="bi bi-slash-circle fs-6"></i>
-                <span>Pengecualian Komisi</span>
-            </button>
-            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createTeamModal" style="font-size: 0.8rem;">
-                <i class="bi bi-plus-lg fs-6"></i>
-                <span>Tambah Tim Baru</span>
-            </button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+@if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show border-0 rounded-3 shadow-sm mb-3" role="alert">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+            <strong class="fw-bold">Mohon periksa kembali inputan Anda:</strong>
         </div>
+        <ul class="mb-0 small ps-4">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+<!-- Main Table Card -->
+<div class="v2-card mb-3">
+    <div class="v2-card-header bg-light py-2 d-flex align-items-center justify-content-between">
+        <h6 class="v2-card-title d-flex align-items-center gap-2 m-0">
+            <i class="bi bi-journal-text text-primary"></i> Daftar Tim & Target
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.65rem;">
+                {{ $teams->count() }} Tim
+            </span>
+        </h6>
     </div>
 
-    <!-- Filter Card Bar -->
-    <div class="card border-0 rounded-3 shadow-sm bg-white mb-4">
-        <div class="card-body p-3">
-            <form id="filterForm" action="{{ route('marketing.teams.index') }}" method="GET" class="row g-2 align-items-end">
-
-                <!-- Filter Bulan & Tahun (Opsional) -->
-                <div class="col-12 col-md-6 col-lg-5">
-                    <label class="form-label small fw-bold text-dark mb-1">
-                        <i class="bi bi-calendar3 me-1 text-primary"></i>Filter Periode Target (Bulan & Tahun)
-                        <span class="text-muted fw-normal">(opsional)</span>
-                    </label>
-                    <div class="row g-1">
-                        <div class="col-7">
-                            <select id="filterMonth" name="month" class="form-select form-select-sm">
-                                <option value="">-- Semua Bulan --</option>
-                                @for($m = 1; $m <= 12; $m++)
-                                    <option value="{{ $m }}" {{ request('month') == $m ? 'selected' : '' }}>
-                                        {{ date('F', mktime(0, 0, 0, $m, 1)) }}
-                                    </option>
-                                @endfor
-                            </select>
-                        </div>
-                        <div class="col-5">
-                            <select id="filterYear" name="year" class="form-select form-select-sm">
-                                <option value="">-- Semua Tahun --</option>
-                                @foreach($availableYears as $yr)
-                                    <option value="{{ $yr }}" {{ request('year') == $yr ? 'selected' : '' }}>
-                                        {{ $yr }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tombol Action -->
-                <div class="col-12 col-md-6 col-lg-7 text-md-end d-flex gap-2 justify-content-md-end">
-                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold">
-                        <i class="bi bi-search me-1"></i> Terapkan Filter
-                    </button>
-                    @if(request()->hasAny(['month', 'year', 'search']))
-                        <a href="{{ route('marketing.teams.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
-                        </a>
-                    @endif
-                </div>
-            </form>
-
-            {{-- Info Mode Filter Aktif --}}
-            <div class="mt-2 pt-2 border-top d-flex align-items-center gap-2 flex-wrap">
-                <small class="text-muted fw-medium">Status Acuan Realisasi:</small>
-                @if($hasExplicitMonthYear)
-                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1" style="font-size:0.75rem;">
-                        <i class="bi bi-calendar3 me-1"></i>
-                        Filter Periode:
-                        {{ request('month') ? date('F', mktime(0,0,0,request('month'),1)) : 'Semua Bulan' }}
-                        {{ request('year') ? request('year') : '' }}
-                    </span>
-                @else
-                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2.5 py-1" style="font-size:0.75rem;">
-                        <i class="bi bi-lock-fill me-1"></i>
-                        Tanggal Dana Cair Terkunci Otomatis Sesuai Pengaturan Masing-Masing Tim
-                    </span>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    <!-- Alert Flash -->
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 rounded-3 shadow-sm mb-4" role="alert">
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-check-circle-fill fs-5"></i>
-                <div>{{ session('success') }}</div>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show border-0 rounded-3 shadow-sm mb-4" role="alert">
-            <div class="d-flex align-items-center gap-2 mb-1">
-                <i class="bi bi-exclamation-octagon-fill fs-5"></i>
-                <strong class="fw-bold">Mohon periksa kembali inputan Anda:</strong>
-            </div>
-            <ul class="mb-0 small ps-4">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    <!-- Main List Card (No Scroll) -->
-    <div class="card border-0 rounded-3 shadow-sm bg-white">
-        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
-            <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                <i class="bi bi-journal-text text-primary"></i>
-                <span>Daftar Tim & Target</span>
-            </h6>
-            <form action="{{ route('marketing.teams.index') }}" method="GET" class="d-flex gap-2">
-                @if(request()->filled('month'))
-                    <input type="hidden" name="month" value="{{ request('month') }}">
-                @endif
-                @if(request()->filled('year'))
-                    <input type="hidden" name="year" value="{{ request('year') }}">
-                @endif
-                <div class="input-group input-group-sm rounded-pill border">
-                    <span class="input-group-text bg-white border-0 ps-3 text-muted"><i class="bi bi-search"></i></span>
-                    <input type="text" name="search" class="form-control border-0 shadow-none ps-1" placeholder="Cari tim..." value="{{ request('search') }}">
-                </div>
-            </form>
-        </div>
-
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light small text-uppercase fw-semibold">
-                <tr>
-                    <th class="ps-4 py-3">#</th>
-                    <th class="py-3"><i class="bi bi-people me-1 text-primary"></i>Tim & Toko Terhubung</th>
-                    <th class="py-3 text-end"><i class="bi bi-graph-up-arrow me-1 text-primary"></i>Target Margin (Rp)</th>
-                    <th class="py-3 text-end"><i class="bi bi-percent me-1 text-primary"></i>Skema Komisi</th>
-                    <th class="py-3 text-end"><i class="bi bi-wallet2 me-1 text-primary"></i>Total Komisi</th>
-                    <th class="py-3 text-center" style="min-width: 200px;"><i class="bi bi-bar-chart-line me-1 text-primary"></i>Realisasi & Progress Margin</th>
-                    <th class="py-3 text-center"><i class="bi bi-toggle-on me-1 text-primary"></i>Status</th>
-                    <th class="py-3 pe-4 text-end"><i class="bi bi-gear me-1 text-primary"></i>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
+    <div class="v2-card-body p-0">
+        <div class="v2-table-responsive">
+            <table class="v2-table align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 35px;" class="text-center">#</th>
+                        <th>TIM & TOKO TERHUBUNG</th>
+                        <th class="text-end">TARGET MARGIN (RP)</th>
+                        <th class="text-end">SKEMA KOMISI</th>
+                        <th class="text-end">TOTAL KOMISI</th>
+                        <th class="text-center" style="min-width: 200px;">REALISASI & PROGRESS MARGIN</th>
+                        <th class="text-center">STATUS</th>
+                        <th class="text-center" style="width: 105px;">AKSI</th>
+                    </tr>
+                </thead>
+                <tbody>
                 @forelse($teams as $index => $team)
                     @php
                         $actMargin = $team->custom_actual_margin ?? $team->actual_margin;
@@ -607,6 +568,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 
