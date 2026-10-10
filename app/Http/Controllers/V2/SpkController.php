@@ -5,6 +5,8 @@ namespace App\Http\Controllers\V2;
 use App\Http\Controllers\Inventory\SpkController as BaseSpkController;
 use App\Models\Spk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class SpkController extends BaseSpkController
 {
