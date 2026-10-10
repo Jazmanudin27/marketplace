@@ -1,90 +1,77 @@
 @extends('v2.layouts.app')
 
-@section('title', 'Target & Tim Marketing')
+@section('title', 'Target & Tim Marketing V2')
 
 @section('content')
 <div class="container-fluid px-3 py-3">
-    
-    <!-- Header Section -->
-    <div class="mb-4">
-        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill fw-semibold mb-1">
-            <i class="bi bi-bullseye me-1"></i> MODUL MARKETING
-        </span>
-        <h3 class="fw-bold text-dark mb-1">Target & Komisi Penjualan Dilepas</h3>
-        <p class="text-secondary small mb-1">
-            Kelola alokasi toko marketplace, target nilai penjualan dilepas (Value Rp), dan persentase komisi marketing.
-        </p>
-        <div class="text-primary small">
-            <i class="bi bi-info-circle me-1"></i>Target dan realisasi dihitung dari <strong>Nilai Penjualan yang Dilepas (Dana Cair / Completed)</strong> berdasarkan tanggal diterima (<code>completed_at</code>). Retur/refund otomatis dipotong.
+
+    {{-- Top bar V2 --}}
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+        <div>
+            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-bullseye text-primary fs-5"></i>
+                <span>Target & Komisi Penjualan</span>
+            </h5>
+            <p class="text-muted small mb-0">Kelola alokasi toko marketplace, target penjualan yang dilepas (Value Rp), dan persentase komisi.</p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button type="button" class="btn btn-sm btn-outline-danger px-2.5 py-1.5 rounded-2 fw-semibold shadow-xs d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#excludeProductsModal" style="font-size: 0.78rem;">
+                <i class="bi bi-slash-circle"></i>
+                <span>Pengecualian Produk</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-primary px-2.5 py-1.5 rounded-2 fw-semibold shadow-xs d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#createTeamModal" style="font-size: 0.78rem;">
+                <i class="bi bi-plus-lg"></i>
+                <span>Tambah Tim Baru</span>
+            </button>
         </div>
     </div>
 
-    <!-- Simple KPI Cards -->
-    <div class="row g-3 mb-4">
+    <!-- Summary Widgets (KPI Cards V2) -->
+    <div class="row g-2 mb-3">
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Tim Marketing</span>
-                        <h4 class="fw-bold text-dark mb-0">{{ number_format($totalTeams) }} <span class="fs-6 fw-normal text-muted">Tim</span></h4>
-                        <span class="badge bg-success bg-opacity-10 text-success mt-2 fw-medium rounded-pill px-2 py-1">
-                            <i class="bi bi-check-circle me-1"></i>{{ number_format($activeTeams) }} Aktif
-                        </span>
-                    </div>
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-people fs-4"></i>
-                    </div>
+            <div class="v2-stat-widget widget-blue">
+                <div class="v2-stat-icon-wrapper blue">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($totalTeams) }} <small class="fs-7 fw-normal text-muted">Tim</small></span>
+                    <span class="v2-stat-lbl">{{ number_format($activeTeams) }} Tim Aktif</span>
                 </div>
             </div>
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Toko Terhubung</span>
-                        <h4 class="fw-bold text-dark mb-0">{{ number_format($totalStoresLinked) }} <span class="fs-6 fw-normal text-muted">Toko</span></h4>
-                        <span class="text-muted small mt-2 d-block">
-                            Dari total {{ $stores->count() }} toko ERP
-                        </span>
-                    </div>
-                    <div class="bg-info bg-opacity-10 text-info rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-shop fs-4"></i>
-                    </div>
+            <div class="v2-stat-widget widget-green">
+                <div class="v2-stat-icon-wrapper green">
+                    <i class="bi bi-shop"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($totalStoresLinked) }} <small class="fs-7 fw-normal text-muted">Toko</small></span>
+                    <span class="v2-stat-lbl">Dari {{ $stores->count() }} Toko Terdaftar</span>
                 </div>
             </div>
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Target Penjualan Dilepas</span>
-                        <h4 class="fw-bold text-dark mb-0" style="font-size: 1.15rem;">Rp {{ number_format($totalTargetValue, 0, ',', '.') }}</h4>
-                        <span class="text-success small mt-2 d-block fw-semibold">
-                            Realisasi: Rp {{ number_format($totalActualValue, 0, ',', '.') }}
-                        </span>
-                    </div>
-                    <div class="bg-warning bg-opacity-10 text-warning rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-graph-up-arrow fs-4"></i>
-                    </div>
+            <div class="v2-stat-widget widget-amber">
+                <div class="v2-stat-icon-wrapper amber">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num" style="font-size: 0.95rem;">Rp {{ number_format($totalTargetValue, 0, ',', '.') }}</span>
+                    <span class="v2-stat-lbl text-success fw-semibold">Realisasi: Rp {{ number_format($totalActualValue, 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Total Komisi Realisasi</span>
-                        <h4 class="fw-bold text-success mb-0" style="font-size: 1.15rem;">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</h4>
-                        <span class="text-muted small mt-2 d-block">
-                            Basis Nilai (Value) Dilepas
-                        </span>
-                    </div>
-                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-wallet2 fs-4"></i>
-                    </div>
+            <div class="v2-stat-widget widget-purple">
+                <div class="v2-stat-icon-wrapper purple">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num text-success" style="font-size: 0.95rem;">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</span>
+                    <span class="v2-stat-lbl">Komisi Realisasi</span>
                 </div>
             </div>
         </div>
@@ -554,7 +541,17 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-semibold small text-dark mb-1">Pilih Toko Terhubung</label>
+                                                <div class="card border rounded-3 p-3 bg-light">
+                                                    <div class="row g-2">
+                                                        @php
+                                                            $linkedStoreIds = $team->stores->pluck('id')->toArray();
+                                                        @endphp
+                                                        @forelse($stores as $st)
+                                                            <div class="col-12 col-md-6">
+                                                                <div class="form-check">
+                                                                    <input class="form-check-input" type="checkbox" name="store_ids[]" value="{{ $st->id }}" id="edit_st_{{ $team->id }}_{{ $st->id }}" {{ in_array($st->id, $linkedStoreIds) ? 'checked' : '' }}>
                                                                     <label class="form-check-label small text-dark" for="edit_st_{{ $team->id }}_{{ $st->id }}">
                                                                         <strong>{{ $st->store_name }}</strong>
                                                                         @if($st->channel)

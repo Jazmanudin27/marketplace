@@ -6,23 +6,23 @@
 <div class="container-fluid px-3 py-3">
     
     <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
             @php
                 $backParams = [];
                 if (request()->filled('month')) $backParams['month'] = request('month');
                 if (request()->filled('year')) $backParams['year'] = request('year');
             @endphp
-            <a href="{{ route('marketing.teams.index', $backParams) }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mb-2 fw-medium">
-                <i class="bi bi-arrow-left me-1"></i> Kembali ke Target Komisi
+            <a href="{{ route('marketing.teams.index', $backParams) }}" class="btn btn-outline-secondary btn-sm rounded-2 px-2.5 py-1 mb-2 fw-medium d-inline-flex align-items-center gap-1" style="font-size: 0.78rem;">
+                <i class="bi bi-arrow-left"></i> Kembali ke Target Komisi
             </a>
-            
-            <h3 class="fw-bold text-dark mb-1">
-                <i class="bi bi-list-check text-primary me-2"></i>Detail Transaksi: {{ $marketingTeam->name }}
-            </h3>
-            
-            <p class="text-secondary small mb-1">
-                Daftar pesanan dari toko marketplace terhubung yang masuk dalam perhitungan realisasi target & komisi berdasarkan tanggal <strong>Dana Cair / Selesai (<code>completed_at</code>)</strong>.
+
+            <h5 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-list-check text-primary"></i>Detail Transaksi: {{ $marketingTeam->name }}
+            </h5>
+
+            <p class="text-muted small mb-1">
+                Daftar pesanan toko marketplace yang masuk realisasi komisi berdasarkan tanggal <strong>Dana Cair / Selesai (<code>completed_at</code>)</strong>.
             </p>
 
             <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
@@ -45,90 +45,68 @@
                         Komisi: Rp {{ number_format($rewardPerQty, 0, ',', '.') }} / Qty
                     </span>
                 @endif
-                
+
                 <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2.5 py-1 small fw-semibold">
                     <i class="bi bi-lock-fill me-1"></i>
-                    Periode Dana Cair: {{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
+                    Periode: {{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
                 </span>
             </div>
         </div>
     </div>
 
-    <!-- KPI Summary Card Row -->
-    <div class="row g-3 mb-4">
+    <!-- KPI Summary Card Row V2 -->
+    <div class="row g-2 mb-3">
         <!-- Total Pesanan / Orders -->
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Total Transaksi</span>
-                        <h4 class="fw-bold text-dark mb-0">{{ number_format($orders->count()) }}</h4>
-                        <span class="text-muted small mt-2 d-block">Pesanan Selesai / Dilepas</span>
-                    </div>
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-receipt fs-4"></i>
-                    </div>
+            <div class="v2-stat-widget widget-blue">
+                <div class="v2-stat-icon-wrapper blue">
+                    <i class="bi bi-receipt"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($orders->count()) }}</span>
+                    <span class="v2-stat-lbl">Pesanan Selesai / Dilepas</span>
                 </div>
             </div>
         </div>
 
         <!-- Target Penjualan Dilepas -->
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Target Penjualan</span>
-                        <h4 class="fw-bold text-dark mb-0">Rp {{ number_format($marketingTeam->target_omset, 0, ',', '.') }}</h4>
-                        @php
-                            $progressValPct = $marketingTeam->target_omset > 0 ? min(100.0, round(($totalValue / $marketingTeam->target_omset) * 100, 1)) : 0;
-                        @endphp
-                        <span class="text-primary small mt-2 d-block fw-semibold">
-                            Progress: {{ $progressValPct }}% Tercapai
-                        </span>
-                    </div>
-                    <div class="bg-warning bg-opacity-10 text-warning rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-bullseye fs-4"></i>
-                    </div>
+            <div class="v2-stat-widget widget-amber">
+                <div class="v2-stat-icon-wrapper amber">
+                    <i class="bi bi-bullseye"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num" style="font-size: 0.95rem;">Rp {{ number_format($marketingTeam->target_omset, 0, ',', '.') }}</span>
+                    @php
+                        $progressValPct = $marketingTeam->target_omset > 0 ? min(100.0, round(($totalValue / $marketingTeam->target_omset) * 100, 1)) : 0;
+                    @endphp
+                    <span class="v2-stat-lbl text-primary fw-semibold">Progress: {{ $progressValPct }}%</span>
                 </div>
             </div>
         </div>
 
         <!-- Total Penjualan Dilepas (Value) -->
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Penjualan Dilepas (Value)</span>
-                        <h4 class="fw-bold text-dark mb-0">Rp {{ number_format($totalValue, 0, ',', '.') }}</h4>
-                        <span class="text-muted small mt-2 d-block">Total Qty: {{ number_format($totalQty) }} pcs</span>
-                    </div>
-                    <div class="bg-info bg-opacity-10 text-info rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-cash-stack fs-4"></i>
-                    </div>
+            <div class="v2-stat-widget widget-green">
+                <div class="v2-stat-icon-wrapper green">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num" style="font-size: 0.95rem;">Rp {{ number_format($totalValue, 0, ',', '.') }}</span>
+                    <span class="v2-stat-lbl">Total Qty: {{ number_format($totalQty) }} pcs</span>
                 </div>
             </div>
         </div>
 
         <!-- Total Komisi / Insentif -->
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Total Akumulasi Komisi</span>
-                        <h4 class="fw-bold text-success mb-0">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</h4>
-                        <span class="text-muted small mt-2 d-block">
-                            @if($cType === 'percentage')
-                                {{ number_format($marketingTeam->commission_rate, 2) }}% × Penjualan Dilepas
-                            @elseif($cType === 'nominal')
-                                {{ $totalValue >= $marketingTeam->target_omset ? 'Target Tercapai (Bonus Aktif)' : 'Target Belum Tercapai' }}
-                            @else
-                                {{ number_format($totalQty) }} Qty × Rp {{ number_format($rewardPerQty, 0, ',', '.') }}
-                            @endif
-                        </span>
-                    </div>
-                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-cash-coin fs-4"></i>
-                    </div>
+            <div class="v2-stat-widget widget-purple">
+                <div class="v2-stat-icon-wrapper purple">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num text-success" style="font-size: 0.95rem;">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</span>
+                    <span class="v2-stat-lbl">Akumulasi Komisi</span>
                 </div>
             </div>
         </div>
