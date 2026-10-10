@@ -4,7 +4,131 @@
 
 @push('styles')
 <style>
-/* ─── Penjualan Offline V2 Custom Styles ─── */
+/* ─── Pesanan-style Tab & Filter Bar Overrides ─── */
+.pos-tab-bar {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    gap: 0;
+}
+.pos-tab-bar::-webkit-scrollbar { display: none; }
+
+.pos-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 18px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #6b7280;
+    white-space: nowrap;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    position: relative;
+}
+.pos-tab:hover { color: #3b82f6; text-decoration: none; }
+.pos-tab.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+    font-weight: 600;
+    background: #eff6ff;
+}
+.pos-tab .tab-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 1px 6px;
+    background: #3b82f6;
+    color: #fff;
+    min-width: 18px;
+    text-align: center;
+    line-height: 1.5;
+}
+.pos-tab:not(.active) .tab-badge {
+    background: #e5e7eb;
+    color: #6b7280;
+}
+.pos-tab.active .tab-badge { background: #2563eb; }
+
+/* Sub-tabs pills */
+.pos-sub-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    flex-wrap: wrap;
+}
+.pos-sub-label { font-size: 0.74rem; font-weight: 600; color: #6b7280; white-space: nowrap; }
+.pos-sub-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 500;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #6b7280;
+    text-decoration: none;
+    transition: all .15s;
+    white-space: nowrap;
+}
+.pos-sub-pill:hover { border-color: #3b82f6; color: #3b82f6; text-decoration: none; }
+.pos-sub-pill.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(59,130,246,.3);
+}
+.pos-sub-pill .pill-n {
+    background: rgba(255,255,255,.25);
+    border-radius: 999px;
+    padding: 0 5px;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+.pos-sub-pill:not(.active) .pill-n { background: #f0f0f0; color: #555; }
+
+/* Filter bar */
+.pos-filter-bar {
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+.pos-filter-bar .form-label { font-size: 0.72rem; font-weight: 600; color: #6b7280; margin-bottom: 3px; }
+.pos-filter-bar .form-control,
+.pos-filter-bar .form-select {
+    font-size: 0.79rem;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    padding: 5px 9px;
+    height: 31px;
+}
+.pos-filter-bar .form-control:focus,
+.pos-filter-bar .form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+}
+
+/* Summary bar */
+.pos-summary-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.79rem;
+    color: #6b7280;
+}
+
+/* KPI Cards */
 .pos-kpi-card {
     background: #ffffff;
     border: 1px solid #e5e7eb;
@@ -52,6 +176,7 @@
     padding: 3px 8px;
     border-radius: 6px;
     font-size: 0.78rem;
+    font-family: 'Courier New', monospace;
 }
 </style>
 @endpush
@@ -116,67 +241,167 @@
     </div>
 </div>
 
-{{-- ── Filter Section ── --}}
-<div class="v2-card p-3 mb-3 shadow-sm">
-    <form method="GET" action="{{ route('v2.penjualan_offline.index') }}" class="row g-2 align-items-end">
-        <div class="col-12 col-md-3">
-            <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Cari Nota / Pembeli</label>
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="No Nota / Nama / No HP..." class="form-control form-control-sm">
-        </div>
-        <div class="col-6 col-md-2">
-            <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Status Nota</label>
-            <select name="status" class="form-select form-select-sm">
-                <option value="">Semua Status</option>
-                <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Selesai (Completed)</option>
-                <option value="pending_spk" {{ request('status') === 'pending_spk' ? 'selected' : '' }}>Pending SPK</option>
-                <option value="spk_diproses" {{ request('status') === 'spk_diproses' ? 'selected' : '' }}>SPK Diproses</option>
-                <option value="waiting_dp" {{ request('status') === 'waiting_dp' ? 'selected' : '' }}>Menunggu DP</option>
-                <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
-            </select>
-        </div>
-        <div class="col-6 col-md-2">
-            <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Status Bayar</label>
-            <select name="payment_status" class="form-select form-select-sm">
-                <option value="">Semua Pembayaran</option>
-                <option value="lunas" {{ request('payment_status') === 'lunas' ? 'selected' : '' }}>Lunas</option>
-                <option value="belum_lunas" {{ request('payment_status') === 'belum_lunas' ? 'selected' : '' }}>Belum Lunas / Piutang</option>
-            </select>
-        </div>
-        <div class="col-6 col-md-1.5" style="width: 13.5%;">
-            <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Dari Tanggal</label>
-            <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control form-control-sm">
-        </div>
-        <div class="col-6 col-md-1.5" style="width: 13.5%;">
-            <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Sampai Tanggal</label>
-            <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control form-control-sm">
-        </div>
-        <div class="col-12 col-md-1.5 d-flex gap-1 ms-auto">
-            <button type="submit" class="btn btn-sm text-white fw-semibold flex-grow-1" style="background:#1e293b; border:none;">
-                <i class="bi bi-funnel me-1"></i> Filter
-            </button>
-            <a href="{{ route('v2.penjualan_offline.index') }}" class="btn btn-sm text-white fw-semibold" style="background:#64748b; border:none;">
-                <i class="bi bi-arrow-counterclockwise"></i>
-            </a>
-        </div>
-    </form>
-</div>
+{{-- ── Main Card (Tabs & Filter Mirip Pesanan Masuk) ── --}}
+<div class="v2-card p-0 shadow-sm overflow-hidden mb-4">
 
-{{-- ── Sales Table ── --}}
-<div class="card border-0 shadow-sm rounded-3">
+    {{-- Status Tabs --}}
+    @php
+        $currentStatus = request('status', '');
+        $tabStatuses = [
+            ''              => ['label' => 'Semua', 'icon' => 'bi bi-list-ul', 'countKey' => '__all__'],
+            'completed'     => ['label' => 'Selesai', 'icon' => 'bi bi-check-circle', 'countKey' => 'completed'],
+            'pending_spk'   => ['label' => 'Pending SPK', 'icon' => 'bi bi-clock-history', 'countKey' => 'pending_spk'],
+            'spk_diproses'  => ['label' => 'SPK Diproses', 'icon' => 'bi bi-gear-wide-connected', 'countKey' => 'spk_diproses'],
+            'waiting_dp'    => ['label' => 'Menunggu DP', 'icon' => 'bi bi-hourglass-split', 'countKey' => 'waiting_dp'],
+            'cancelled'     => ['label' => 'Dibatalkan', 'icon' => 'bi bi-x-circle', 'countKey' => 'cancelled'],
+        ];
+    @endphp
+    <div class="pos-tab-bar" role="tablist">
+        @foreach($tabStatuses as $tabKey => $tabInfo)
+            @php
+                $tabUrl = route('v2.penjualan_offline.index', array_merge(
+                    request()->except(['status','page']),
+                    $tabKey !== '' ? ['status' => $tabKey] : [],
+                ));
+                $isActive = $currentStatus === $tabKey;
+                $count    = $tabCounts[$tabInfo['countKey']] ?? 0;
+            @endphp
+            <a class="pos-tab {{ $isActive ? 'active' : '' }}" href="{{ $tabUrl }}" role="tab">
+                <i class="{{ $tabInfo['icon'] }}" style="font-size:.8rem;"></i>
+                {{ $tabInfo['label'] }}
+                @if($count > 0)
+                    <span class="tab-badge">{{ $count > 999 ? '999+' : $count }}</span>
+                @endif
+            </a>
+        @endforeach
+    </div>
+
+    {{-- Payment Sub-Tabs --}}
+    @php
+        $currentPayment = request('payment_status', '');
+        $subPaymentTabs = [
+            ''            => ['label' => 'Semua Status Bayar', 'countKey' => '__all__'],
+            'lunas'       => ['label' => 'Lunas', 'countKey' => 'lunas'],
+            'belum_lunas' => ['label' => 'Belum Lunas / Piutang', 'countKey' => 'belum_lunas'],
+        ];
+    @endphp
+    <div class="pos-sub-bar">
+        <span class="pos-sub-label"><i class="bi bi-funnel me-1"></i>Status Bayar:</span>
+        @foreach($subPaymentTabs as $ptKey => $ptInfo)
+            @php
+                $ptUrl = route('v2.penjualan_offline.index', array_merge(
+                    request()->except(['payment_status','page']),
+                    $ptKey !== '' ? ['payment_status' => $ptKey] : [],
+                ));
+                $ptActive = $currentPayment === $ptKey;
+                $ptCount  = $paymentCounts[$ptInfo['countKey']] ?? 0;
+            @endphp
+            <a href="{{ $ptUrl }}" class="pos-sub-pill {{ $ptActive ? 'active' : '' }}">
+                {{ $ptInfo['label'] }}
+                @if($ptCount > 0)
+                    <span class="pill-n">{{ $ptCount > 999 ? '999+' : $ptCount }}</span>
+                @endif
+            </a>
+        @endforeach
+    </div>
+
+    {{-- Filter Bar --}}
+    <div class="pos-filter-bar">
+        <form method="GET" action="{{ route('v2.penjualan_offline.index') }}" id="pos-filter-form">
+            @if(request('status'))
+                <input type="hidden" name="status" value="{{ request('status') }}">
+            @endif
+            @if(request('payment_status'))
+                <input type="hidden" name="payment_status" value="{{ request('payment_status') }}">
+            @endif
+            <div class="row g-2 align-items-end">
+                {{-- Cari --}}
+                <div class="col-12 col-md-3">
+                    <label class="form-label"><i class="bi bi-search me-1"></i>No. Nota / Pembeli / HP</label>
+                    <input type="text" name="search" class="form-control"
+                           placeholder="Cari no nota, nama, nomor telepon..."
+                           value="{{ request('search') }}">
+                </div>
+
+                {{-- Metode Pembayaran --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label"><i class="bi bi-credit-card me-1"></i>Metode Bayar</label>
+                    <select name="payment_method" class="form-select">
+                        <option value="">Semua Metode</option>
+                        <option value="tunai" {{ request('payment_method') === 'tunai' ? 'selected' : '' }}>Tunai / Cash</option>
+                        <option value="transfer" {{ request('payment_method') === 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
+                        <option value="qris" {{ request('payment_method') === 'qris' ? 'selected' : '' }}>QRIS</option>
+                        <option value="piutang" {{ request('payment_method') === 'piutang' ? 'selected' : '' }}>Kredit / Piutang</option>
+                    </select>
+                </div>
+
+                {{-- Tipe Transaksi PO --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label"><i class="bi bi-bag-check me-1"></i>Tipe Transaksi</label>
+                    <select name="is_po" class="form-select">
+                        <option value="">Semua Tipe</option>
+                        <option value="walk_in" {{ request('is_po') === 'walk_in' ? 'selected' : '' }}>Langsung / Walk-in</option>
+                        <option value="po" {{ request('is_po') === 'po' ? 'selected' : '' }}>Pre-Order (PO)</option>
+                    </select>
+                </div>
+
+                {{-- Dari Tanggal --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label"><i class="bi bi-calendar-event me-1"></i>Dari Tanggal</label>
+                    <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control">
+                </div>
+
+                {{-- Sampai Tanggal --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label"><i class="bi bi-calendar-event me-1"></i>Sampai Tanggal</label>
+                    <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control">
+                </div>
+
+                {{-- Actions --}}
+                <div class="col-12 col-md-1 d-flex gap-1">
+                    <button type="submit" class="btn btn-sm btn-primary flex-grow-1" style="height: 31px;" title="Terapkan Filter">
+                        <i class="bi bi-filter"></i>
+                    </button>
+                    @if(request()->hasAny(['search', 'payment_method', 'is_po', 'date_from', 'date_to', 'status', 'payment_status']))
+                        <a href="{{ route('v2.penjualan_offline.index') }}" class="btn btn-sm btn-outline-secondary" style="height: 31px;" title="Reset Filter">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {{-- Summary Bar --}}
+    <div class="pos-summary-bar">
+        <div>
+            <i class="bi bi-list-check me-1"></i>
+            Menampilkan <strong>{{ $sales->firstItem() ?? 0 }} - {{ $sales->lastItem() ?? 0 }}</strong> dari <strong>{{ $sales->total() }}</strong> transaksi
+        </div>
+        @if(request()->hasAny(['status', 'payment_status', 'search', 'date_from', 'date_to']))
+            <div>
+                <span class="badge bg-light text-dark border rounded-pill px-2.5 py-1">
+                    <i class="bi bi-funnel-fill text-primary me-1"></i>Filter Aktif
+                </span>
+            </div>
+        @endif
+    </div>
+
+    {{-- Sales Table --}}
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
-            <thead class="table-light">
+            <thead class="table-light text-uppercase fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.03em;">
                 <tr>
-                    <th class="ps-3" style="width: 50px;">No</th>
-                    <th>No Nota</th>
-                    <th>Tanggal</th>
-                    <th>Pembeli</th>
-                    <th>Metode Bayar</th>
-                    <th class="text-end">Grand Total</th>
-                    <th class="text-end">Terbayar</th>
-                    <th class="text-end">Sisa Piutang</th>
-                    <th class="text-center">Status</th>
-                    <th class="text-center" style="width: 100px;">Aksi</th>
+                    <th class="ps-3 py-2.5" style="width: 50px;">No</th>
+                    <th class="py-2.5">No. Nota</th>
+                    <th class="py-2.5">Tanggal</th>
+                    <th class="py-2.5">Pembeli</th>
+                    <th class="py-2.5">Metode Bayar</th>
+                    <th class="text-end py-2.5">Grand Total</th>
+                    <th class="text-end py-2.5">Terbayar</th>
+                    <th class="text-end py-2.5">Sisa Piutang</th>
+                    <th class="text-center py-2.5">Status</th>
+                    <th class="text-center pe-3 py-2.5" style="width: 100px;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -212,19 +437,33 @@
                         </td>
                         <td class="text-center">
                             @if($sale->status === 'completed')
-                                <span class="badge bg-success text-white px-2 py-1" style="font-size: 0.7rem;">Selesai</span>
+                                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                                    <i class="bi bi-check-circle me-1"></i>Selesai
+                                </span>
                             @elseif($sale->status === 'cancelled')
-                                <span class="badge bg-danger text-white px-2 py-1" style="font-size: 0.7rem;">Batal</span>
+                                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                                    <i class="bi bi-x-circle me-1"></i>Batal
+                                </span>
                             @elseif($sale->status === 'waiting_dp')
-                                <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.7rem;">Menunggu DP</span>
-                            @elseif($sale->status === 'pending_spk' || $sale->status === 'spk_processing')
-                                <span class="badge bg-info text-dark px-2 py-1" style="font-size: 0.7rem;">{{ strtoupper(str_replace('_', ' ', $sale->status)) }}</span>
+                                <span class="badge bg-warning bg-opacity-15 text-dark rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                                    <i class="bi bi-hourglass-split me-1"></i>Menunggu DP
+                                </span>
+                            @elseif($sale->status === 'pending_spk' || $sale->status === 'belum_spk')
+                                <span class="badge bg-info bg-opacity-15 text-primary rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                                    <i class="bi bi-clock-history me-1"></i>Pending SPK
+                                </span>
+                            @elseif($sale->status === 'spk_diproses')
+                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                                    <i class="bi bi-gear-wide-connected me-1"></i>SPK Diproses
+                                </span>
                             @else
-                                <span class="badge bg-primary text-white px-2 py-1" style="font-size: 0.7rem;">{{ strtoupper(str_replace('_', ' ', $sale->status)) }}</span>
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                                    {{ strtoupper(str_replace('_', ' ', $sale->status)) }}
+                                </span>
                             @endif
                         </td>
-                        <td class="text-center">
-                            <a href="{{ route('v2.penjualan_offline.show', $sale->id) }}" class="btn btn-sm btn-outline-primary py-0.5 px-2" style="font-size: 0.75rem;" title="Lihat Detail Nota">
+                        <td class="text-center pe-3">
+                            <a href="{{ route('v2.penjualan_offline.show', $sale->id) }}" class="btn btn-sm btn-outline-primary py-0.5 px-2 rounded-pill" style="font-size: 0.75rem;" title="Lihat Detail Nota">
                                 <i class="bi bi-eye me-1"></i> Detail
                             </a>
                         </td>
@@ -233,7 +472,7 @@
                     <tr>
                         <td colspan="10" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary opacity-50"></i>
-                            Belum ada data penjualan offline yang ditemukan.
+                            Belum ada data penjualan offline yang sesuai dengan filter.
                         </td>
                     </tr>
                 @endforelse

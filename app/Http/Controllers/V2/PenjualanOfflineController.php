@@ -49,11 +49,10 @@ class PenjualanOfflineController extends Controller
         }
 
         if ($request->filled('status')) {
-            if ($request->status === 'perlu_follow_up') {
-                $query->where('status', OfflineSale::STATUS_WAITING_DP)
-                      ->where('paid_amount', '<=', 0)
-                      ->whereNotNull('follow_up_date')
-                      ->whereDate('follow_up_date', '<', now()->toDateString());
+            if ($request->status === 'completed') {
+                $query->where('status', OfflineSale::STATUS_COMPLETED);
+            } elseif ($request->status === 'pending_spk') {
+                $query->whereIn('status', [OfflineSale::STATUS_PENDING_SPK, 'pending_spk', 'belum_spk']);
             } elseif ($request->status === 'spk_diproses') {
                 $query->where(function($q) {
                     $q->where('status', OfflineSale::STATUS_SPK_PROCESSING)
@@ -62,6 +61,15 @@ class PenjualanOfflineController extends Controller
                               ->where('is_po', true);
                       });
                 });
+            } elseif ($request->status === 'waiting_dp') {
+                $query->whereIn('status', [OfflineSale::STATUS_WAITING_DP, 'waiting_dp', 'menunggu_dp']);
+            } elseif ($request->status === 'cancelled') {
+                $query->whereIn('status', [OfflineSale::STATUS_CANCELLED, 'cancelled', 'batal']);
+            } elseif ($request->status === 'perlu_follow_up') {
+                $query->where('status', OfflineSale::STATUS_WAITING_DP)
+                      ->where('paid_amount', '<=', 0)
+                      ->whereNotNull('follow_up_date')
+                      ->whereDate('follow_up_date', '<', now()->toDateString());
             } elseif ($request->status === 'pending_approval') {
                 $query->where('status', OfflineSale::STATUS_PENDING_APPROVAL)
                       ->where('is_po', false);
@@ -90,6 +98,14 @@ class PenjualanOfflineController extends Controller
             }
         }
 
+        if ($request->filled('is_po')) {
+            if ($request->is_po === '1' || $request->is_po === 'po') {
+                $query->where('is_po', true);
+            } elseif ($request->is_po === '0' || $request->is_po === 'walk_in') {
+                $query->where('is_po', false);
+            }
+        }
+
         if ($request->filled('date_from')) {
             $query->whereDate('sold_at', '>=', $request->date_from);
         }
@@ -99,6 +115,69 @@ class PenjualanOfflineController extends Controller
         }
 
         $sales = $query->paginate(20)->withQueryString();
+
+        // Calculate Tab Counts (Status Tabs)
+        $tabCountBase = OfflineSale::where('tenant_id', $tenantId);
+        if ($request->filled('date_from')) $tabCountBase->whereDate('sold_at', '>=', $request->date_from);
+        if ($request->filled('date_to'))   $tabCountBase->whereDate('sold_at', '<=', $request->date_to);
+        if ($request->filled('search')) {
+            $s = trim($request->search);
+            $tabCountBase->where(function ($q) use ($s) {
+                $q->where('sale_number', 'like', "%{$s}%")
+                  ->orWhere('buyer_name', 'like', "%{$s}%")
+                  ->orWhere('buyer_phone', 'like', "%{$s}%");
+            });
+        }
+        if ($request->filled('payment_status')) {
+            if ($request->payment_status === 'lunas') {
+                $tabCountBase->where('status', '!=', OfflineSale::STATUS_CANCELLED)->whereRaw('paid_amount >= grand_total');
+            } elseif ($request->payment_status === 'belum_lunas') {
+                $tabCountBase->where('status', '!=', OfflineSale::STATUS_CANCELLED)->whereRaw('paid_amount < grand_total');
+            }
+        }
+
+        $tabCounts = [
+            '__all__'      => (clone $tabCountBase)->count(),
+            'completed'    => (clone $tabCountBase)->where('status', OfflineSale::STATUS_COMPLETED)->count(),
+            'pending_spk'  => (clone $tabCountBase)->whereIn('status', [OfflineSale::STATUS_PENDING_SPK, 'pending_spk', 'belum_spk'])->count(),
+            'spk_diproses' => (clone $tabCountBase)->where(function($q) {
+                                $q->where('status', OfflineSale::STATUS_SPK_PROCESSING)
+                                  ->orWhere(function($sub) {
+                                      $sub->where('status', OfflineSale::STATUS_PENDING_APPROVAL)->where('is_po', true);
+                                  });
+                            })->count(),
+            'waiting_dp'   => (clone $tabCountBase)->whereIn('status', [OfflineSale::STATUS_WAITING_DP, 'waiting_dp', 'menunggu_dp'])->count(),
+            'cancelled'    => (clone $tabCountBase)->whereIn('status', [OfflineSale::STATUS_CANCELLED, 'cancelled', 'batal'])->count(),
+        ];
+
+        // Calculate Sub-tab Counts (Payment Status)
+        $payCountBase = OfflineSale::where('tenant_id', $tenantId);
+        if ($request->filled('date_from')) $payCountBase->whereDate('sold_at', '>=', $request->date_from);
+        if ($request->filled('date_to'))   $payCountBase->whereDate('sold_at', '<=', $request->date_to);
+        if ($request->filled('status')) {
+            if ($request->status === 'completed') {
+                $payCountBase->where('status', OfflineSale::STATUS_COMPLETED);
+            } elseif ($request->status === 'pending_spk') {
+                $payCountBase->whereIn('status', [OfflineSale::STATUS_PENDING_SPK, 'pending_spk', 'belum_spk']);
+            } elseif ($request->status === 'spk_diproses') {
+                $payCountBase->where(function($q) {
+                    $q->where('status', OfflineSale::STATUS_SPK_PROCESSING)
+                      ->orWhere(function($sub) {
+                          $sub->where('status', OfflineSale::STATUS_PENDING_APPROVAL)->where('is_po', true);
+                      });
+                });
+            } elseif ($request->status === 'waiting_dp') {
+                $payCountBase->whereIn('status', [OfflineSale::STATUS_WAITING_DP, 'waiting_dp', 'menunggu_dp']);
+            } elseif ($request->status === 'cancelled') {
+                $payCountBase->whereIn('status', [OfflineSale::STATUS_CANCELLED, 'cancelled', 'batal']);
+            }
+        }
+
+        $paymentCounts = [
+            '__all__'     => (clone $payCountBase)->count(),
+            'lunas'       => (clone $payCountBase)->where('status', '!=', OfflineSale::STATUS_CANCELLED)->whereRaw('paid_amount >= grand_total')->count(),
+            'belum_lunas' => (clone $payCountBase)->where('status', '!=', OfflineSale::STATUS_CANCELLED)->whereRaw('paid_amount < grand_total')->count(),
+        ];
 
         // Calculate KPI Statistics
         $kpiQuery = OfflineSale::where('tenant_id', $tenantId)
@@ -118,6 +197,8 @@ class PenjualanOfflineController extends Controller
 
         return view('v2.penjualan_offline.index', compact(
             'sales',
+            'tabCounts',
+            'paymentCounts',
             'totalSalesCount',
             'totalSalesOmset',
             'totalSalesPaid',
