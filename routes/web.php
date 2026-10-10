@@ -114,6 +114,19 @@ Route::post('/api/webhooks/tiktok', [WebhookController::class, 'tiktok'])->name(
 Route::post('/api/webhooks/tiktok-leads', [WebhookController::class, 'tiktokLeads'])->name('webhooks.tiktok_leads');
 Route::get('/marketing/ads/catalog-feed/{tenant_id}', [\App\Http\Controllers\Marketing\AdsController::class, 'catalogFeed'])->name('marketing.ads.catalog_feed');
 
+// API Khusus Mobile Owner (Ambil data dari tabel users & database ERP)
+Route::post('/api/v2/owner/login', [\App\Http\Controllers\Api\OwnerAuthController::class, 'login'])->name('api.owner.login');
+Route::post('/api/owner/login', [\App\Http\Controllers\Api\OwnerAuthController::class, 'login']);
+
+Route::get('/api/v2/owner/metrics/overview', [\App\Http\Controllers\Api\OwnerApiController::class, 'overview'])->name('api.owner.overview');
+Route::get('/api/owner/metrics/overview', [\App\Http\Controllers\Api\OwnerApiController::class, 'overview']);
+
+Route::get('/api/v2/owner/orders', [\App\Http\Controllers\Api\OwnerApiController::class, 'orders'])->name('api.owner.orders');
+Route::get('/api/owner/orders', [\App\Http\Controllers\Api\OwnerApiController::class, 'orders']);
+
+Route::get('/api/v2/owner/orders/{order}', [\App\Http\Controllers\Api\OwnerApiController::class, 'showOrder'])->name('api.owner.orders.show');
+Route::get('/api/owner/orders/{order}', [\App\Http\Controllers\Api\OwnerApiController::class, 'showOrder']);
+
 // =========================================================================
 // Shopee OAuth Callback
 // Shopee OAuth Callback — TIDAK memerlukan auth karena Shopee redirect langsung

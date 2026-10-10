@@ -8,8 +8,8 @@ export default function QuickStatusGrid({ metrics, onSelectStatus }) {
       type: 'green',
       icon: PackagePlus,
       label: 'Pesanan Baru',
-      count: metrics?.ordersNew || 0,
-      badge: '18',
+      count: metrics?.ordersNew ?? 0,
+      badge: metrics?.ordersNew > 0 ? String(metrics.ordersNew) : null,
       statusFilter: 'ALL'
     },
     {
@@ -17,8 +17,8 @@ export default function QuickStatusGrid({ metrics, onSelectStatus }) {
       type: 'orange',
       icon: Truck,
       label: 'Perlu Dikirim',
-      count: metrics?.ordersToShip || 0,
-      badge: '34',
+      count: metrics?.ordersToShip ?? 0,
+      badge: metrics?.ordersToShip > 0 ? String(metrics.ordersToShip) : null,
       statusFilter: 'READY_TO_SHIP'
     },
     {
@@ -26,8 +26,8 @@ export default function QuickStatusGrid({ metrics, onSelectStatus }) {
       type: 'red',
       icon: RotateCcw,
       label: 'Komplain / Retur',
-      count: metrics?.ordersReturned || 0,
-      badge: '2',
+      count: metrics?.ordersReturned ?? 0,
+      badge: metrics?.ordersReturned > 0 ? String(metrics.ordersReturned) : null,
       statusFilter: 'RETURNED'
     },
     {
@@ -35,8 +35,8 @@ export default function QuickStatusGrid({ metrics, onSelectStatus }) {
       type: 'blue',
       icon: CheckCircle2,
       label: 'Selesai Hari Ini',
-      count: metrics?.ordersCompletedToday || 0,
-      badge: '89',
+      count: metrics?.ordersCompletedToday ?? 0,
+      badge: metrics?.ordersCompletedToday > 0 ? String(metrics.ordersCompletedToday) : null,
       statusFilter: 'COMPLETED'
     }
   ];

@@ -1,27 +1,34 @@
 import { mockOrders } from './mockData';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v2';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 /**
  * Fetch Order list with lightweight pagination & filtering
  */
 export async function fetchOrders({ status = 'ALL', search = '', page = 1, limit = 20 } = {}) {
   try {
-    // If backend endpoint is configured, try live API
-    if (import.meta.env.VITE_USE_LIVE_API === 'true') {
-      const params = new URLSearchParams({ status, search, page: String(page), limit: String(limit) });
-      const response = await fetch(`${API_BASE_URL}/owner/orders?${params}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('owner_token') || ''}`
-        }
-      });
-      if (response.ok) {
-        return await response.json();
+    const params = new URLSearchParams({ status, search, page: String(page), limit: String(limit) });
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/orders?${params}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result && Array.isArray(result.data)) {
+        return result;
       }
     }
   } catch (error) {
-    console.warn('[OrdersApi] Live API fallback to mock dataset:', error.message);
+    console.warn('[OrdersApi] Live API fetch error, fallback to mock dataset:', error.message);
   }
 
   // Realistic client-side filtering fallback for smooth instant UX
@@ -62,19 +69,27 @@ export async function fetchOrders({ status = 'ALL', search = '', page = 1, limit
  */
 export async function fetchOrderDetail(orderId) {
   try {
-    if (import.meta.env.VITE_USE_LIVE_API === 'true') {
-      const response = await fetch(`${API_BASE_URL}/owner/orders/${orderId}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('owner_token') || ''}`
-        }
-      });
-      if (response.ok) {
-        return await response.json();
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/orders/${orderId}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result && result.data) {
+        return result;
       }
     }
   } catch (error) {
-    console.warn('[OrdersApi] Detail live fallback:', error.message);
+    console.warn('[OrdersApi] Detail live fetch error, fallback:', error.message);
   }
 
   const order = mockOrders.find(o => o.id === Number(orderId) || o.invoiceNumber === String(orderId));

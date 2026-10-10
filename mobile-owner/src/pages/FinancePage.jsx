@@ -27,7 +27,7 @@ export default function FinancePage({ metrics }) {
         </div>
 
         <div style={{ fontSize: '26px', fontWeight: '800', letterSpacing: '-0.5px' }}>
-          {formatRupiah(metrics?.cashBalance || 48920000)}
+          {formatRupiah(metrics?.cashBalance ?? 0)}
         </div>
 
         <div style={{
@@ -40,13 +40,13 @@ export default function FinancePage({ metrics }) {
           <div>
             <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>Dana Escrow Marketplace:</span>
             <div style={{ fontSize: '13px', fontWeight: '700', color: '#38bdf8' }}>
-              {formatRupiah(metrics?.receivableEscrow || 24150000)}
+              {formatRupiah(metrics?.receivableEscrow ?? 0)}
             </div>
           </div>
           <div>
             <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>Omset Hari Ini:</span>
             <div style={{ fontSize: '13px', fontWeight: '700', color: '#34d399' }}>
-              {formatRupiah(metrics?.todayOmset || 14850000)}
+              {formatRupiah(metrics?.todayOmset ?? 0)}
             </div>
           </div>
         </div>
@@ -69,14 +69,14 @@ export default function FinancePage({ metrics }) {
             <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>Target Margin Bulan Ini</h4>
           </div>
           <span style={{ fontSize: '12px', fontWeight: '800', color: '#4f46e5' }}>
-            {metrics?.targetProgressPercent || 84.5}%
+            {metrics?.targetProgressPercent ?? 0}%
           </span>
         </div>
 
         {/* Progress Bar */}
         <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
           <div style={{ 
-            width: `${Math.min(100, metrics?.targetProgressPercent || 84.5)}%`, 
+            width: `${Math.min(100, metrics?.targetProgressPercent ?? 0)}%`, 
             height: '100%', 
             background: 'linear-gradient(90deg, #4f46e5, #0ea5e9)',
             borderRadius: '999px' 
@@ -84,8 +84,8 @@ export default function FinancePage({ metrics }) {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-          <span>Realisasi: <strong style={{ color: '#0f172a' }}>{formatRupiah(metrics?.actualMonthlyMargin || 126750000)}</strong></span>
-          <span>Target: {formatRupiah(metrics?.targetMonthlyMargin || 150000000)}</span>
+          <span>Realisasi: <strong style={{ color: '#0f172a' }}>{formatRupiah(metrics?.actualMonthlyMargin ?? 0)}</strong></span>
+          <span>Target: {formatRupiah(metrics?.targetMonthlyMargin ?? 0)}</span>
         </div>
       </div>
 
@@ -94,14 +94,14 @@ export default function FinancePage({ metrics }) {
         <div style={{ background: '#ffffff', borderRadius: '18px', padding: '14px', border: '1px solid #e2e8f0' }}>
           <span style={{ fontSize: '11px', color: '#64748b' }}>HPP Hari Ini</span>
           <div style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginTop: '4px' }}>
-            {formatRupiah(metrics?.todayHpp || 11610000)}
+            {formatRupiah(metrics?.todayHpp ?? 0)}
           </div>
         </div>
 
         <div style={{ background: '#ffffff', borderRadius: '18px', padding: '14px', border: '1px solid #e2e8f0' }}>
           <span style={{ fontSize: '11px', color: '#64748b' }}>Laba Bersih Hari Ini</span>
           <div style={{ fontSize: '15px', fontWeight: '800', color: '#16a34a', marginTop: '4px' }}>
-            {formatRupiah(metrics?.todayMargin || 3240000)}
+            {formatRupiah(metrics?.todayMargin ?? 0)}
           </div>
         </div>
       </div>

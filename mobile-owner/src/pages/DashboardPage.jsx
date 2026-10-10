@@ -12,7 +12,8 @@ export default function DashboardPage({
   onViewAllOrders, 
   onOpenFinance, 
   onOpenTarget,
-  onSelectMenu 
+  onSelectMenu,
+  onOpenAllModules
 }) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -42,11 +43,13 @@ export default function DashboardPage({
       {/* 12 Owner App Launcher Grid */}
       <OwnerMenuGrid 
         onSelectMenu={(menuId) => {
-          if (menuId === 'orders') onViewAllOrders();
-          else if (menuId === 'cashflow' || menuId === 'margin' || menuId === 'reports') onOpenFinance();
-          else if (menuId === 'target' || menuId === 'teams') onOpenTarget();
+          if (menuId === 'orders') onViewAllOrders('ALL');
+          else if (menuId === 'returns') onViewAllOrders('RETURNED');
+          else if (menuId === 'cashflow' || menuId === 'margin') onOpenFinance();
+          else if (menuId === 'target') onOpenTarget();
           else if (onSelectMenu) onSelectMenu(menuId);
         }}
+        onOpenAllModules={onOpenAllModules}
       />
 
       {/* Recent Live Transactions Section */}

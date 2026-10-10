@@ -19,10 +19,10 @@ export default function HighlightBanners({ metrics, onOpenFinance, onOpenTarget 
           </div>
         </div>
         <div className="banner-value">
-          {formatRupiah(metrics?.todayOmset || 14850000)}
+          {formatRupiah(metrics?.todayOmset ?? 0)}
         </div>
         <div className="banner-sub">
-          Laba Bersih: {formatRupiah(metrics?.todayMargin || 3240000)}
+          Laba Bersih: {formatRupiah(metrics?.todayMargin ?? 0)}
         </div>
       </div>
 
@@ -40,10 +40,10 @@ export default function HighlightBanners({ metrics, onOpenFinance, onOpenTarget 
           </div>
         </div>
         <div className="banner-value">
-          {metrics?.targetProgressPercent || 84.5}% Tercapai
+          {metrics?.targetProgressPercent ?? 0}% Tercapai
         </div>
         <div className="banner-sub">
-          Margin: {formatRupiah(metrics?.actualMonthlyMargin || 126750000)}
+          Margin: {formatRupiah(metrics?.actualMonthlyMargin ?? 0)}
         </div>
       </div>
     </div>
