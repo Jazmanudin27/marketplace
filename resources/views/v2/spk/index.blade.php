@@ -149,36 +149,35 @@
                     @endphp
 
                     <div class="row g-2 align-items-end">
-                        {{-- Search Input --}}
-                        <div class="col-12 col-md-5 col-lg-5">
+                        {{-- Search Input (col-4) --}}
+                        <div class="col-12 col-md-4">
                             <label class="form-label"><i class="bi bi-search me-1"></i>Pencarian Cepat</label>
                             <input type="text" name="search" class="form-control"
                                 placeholder="Cari No. SPK, No. Produksi, Pemesan, Produk..."
                                 value="{{ request('search') }}">
                         </div>
 
-                        {{-- Date From --}}
-                        <div class="col-6 col-md-3 col-lg-2">
+                        {{-- Date From (col-3) --}}
+                        <div class="col-6 col-md-3">
                             <label class="form-label"><i class="bi bi-calendar3 me-1"></i>Dari Tgl SPK</label>
                             <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
                         </div>
 
-                        {{-- Date To --}}
-                        <div class="col-6 col-md-3 col-lg-2">
+                        {{-- Date To (col-3) --}}
+                        <div class="col-6 col-md-3">
                             <label class="form-label"><i class="bi bi-calendar-check me-1"></i>Deadline Hingga</label>
                             <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
                         </div>
 
-                        {{-- Action Buttons --}}
-                        <div class="col-12 col-md-1 col-lg-3 d-flex gap-2">
-                            <button type="submit" class="btn btn-sm btn-primary px-3 py-1 rounded-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" style="height: 31px;">
+                        {{-- Action Buttons (col-2) --}}
+                        <div class="col-12 col-md-2 d-flex gap-1.5">
+                            <button type="submit" class="btn btn-sm btn-primary flex-grow-1 rounded-2 fw-semibold d-inline-flex align-items-center justify-content-center gap-1 shadow-sm" style="height: 31px;">
                                 <i class="bi bi-funnel"></i>
                                 <span>Filter</span>
                             </button>
                             @if($hasActiveExtra)
-                                <a href="{{ route('v2.spk.index') }}" class="btn btn-sm btn-outline-secondary px-2.5 py-1 rounded-2 d-inline-flex align-items-center gap-1" style="height: 31px;" title="Reset Semua Filter">
+                                <a href="{{ route('v2.spk.index') }}" class="btn btn-sm btn-outline-secondary px-2.5 rounded-2 d-inline-flex align-items-center justify-content-center gap-1" style="height: 31px;" title="Reset Semua Filter">
                                     <i class="bi bi-arrow-counterclockwise"></i>
-                                    <span>Reset</span>
                                 </a>
                             @endif
                         </div>
@@ -680,6 +679,22 @@
                     });
                 });
             }
+
+            // Horizontal scroll with mouse wheel for SPK Tab Bar & Sub Bar
+            document.querySelectorAll('.spk-tab-bar, .spk-sub-bar').forEach(function(el) {
+                el.addEventListener('wheel', function(e) {
+                    if (e.deltaY !== 0 && el.scrollWidth > el.clientWidth) {
+                        e.preventDefault();
+                        el.scrollLeft += e.deltaY;
+                    }
+                }, { passive: false });
+            });
+
+            // Auto-scroll active tab into view
+            const activeTab = document.querySelector('.spk-tab.active');
+            if (activeTab) {
+                activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
         });
     </script>
 @endpush
@@ -750,12 +765,27 @@
         .spk-tab-bar {
             display: flex;
             overflow-x: auto;
-            scrollbar-width: none;
+            flex-wrap: nowrap;
             background: #ffffff;
             border-bottom: 1px solid #e5e7eb;
             gap: 0;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f8fafc;
+            -webkit-overflow-scrolling: touch;
         }
-        .spk-tab-bar::-webkit-scrollbar { display: none; }
+        .spk-tab-bar::-webkit-scrollbar {
+            height: 5px;
+        }
+        .spk-tab-bar::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+        .spk-tab-bar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 999px;
+        }
+        .spk-tab-bar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
 
         .spk-tab {
             display: inline-flex;
@@ -770,6 +800,7 @@
             border-bottom: 2px solid transparent;
             transition: color .15s, border-color .15s, background .15s;
             position: relative;
+            flex-shrink: 0;
         }
         .spk-tab:hover { color: #2563eb; text-decoration: none; background: #f8fafc; }
         .spk-tab.active {
@@ -806,9 +837,26 @@
             padding: 8px 14px;
             background: #f8fafc;
             border-bottom: 1px solid #e5e7eb;
-            flex-wrap: wrap;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f8fafc;
+            -webkit-overflow-scrolling: touch;
         }
-        .spk-sub-label { font-size: 0.74rem; font-weight: 600; color: #64748b; white-space: nowrap; }
+        .spk-sub-bar::-webkit-scrollbar {
+            height: 4px;
+        }
+        .spk-sub-bar::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+        .spk-sub-bar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 999px;
+        }
+        .spk-sub-bar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .spk-sub-label { font-size: 0.74rem; font-weight: 600; color: #64748b; white-space: nowrap; flex-shrink: 0; }
         .spk-sub-pill {
             display: inline-flex;
             align-items: center;
@@ -823,6 +871,7 @@
             text-decoration: none;
             transition: all .15s;
             white-space: nowrap;
+            flex-shrink: 0;
         }
         .spk-sub-pill:hover { border-color: #2563eb; color: #2563eb; text-decoration: none; }
         .spk-sub-pill.active {
