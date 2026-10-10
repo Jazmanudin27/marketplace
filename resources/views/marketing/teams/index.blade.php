@@ -1,9 +1,9 @@
-@extends('layouts.app')
+@extends('v2.layouts.app')
 
 @section('title', 'Target & Tim Marketing')
 
 @section('content')
-<div class="container-fluid px-4 py-4 bg-light">
+<div class="container-fluid px-3 py-3">
     
     <!-- Header Section -->
     <div class="mb-4">

@@ -1,9 +1,9 @@
-@extends('layouts.app')
+@extends('v2.layouts.app')
 
 @section('title', 'Detail Transaksi - ' . $marketingTeam->name)
 
 @section('content')
-<div class="container-fluid px-4 py-4 bg-light">
+<div class="container-fluid px-3 py-3">
     
     <!-- Header Section -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
