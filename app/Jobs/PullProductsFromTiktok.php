@@ -17,6 +17,7 @@ class PullProductsFromTiktok implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected int $storeId;
+    protected ?Store $store = null;
 
     public function __construct(Store $store)
     {

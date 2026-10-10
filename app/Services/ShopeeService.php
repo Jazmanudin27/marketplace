@@ -212,11 +212,19 @@ class ShopeeService
 
     public function getItemList(string $accessToken, int $shopId, int $offset = 0, int $pageSize = 50, array $itemStatus = ['NORMAL']): array
     {
+        if ($this->isSimulated() || str_contains($accessToken, 'dummy_')) {
+            return [
+                'item_list' => [],
+                'has_next_page' => false,
+                'total_count' => 0,
+            ];
+        }
+
         $path = '/api/v2/product/get_item_list';
         $timestamp = time();
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
-        $response = Http::timeout(30)->retry(3, 1000)->get($this->baseUrl . $path, [
+        $response = Http::timeout(30)->retry(2, 500)->get($this->baseUrl . $path, [
             'partner_id' => $this->partnerId,
             'timestamp' => $timestamp,
             'sign' => $sign,
@@ -242,18 +250,25 @@ class ShopeeService
 
     public function getItemBaseInfo(string $accessToken, int $shopId, array $itemIds): array
     {
+        if (empty($itemIds) || $this->isSimulated() || str_contains($accessToken, 'dummy_')) {
+            return [];
+        }
+
         $path = '/api/v2/product/get_item_base_info';
         $timestamp = time();
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
-        $response = Http::timeout(30)->retry(3, 1000)->get($this->baseUrl . $path, [
-            'partner_id' => $this->partnerId,
-            'timestamp' => $timestamp,
-            'sign' => $sign,
+        // Build query string ensuring raw commas for item_id_list
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
             'access_token' => $accessToken,
-            'shop_id' => $shopId,
-            'item_id_list' => implode(',', $itemIds),
-        ]);
+            'shop_id'      => $shopId,
+        ];
+        $url = $this->baseUrl . $path . '?' . http_build_query($queryParams) . '&item_id_list=' . implode(',', array_map('intval', $itemIds));
+
+        $response = Http::timeout(30)->retry(2, 500)->get($url);
 
         if ($response->failed()) {
             throw new \RuntimeException('Gagal ambil detail produk Shopee: ' . $response->body());
@@ -270,17 +285,21 @@ class ShopeeService
 
     public function getModelList(string $accessToken, int $shopId, int $itemId): array
     {
+        if ($this->isSimulated() || str_contains($accessToken, 'dummy_')) {
+            return [];
+        }
+
         $path = '/api/v2/product/get_model_list';
         $timestamp = time();
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
-        $response = Http::timeout(30)->retry(3, 1000)->get($this->baseUrl . $path, [
+        $response = Http::timeout(30)->retry(2, 500)->get($this->baseUrl . $path, [
             'partner_id' => $this->partnerId,
             'timestamp' => $timestamp,
             'sign' => $sign,
             'access_token' => $accessToken,
             'shop_id' => $shopId,
-            'item_id' => $itemId,
+            'item_id' => (int) $itemId,
         ]);
 
         if ($response->failed()) {

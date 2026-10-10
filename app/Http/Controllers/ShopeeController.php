@@ -171,9 +171,15 @@ class ShopeeController extends Controller
 
     public function syncProducts(Store $store)
     {
-        abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
+        $user = Auth::user();
+        if ($user && method_exists($user, 'isSuperAdmin') && !$user->isSuperAdmin() && $store->tenant_id !== $user->tenant_id) {
+            abort(403, 'Akses toko tidak diizinkan.');
+        }
         abort_unless($store->channel->code === 'shopee', 400, 'Bukan toko Shopee.');
         abort_if($store->status === 'disconnected', 400, 'Toko telah dinonaktifkan.');
+
+        @set_time_limit(300);
+        @ini_set('memory_limit', '512M');
 
         try {
             $shopId = (int) $store->marketplace_store_id;
@@ -188,144 +194,182 @@ class ShopeeController extends Controller
             while ($hasMore) {
                 // 1. Get Item List
                 $listData = $this->shopee->getItemList($accessToken, $shopId, $offset, $pageSize);
-                $items = $listData['item'] ?? [];
+                $items = $listData['item'] ?? $listData['item_list'] ?? [];
 
                 if (empty($items)) {
                     break;
                 }
 
-                $itemIds = collect($items)->pluck('item_id')->toArray();
+                $itemIds = collect($items)->pluck('item_id')->filter()->values()->toArray();
+                if (empty($itemIds)) {
+                    break;
+                }
 
-                // 2. Get Item Base Info
-                $infoData = $this->shopee->getItemBaseInfo($accessToken, $shopId, $itemIds);
-                $itemList = $infoData['item_list'] ?? [];
+                // Chunk itemIds in max 50 per batch
+                $chunks = array_chunk($itemIds, 50);
 
-                // 3. Save to database
-                foreach ($itemList as $item) {
-                    $imageUrl = null;
-                    if (!empty($item['image']['image_url_list'][0])) {
-                        $imageUrl = $item['image']['image_url_list'][0];
-                    }
+                foreach ($chunks as $chunkItemIds) {
+                    // 2. Get Item Base Info
+                    $infoData = $this->shopee->getItemBaseInfo($accessToken, $shopId, $chunkItemIds);
+                    $itemList = $infoData['item_list'] ?? $infoData['item'] ?? [];
 
-                    // Ambil setting Pre-Order & Estimasi Pengiriman (days_to_ship) dari Shopee
-                    $isShopeePo = !empty($item['pre_order']['is_pre_order']);
-                    $shopeeDaysToShip = $item['pre_order']['days_to_ship'] ?? null;
+                    // 3. Save to database
+                    foreach ($itemList as $item) {
+                        $imageUrl = null;
+                        if (!empty($item['image']['image_url_list'][0])) {
+                            $imageUrl = $item['image']['image_url_list'][0];
+                        }
 
-                    // Ambil deskripsi produk
-                    $description = null;
-                    if (isset($item['description'])) {
-                        $description = $item['description'];
-                    } elseif (isset($item['description_info']['extended_description'])) {
-                        $description = $item['description_info']['extended_description'];
-                    } elseif (isset($item['description_info']['description'])) {
-                        $description = $item['description_info']['description'];
-                    }
+                        // Pre-Order setting
+                        $isShopeePo = !empty($item['pre_order']['is_pre_order']);
 
-                    if (!empty($item['has_model'])) {
-                        // Jika punya varian (model), harus panggil API get_model_list
-                        try {
-                            $modelData = $this->shopee->getModelList($accessToken, $shopId, $item['item_id']);
-                            $models = $modelData['model'] ?? [];
-                            $tierVariations = $modelData['tier_variation'] ?? [];
+                        // Deskripsi produk
+                        $description = null;
+                        if (isset($item['description'])) {
+                            $description = $item['description'];
+                        } elseif (isset($item['description_info']['extended_description'])) {
+                            $description = $item['description_info']['extended_description'];
+                        } elseif (isset($item['description_info']['description'])) {
+                            $description = $item['description_info']['description'];
+                        }
 
-                            $variantImages = [];
-                            foreach ($tierVariations as $tier) {
-                                foreach ($tier['option_list'] ?? [] as $option) {
-                                    if (!empty($option['image']['image_url_list'][0])) {
-                                        // Shopee tier_variation option name
-                                        $variantImages[trim($option['option'])] = $option['image']['image_url_list'][0];
-                                    }
-                                }
-                            }
+                        if (!empty($item['has_model'])) {
+                            // Jika punya varian (model), panggil API get_model_list
+                            $models = [];
+                            try {
+                                $modelData = $this->shopee->getModelList($accessToken, $shopId, (int) $item['item_id']);
+                                $models = $modelData['model'] ?? $modelData['model_list'] ?? [];
+                                $tierVariations = $modelData['tier_variation'] ?? [];
 
-                            if (count($models) > 0) {
-                                foreach ($models as $model) {
-                                    $price = $model['price_info'][0]['original_price'] ?? 0;
-                                    $stock = $model['stock_info_v2']['summary_info']['total_available_stock'] ?? 0;
-                                    $variantName = $item['item_name'] . ' - ' . $model['model_name'];
-
-                                    $finalImageUrl = $imageUrl; // Fallback ke induk
-
-                                    // Cari jika ada gambar khusus varian ini
-                                    $options = explode(',', $model['model_name']);
-                                    foreach ($options as $opt) {
-                                        $opt = trim($opt);
-                                        if (isset($variantImages[$opt])) {
-                                            $finalImageUrl = $variantImages[$opt];
-                                            break;
+                                $variantImages = [];
+                                foreach ($tierVariations as $tier) {
+                                    foreach ($tier['option_list'] ?? [] as $option) {
+                                        if (!empty($option['image']['image_url_list'][0])) {
+                                            $variantImages[trim($option['option'])] = $option['image']['image_url_list'][0];
                                         }
                                     }
-
-                                    \App\Models\MarketplaceProduct::updateOrCreate(
-                                        [
-                                            'store_id' => $store->id,
-                                            'marketplace_product_id' => (string) $item['item_id'],
-                                            'marketplace_variant_id' => (string) $model['model_id'],
-                                        ],
-                                        [
-                                            'marketplace_sku' => $model['model_sku'] ?? null,
-                                            'name' => $variantName,
-                                            'description' => $description,
-                                            'price' => $price,
-                                            'stock' => $stock,
-                                            'image_url' => $finalImageUrl,
-                                            'is_pre_order' => $isShopeePo,
-                                            'last_synced_at' => now(),
-                                        ]
-                                    );
-
-                                    $totalSynced++;
                                 }
+
+                                if (count($models) > 0) {
+                                    foreach ($models as $model) {
+                                        $price = $model['price_info'][0]['current_price'] ?? $model['price_info'][0]['original_price'] ?? $model['price'] ?? 0;
+                                        $stock = $model['stock_info_v2']['summary_info']['total_available_stock'] ?? $model['stock_info'][0]['current_stock'] ?? $model['stock'] ?? $model['normal_stock'] ?? 0;
+                                        $variantName = $item['item_name'] . ' - ' . ($model['model_name'] ?? 'Varian');
+
+                                        $finalImageUrl = $imageUrl;
+                                        if (!empty($model['model_name'])) {
+                                            $options = explode(',', $model['model_name']);
+                                            foreach ($options as $opt) {
+                                                $opt = trim($opt);
+                                                if (isset($variantImages[$opt])) {
+                                                    $finalImageUrl = $variantImages[$opt];
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        \App\Models\MarketplaceProduct::updateOrCreate(
+                                            [
+                                                'store_id' => $store->id,
+                                                'marketplace_product_id' => (string) $item['item_id'],
+                                                'marketplace_variant_id' => (string) ($model['model_id'] ?? $model['id'] ?? ''),
+                                            ],
+                                            [
+                                                'marketplace_sku' => $model['model_sku'] ?? null,
+                                                'name' => $variantName,
+                                                'description' => $description,
+                                                'price' => $price,
+                                                'stock' => $stock,
+                                                'image_url' => $finalImageUrl,
+                                                'is_pre_order' => $isShopeePo,
+                                                'last_synced_at' => now(),
+                                            ]
+                                        );
+
+                                        $totalSynced++;
+                                    }
+                                }
+                            } catch (\Throwable $e) {
+                                Log::warning("Gagal ambil model untuk item {$item['item_id']}", ['error' => $e->getMessage()]);
                             }
-                        } catch (\Exception $e) {
-                            Log::warning("Gagal ambil model untuk item {$item['item_id']}", ['error' => $e->getMessage()]);
+
+                            // Jika model kosong atau gagal diambil, simpan produk induk agar tidak hilang
+                            if (empty($models)) {
+                                $price = $item['price_info'][0]['current_price'] ?? $item['price_info'][0]['original_price'] ?? $item['price'] ?? 0;
+                                $stock = $item['stock_info_v2']['summary_info']['total_available_stock'] ?? $item['stock_info'][0]['current_stock'] ?? $item['stock'] ?? 0;
+
+                                \App\Models\MarketplaceProduct::updateOrCreate(
+                                    [
+                                        'store_id' => $store->id,
+                                        'marketplace_product_id' => (string) $item['item_id'],
+                                        'marketplace_variant_id' => null,
+                                    ],
+                                    [
+                                        'marketplace_sku' => $item['item_sku'] ?? null,
+                                        'name' => $item['item_name'],
+                                        'description' => $description,
+                                        'price' => $price,
+                                        'stock' => $stock,
+                                        'image_url' => $imageUrl,
+                                        'is_pre_order' => $isShopeePo,
+                                        'last_synced_at' => now(),
+                                    ]
+                                );
+
+                                $totalSynced++;
+                            }
+                        } else {
+                            // Produk tanpa varian
+                            $price = $item['price_info'][0]['current_price'] ?? $item['price_info'][0]['original_price'] ?? $item['price'] ?? 0;
+                            $stock = $item['stock_info_v2']['summary_info']['total_available_stock'] ?? $item['stock_info'][0]['current_stock'] ?? $item['stock'] ?? 0;
+
+                            \App\Models\MarketplaceProduct::updateOrCreate(
+                                [
+                                    'store_id' => $store->id,
+                                    'marketplace_product_id' => (string) $item['item_id'],
+                                    'marketplace_variant_id' => null,
+                                ],
+                                [
+                                    'marketplace_sku' => $item['item_sku'] ?? null,
+                                    'name' => $item['item_name'],
+                                    'description' => $description,
+                                    'price' => $price,
+                                    'stock' => $stock,
+                                    'image_url' => $imageUrl,
+                                    'is_pre_order' => $isShopeePo,
+                                    'last_synced_at' => now(),
+                                ]
+                            );
+
+                            $totalSynced++;
                         }
-                    } else {
-                        // Jika tidak ada varian, ambil langsung dari base info
-                        $price = $item['price_info'][0]['original_price'] ?? 0;
-                        $stock = $item['stock_info_v2']['summary_info']['total_available_stock'] ?? 0;
-
-                        \App\Models\MarketplaceProduct::updateOrCreate(
-                            [
-                                'store_id' => $store->id,
-                                'marketplace_product_id' => (string) $item['item_id'],
-                                'marketplace_variant_id' => null,
-                            ],
-                            [
-                                'marketplace_sku' => $item['item_sku'] ?? null,
-                                'name' => $item['item_name'],
-                                'description' => $description,
-                                'price' => $price,
-                                'stock' => $stock,
-                                'image_url' => $imageUrl,
-                                'is_pre_order' => $isShopeePo,
-                                'last_synced_at' => now(),
-                            ]
-                        );
-
-                        $totalSynced++;
                     }
                 }
 
-                $hasMore = $listData['has_next_page'] ?? false;
-                $offset += $pageSize;
+                $hasMore = !empty($listData['has_next_page']) || !empty($listData['has_more']);
+                $offset = isset($listData['next_offset']) ? (int) $listData['next_offset'] : ($offset + $pageSize);
             }
 
-            // Bersihkan produk marketplace lama milik toko ini yang sudah dihapus/tidak ada lagi di Shopee
-            \App\Models\MarketplaceProduct::where('store_id', $store->id)
-                ->where(function ($q) use ($syncStartTime) {
-                    $q->whereNull('last_synced_at')
-                      ->orWhere('last_synced_at', '<', $syncStartTime);
-                })
-                ->delete();
+            // Bersihkan produk lama hanya jika sinkronisasi berhasil mendapatkan produk
+            if ($totalSynced > 0) {
+                \App\Models\MarketplaceProduct::where('store_id', $store->id)
+                    ->where(function ($q) use ($syncStartTime) {
+                        $q->whereNull('last_synced_at')
+                          ->orWhere('last_synced_at', '<', $syncStartTime);
+                    })
+                    ->delete();
+            }
 
-            return redirect()->route('stores.index')
-                ->with('success', "Berhasil menarik $totalSynced produk dari {$store->store_name}. Produk yang sudah dihapus di marketplace telah dibersihkan.");
+            return back()->with('success', "Berhasil menarik $totalSynced produk dari {$store->store_name}.");
 
         } catch (\Throwable $e) {
-            Log::error('Gagal sync produk Shopee', ['store_id' => $store->id, 'error' => $e->getMessage()]);
-            return redirect()->route('stores.index')
-                ->with('error', 'Gagal sync produk: ' . $e->getMessage());
+            Log::error('Gagal sync produk Shopee', [
+                'store_id' => $store->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->with('error', 'Gagal sync produk: ' . $e->getMessage());
         }
     }
 
