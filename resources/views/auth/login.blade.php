@@ -44,7 +44,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: center;
             overflow-x: hidden;
             position: relative;
         }
@@ -430,43 +430,13 @@
             box-shadow: none;
         }
 
-        /* Footer */
-        .auth-footer {
-            position: relative;
-            z-index: 10;
-            padding: 20px 36px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            color: #64748b;
-            font-size: 12px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .security-badge {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: #94a3b8;
-        }
-
-        .security-badge i {
-            color: #10b981;
-        }
-
         @media (max-width: 640px) {
             .auth-card {
                 padding: 34px 24px;
             }
 
-            .auth-header, .auth-footer {
+            .auth-header {
                 padding: 16px 20px;
-            }
-
-            .auth-footer {
-                flex-direction: column;
-                gap: 8px;
-                text-align: center;
             }
         }
     </style>
@@ -571,14 +541,7 @@
         </div>
     </main>
 
-    <!-- Bottom Footer -->
-    <footer class="auth-footer">
-        <span>© {{ date('Y') }} ASPARTECH ERP. Dilindungi Hak Cipta.</span>
-        <div class="security-badge">
-            <i class="fas fa-shield-halved"></i>
-            <span>Enkripsi SSL 256-Bit Aktif</span>
-        </div>
-    </footer>
+    <!-- Centered Form Container -->
 
     <!-- Interactive Scripts -->
     <script>
