@@ -104,6 +104,8 @@
                 request()->is('v2/retur*') ||
                 request()->is('v2/spk*') ||
                 request()->is('v2/laporan*') ||
+                request()->is('v2/target-komisi*') ||
+                request()->routeIs('v2.target_komisi.*') ||
                 request()->is('marketing/teams*') ||
                 request()->routeIs('marketing.teams.*') ||
                 request()->is('spks*') ||
@@ -154,9 +156,9 @@
                         <i class="bi bi-file-earmark-bar-graph text-info me-1.5"></i>
                         <span>Laporan</span>
                     </a>
-                    @if (!\Illuminate\Support\Facades\Gate::has('marketing.teams.index') || auth()->user()->can('marketing.teams.index') || auth()->user()->isSuperAdmin() || in_array(auth()->user()->role ?? '', ['admin', 'owner']))
-                    <a href="{{ Route::has('marketing.teams.index') ? route('marketing.teams.index') : url('/marketing/teams') }}"
-                        class="v2-submenu-link {{ request()->is('marketing/teams*') || request()->routeIs('marketing.teams.*') ? 'active' : '' }}">
+                    @if (!\Illuminate\Support\Facades\Gate::has('v2.target_komisi.index') || auth()->user()->can('v2.target_komisi.index') || auth()->user()->isSuperAdmin() || in_array(auth()->user()->role ?? '', ['admin', 'owner']))
+                    <a href="{{ Route::has('v2.target_komisi.index') ? route('v2.target_komisi.index') : (Route::has('marketing.teams.index') ? route('marketing.teams.index') : url('/v2/target-komisi')) }}"
+                        class="v2-submenu-link {{ request()->is('v2/target-komisi*') || request()->routeIs('v2.target_komisi.*') || request()->is('marketing/teams*') || request()->routeIs('marketing.teams.*') ? 'active' : '' }}">
                         <i class="bi bi-bullseye text-warning me-1.5"></i>
                         <span>Target Komisi</span>
                     </a>

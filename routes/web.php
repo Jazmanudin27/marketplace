@@ -354,6 +354,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/users/{user}/impersonate', [\App\Http\Controllers\V2\UserController::class, 'impersonate'])->name('users.impersonate');
         Route::resource('/users', \App\Http\Controllers\V2\UserController::class)->except(['create', 'show', 'edit']);
         Route::get('/pengguna', [\App\Http\Controllers\V2\UserController::class, 'index'])->name('pengguna.index');
+
+        // Target & Komisi Penjualan V2
+        Route::prefix('target-komisi')->name('target_komisi.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\V2\TargetKomisiController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\V2\TargetKomisiController::class, 'store'])->name('store');
+            Route::post('/exclude-products', [\App\Http\Controllers\V2\TargetKomisiController::class, 'updateExcludedProducts'])->name('exclude_products');
+            Route::put('/{marketingTeam}', [\App\Http\Controllers\V2\TargetKomisiController::class, 'update'])->name('update');
+            Route::delete('/{marketingTeam}', [\App\Http\Controllers\V2\TargetKomisiController::class, 'destroy'])->name('destroy');
+            Route::post('/{marketingTeam}/toggle-status', [\App\Http\Controllers\V2\TargetKomisiController::class, 'toggleStatus'])->name('toggle_status');
+            Route::get('/{marketingTeam}/transactions', [\App\Http\Controllers\V2\TargetKomisiController::class, 'transactions'])->name('transactions');
+        });
     });
 
     // =========================================================================
@@ -1097,14 +1108,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/marketing/tiered-discounts/create', [\App\Http\Controllers\Marketing\TieredDiscountController::class, 'create'])->name('marketing.tiered_discounts.create');
         Route::post('/marketing/tiered-discounts', [\App\Http\Controllers\Marketing\TieredDiscountController::class, 'store'])->name('marketing.tiered_discounts.store');
         Route::post('/marketing/tiered-discounts/{tieredDiscount}/toggle', [\App\Http\Controllers\Marketing\TieredDiscountController::class, 'toggle'])->name('marketing.tiered_discounts.toggle');
-        // Marketing Teams & Targets
-        Route::get('/marketing/teams', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'index'])->name('marketing.teams.index');
-        Route::post('/marketing/teams', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'store'])->name('marketing.teams.store');
-        Route::put('/marketing/teams/{marketingTeam}', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'update'])->name('marketing.teams.update');
-        Route::delete('/marketing/teams/{marketingTeam}', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'destroy'])->name('marketing.teams.destroy');
-        Route::post('/marketing/teams/{marketingTeam}/toggle-status', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'toggleStatus'])->name('marketing.teams.toggle_status');
-        Route::get('/marketing/teams/{marketingTeam}/transactions', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'transactions'])->name('marketing.teams.transactions');
-        Route::post('/marketing/teams/exclude-products', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'updateExcludedProducts'])->name('marketing.teams.exclude_products');
+        // Marketing Teams & Targets (Alias to V2 Target Komisi)
+        Route::get('/marketing/teams', [\App\Http\Controllers\V2\TargetKomisiController::class, 'index'])->name('marketing.teams.index');
+        Route::post('/marketing/teams', [\App\Http\Controllers\V2\TargetKomisiController::class, 'store'])->name('marketing.teams.store');
+        Route::put('/marketing/teams/{marketingTeam}', [\App\Http\Controllers\V2\TargetKomisiController::class, 'update'])->name('marketing.teams.update');
+        Route::delete('/marketing/teams/{marketingTeam}', [\App\Http\Controllers\V2\TargetKomisiController::class, 'destroy'])->name('marketing.teams.destroy');
+        Route::post('/marketing/teams/{marketingTeam}/toggle-status', [\App\Http\Controllers\V2\TargetKomisiController::class, 'toggleStatus'])->name('marketing.teams.toggle_status');
+        Route::get('/marketing/teams/{marketingTeam}/transactions', [\App\Http\Controllers\V2\TargetKomisiController::class, 'transactions'])->name('marketing.teams.transactions');
+        Route::post('/marketing/teams/exclude-products', [\App\Http\Controllers\V2\TargetKomisiController::class, 'updateExcludedProducts'])->name('marketing.teams.exclude_products');
     });
 
     // =========================================================================
