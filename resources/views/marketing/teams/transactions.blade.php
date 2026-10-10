@@ -159,15 +159,10 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light small text-uppercase fw-semibold">
                     <tr>
-                        <th class="ps-4 py-3">No</th>
-                        <th class="py-3">No. Invoice / Marketplace ID</th>
-                        <th class="py-3">Toko / Channel</th>
-                        <th class="py-3">Tanggal Diterima (`completed_at`)</th>
-                        <th class="py-3">Pembeli</th>
-                        <th class="py-3 text-center">Status</th>
-                        <th class="py-3 text-end">Qty Bersih</th>
-                        <th class="py-3 text-end"><i class="bi bi-cash-stack me-1 text-primary"></i>Dilepas (Rp)</th>
-                        <th class="py-3 text-end"><i class="bi bi-box me-1 text-secondary"></i>HPP (Modal)</th>
+                        <th class="ps-3 py-3" style="width: 45px;">No</th>
+                        <th class="py-3"><i class="bi bi-receipt me-1 text-primary"></i>Transaksi, Toko & Waktu</th>
+                        <th class="py-3 text-center"><i class="bi bi-tag me-1 text-secondary"></i>Status & Qty</th>
+                        <th class="py-3 text-end"><i class="bi bi-cash-stack me-1 text-primary"></i>Dilepas & HPP Modal</th>
                         <th class="py-3 text-end"><i class="bi bi-cash-coin me-1 text-success"></i>Margin (Rp)</th>
                         <th class="py-3 text-end pe-4"><i class="bi bi-wallet2 me-1 text-primary"></i>Komisi</th>
                     </tr>
@@ -220,91 +215,86 @@
                             } elseif (str_contains($chName, 'tokopedia')) {
                                 $badgeClass = 'bg-success';
                             }
+
+                            $allReturnedQty = 0;
+                            if ($order->returnOrder) {
+                                $allReturnedQty = $order->returnOrder->items->sum('quantity');
+                            }
+                            if ($allReturnedQty == 0 && $order->refund_amount > 0 && $order->total_amount > 0) {
+                                $ratio = (float)$order->refund_amount / (float)$order->total_amount;
+                                $allReturnedQty = (int) round($totalQtyInOrder * $ratio);
+                            }
                         @endphp
                         <tr>
-                            <td class="ps-4 text-muted small fw-medium">
+                            <td class="ps-3 text-muted small fw-medium">
                                 {{ $index + 1 }}
                             </td>
-                            <td class="py-3">
+                            <!-- Transaksi, Toko & Waktu Selesai (Merged) -->
+                            <td class="py-2.5">
+                                <div class="d-flex flex-column gap-1">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <span class="fw-bold text-dark font-monospace" style="font-size:0.875rem;">
+                                            {{ $order->invoice_number ?: ($order->order_marketplace_id ?: '—') }}
+                                        </span>
+                                        <span class="badge {{ $badgeClass }} rounded-pill px-2 py-0.5" style="font-size:0.68rem;">
+                                            {{ $order->store ? $order->store->store_name : ('Toko #' . $order->store_id) }}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 text-muted small" style="font-size:0.75rem;">
+                                        <span><i class="bi bi-clock me-1 text-primary"></i>{{ $order->completed_at ? \Carbon\Carbon::parse($order->completed_at)->format('d M Y H:i') : ($order->order_date ? \Carbon\Carbon::parse($order->order_date)->format('d M Y H:i') : '—') }}</span>
+                                        @if($order->invoice_number && $order->order_marketplace_id)
+                                            <span class="text-secondary opacity-75">| ID: {{ $order->order_marketplace_id }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </td>
+                            <!-- Status & Qty (Merged) -->
+                            <td class="py-2.5 text-center">
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2.5 py-0.5 small fw-semibold" style="font-size:0.7rem;">
+                                        {{ strtoupper($order->order_status ?: 'SELESAI') }}
+                                    </span>
+                                    <span class="fw-semibold text-dark small">
+                                        {{ number_format($commQty) }} pcs
+                                    </span>
+                                    @if($allReturnedQty > 0)
+                                        <span class="text-danger small" style="font-size:0.7rem;">
+                                            (Retur {{ number_format($allReturnedQty) }} pcs)
+                                        </span>
+                                    @elseif($totalQtyInOrder > $commQty)
+                                        <span class="text-muted small" style="font-size:0.7rem;">
+                                            dari {{ number_format($totalQtyInOrder) }} pcs
+                                        </span>
+                                    @endif
+                                </div>
+                            </td>
+                            <!-- Nilai Penjualan Dilepas & Modal HPP (Merged) -->
+                            <td class="py-2.5 text-end">
                                 <span class="fw-semibold text-dark d-block" style="font-size:0.875rem;">
-                                    {{ $order->invoice_number ?: ($order->order_marketplace_id ?: '—') }}
+                                    Rp {{ number_format($orderVal, 0, ',', '.') }}
                                 </span>
-                                @if($order->invoice_number && $order->order_marketplace_id)
-                                    <span class="text-muted small fst-italic" style="font-size:0.75rem;">
-                                        ID: {{ $order->order_marketplace_id }}
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="py-3">
-                                <span class="fw-bold text-dark d-block" style="font-size:0.82rem;">
-                                    {{ $order->store ? $order->store->store_name : ('Toko ID #' . $order->store_id) }}
-                                </span>
-                                <span class="badge {{ $badgeClass }} rounded-pill px-2 py-0.5" style="font-size:0.68rem;">
-                                    {{ $order->store && $order->store->channel ? $order->store->channel->name : 'Marketplace' }}
-                                </span>
-                            </td>
-                            <td class="py-3 text-muted small">
-                                <div>{{ $order->completed_at ? \Carbon\Carbon::parse($order->completed_at)->format('d M Y H:i') : ($order->order_date ? \Carbon\Carbon::parse($order->order_date)->format('d M Y H:i') : '—') }}</div>
-                            </td>
-                            <td class="py-3">
-                                <span class="fw-medium text-dark d-block" style="font-size:0.82rem;">
-                                    {{ $order->buyer_name ?: '—' }}
-                                </span>
-                                @if($order->buyer_phone)
-                                    <span class="text-muted small d-block" style="font-size:0.72rem;">
-                                        <i class="bi bi-telephone me-1"></i>{{ $order->buyer_phone }}
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="py-3 text-center">
-                                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1 small fw-semibold">
-                                    {{ strtoupper($order->order_status ?: 'SELESAI') }}
-                                </span>
-                            </td>
-                            <td class="py-3 text-end fw-semibold text-dark">
-                                {{ number_format($commQty) }} pcs
-                                @php
-                                    $allReturnedQty = 0;
-                                    if ($order->returnOrder) {
-                                        $allReturnedQty = $order->returnOrder->items->sum('quantity');
-                                    }
-                                    if ($allReturnedQty == 0 && $order->refund_amount > 0 && $order->total_amount > 0) {
-                                        $ratio = (float)$order->refund_amount / (float)$order->total_amount;
-                                        $allReturnedQty = (int) round($totalQtyInOrder * $ratio);
-                                    }
-                                @endphp
-                                @if($allReturnedQty > 0)
-                                    <span class="text-danger small d-block" style="font-size:0.72rem; font-weight:normal;">
-                                        (Retur {{ number_format($allReturnedQty) }} pcs)
-                                    </span>
-                                @elseif($totalQtyInOrder > $commQty)
-                                    <span class="text-muted small d-block" style="font-size:0.72rem; font-weight:normal;">
-                                        dari {{ number_format($totalQtyInOrder) }} pcs
-                                    </span>
-                                @endif
-                            </td>
-                            <!-- Nilai Penjualan Dilepas -->
-                            <td class="py-3 text-end fw-semibold text-dark">
-                                Rp {{ number_format($orderVal, 0, ',', '.') }}
+                                <small class="text-muted d-block" style="font-size:0.75rem;">
+                                    HPP: Rp {{ number_format($orderHpp, 0, ',', '.') }}
+                                </small>
                                 @if($order->refund_amount > 0)
-                                    <span class="text-danger small d-block" style="font-size:0.72rem; font-weight:normal;">
+                                    <span class="text-danger small d-block" style="font-size:0.7rem;">
                                         (Dipotong refund)
                                     </span>
                                 @endif
                             </td>
-                            <!-- HPP Modal -->
-                            <td class="py-3 text-end fw-normal text-muted">
-                                Rp {{ number_format($orderHpp, 0, ',', '.') }}
-                            </td>
                             <!-- Margin (Rp) -->
-                            <td class="py-3 text-end fw-semibold {{ $orderMargin >= 0 ? 'text-primary' : 'text-danger' }}">
-                                Rp {{ number_format($orderMargin, 0, ',', '.') }}
+                            <td class="py-2.5 text-end">
+                                <span class="fw-bold {{ $orderMargin >= 0 ? 'text-primary' : 'text-danger' }}" style="font-size:0.92rem;">
+                                    Rp {{ number_format($orderMargin, 0, ',', '.') }}
+                                </span>
                             </td>
                             <!-- Komisi Transaksi -->
-                            <td class="py-3 text-end fw-bold text-success pe-4">
-                                Rp {{ number_format($orderComm, 0, ',', '.') }}
+                            <td class="py-2.5 text-end fw-bold text-success pe-4">
+                                <span class="d-block" style="font-size:0.92rem;">
+                                    Rp {{ number_format($orderComm, 0, ',', '.') }}
+                                </span>
                                 @if($cType === 'percentage' && $marketingTeam->commission_rate > 0)
-                                    <span class="text-muted small d-block fw-normal" style="font-size:0.72rem;">
+                                    <span class="text-muted small fw-normal" style="font-size:0.72rem;">
                                         ({{ number_format($marketingTeam->commission_rate, 2) }}%)
                                     </span>
                                 @endif
@@ -312,7 +302,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="text-center py-5">
+                            <td colspan="6" class="text-center py-5">
                                 <div class="py-4 text-muted">
                                     <i class="bi bi-receipt fs-1 opacity-50 d-block mb-2"></i>
                                     <h6 class="fw-semibold">Tidak Ada Transaksi Ditemukan</h6>
@@ -325,10 +315,12 @@
                 @if($orders->isNotEmpty())
                     <tfoot class="table-light border-top-2 fw-bold text-dark" style="border-top: 2px solid #dee2e6; font-size: 0.9rem;">
                         <tr>
-                            <td colspan="6" class="ps-4 py-3 text-start text-uppercase fw-bold">TOTAL</td>
-                            <td class="py-3 text-end">{{ number_format($totalQty) }} pcs</td>
-                            <td class="py-3 text-end text-dark">Rp {{ number_format($totalValue, 0, ',', '.') }}</td>
-                            <td class="py-3 text-end text-muted">Rp {{ number_format($totalHpp, 0, ',', '.') }}</td>
+                            <td colspan="2" class="ps-4 py-3 text-start text-uppercase fw-bold">TOTAL</td>
+                            <td class="py-3 text-center">{{ number_format($totalQty) }} pcs</td>
+                            <td class="py-3 text-end">
+                                <span class="d-block text-dark">Rp {{ number_format($totalValue, 0, ',', '.') }}</span>
+                                <small class="text-muted fw-normal" style="font-size:0.75rem;">HPP: Rp {{ number_format($totalHpp, 0, ',', '.') }}</small>
+                            </td>
                             <td class="py-3 text-end text-primary">Rp {{ number_format($totalMargin, 0, ',', '.') }}</td>
                             <td class="py-3 text-end text-success pe-4">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</td>
                         </tr>
