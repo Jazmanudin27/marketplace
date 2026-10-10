@@ -233,9 +233,15 @@
                             <td class="py-2.5">
                                 <div class="d-flex flex-column gap-1">
                                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                                        <span class="fw-bold text-dark font-monospace" style="font-size:0.875rem;">
-                                            {{ $order->invoice_number ?: ($order->order_marketplace_id ?: '—') }}
-                                        </span>
+                                        <a href="javascript:void(0)" 
+                                           class="fw-bold text-primary text-decoration-none font-monospace order-detail-trigger d-inline-flex align-items-center gap-1"
+                                           data-url="{{ route('orders.show', $order->id) }}?modal=1"
+                                           data-order-id="{{ $order->id }}"
+                                           title="Klik untuk melihat Detail Pesanan"
+                                           style="font-size:0.875rem;">
+                                            <span>{{ $order->invoice_number ?: ($order->order_marketplace_id ?: '—') }}</span>
+                                            <i class="bi bi-box-arrow-up-right opacity-75" style="font-size:0.7rem;"></i>
+                                        </a>
                                         <span class="badge {{ $badgeClass }} rounded-pill px-2 py-0.5" style="font-size:0.68rem;">
                                             {{ $order->store ? $order->store->store_name : ('Toko #' . $order->store_id) }}
                                         </span>
@@ -330,4 +336,100 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Detail Pesanan -->
+<div class="modal fade" id="orderDetailModal" tabindex="-1" aria-labelledby="orderDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" id="orderDetailContent" style="border-radius:12px; overflow:hidden;">
+            {{-- Content loaded dynamically via AJAX --}}
+        </div>
+    </div>
+</div>
+
 @endsection
+
+@push('styles')
+<style>
+.order-detail-trigger {
+    transition: all 0.15s ease-in-out;
+    cursor: pointer;
+}
+.order-detail-trigger:hover {
+    color: #4338ca !important;
+    text-decoration: underline !important;
+}
+.order-detail-trigger:hover .bi-box-arrow-up-right {
+    opacity: 1 !important;
+    transform: translate(1px, -1px);
+}
+</style>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('orderDetailModal');
+    const contentEl = document.getElementById('orderDetailContent');
+    if (!modalEl || !contentEl) return;
+
+    const modalInstance = new bootstrap.Modal(modalEl);
+
+    const loadingHtml = `
+        <div class="modal-header py-2.5 px-3 bg-light border-bottom d-flex align-items-center justify-content-between">
+            <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2 mb-0" style="font-size:0.85rem;">
+                <i class="bi bi-receipt text-primary"></i>
+                <span>Memuat Detail Pesanan...</span>
+            </h6>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 text-center">
+            <div class="py-5">
+                <div class="spinner-border text-primary mb-3" role="status" style="width:2.2rem;height:2.2rem;"></div>
+                <div class="text-muted small">Sedang memuat rincian pesanan dari server...</div>
+            </div>
+        </div>
+    `;
+
+    document.addEventListener('click', function (e) {
+        const trigger = e.target.closest('.order-detail-trigger');
+        if (!trigger) return;
+        e.preventDefault();
+
+        const url = trigger.dataset.url;
+        if (!url) return;
+
+        contentEl.innerHTML = loadingHtml;
+        modalInstance.show();
+
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html, application/xhtml+xml'
+            }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Status: ' + res.status);
+            return res.text();
+        })
+        .then(html => {
+            contentEl.innerHTML = html;
+        })
+        .catch(err => {
+            contentEl.innerHTML = `
+                <div class="modal-header py-2.5 px-3 bg-danger bg-opacity-10 border-bottom d-flex align-items-center justify-content-between">
+                    <h6 class="modal-title text-danger fw-bold mb-0">
+                        <i class="bi bi-exclamation-triangle me-1"></i> Gagal Memuat Detail Pesanan
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center text-muted">
+                    <i class="bi bi-x-circle text-danger fs-1 d-block mb-2"></i>
+                    <p class="mb-2">Terjadi kendala saat memuat detail pesanan.</p>
+                    <small class="text-danger">${err.message || 'Koneksi terputus'}</small>
+                </div>
+            `;
+        });
+    });
+});
+</script>
+@endpush
