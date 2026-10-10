@@ -373,51 +373,41 @@ class TargetKomisiController extends Controller
 
             foreach ($orders as $order) {
                 $orderQty = 0;
-                $totalOrderItemsQty = $order->items->sum('quantity');
                 $orderEligibleHpp = 0.0;
 
                 foreach ($order->items as $item) {
-                    $isExcluded = false;
-                    if ($item->masterProduct && $item->masterProduct->exclude_commission) {
-                        $isExcluded = true;
-                    } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->exclude_commission) {
-                        $isExcluded = true;
+                    $returnedQty = 0;
+                    if ($order->returnOrder) {
+                        $returnedQty = $order->returnOrder->items
+                            ->where('order_item_id', $item->id)
+                            ->sum('quantity');
+                    }
+                    
+                    if ($returnedQty == 0 && $order->refund_amount > 0 && $order->total_amount > 0) {
+                        if ($order->refund_amount >= $order->total_amount) {
+                            $returnedQty = $item->quantity;
+                        } else {
+                            $ratio = (float)$order->refund_amount / (float)$order->total_amount;
+                            $returnedQty = min($item->quantity, (int) round($item->quantity * $ratio));
+                        }
+                    }
+                    
+                    $itemNetQty = max(0, $item->quantity - $returnedQty);
+                    $orderQty += $itemNetQty;
+
+                    // HPP unit
+                    $unitHpp = 0.0;
+                    if ($item->hpp_subtotal > 0 && $item->quantity > 0) {
+                        $unitHpp = (float)$item->hpp_subtotal / (float)$item->quantity;
+                    } elseif ($item->cost_price > 0) {
+                        $unitHpp = (float)$item->cost_price;
+                    } elseif ($item->masterProduct && $item->masterProduct->cost_price > 0) {
+                        $unitHpp = (float)$item->masterProduct->cost_price;
+                    } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->cost_price > 0) {
+                        $unitHpp = (float)$item->marketplaceProduct->masterProduct->cost_price;
                     }
 
-                    if (!$isExcluded) {
-                        $returnedQty = 0;
-                        if ($order->returnOrder) {
-                            $returnedQty = $order->returnOrder->items
-                                ->where('order_item_id', $item->id)
-                                ->sum('quantity');
-                        }
-                        
-                        if ($returnedQty == 0 && $order->refund_amount > 0 && $order->total_amount > 0) {
-                            if ($order->refund_amount >= $order->total_amount) {
-                                $returnedQty = $item->quantity;
-                            } else {
-                                $ratio = (float)$order->refund_amount / (float)$order->total_amount;
-                                $returnedQty = min($item->quantity, (int) round($item->quantity * $ratio));
-                            }
-                        }
-                        
-                        $itemNetQty = max(0, $item->quantity - $returnedQty);
-                        $orderQty += $itemNetQty;
-
-                        // HPP unit
-                        $unitHpp = 0.0;
-                        if ($item->hpp_subtotal > 0 && $item->quantity > 0) {
-                            $unitHpp = (float)$item->hpp_subtotal / (float)$item->quantity;
-                        } elseif ($item->cost_price > 0) {
-                            $unitHpp = (float)$item->cost_price;
-                        } elseif ($item->masterProduct && $item->masterProduct->cost_price > 0) {
-                            $unitHpp = (float)$item->masterProduct->cost_price;
-                        } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->cost_price > 0) {
-                            $unitHpp = (float)$item->marketplaceProduct->masterProduct->cost_price;
-                        }
-
-                        $orderEligibleHpp += ($unitHpp * $itemNetQty);
-                    }
+                    $orderEligibleHpp += ($unitHpp * $itemNetQty);
                 }
                 
                 $totalQty += $orderQty;
@@ -431,12 +421,6 @@ class TargetKomisiController extends Controller
                     if ($orderReleased <= 0) {
                         $orderReleased = max(0.0, (float) $order->total_amount - (float) $order->refund_amount);
                     }
-                }
-
-                // Proporsionalitas jika ada item yang di-exclude komisi
-                if ($totalOrderItemsQty > 0 && $orderQty < $totalOrderItemsQty) {
-                    $ratio = max(0.0, min(1.0, $orderQty / $totalOrderItemsQty));
-                    $orderReleased = $orderReleased * $ratio;
                 }
 
                 $orderReleased = max(0.0, round($orderReleased, 2));

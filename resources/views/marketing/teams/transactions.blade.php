@@ -173,32 +173,23 @@
                             $totalQtyInOrder = $order->items->sum('quantity');
                             $commQty = 0;
                             foreach ($order->items as $item) {
-                                $isExcluded = false;
-                                if ($item->masterProduct && $item->masterProduct->exclude_commission) {
-                                    $isExcluded = true;
-                                } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->exclude_commission) {
-                                    $isExcluded = true;
+                                $returnedQty = 0;
+                                if ($order->returnOrder) {
+                                    $returnedQty = $order->returnOrder->items
+                                        ->where('order_item_id', $item->id)
+                                        ->sum('quantity');
                                 }
-
-                                if (!$isExcluded) {
-                                    $returnedQty = 0;
-                                    if ($order->returnOrder) {
-                                        $returnedQty = $order->returnOrder->items
-                                            ->where('order_item_id', $item->id)
-                                            ->sum('quantity');
+                                
+                                if ($returnedQty == 0 && $order->refund_amount > 0 && $order->total_amount > 0) {
+                                    if ($order->refund_amount >= $order->total_amount) {
+                                        $returnedQty = $item->quantity;
+                                    } else {
+                                        $ratio = (float)$order->refund_amount / (float)$order->total_amount;
+                                        $returnedQty = min($item->quantity, (int) round($item->quantity * $ratio));
                                     }
-                                    
-                                    if ($returnedQty == 0 && $order->refund_amount > 0 && $order->total_amount > 0) {
-                                        if ($order->refund_amount >= $order->total_amount) {
-                                            $returnedQty = $item->quantity;
-                                        } else {
-                                            $ratio = (float)$order->refund_amount / (float)$order->total_amount;
-                                            $returnedQty = min($item->quantity, (int) round($item->quantity * $ratio));
-                                        }
-                                    }
-                                    
-                                    $commQty += max(0, $item->quantity - $returnedQty);
                                 }
+                                
+                                $commQty += max(0, $item->quantity - $returnedQty);
                             }
 
                             $orderVal    = $order->calculated_released_value ?? (float)($order->net_amount > 0 ? $order->net_amount : max(0.0, (float)$order->total_amount - (float)$order->refund_amount));
