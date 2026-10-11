@@ -33,12 +33,15 @@ class DiagnoseOrder extends Command
 
         $this->info("=== DIAGNOSA PESANAN: {$ref} ===");
 
-        $order = Order::with(['items', 'store.channel'])
+        $query = Order::with(['items', 'store.channel'])
             ->where('order_marketplace_id', $ref)
-            ->orWhere('order_number', $ref)
-            ->orWhere('invoice_number', $ref)
-            ->orWhere('id', $ref)
-            ->first();
+            ->orWhere('invoice_number', $ref);
+
+        if (is_numeric($ref)) {
+            $query->orWhere('id', (int)$ref);
+        }
+
+        $order = $query->first();
 
         if (!$order) {
             $this->error("Pesanan dengan referensi '{$ref}' tidak ditemukan di database.");
