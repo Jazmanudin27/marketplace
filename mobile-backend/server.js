@@ -138,7 +138,6 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
       if (!orderMap.has(row.id)) {
         orderMap.set(row.id, true);
         monthGrossSales += parseFloat(row.total_amount || 0);
-        monthRefund += parseFloat(row.refund_amount || 0);
         monthFee += Math.abs(parseFloat(row.marketplace_fee || 0));
       }
       const qty = parseInt(row.quantity || 0, 10);
@@ -147,7 +146,7 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
     }
 
     const monthOmset = monthGrossSales;
-    const monthMargin = Math.max(0, monthGrossSales - monthHpp - monthFee - monthRefund);
+    const monthMargin = Math.max(0, monthGrossSales - monthHpp - monthFee);
 
     // 3. Marketing Teams Target & Realisasi
     const teams = await query(
@@ -184,7 +183,7 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
         }
 
         const teamRows = await query(
-          `SELECT o.id, o.net_amount, o.total_amount, o.refund_amount, o.marketplace_fee,
+          `SELECT o.id, o.net_amount, o.total_amount, o.marketplace_fee,
                   oi.quantity, oi.cost_price, mp.cost_price as master_cost_price
            FROM orders o
            LEFT JOIN order_items oi ON oi.order_id = o.id
@@ -204,7 +203,7 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
             seenOrders.add(tr.id);
             let rel = parseFloat(tr.net_amount || 0);
             if (rel <= 0) {
-              rel = Math.max(0, parseFloat(tr.total_amount || 0) - parseFloat(tr.refund_amount || 0) - parseFloat(tr.marketplace_fee || 0));
+              rel = Math.max(0, parseFloat(tr.total_amount || 0) - parseFloat(tr.marketplace_fee || 0));
             }
             teamVal += rel;
           }
@@ -353,7 +352,7 @@ app.get('/api/v2/owner/orders', async (req, res) => {
     }
 
     if (search) {
-      whereClause += ` AND (o.order_marketplace_id LIKE ? OR o.buyer_name LIKE ? OR o.shipping_tracking_number LIKE ?)`;
+      whereClause += ` AND (o.order_marketplace_id LIKE ? OR o.buyer_name LIKE ? OR o.tracking_number LIKE ?)`;
       const s = `%${search}%`;
       params.push(s, s, s);
     }
@@ -413,8 +412,8 @@ app.get('/api/v2/owner/orders', async (req, res) => {
       totalAmount: parseFloat(ord.total_amount || 0),
       netAmount: parseFloat(ord.net_amount || 0),
       buyerName: ord.buyer_name || 'Pembeli',
-      resi: ord.shipping_tracking_number || '-',
-      courier: ord.shipping_carrier || 'Reguler',
+      resi: ord.tracking_number || '-',
+      courier: ord.courier || 'Reguler',
       itemsCount: (itemsByOrderId[ord.id] || []).reduce((acc, it) => acc + (it.qty || 1), 0),
       items: itemsByOrderId[ord.id] || [],
     }));
@@ -477,8 +476,8 @@ app.get('/api/v2/owner/orders/:id', async (req, res) => {
         buyerName: ord.buyer_name,
         buyerPhone: ord.buyer_phone,
         shippingAddress: ord.shipping_address,
-        courier: ord.shipping_carrier,
-        resi: ord.shipping_tracking_number,
+        courier: ord.courier,
+        resi: ord.tracking_number,
         totalAmount: parseFloat(ord.total_amount || 0),
         netAmount: parseFloat(ord.net_amount || 0),
         marketplaceFee: Math.abs(parseFloat(ord.marketplace_fee || 0)),
@@ -616,7 +615,7 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
         }
 
         const orders = await query(
-          `SELECT o.id, o.net_amount, o.total_amount, o.refund_amount, o.marketplace_fee,
+          `SELECT o.id, o.net_amount, o.total_amount, o.marketplace_fee,
                   oi.quantity, oi.cost_price, mp.cost_price as master_cost_price
            FROM orders o 
            LEFT JOIN order_items oi ON oi.order_id = o.id 
@@ -634,9 +633,9 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
             seenOrders.add(ord.id);
             let released = parseFloat(ord.net_amount || 0);
             if (released <= 0) {
-              released = Math.max(0, parseFloat(ord.total_amount || 0) - parseFloat(ord.refund_amount || 0) - parseFloat(ord.marketplace_fee || 0));
+              released = Math.max(0, parseFloat(ord.total_amount || 0) - parseFloat(ord.marketplace_fee || 0));
             }
-            actOmset += parseFloat(ord.total_amount || 0) - parseFloat(ord.refund_amount || 0);
+            actOmset += parseFloat(ord.total_amount || 0);
             actMargin += released;
           }
           const q = parseInt(ord.quantity || 0, 10);
@@ -771,7 +770,7 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
 
     // 1. Online Revenue & HPP
     const onlineRows = await query(
-      `SELECT o.id, o.net_amount, o.total_amount, o.marketplace_fee, o.refund_amount,
+      `SELECT o.id, o.net_amount, o.total_amount, o.marketplace_fee,
               oi.quantity, oi.cost_price, mp.cost_price as master_cost_price
        FROM orders o
        LEFT JOIN order_items oi ON oi.order_id = o.id
