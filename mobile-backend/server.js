@@ -2312,7 +2312,7 @@ app.get('/api/v2/owner/saldo-marketplace', async (req, res) => {
     const tenantId = getTenantId(req);
 
     const stores = await query(
-      `SELECT s.id, s.store_name, s.status, s.marketplace_balance, s.last_sync_at,
+      `SELECT s.id, s.store_name, s.status, s.updated_at,
               c.name as channel_name, c.code as channel_code
        FROM stores s
        LEFT JOIN channels c ON c.id = s.channel_id
@@ -2348,12 +2348,8 @@ app.get('/api/v2/owner/saldo-marketplace', async (req, res) => {
         if (latestTx && latestTx.current_balance !== null) {
           currentBalance = parseFloat(latestTx.current_balance || 0);
           lastTxDate = latestTx.transaction_date;
-        } else if (store.marketplace_balance) {
-          currentBalance = parseFloat(store.marketplace_balance || 0);
         }
-      } catch (_) {
-        currentBalance = parseFloat(store.marketplace_balance || 0);
-      }
+      } catch (_) {}
 
       let storePendingBalance = 0;
       let storePendingCount = 0;
@@ -2403,7 +2399,7 @@ app.get('/api/v2/owner/saldo-marketplace', async (req, res) => {
         pendingBalance: storePendingBalance,
         pendingCount: storePendingCount,
         totalEstimated: currentBalance + storePendingBalance,
-        lastSyncedAt: lastTxDate ? formatDateIndo(lastTxDate) : (store.last_sync_at ? formatDateIndo(store.last_sync_at) : 'Belum sync'),
+        lastSyncedAt: lastTxDate ? formatDateIndo(lastTxDate) : (store.updated_at ? formatDateIndo(store.updated_at) : 'Belum sync'),
       });
     }
 
@@ -2433,7 +2429,7 @@ app.get('/api/v2/owner/saldo-marketplace/:storeId/mutasi', async (req, res) => {
     const search = req.query.search;
 
     const [store] = await query(
-      `SELECT s.id, s.store_name, s.status, s.marketplace_balance, c.name as channel_name, c.code as channel_code 
+      `SELECT s.id, s.store_name, s.status, c.name as channel_name, c.code as channel_code 
        FROM stores s 
        LEFT JOIN channels c ON c.id = s.channel_id 
        WHERE s.id = ? AND s.tenant_id = ?`,
