@@ -72,30 +72,40 @@ class OwnerApiController extends Controller
             })
             ->count();
 
-        // 2. Omset & Margin Hari Ini
+        // 2. Online Sales Dilepas Hari Ini (Diselaraskan persis dengan Laporan Penjualan Dilepas & Laba Rugi V2)
         $completedTodayOrders = Order::where('tenant_id', $tenantId)
-            ->whereIn(DB::raw('UPPER(order_status)'), ['COMPLETED', 'RELEASED', 'SELESAI', 'DELIVERED', 'FINISHED'])
+            ->whereIn(DB::raw('UPPER(order_status)'), ['COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR'])
             ->where(function ($q) use ($today) {
                 $q->whereDate('completed_at', $today)
                   ->orWhere(function ($sq) use ($today) {
-                      $sq->whereNull('completed_at')->whereDate('created_at', $today);
+                      $sq->whereNull('completed_at')->whereDate('order_date', $today);
                   });
             })
             ->with(['items.masterProduct'])
             ->get();
 
-        $todayOmset = 0.0;
+        $todayGrossSales = 0.0;
         $todayReleased = 0.0;
         $todayHpp = 0.0;
         $todayMarketplaceFee = 0.0;
         $todayRefund = 0.0;
 
         foreach ($completedTodayOrders as $order) {
-            $effectiveOmset = (float) $order->total_amount - (float) $order->refund_amount;
-            $todayOmset += max(0.0, $effectiveOmset);
-            $todayMarketplaceFee += (float) ($order->marketplace_fee ?? 0);
-            $todayRefund += (float) ($order->refund_amount ?? 0);
+            $todayGrossSales += (float) $order->total_amount;
+            $todayRefund += (float) $order->refund_amount;
 
+            // Marketplace Fee (Reconciled vs Unreconciled fee breakdown)
+            if ($order->recon_status === 'RECONCILED') {
+                $todayMarketplaceFee += abs((float) $order->getRawOriginal('marketplace_fee'));
+            } else {
+                $absFee = (float) $order->marketplace_fee;
+                if ($absFee <= 0 && !empty($order->fee_breakdown_details['total_fee'])) {
+                    $absFee = abs((float) $order->fee_breakdown_details['total_fee']);
+                }
+                $todayMarketplaceFee += $absFee;
+            }
+
+            // Dana Bersih Dilepas
             $released = (float) $order->net_amount;
             if ($released <= 0) {
                 $released = max(0.0, (float) $order->total_amount - (float) $order->refund_amount - (float) $order->marketplace_fee);
@@ -105,14 +115,21 @@ class OwnerApiController extends Controller
             }
             $todayReleased += $released;
 
-            $orderHpp = 0.0;
-            foreach ($order->items as $item) {
-                $unitHpp = (float) ($item->cost_price ?: ($item->masterProduct ? $item->masterProduct->cost_price : 0));
-                $orderHpp += ($unitHpp * $item->quantity);
+            // HPP total (menggunakan hpp_total jika ada, fallback per-item)
+            if ($order->hpp_total && (float) $order->hpp_total > 0) {
+                $todayHpp += (float) $order->hpp_total;
+            } else {
+                $orderHpp = 0.0;
+                foreach ($order->items as $item) {
+                    $unitHpp = (float) ($item->cost_price ?: ($item->masterProduct ? $item->masterProduct->cost_price : 0));
+                    $orderHpp += ($unitHpp * $item->quantity);
+                }
+                $todayHpp += $orderHpp;
             }
-            $todayHpp += $orderHpp;
         }
 
+        // Penjualan Hari Ini = Dana Penjualan Dilepas (Net Released) / Omset Bersih
+        $todayOmset = $todayGrossSales > 0 ? $todayGrossSales : $todayReleased;
         $todayMargin = max(0.0, $todayReleased - $todayHpp);
 
         // 3. Target Komisi Tim Marketing
