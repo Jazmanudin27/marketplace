@@ -208,25 +208,38 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
      LEFT JOIN channels c ON c.id = s.channel_id
      WHERE o.tenant_id = ?
        AND UPPER(o.order_status) IN ${validStatuses}
+       AND o.completed_at IS NOT NULL
        AND o.completed_at BETWEEN ? AND ?
        ${storeCondition}
      ORDER BY o.completed_at DESC, o.id DESC`,
     params
   );
 
+  // Return orders map untuk refund persis Order::getRefundAmountAttribute
+  let returnMap = {};
+  try {
+    const returnRows = await query('SELECT order_id, refund_amount FROM return_orders WHERE tenant_id = ?', [tenantId]);
+    for (const rr of returnRows) {
+      returnMap[rr.order_id] = parseFloat(rr.refund_amount || 0);
+    }
+  } catch (_) {}
+
   const orderIds = orders.map(o => o.id);
   let itemsByOrder = {};
   if (orderIds.length > 0) {
-    const items = await query(
-      `SELECT oi.*, mp.sku as master_sku, mp.name as master_name
-       FROM order_items oi
-       LEFT JOIN master_products mp ON mp.id = oi.master_product_id
-       WHERE oi.order_id IN (?)`,
-      [orderIds]
-    );
-    for (const it of items) {
-      if (!itemsByOrder[it.order_id]) itemsByOrder[it.order_id] = [];
-      itemsByOrder[it.order_id].push(it);
+    for (let i = 0; i < orderIds.length; i += 500) {
+      const chunk = orderIds.slice(i, i + 500);
+      const items = await query(
+        `SELECT oi.*, mp.sku as master_sku, mp.name as master_name, mp.cost_price as master_cost_price
+         FROM order_items oi
+         LEFT JOIN master_products mp ON mp.id = oi.master_product_id
+         WHERE oi.order_id IN (?)`,
+        [chunk]
+      );
+      for (const it of items) {
+        if (!itemsByOrder[it.order_id]) itemsByOrder[it.order_id] = [];
+        itemsByOrder[it.order_id].push(it);
+      }
     }
   }
 
@@ -266,10 +279,24 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
       absFee = calculateOrderFee(o);
     }
 
+    // HPP persis Order::getHppTotalAttribute di ERP:
+    let hpp = 0;
+    for (const it of oItems) {
+      const sub = parseFloat(it.hpp_subtotal || 0);
+      if (sub > 0) {
+        hpp += sub;
+      } else {
+        const cost = parseFloat(it.cost_price || it.master_cost_price || 0);
+        const q = parseInt(it.quantity || 1, 10);
+        hpp += (cost * q);
+      }
+    }
+
+    // Refund persis Order::getRefundAmountAttribute di ERP:
+    const refund = calculateOrderRefund(o, returnMap);
+
     const omset = parseFloat(o.total_amount || 0);
-    const refund = parseFloat(o.refund_amount || 0);
     const netAmt = parseFloat(o.net_amount || 0);
-    const hpp = parseFloat(o.hpp_total || 0);
     const marginRp = netAmt - hpp;
     const marginPct = netAmt > 0 ? Math.round((marginRp / netAmt) * 10000) / 100 : 0;
 
@@ -295,11 +322,15 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
       completedAt: o.completed_at,
       releasedDate: o.completed_at,
       buyerName: o.buyer_name || 'Pelanggan MP',
+      buyerPhone: o.buyer_phone || '',
+      courier: o.shipping_provider || o.courier || 'Ekspedisi MP',
+      trackingNumber: o.tracking_number || '',
       itemsSummary: itemSummary.join(', ') || '—',
       quantity: totalQty,
       totalQty,
       omset,
       totalAmount: omset,
+      releasedValue: netAmt,
       refund,
       marketplaceFee: absFee,
       totalFee: absFee,
@@ -314,10 +345,14 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
       items: oItems.map(it => ({
         id: it.id,
         name: it.product_name || it.master_name,
+        productName: it.product_name || it.master_name,
         sku: it.master_sku || it.sku,
+        size: it.sku_name || '',
+        quantity: parseInt(it.quantity || 1, 10),
         qty: parseInt(it.quantity || 1, 10),
-        price: parseFloat(it.unit_price || 0),
-        totalPrice: parseFloat(it.total_price || 0)
+        price: parseFloat(it.price || it.unit_price || 0),
+        totalPrice: parseFloat(it.total_price || 0),
+        costPrice: parseFloat(it.cost_price || it.master_cost_price || 0)
       }))
     });
   }
@@ -616,11 +651,24 @@ app.get('/api/v2/owner/orders', async (req, res) => {
     const statusTab = (req.query.status || 'all').toLowerCase();
     
     // Jika melihat pesanan selesai / dilepas (Modal finansial atau tab dilepas), ambil persis Laporan Penjualan Dilepas
-    if (['completed', 'selesai', 'finished', 'released', 'dilepas'].includes(statusTab) || req.query.todayOnly === 'true' || req.query.tab === 'dilepas') {
+    const isReleasedOnly = 
+      ['completed', 'selesai', 'finished', 'released', 'dilepas'].includes(statusTab) || 
+      req.query.todayOnly === 'true' || 
+      req.query.today_only === '1' || 
+      req.query.tab === 'dilepas' ||
+      req.query.released === '1' ||
+      req.query.released === 'true';
+
+    if (isReleasedOnly) {
       const now = new Date();
       const dateFrom = req.query.date_from || (`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`);
       const dateTo = req.query.date_to || formatDate(now);
       const rep = await getReleasedSalesDetailData(tenantId, dateFrom, dateTo, req.query.store_id);
+
+      let txList = rep.transactions;
+      if (['returned', 'refund', 'retur'].includes(statusTab)) {
+        txList = txList.filter(t => (t.refund || 0) > 0 || ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR'].includes(String(t.status || '').toUpperCase()));
+      }
 
       return res.json({
         success: true,
@@ -628,9 +676,9 @@ app.get('/api/v2/owner/orders', async (req, res) => {
           all: rep.totalCount,
           completed: rep.totalCount,
         },
-        data: rep.transactions,
+        data: txList,
         summary: {
-          totalCount: rep.totalCount,
+          totalCount: txList.length,
           grandTotalOmset: rep.grandTotalOmset,
           grandTotalRefund: rep.grandTotalRefund,
           grandTotalTotalFee: rep.grandTotalTotalFee,

@@ -76,7 +76,8 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
       try {
         const res = await fetchOrders({
           status: current.filterStatus,
-          todayOnly: true, // Param ini di backend sekarang menyaring bulan ini (>= startOfMonth)
+          todayOnly: true,
+          tab: 'dilepas',
           limit: 100
         });
         if (isMounted && res?.data) {
@@ -93,12 +94,18 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
   }, [metricType]);
 
   const filtered = ordersList.filter(o => {
+    // Khusus kartu refund: hanya tampilkan pesanan yang ada nominal refund-nya
+    if (metricType === 'refund') {
+      const hasRefund = (parseFloat(o.refund || 0) > 0) || ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR'].includes(String(o.status || '').toUpperCase());
+      if (!hasRefund) return false;
+    }
     if (!searchTerm) return true;
     const q = searchTerm.toLowerCase();
     return (
       (o.invoiceNumber && o.invoiceNumber.toLowerCase().includes(q)) ||
       (o.storeName && o.storeName.toLowerCase().includes(q)) ||
-      (o.buyerName && o.buyerName.toLowerCase().includes(q))
+      (o.buyerName && o.buyerName.toLowerCase().includes(q)) ||
+      (o.channelName && o.channelName.toLowerCase().includes(q))
     );
   });
 
@@ -308,10 +315,10 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
                     </div>
                   </div>
 
-                  {/* Row 3: Grid 4 Komponen Finansial Lengkap (Penjualan, HPP, Admin, Margin) */}
+                  {/* Row 3: Grid Komponen Finansial (Penjualan, Refund, HPP, Potongan, Margin) */}
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gridTemplateColumns: metricType === 'refund' ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)',
                     gap: '6px',
                     background: '#f8fafc',
                     padding: '8px 10px',
@@ -324,6 +331,15 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
                         {formatRupiah(orderPenjualan)}
                       </span>
                     </div>
+
+                    {metricType === 'refund' && (
+                      <div>
+                        <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block' }}>Refund</span>
+                        <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#ef4444' }}>
+                          {formatRupiah(order.refund || 0)}
+                        </span>
+                      </div>
+                    )}
 
                     <div>
                       <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block' }}>HPP</span>
