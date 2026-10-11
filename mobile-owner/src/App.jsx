@@ -231,8 +231,8 @@ export default function App() {
           />
         ) : activeTab === 'target_komisi' ? (
           <SubPageHeader 
-            title="Target Komisi" 
-            subtitle="Target omset & realisasi komisi marketing ERP"
+            title="Target & Komisi Penjualan V2" 
+            subtitle="Target margin & realisasi komisi tim marketing ERP"
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'laba_rugi' ? (
@@ -258,7 +258,7 @@ export default function App() {
             onSelectOrder={(order) => setSelectedOrder(order)}
             onViewAllOrders={handleOpenOrders}
             onOpenFinance={handleOpenFinance}
-            onOpenTarget={handleOpenFinance}
+            onOpenTarget={() => handleTabChange('target_komisi')}
             onSelectFinanceMetric={(type) => setSelectedFinanceMetric(type)}
             onOpenAnalytics={() => handleTabChange('analytics')}
             onOpenAllModules={() => setIsAllModulesOpen(true)}
@@ -299,6 +299,7 @@ export default function App() {
         {activeTab === 'finance' && (
           <FinancePage 
             metrics={metrics}
+            onOpenTargetKomisi={() => handleTabChange('target_komisi')}
           />
         )}
 

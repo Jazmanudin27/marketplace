@@ -625,27 +625,38 @@ export default function TargetKomisiPage({ initialMetrics }) {
                     borderRadius: '18px',
                     padding: '16px',
                     border: '1px solid #e2e8f0',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '12px'
                   }}
                 >
-                  {/* Top Bar: Name & Lock Badge & Action Buttons */}
+                  {/* Top Bar: # Number, Team Name, Period Lock Badge, Status & Actions */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '3px' }}>
-                        <h4 style={{ fontSize: '14.5px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                        <span style={{
+                          background: '#f1f5f9',
+                          color: '#475569',
+                          fontSize: '11px',
+                          fontWeight: '800',
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          border: '1px solid #e2e8f0'
+                        }}>
+                          #{idx + 1}
+                        </span>
+                        <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
                           {team.name}
                         </h4>
                         <span style={{
                           fontSize: '10px',
-                          background: '#f1f5f9',
-                          color: '#0284c7',
+                          background: '#eff6ff',
+                          color: '#1d4ed8',
                           padding: '2px 8px',
                           borderRadius: '999px',
                           fontWeight: '700',
-                          border: '1px solid #e2e8f0',
+                          border: '1px solid #bfdbfe',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '3px'
@@ -660,7 +671,7 @@ export default function TargetKomisiPage({ initialMetrics }) {
                       )}
                     </div>
 
-                    {/* Action Buttons: Edit, Toggle, Delete */}
+                    {/* Action Buttons: Toggle, Edit, Delete */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                       {/* Toggle Active Badge */}
                       <button
@@ -725,22 +736,26 @@ export default function TargetKomisiPage({ initialMetrics }) {
                     </div>
                   </div>
 
-                  {/* Badges Toko Terhubung */}
-                  {team.stores && team.stores.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {team.stores.map((s) => {
+                  {/* Badges Toko Terhubung (Shopee / TikTok / Tokopedia) */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    {team.stores && team.stores.length > 0 ? (
+                      team.stores.map((s) => {
                         const chName = (s.channel || '').toLowerCase();
                         let badgeBg = '#f1f5f9';
                         let badgeColor = '#475569';
+                        let icon = '🏪';
                         if (chName.includes('shopee')) {
                           badgeBg = '#fff1f2';
                           badgeColor = '#e11d48';
+                          icon = '🛍️';
                         } else if (chName.includes('tiktok')) {
                           badgeBg = '#0f172a';
                           badgeColor = '#ffffff';
+                          icon = '🎵';
                         } else if (chName.includes('tokopedia')) {
                           badgeBg = '#f0fdf4';
                           badgeColor = '#16a34a';
+                          icon = '🏬';
                         }
                         return (
                           <span key={s.id} style={{ 
@@ -751,73 +766,77 @@ export default function TargetKomisiPage({ initialMetrics }) {
                             borderRadius: '999px',
                             fontWeight: '600'
                           }}>
-                            🏪 {s.name}
+                            {icon} {s.name}
                           </span>
                         );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Realisasi & Target Margin Progress */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', marginBottom: '4px' }}>
-                      <span style={{ color: '#64748b' }}>
-                        Realisasi Margin: <strong style={{ color: '#0f172a' }}>{formatRupiah(actMargin)}</strong>
+                      })
+                    ) : (
+                      <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>
+                        Belum ada toko dihubungkan
                       </span>
-                      <span style={{ fontWeight: '800', color: barColor }}>
-                        {pct}%
-                      </span>
-                    </div>
-                    <div style={{ width: '100%', height: '7px', background: '#f1f5f9', borderRadius: '999px', overflow: 'hidden' }}>
-                      <div style={{ 
-                        width: `${Math.min(100, pct)}%`, 
-                        height: '100%', 
-                        background: barColor, 
-                        borderRadius: '999px' 
-                      }} />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#94a3b8', marginTop: '4px' }}>
-                      <span>Target: {formatRupiah(targetMargin)}</span>
-                      <span>Qty: {team.actualQty?.toLocaleString('id-ID')} / {team.targetQty?.toLocaleString('id-ID') || 0} pcs</span>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Skema Komisi & Total Komisi Box (Persis ERP Table) */}
+                  {/* 2-Column Key Metrics Box (Persis Tabel ERP V2) */}
                   <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '8px',
                     background: '#f8fafc',
                     padding: '10px 12px',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                    border: '1px solid #f1f5f9'
+                    borderRadius: '14px',
+                    border: '1px solid #e2e8f0'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: '600' }}>
-                        Skema Komisi:
+                    {/* Kolom 1: Target Margin (Rp) */}
+                    <div>
+                      <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>
+                        Target Margin (Rp)
                       </span>
-                      <span style={{ fontSize: '11px', fontWeight: '700', color: '#0284c7' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', marginTop: '2px' }}>
+                        {formatRupiah(targetMargin)}
+                      </div>
+                    </div>
+
+                    {/* Kolom 2: Skema Komisi */}
+                    <div>
+                      <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>
+                        Skema Komisi
+                      </span>
+                      <div style={{ fontSize: '13px', fontWeight: '800', color: '#2563eb', marginTop: '2px' }}>
                         {cType === 'percentage' 
-                          ? `${Number(team.commissionRate || 0).toFixed(2)}% dari Margin`
+                          ? `${Number(team.commissionRate || 0).toFixed(2)}%`
                           : cType === 'nominal'
-                          ? `${formatRupiah(team.rewardFixedNominal)} saat Capai Target`
-                          : `${formatRupiah(team.rewardPerQty)} / Qty Produk`}
-                        {cType === 'percentage' && team.rewardFixedNominal > 0 && ` + Bonus ${formatRupiah(team.rewardFixedNominal)}`}
+                          ? formatRupiah(team.rewardFixedNominal)
+                          : `${formatRupiah(team.rewardPerQty)}/qty`}
+                      </div>
+                      <span style={{ fontSize: '9.5px', color: '#64748b' }}>
+                        {cType === 'percentage' ? 'dari Margin (Rp)' : cType === 'nominal' ? 'saat Capai Target' : 'per Qty Produk'}
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #e2e8f0', paddingTop: '6px' }}>
+                    {/* Total Komisi Banner (Full Width) */}
+                    <div style={{
+                      gridColumn: 'span 2',
+                      background: '#ecfdf5',
+                      border: '1px solid #a7f3d0',
+                      borderRadius: '10px',
+                      padding: '8px 10px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '2px'
+                    }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <Award size={14} color="#d97706" />
-                        <span style={{ fontSize: '11px', color: '#0f172a', fontWeight: '700' }}>
-                          Komisi Realisasi:
+                        <Award size={14} color="#059669" />
+                        <span style={{ fontSize: '11px', fontWeight: '800', color: '#065f46' }}>
+                          Total Komisi:
                         </span>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <strong style={{ fontSize: '13px', color: '#059669' }}>
+                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#047857' }}>
                           {formatRupiah(totRew)}
-                        </strong>
-                        <div style={{ fontSize: '9.5px', color: '#94a3b8' }}>
+                        </div>
+                        <div style={{ fontSize: '9.5px', color: '#059669' }}>
                           {cType === 'percentage' 
                             ? `(${Number(team.commissionRate || 0).toFixed(2)}% × ${formatRupiah(actMargin)})`
                             : cType === 'nominal'
@@ -825,6 +844,39 @@ export default function TargetKomisiPage({ initialMetrics }) {
                             : `(${team.actualQty} Qty × ${formatRupiah(team.rewardPerQty)})`}
                         </div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Realisasi & Progress Margin Bar */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', marginBottom: '4px' }}>
+                      <span style={{ color: '#64748b', fontWeight: '600' }}>
+                        Realisasi Margin: <strong style={{ color: '#0f172a' }}>{formatRupiah(actMargin)}</strong>
+                      </span>
+                      <span style={{
+                        fontWeight: '800',
+                        fontSize: '11px',
+                        color: barColor,
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        padding: '1px 7px',
+                        borderRadius: '999px'
+                      }}>
+                        {pct}%
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '999px', overflow: 'hidden' }}>
+                      <div style={{ 
+                        width: `${Math.min(100, pct)}%`, 
+                        height: '100%', 
+                        background: barColor, 
+                        borderRadius: '999px',
+                        transition: 'width 0.4s ease'
+                      }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>
+                      <span>Target: {formatRupiah(targetMargin)}</span>
+                      <span>Qty: {team.actualQty?.toLocaleString('id-ID')} / {team.targetQty?.toLocaleString('id-ID') || 0} pcs</span>
                     </div>
                   </div>
 
