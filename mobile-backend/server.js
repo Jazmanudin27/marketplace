@@ -1158,31 +1158,7 @@ app.get('/api/v2/owner/notifications', async (req, res) => {
   }
 });
 
-// Helper tanggal format string YYYY-MM-DD aman timezone
-function extractDateStr(val) {
-  if (!val) return '';
-  if (typeof val === 'string') return val.slice(0, 10);
-  if (val instanceof Date) {
-    const y = val.getFullYear();
-    const m = String(val.getMonth() + 1).padStart(2, '0');
-    const d = String(val.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
-  return String(val).slice(0, 10);
-}
 
-const INDO_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-function formatIndoDate(dateVal) {
-  const s = extractDateStr(dateVal);
-  if (!s) return '';
-  const parts = s.split('-');
-  if (parts.length !== 3) return s;
-  const day = parseInt(parts[2], 10);
-  const monthIdx = parseInt(parts[1], 10) - 1;
-  const year = parts[0];
-  return `${day} ${INDO_MONTHS[monthIdx] || ''} ${year}`;
-}
-const formatDateIndo = formatIndoDate;
 
 // ─── 6. TARGET KOMISI (SINKRON 100% DENGAN ERP V2) ──────────────────────────
 app.get('/api/v2/owner/target-komisi', async (req, res) => {
