@@ -28,8 +28,8 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
       filterStatus: 'COMPLETED'
     },
     admin: {
-      title: 'Detail Biaya Admin Bulan Ini',
-      subtitle: 'Daftar transaksi dan potongan fee platform bulan ini',
+      title: 'Detail Potongan Bulan Ini',
+      subtitle: 'Daftar transaksi dan total potongan marketplace bulan ini',
       value: formatRupiah(biayaAdmin),
       icon: Percent,
       gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
@@ -333,7 +333,7 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
                     </div>
 
                     <div>
-                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block' }}>Admin Fee</span>
+                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block' }}>Potongan</span>
                       <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#d97706' }}>
                         {formatRupiah(orderAdmin)}
                       </span>

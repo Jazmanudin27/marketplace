@@ -179,7 +179,7 @@ export default function LabaRugiPage() {
 
           {/* Potongan Fee Platform */}
           <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
-            <span style={{ color: '#334155', fontWeight: '600' }}>3. Biaya Admin Marketplace</span>
+            <span style={{ color: '#334155', fontWeight: '600' }}>3. Potongan Marketplace</span>
             <strong style={{ color: '#d97706' }}>- {formatRupiah(lr.marketplaceFee)}</strong>
           </div>
 

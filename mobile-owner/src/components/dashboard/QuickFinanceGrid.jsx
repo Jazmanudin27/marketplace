@@ -23,7 +23,7 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
     },
     {
       id: 'admin',
-      sublabel: 'Biaya Admin',
+      sublabel: 'Potongan',
       value: formatRupiah(biayaAdmin),
       icon: Percent,
       gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', // Amber

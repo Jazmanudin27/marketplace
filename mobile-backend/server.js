@@ -76,6 +76,114 @@ function calculateOrderRefund(order, returnMap = {}) {
   return 0;
 }
 
+/**
+ * Hitung Potongan Marketplace / Total Fee Persis Sama dengan ERP ReportController & Order Model
+ */
+function calculateOrderFee(order) {
+  // 1. Jika pesanan sudah RECONCILED: gunakan marketplace_fee raw dari statement API
+  if (order.recon_status === 'RECONCILED') {
+    const rawFee = Math.abs(parseFloat(order.marketplace_fee || 0));
+    if (rawFee > 0) return rawFee;
+
+    // Cek rincian 5 kolom fee riil di tabel orders jika marketplace_fee utama bernilai 0
+    const colSum = Math.abs(parseFloat(order.fee_platform_amount || 0))
+                 + Math.abs(parseFloat(order.fee_free_shipping_amount || 0))
+                 + Math.abs(parseFloat(order.fee_service_amount || 0))
+                 + Math.abs(parseFloat(order.fee_promo_amount || 0))
+                 + Math.abs(parseFloat(order.fee_other_amount || 0));
+    if (colSum > 0) return colSum;
+  }
+
+  // 2. Cek JSON financial_breakdown (Shopee / TikTok escrow breakdown)
+  let fb = order.financial_breakdown;
+  if (typeof fb === 'string') {
+    try { fb = JSON.parse(fb); } catch (_) { fb = null; }
+  }
+
+  let totalFee = 0;
+  if (fb && typeof fb === 'object') {
+    let stmtList = fb.statement_list || fb.statements || fb.statement_transactions || [];
+    let st0 = (Array.isArray(stmtList) && stmtList[0] && typeof stmtList[0] === 'object') ? stmtList[0] : {};
+
+    // Komisi Platform
+    const platformFee = Math.abs(parseFloat(fb.commission_fee || fb.net_platform_commission || fb.platform_commission || fb.platform_fee || st0.platform_commission_amount || 0));
+
+    // Biaya Gratis Ongkir / Program XTRA
+    let freeShipping = Math.abs(parseFloat(fb.growth_xtra_fee || fb.free_shipping_fee || fb.shopee_shipping_rebate_fee || st0.growth_xtra_fee_amount || 0));
+    if (freeShipping === 0 && fb.service_fee && !fb.net_platform_commission && !fb.platform_commission && !st0.platform_commission_amount) {
+      freeShipping = Math.abs(parseFloat(fb.service_fee || 0));
+    }
+
+    // Biaya Layanan & Penanganan
+    let serviceFee = Math.abs(parseFloat(fb.seller_order_processing_fee || 0))
+                   + Math.abs(parseFloat(fb.preorder_service_fee || fb.preorder_fee || st0.preorder_service_fee_amount || 0))
+                   + Math.abs(parseFloat(fb.order_processing_fee || st0.transaction_fee_amount || 0));
+    if (fb.net_platform_commission && fb.service_fee && freeShipping === 0 && parseFloat(fb.service_fee) !== parseFloat(order.marketplace_fee || 0)) {
+      serviceFee += Math.abs(parseFloat(fb.service_fee || 0));
+    }
+
+    // Biaya Promosi
+    const promoFee = Math.abs(parseFloat(fb.seller_coin_cash_back || 0))
+                   + Math.abs(parseFloat(fb.order_ams_commission_fee || fb.ams_commission_fee || 0))
+                   + Math.abs(parseFloat(fb.dynamic_commission || fb.affiliate_commission || st0.affiliate_commission_amount || st0.dynamic_commission_amount || 0));
+
+    // Biaya Lainnya & Ongkir Adjustment
+    const actualShipping = Math.abs(parseFloat(fb.actual_shipping_fee || st0.actual_shipping_fee_amount || st0.shipping_cost_amount || 0));
+    const buyerPaidShipping = Math.abs(parseFloat(fb.buyer_paid_shipping_fee || fb.shipping_fee_paid_by_buyer || st0.customer_paid_shipping_fee_amount || 0));
+    const shopeeRebate = Math.abs(parseFloat(fb.shopee_shipping_rebate || fb.shipping_fee_subsidy || st0.platform_shipping_fee_discount_amount || 0));
+    let shippingAdjustment = Math.abs(parseFloat(fb.shipping_fee_adjustment || 0));
+    if (shippingAdjustment <= 0 && actualShipping > (buyerPaidShipping + shopeeRebate) && (buyerPaidShipping + shopeeRebate) > 0) {
+      shippingAdjustment = Math.max(0, actualShipping - (buyerPaidShipping + shopeeRebate));
+    }
+
+    let otherFee = Math.abs(parseFloat(fb.seller_transaction_fee || fb.transaction_fee || 0))
+                 + shippingAdjustment
+                 + Math.abs(parseFloat(fb.shipping_seller_protection_fee_amount || fb.delivery_seller_protection_fee_premium_amount || 0))
+                 + Math.abs(parseFloat(fb.withholding_tax || fb.escrow_tax || fb.vat || fb.buyer_tax_amount || 0))
+                 + Math.abs(parseFloat(fb.return_shipping_fee || fb.return_shipping_fee_amount || 0));
+
+    const totalGross = parseFloat(order.total_amount || 0);
+    const refundOrAdj = Math.abs(parseFloat(fb.total_adjustment_amount || fb.adjustment_amount || st0.adjustment_amount || 0));
+    if (refundOrAdj > 0 && refundOrAdj < totalGross) {
+      otherFee += refundOrAdj;
+    }
+
+    totalFee = platformFee + freeShipping + serviceFee + promoFee + otherFee;
+    if (totalFee === 0 && st0.fee_amount) {
+      totalFee = Math.abs(parseFloat(st0.fee_amount || 0));
+    }
+
+    // Proteksi escrow tidak melebihi (totalGross - escrowAmt)
+    const escrowAmt = parseFloat(fb.escrow_amount || fb.settlement_amount || st0.settlement_amount || fb.seller_settlement_amount || 0);
+    if (escrowAmt > 0 && totalGross > escrowAmt) {
+      const actualMaxFee = totalGross - escrowAmt;
+      if (totalFee > actualMaxFee) {
+        totalFee = actualMaxFee;
+      }
+    }
+  }
+
+  if (totalFee > 0) return totalFee;
+
+  // 3. Cek 5 kolom fee riil di database
+  const colSum = Math.abs(parseFloat(order.fee_platform_amount || 0))
+               + Math.abs(parseFloat(order.fee_free_shipping_amount || 0))
+               + Math.abs(parseFloat(order.fee_service_amount || 0))
+               + Math.abs(parseFloat(order.fee_promo_amount || 0))
+               + Math.abs(parseFloat(order.fee_other_amount || 0));
+  if (colSum > 0) return colSum;
+
+  // 4. Cek nilai kolom marketplace_fee
+  const directFee = Math.abs(parseFloat(order.marketplace_fee || 0));
+  if (directFee > 0) return directFee;
+
+  // 5. Fallback 5% sesuai formula Order::getMarketplaceFeeAttribute di ERP
+  const gross = parseFloat(order.total_amount || 0);
+  if (gross > 0) return Math.round(gross * 0.05);
+
+  return 0;
+}
+
 // ─── 1. AUTH: LOGIN ──────────────────────────────────────────────────────────
 app.post('/api/v2/owner/login', async (req, res) => {
   try {
@@ -195,7 +303,7 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
         orderMap.set(row.id, true);
         const gSales = parseFloat(row.total_amount || 0);
         const rFund = calculateOrderRefund(row, returnMap);
-        const fee = Math.abs(parseFloat(row.marketplace_fee || 0));
+        const fee = calculateOrderFee(row);
 
         monthGrossSales += gSales;
         monthRefund += rFund;
@@ -254,6 +362,8 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
 
         const teamRows = await query(
           `SELECT o.id, o.net_amount, o.total_amount, o.marketplace_fee,
+                  o.recon_status, o.financial_breakdown, o.fee_platform_amount,
+                  o.fee_free_shipping_amount, o.fee_service_amount, o.fee_promo_amount, o.fee_other_amount,
                   oi.quantity, oi.cost_price, mp.cost_price as master_cost_price
            FROM orders o
            LEFT JOIN order_items oi ON oi.order_id = o.id
@@ -272,9 +382,10 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
           if (!seenOrders.has(tr.id)) {
             seenOrders.add(tr.id);
             const rFund = calculateOrderRefund(tr, returnMap);
+            const fee = calculateOrderFee(tr);
             let rel = parseFloat(tr.net_amount || 0);
             if (rel <= 0) {
-              rel = Math.max(0, parseFloat(tr.total_amount || 0) - rFund - Math.abs(parseFloat(tr.marketplace_fee || 0)));
+              rel = Math.max(0, parseFloat(tr.total_amount || 0) - rFund - fee);
               if (rel <= 0) {
                 rel = Math.max(0, parseFloat(tr.total_amount || 0) - rFund);
               }
@@ -490,6 +601,7 @@ app.get('/api/v2/owner/orders', async (req, res) => {
       isProcessed: ['READY_TO_SHIP', 'IN_PROCESS', 'PROCESSED', 'SIAP_KIRIM'].includes((ord.order_status || '').toUpperCase()),
       totalAmount: parseFloat(ord.total_amount || 0),
       netAmount: parseFloat(ord.net_amount || 0),
+      marketplaceFee: calculateOrderFee(ord),
       buyerName: ord.buyer_name || 'Pembeli',
       resi: ord.tracking_number || '-',
       courier: ord.courier || 'Reguler',
@@ -559,7 +671,7 @@ app.get('/api/v2/owner/orders/:id', async (req, res) => {
         resi: ord.tracking_number,
         totalAmount: parseFloat(ord.total_amount || 0),
         netAmount: parseFloat(ord.net_amount || 0),
-        marketplaceFee: Math.abs(parseFloat(ord.marketplace_fee || 0)),
+        marketplaceFee: calculateOrderFee(ord),
         items: items.map(it => ({
           id: it.id,
           name: it.product_name || it.master_name,
@@ -695,6 +807,8 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
 
         const orders = await query(
           `SELECT o.id, o.net_amount, o.total_amount, o.marketplace_fee,
+                  o.recon_status, o.financial_breakdown, o.fee_platform_amount,
+                  o.fee_free_shipping_amount, o.fee_service_amount, o.fee_promo_amount, o.fee_other_amount,
                   oi.quantity, oi.cost_price, mp.cost_price as master_cost_price
            FROM orders o 
            LEFT JOIN order_items oi ON oi.order_id = o.id 
@@ -711,9 +825,10 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
           if (!seenOrders.has(ord.id)) {
             seenOrders.add(ord.id);
             const rFund = calculateOrderRefund(ord, returnMap);
+            const fee = calculateOrderFee(ord);
             let released = parseFloat(ord.net_amount || 0);
             if (released <= 0) {
-              released = Math.max(0, parseFloat(ord.total_amount || 0) - rFund - Math.abs(parseFloat(ord.marketplace_fee || 0)));
+              released = Math.max(0, parseFloat(ord.total_amount || 0) - rFund - fee);
               if (released <= 0) {
                 released = Math.max(0, parseFloat(ord.total_amount || 0) - rFund);
               }
@@ -854,6 +969,8 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
     // 1. Online Revenue & HPP
     const onlineRows = await query(
       `SELECT o.id, o.net_amount, o.total_amount, o.marketplace_fee,
+              o.recon_status, o.financial_breakdown, o.fee_platform_amount,
+              o.fee_free_shipping_amount, o.fee_service_amount, o.fee_promo_amount, o.fee_other_amount,
               oi.quantity, oi.cost_price, mp.cost_price as master_cost_price
        FROM orders o
        LEFT JOIN order_items oi ON oi.order_id = o.id
@@ -875,7 +992,7 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
         seenOrders.add(r.id);
         onlineGross += parseFloat(r.total_amount || 0);
         onlineNet += parseFloat(r.net_amount || 0);
-        onlineFee += Math.abs(parseFloat(r.marketplace_fee || 0));
+        onlineFee += calculateOrderFee(r);
       }
       const q = parseInt(r.quantity || 0, 10);
       const c = parseFloat(r.cost_price || r.master_cost_price || 0);

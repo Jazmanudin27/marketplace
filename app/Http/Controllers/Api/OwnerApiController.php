@@ -94,13 +94,29 @@ class OwnerApiController extends Controller
             $monthGrossSales += (float) $order->total_amount;
             $monthRefund += (float) $order->refund_amount;
 
-            // Marketplace Fee (Reconciled vs Unreconciled fee breakdown)
+            // Marketplace Fee (Reconciled vs Unreconciled fee breakdown diselaraskan dengan ReportController)
             if ($order->recon_status === 'RECONCILED') {
-                $monthMarketplaceFee += abs((float) $order->getRawOriginal('marketplace_fee'));
+                $rawFee = abs((float) $order->getRawOriginal('marketplace_fee'));
+                if ($rawFee == 0) {
+                    $rawFee = abs((float) $order->fee_platform_amount)
+                            + abs((float) $order->fee_free_shipping_amount)
+                            + abs((float) $order->fee_service_amount)
+                            + abs((float) $order->fee_promo_amount)
+                            + abs((float) $order->fee_other_amount);
+                }
+                $monthMarketplaceFee += $rawFee;
             } else {
                 $absFee = (float) $order->marketplace_fee;
                 if ($absFee <= 0 && !empty($order->fee_breakdown_details['total_fee'])) {
                     $absFee = abs((float) $order->fee_breakdown_details['total_fee']);
+                }
+                if ($absFee <= 0) {
+                    $colSum = abs((float) $order->fee_platform_amount)
+                            + abs((float) $order->fee_free_shipping_amount)
+                            + abs((float) $order->fee_service_amount)
+                            + abs((float) $order->fee_promo_amount)
+                            + abs((float) $order->fee_other_amount);
+                    if ($colSum > 0) $absFee = $colSum;
                 }
                 $monthMarketplaceFee += $absFee;
             }
@@ -617,11 +633,27 @@ class OwnerApiController extends Controller
         $onlineHpp = 0.0;
         foreach ($onlineOrders as $ord) {
             if ($ord->recon_status === 'RECONCILED') {
-                $onlineFee += abs((float) $ord->getRawOriginal('marketplace_fee'));
+                $rawFee = abs((float) $ord->getRawOriginal('marketplace_fee'));
+                if ($rawFee == 0) {
+                    $rawFee = abs((float) $ord->fee_platform_amount)
+                            + abs((float) $ord->fee_free_shipping_amount)
+                            + abs((float) $ord->fee_service_amount)
+                            + abs((float) $ord->fee_promo_amount)
+                            + abs((float) $ord->fee_other_amount);
+                }
+                $onlineFee += $rawFee;
             } else {
                 $absFee = (float) $ord->marketplace_fee;
                 if ($absFee <= 0 && !empty($ord->fee_breakdown_details['total_fee'])) {
                     $absFee = abs((float) $ord->fee_breakdown_details['total_fee']);
+                }
+                if ($absFee <= 0) {
+                    $colSum = abs((float) $ord->fee_platform_amount)
+                            + abs((float) $ord->fee_free_shipping_amount)
+                            + abs((float) $ord->fee_service_amount)
+                            + abs((float) $ord->fee_promo_amount)
+                            + abs((float) $ord->fee_other_amount);
+                    if ($colSum > 0) $absFee = $colSum;
                 }
                 $onlineFee += $absFee;
             }
