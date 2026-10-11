@@ -187,7 +187,7 @@
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="form-label fw-bold small text-dark">Atas Nama Rekening</label>
-                                                    <input type="text" name="account_name" class="form-control" value="{{ $bank->account_name }}" placeholder="Contoh: PT ASPARTECH ERP">
+                                                    <input type="text" name="account_name" class="form-control" value="{{ $bank->account_name }}" placeholder="Contoh: PT Ruang Tech ERP">
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="form-label fw-bold small text-dark">Cabang Bank</label>
@@ -248,7 +248,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small text-dark">Atas Nama Rekening</label>
-                        <input type="text" name="account_name" class="form-control" placeholder="Contoh: PT ASPARTECH ERP">
+                        <input type="text" name="account_name" class="form-control" placeholder="Contoh: PT Ruang Tech ERP">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small text-dark">Cabang Bank</label>

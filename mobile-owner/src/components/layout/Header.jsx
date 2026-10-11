@@ -28,7 +28,7 @@ export default function Header({ profile, onOpenKeyStatus, onOpenNotif, onLogout
       <div className="header-top-bar">
         <div className="brand-pill-owner" title="Portal Khusus Owner">
           <Store size={16} color="#38bdf8" />
-          <span className="brand-pill-title">ASPARTECH</span>
+          <span className="brand-pill-title">Ruang Tech</span>
           <span className="pro-badge">OWNER</span>
         </div>
 

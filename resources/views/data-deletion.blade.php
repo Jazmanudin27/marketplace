@@ -378,7 +378,7 @@
             <ul class="step-list">
                 <li class="step-item">
                     <div class="step-num">1</div>
-                    <div class="step-text">Kirim email ke alamat <strong>support@aspartech.com</strong> dengan subjek:
+                    <div class="step-text">Kirim email ke alamat <strong>support@ruangtech.com</strong> dengan subjek:
                         <strong>"Permohonan Penghapusan Data Akun ERP - [Nama Tenant/Perusahaan Anda]"</strong>.</div>
                 </li>
                 <li class="step-item">
@@ -477,7 +477,7 @@
                 silakan menghubungi:
             </p>
             <p style="margin-left: 10px;">
-                <i class="fas fa-envelope text-primary me-2"></i> <strong>Support Email:</strong> support@aspartech.com
+                <i class="fas fa-envelope text-primary me-2"></i> <strong>Support Email:</strong> support@ruangtech.com
             </p>
         </section>
     </main>
@@ -485,7 +485,7 @@
     <!-- Footer Area -->
     <footer class="footer">
         <div class="container-footer">
-            &copy; 2026 ERP Marketplace by Aspartech. Hak Cipta Dilindungi Undang-Undang.
+            &copy; 2026 ERP Marketplace by Ruang Tech. Hak Cipta Dilindungi Undang-Undang.
         </div>
     </footer>
 

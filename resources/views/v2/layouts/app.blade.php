@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="ASPARTECH ERP Dashboard V2 - High Density Compact Enterprise Interface">
+    <meta name="description" content="Ruang Tech ERP Dashboard V2 - High Density Compact Enterprise Interface">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Portal ERP V2') | ASPARTECH ERP</title>
+    <title>@yield('title', 'Portal ERP V2') | Ruang Tech ERP</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -158,7 +158,7 @@
             <!-- Compact Footer -->
             <footer class="v2-footer">
                 <div>
-                    <strong>ASPARTECH ERP</strong> &copy; {{ date('Y') }} — Portal Management V2 System
+                    <strong>Ruang Tech ERP</strong> &copy; {{ date('Y') }} — Portal Management V2 System
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     <span class="badge bg-success-subtle text-success border border-success-subtle">Engine

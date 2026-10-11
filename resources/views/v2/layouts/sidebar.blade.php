@@ -12,7 +12,7 @@
         </div>
         <div>
             <div class="v2-brand-name">PORTAL <span class="text-primary" style="font-size: 0.7rem;">SYSTEM</span></div>
-            <div class="v2-brand-subtitle">ASPARTECH ERP V2</div>
+            <div class="v2-brand-subtitle">Ruang Tech ERP V2</div>
         </div>
     </div>
 

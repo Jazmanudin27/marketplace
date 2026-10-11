@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Katalog Master Produk - {{ $tenant->name ?? 'ASPARTECH ERP' }}</title>
+    <title>Laporan Katalog Master Produk - {{ $tenant->name ?? 'Ruang Tech ERP' }}</title>
     <style>
         @page {
             size: A4 landscape;
@@ -93,7 +93,7 @@
     <!-- Main Report Header -->
     <div class="report-header">
         <h2>LAPORAN KATALOG MASTER PRODUK</h2>
-        <p>{{ strtoupper($tenant->name ?? 'ASPARTECH ERP') }} • TANGGAL CETAK: {{ date('d-m-Y H:i') }}</p>
+        <p>{{ strtoupper($tenant->name ?? 'Ruang Tech ERP') }} • TANGGAL CETAK: {{ date('d-m-Y H:i') }}</p>
     </div>
 
     <!-- Main Report Table -->

@@ -200,7 +200,7 @@
     {{-- Footer --}}
     <footer class="py-4 text-center text-white-50 border-top border-secondary border-opacity-25 mt-5" style="font-size: .8rem;">
         <div class="container">
-            <p class="mb-0">© {{ date('Y') }} ASPARTECH ERP Marketplace. All rights reserved.</p>
+            <p class="mb-0">© {{ date('Y') }} Ruang Tech ERP Marketplace. All rights reserved.</p>
         </div>
     </footer>
 

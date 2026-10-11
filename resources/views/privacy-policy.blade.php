@@ -420,11 +420,11 @@
             </h2>
             <p>
                 Jika Anda memiliki pertanyaan, saran, atau kekhawatiran terkait pengelolaan privasi data di platform
-                kami, silakan menghubungi administrator IT Aspartech melalui:
+                kami, silakan menghubungi administrator IT Ruang Tech melalui:
             </p>
             <p style="margin-left: 10px;">
                 <i class="fas fa-headset me-2 text-primary"></i> <strong>Pusat Layanan Pelanggan:</strong>
-                support@aspartech.com<br>
+                support@ruangtech.com<br>
                 <i class="fab fa-whatsapp me-2 text-success"></i> <strong>WhatsApp Staf IT:</strong> +62 851-XXXX-XXXX
             </p>
         </section>
@@ -433,7 +433,7 @@
     <!-- Footer Area -->
     <footer class="footer">
         <div class="container-footer">
-            &copy; 2026 ERP Marketplace by Aspartech. Hak Cipta Dilindungi Undang-Undang.
+            &copy; 2026 ERP Marketplace by Ruang Tech. Hak Cipta Dilindungi Undang-Undang.
         </div>
     </footer>
 

@@ -320,7 +320,7 @@
                 <i class="fas fa-handshake"></i> 1. Persetujuan Ketentuan
             </h2>
             <p>
-                Perjanjian ini berlaku antara perusahaan Anda ("Penyewa" atau "Tenant") dan Aspartech sebagai penyedia sistem. Layanan ini disediakan semata-mata untuk mempermudah manajemen bisnis retail, pergudangan, manufaktur produksi kustom (SPK/BOM), dan sinkronisasi logistik e-commerce Anda.
+                Perjanjian ini berlaku antara perusahaan Anda ("Penyewa" atau "Tenant") dan Ruang Tech sebagai penyedia sistem. Layanan ini disediakan semata-mata untuk mempermudah manajemen bisnis retail, pergudangan, manufaktur produksi kustom (SPK/BOM), dan sinkronisasi logistik e-commerce Anda.
             </p>
 
             <!-- Section 2 -->
@@ -333,7 +333,7 @@
             <ul>
                 <li>Anda bertanggung jawab penuh atas kerahasiaan username, password, dan pembagian hak akses (role) staf Anda.</li>
                 <li>Setiap aktivitas yang dilakukan melalui akun Anda dianggap sebagai tindakan sah dari perwakilan bisnis Anda.</li>
-                <li>Anda setuju untuk segera memberitahukan tim support Aspartech jika mendeteksi adanya penggunaan akun tanpa izin atau celah keamanan lainnya.</li>
+                <li>Anda setuju untuk segera memberitahukan tim support Ruang Tech jika mendeteksi adanya penggunaan akun tanpa izin atau celah keamanan lainnya.</li>
             </ul>
 
             <!-- Section 3 -->
@@ -368,7 +368,7 @@
                 Kami berupaya keras menyediakan sistem dengan uptime dan performa terbaik. Namun, platform ini disediakan "SEBAGAIMANA ADANYA" tanpa jaminan mutlak tanpa cacat.
             </p>
             <p>
-                Dalam kondisi hukum apa pun, Aspartech tidak bertanggung jawab atas kerugian finansial, kehilangan keuntungan bisnis, kesalahan input stok bahan baku oleh pengguna, atau kerugian tidak langsung lainnya yang disebabkan oleh penggunaan atau ketidakmampuan menggunakan layanan kami.
+                Dalam kondisi hukum apa pun, Ruang Tech tidak bertanggung jawab atas kerugian finansial, kehilangan keuntungan bisnis, kesalahan input stok bahan baku oleh pengguna, atau kerugian tidak langsung lainnya yang disebabkan oleh penggunaan atau ketidakmampuan menggunakan layanan kami.
             </p>
 
             <!-- Section 6 -->
@@ -376,7 +376,7 @@
                 <i class="fas fa-copyright"></i> 6. Hak Kekayaan Intelektual
             </h2>
             <p>
-                Seluruh kode sumber, desain antarmuka, aset visual, logo, dan algoritma yang membentuk ERP Marketplace adalah milik sah Aspartech dan dilindungi oleh undang-undang hak cipta. Data produk, formula resep, data penjualan, dan informasi pelanggan yang diunggah oleh Anda sepenuhnya tetap menjadi hak milik bisnis Anda (Tenant).
+                Seluruh kode sumber, desain antarmuka, aset visual, logo, dan algoritma yang membentuk ERP Marketplace adalah milik sah Ruang Tech dan dilindungi oleh undang-undang hak cipta. Data produk, formula resep, data penjualan, dan informasi pelanggan yang diunggah oleh Anda sepenuhnya tetap menjadi hak milik bisnis Anda (Tenant).
             </p>
 
             <!-- Section 7 -->
@@ -405,7 +405,7 @@
     <!-- Footer Area -->
     <footer class="footer">
         <div class="container-footer">
-            &copy; 2026 ERP Marketplace by Aspartech. Hak Cipta Dilindungi Undang-Undang.
+            &copy; 2026 ERP Marketplace by Ruang Tech. Hak Cipta Dilindungi Undang-Undang.
         </div>
     </footer>
 

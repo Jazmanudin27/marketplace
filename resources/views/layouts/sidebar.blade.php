@@ -79,7 +79,7 @@
             <i class="bi bi-rocket-takeoff-fill fs-5"></i>
         </div>
         <div class="lh-sm">
-            <h6 class="mb-0 fw-bold text-white">ASPARTECH</h6>
+            <h6 class="mb-0 fw-bold text-white">Ruang Tech</h6>
             <small class="text-white text-opacity-75 text-uppercase fw-bold">ERP Marketplace</small>
         </div>
     </div>

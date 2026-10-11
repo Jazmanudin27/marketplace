@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Portal Login ASPARTECH ERP">
-    <title>Masuk | ASPARTECH ERP</title>
+    <meta name="description" content="Portal Login Ruang Tech ERP">
+    <title>Masuk | Ruang Tech ERP</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -466,7 +466,7 @@
                 <div class="brand-logo-icon">
                     <i class="fas fa-cubes"></i>
                 </div>
-                <h1 class="brand-title">ASPARTECH ERP</h1>
+                <h1 class="brand-title">Ruang Tech ERP</h1>
                 <p class="brand-subtitle">Masuk untuk mengakses sistem</p>
             </div>
 

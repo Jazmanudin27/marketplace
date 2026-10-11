@@ -145,7 +145,7 @@
     <div class="header">
         <div class="company-info">
             <h2>{{ $purchaseOrder->tenant->name }}</h2>
-            <p>Sistem ERP Marketplace ASPARTECH</p>
+            <p>Sistem ERP Marketplace Ruang Tech</p>
         </div>
         <div class="po-title">
             <h1>PURCHASE ORDER</h1>

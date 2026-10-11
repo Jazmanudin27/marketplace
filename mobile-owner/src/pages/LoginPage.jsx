@@ -59,7 +59,7 @@ export default function LoginPage({ onLoginSuccess }) {
           marginBottom: '28px'
         }}>
           <Store size={16} color="#38bdf8" />
-          <span style={{ fontWeight: '800', fontSize: '13px', letterSpacing: '-0.2px' }}>ASPARTECH</span>
+          <span style={{ fontWeight: '800', fontSize: '13px', letterSpacing: '-0.2px' }}>Ruang Tech</span>
           <span style={{
             background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
             fontSize: '9.5px',
