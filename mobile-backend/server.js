@@ -2639,7 +2639,7 @@ app.get('/api/v2/owner/laporan-penjualan', async (req, res) => {
       byChannel,
       byDate,
       byProduct,
-      transactions: rep.transactions.slice(0, 50),
+      transactions: rep.transactions,
     });
   } catch (err) {
     console.error('[Node-API] Laporan penjualan error:', err);

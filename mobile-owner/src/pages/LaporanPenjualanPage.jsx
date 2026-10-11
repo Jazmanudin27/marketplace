@@ -1,29 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  FileText, 
   DollarSign, 
-  TrendingUp, 
-  Store, 
-  Calendar, 
-  RotateCcw, 
   Receipt, 
-  Layers, 
-  RefreshCw, 
   Filter,
   Download,
   Printer,
-  ChevronRight,
-  Package,
   CalendarCheck,
-  Building2,
-  Clock
+  X,
+  FileSpreadsheet,
+  CheckCircle2
 } from 'lucide-react';
 import { formatRupiah, getChannelBadge } from '../utils/formatters';
 import { fetchLaporanPenjualan } from '../api/metricsApi';
-import OrderCard from '../components/orders/OrderCard';
 
 export default function LaporanPenjualanPage({ onSelectOrder }) {
-  // Main Navigation Tab: 'dilepas' (Laporan Penjualan Dilepas) vs 'semua' (Laporan Rekap Penjualan)
+  // Navigation Tabs: 'dilepas' vs 'semua'
   const [reportTab, setReportTab] = useState('dilepas');
 
   // Filter Form State
@@ -66,6 +57,9 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
   const [storeOptions, setStoreOptions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Modal Cetak Rekap
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+
   const loadReport = async () => {
     setIsLoading(true);
     try {
@@ -96,24 +90,10 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
     loadReport();
   }, [dateFrom, dateTo, selectedStoreId, reportTab]);
 
-  // Quick preset handler
-  const handlePresetDate = (type) => {
-    const now = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-
-    if (type === 'today') {
-      setDateFrom(today);
-      setDateTo(today);
-    } else if (type === '7d') {
-      const past = new Date();
-      past.setDate(past.getDate() - 7);
-      setDateFrom(`${past.getFullYear()}-${pad(past.getMonth() + 1)}-${pad(past.getDate())}`);
-      setDateTo(today);
-    } else if (type === 'month') {
-      setDateFrom(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`);
-      setDateTo(today);
-    }
+  const handleCetakClick = () => {
+    loadReport().then(() => {
+      setIsPrintModalOpen(true);
+    });
   };
 
   // Export CSV Client-Side
@@ -144,13 +124,21 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
   const themeBgLight = isDilepas ? '#f0fdf4' : '#eff6ff';
   const themeBorder = isDilepas ? '#dcfce7' : '#dbeafe';
 
+  const formatNameLabel = {
+    per_produk: 'Laporan Per Produk',
+    ringkasan_penghasilan: 'Laporan Ringkasan Penghasilan & Biaya Escrow',
+    per_channel: 'Laporan Per Channel Marketplace',
+    detail: 'Laporan Detail Transaksi',
+    per_tanggal: 'Laporan Per Tanggal'
+  }[reportFormat] || 'Laporan Penjualan';
+
   return (
     <div className="mobile-body-content" style={{ paddingBottom: '90px' }}>
       {/* ── 1. DUA NAV TABS PERSIS ERP ── */}
       <div style={{
         display: 'flex',
         borderBottom: '2px solid #e2e8f0',
-        marginBottom: '14px',
+        marginBottom: '16px',
         gap: '4px'
       }}>
         <button
@@ -217,48 +205,25 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
         boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
         marginBottom: '16px'
       }}>
-        {/* Header Card */}
+        {/* Header Card (Tanpa tombol preset hari ini/7 hari/bulan ini) */}
         <div style={{
           background: themeBgLight,
           borderBottom: `1px solid ${themeBorder}`,
-          padding: '10px 14px',
+          padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          gap: '8px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Filter size={15} color={themeColor} />
-            <span style={{ fontSize: '12.5px', fontWeight: '800', color: '#0f172a' }}>
-              {isDilepas ? 'Filter Penjualan Dilepas (Escrow Released)' : 'Filter Rekap Penjualan (Semua)'}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', gap: '4px' }}>
-            {['today', '7d', 'month'].map((p) => (
-              <button
-                key={p}
-                onClick={() => handlePresetDate(p)}
-                style={{
-                  padding: '3px 7px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  background: '#ffffff',
-                  fontSize: '9.5px',
-                  fontWeight: '700',
-                  color: '#475569',
-                  cursor: 'pointer'
-                }}
-              >
-                {p === 'today' ? 'Hari Ini' : p === '7d' ? '7 Hari' : 'Bulan Ini'}
-              </button>
-            ))}
-          </div>
+          <Filter size={15} color={themeColor} />
+          <span style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>
+            {isDilepas ? 'Filter Penjualan Dilepas (Escrow Released)' : 'Filter Rekap Penjualan (Semua)'}
+          </span>
         </div>
 
         {/* Body Form */}
-        <div style={{ padding: '14px 16px' }}>
+        <div style={{ padding: '16px 18px' }}>
           {/* Format Laporan */}
-          <div style={{ marginBottom: '12px' }}>
+          <div style={{ marginBottom: '14px' }}>
             <label style={{ 
               display: 'block', 
               fontSize: '11px', 
@@ -305,7 +270,7 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
 
           {/* If Tab Semua: Tipe PO */}
           {!isDilepas && (
-            <div style={{ marginBottom: '12px' }}>
+            <div style={{ marginBottom: '14px' }}>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#64748b', marginBottom: '4px' }}>
                 Tipe Pre-Order (PO)
               </label>
@@ -331,7 +296,7 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
           )}
 
           {/* Toko Marketplace */}
-          <div style={{ marginBottom: '12px' }}>
+          <div style={{ marginBottom: '14px' }}>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#64748b', marginBottom: '4px' }}>
               Toko Marketplace
             </label>
@@ -350,7 +315,7 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
                 cursor: 'pointer'
               }}
             >
-              <option value="">🛒 Semua Toko Marketplace</option>
+              <option value="">- Pilih -</option>
               {storeOptions.map(st => (
                 <option key={st.id} value={st.id}>
                   {st.name} ({st.channel || 'Marketplace'})
@@ -360,7 +325,7 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
           </div>
 
           {/* Rentang Tanggal 2 Kolom Sesuai Screenshot */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
             <div>
               <label style={{ 
                 display: 'flex', 
@@ -372,7 +337,7 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
                 marginBottom: '4px' 
               }}>
                 <CalendarCheck size={12} />
-                <span>Dari Tanggal</span>
+                <span>Dari Tanggal (Dilepas / Cair)</span>
               </label>
               <input
                 type="date"
@@ -401,7 +366,7 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
                 marginBottom: '4px' 
               }}>
                 <CalendarCheck size={12} />
-                <span>Sampai Tanggal</span>
+                <span>Sampai Tanggal (Dilepas / Cair)</span>
               </label>
               <input
                 type="date"
@@ -425,7 +390,7 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            paddingTop: '10px',
+            paddingTop: '12px',
             borderTop: '1px solid #f1f5f9'
           }}>
             <button
@@ -434,294 +399,219 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '7px 14px',
+                padding: '8px 16px',
                 borderRadius: '8px',
                 border: `1.5px solid ${themeColor}`,
                 background: '#ffffff',
                 color: themeColor,
-                fontSize: '11.5px',
+                fontSize: '12px',
                 fontWeight: '700',
                 cursor: 'pointer'
               }}
             >
-              <Download size={13} />
+              <Download size={14} />
               <span>Export CSV</span>
             </button>
 
             <button
-              onClick={loadReport}
+              onClick={handleCetakClick}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '7px 16px',
+                padding: '8px 18px',
                 borderRadius: '8px',
                 border: 'none',
                 background: themeColor,
                 color: '#ffffff',
-                fontSize: '11.5px',
+                fontSize: '12px',
                 fontWeight: '700',
                 cursor: 'pointer',
                 boxShadow: isDilepas ? '0 2px 6px rgba(22, 163, 74, 0.3)' : '0 2px 6px rgba(37, 99, 235, 0.3)'
               }}
             >
-              <Printer size={13} />
-              <span>{isLoading ? 'Memuat...' : 'Cetak / Tampilkan'}</span>
+              <Printer size={14} />
+              <span>{isLoading ? 'Memuat...' : 'Cetak Rekap'}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── 3. RINGKASAN METRIK FINANSIAL REAL-TIME ── */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: '14px',
-        padding: '14px 16px',
-        marginBottom: '16px',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: '700' }}>
-            Ringkasan Keuangan {isDilepas ? 'Dana Cair' : 'Penjualan'}
-          </span>
-          <span style={{
-            fontSize: '11px',
-            fontWeight: '800',
-            background: '#ecfdf5',
-            color: '#059669',
-            padding: '2px 8px',
-            borderRadius: '999px'
-          }}>
-            Margin {summary.marginPct || 0}%
-          </span>
-        </div>
+      {/* ── 3. MODAL CETAK REKAP LAPORAN (VIEW PRINT RESMI) ── */}
+      {isPrintModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsPrintModalOpen(false)}>
+          <div 
+            className="bottom-sheet-card" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '92vh', padding: '16px 18px 30px' }}
+          >
+            <div className="sheet-handle"></div>
 
-        {/* 6 Sub-Metrik Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '10px'
-        }}>
-          <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px' }}>
-            <span style={{ fontSize: '10.5px', color: '#64748b' }}>Omset Penjualan:</span>
-            <div style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', marginTop: '2px' }}>
-              {formatRupiah(summary.omset || 0)}
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a' }}>
+                  {formatNameLabel}
+                </h3>
+                <p style={{ fontSize: '11px', color: '#64748b' }}>
+                  Periode: {dateFrom} s/d {dateTo}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => window.print()}
+                  style={{
+                    background: themeColor,
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Printer size={12} />
+                  <span>Print</span>
+                </button>
+                <button 
+                  onClick={() => setIsPrintModalOpen(false)}
+                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <X size={15} color="#64748b" />
+                </button>
+              </div>
             </div>
-            <span style={{ fontSize: '9.5px', color: '#94a3b8' }}>
-              {summary.totalOrders || 0} order • {summary.totalQty || 0} pcs
-            </span>
-          </div>
 
-          <div style={{ background: '#f0fdf4', padding: '10px 12px', borderRadius: '10px' }}>
-            <span style={{ fontSize: '10.5px', color: '#166534' }}>Dilepas Bersih:</span>
-            <div style={{ fontSize: '14px', fontWeight: '800', color: '#15803d', marginTop: '2px' }}>
-              {formatRupiah(summary.netReleased || 0)}
+            {/* Ringkasan Header Cetak */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '10px 12px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '6px',
+              fontSize: '11px',
+              marginBottom: '12px'
+            }}>
+              <div>
+                <span style={{ color: '#64748b' }}>Omset:</span>
+                <div style={{ fontWeight: '800', color: '#0f172a' }}>{formatRupiah(summary.omset)}</div>
+              </div>
+              <div>
+                <span style={{ color: '#64748b' }}>HPP:</span>
+                <div style={{ fontWeight: '800', color: '#dc2626' }}>{formatRupiah(summary.hpp)}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ color: '#64748b' }}>Margin:</span>
+                <div style={{ fontWeight: '800', color: '#059669' }}>{formatRupiah(summary.margin)} ({summary.marginPct}%)</div>
+              </div>
             </div>
-            <span style={{ fontSize: '9.5px', color: '#16a34a' }}>Dana diterima toko</span>
-          </div>
 
-          <div style={{ background: '#fef2f2', padding: '10px 12px', borderRadius: '10px' }}>
-            <span style={{ fontSize: '10.5px', color: '#991b1b' }}>Biaya Marketplace:</span>
-            <div style={{ fontSize: '14px', fontWeight: '800', color: '#dc2626', marginTop: '2px' }}>
-              - {formatRupiah(summary.totalFee || 0)}
-            </div>
-            <span style={{ fontSize: '9.5px', color: '#ef4444' }}>Admin platform</span>
-          </div>
-
-          <div style={{ background: '#fff7ed', padding: '10px 12px', borderRadius: '10px' }}>
-            <span style={{ fontSize: '10.5px', color: '#9a3412' }}>Modal HPP Barang:</span>
-            <div style={{ fontSize: '14px', fontWeight: '800', color: '#ea580c', marginTop: '2px' }}>
-              - {formatRupiah(summary.hpp || 0)}
-            </div>
-            <span style={{ fontSize: '9.5px', color: '#f97316' }}>HPP bersih (dipotong refund)</span>
-          </div>
-        </div>
-
-        {/* Highlight Margin Bersih */}
-        <div style={{
-          marginTop: '10px',
-          padding: '10px 12px',
-          background: isDilepas ? 'linear-gradient(135deg, #15803d, #166534)' : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-          borderRadius: '10px',
-          color: '#ffffff',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div>
-            <div style={{ fontSize: '10.5px', opacity: 0.85 }}>Margin Bersih (Laba Penjualan)</div>
-            <div style={{ fontSize: '17px', fontWeight: '800', marginTop: '1px' }}>
-              {formatRupiah(summary.margin || 0)}
-            </div>
-          </div>
-          <span style={{
-            fontSize: '12px',
-            fontWeight: '800',
-            background: 'rgba(255,255,255,0.2)',
-            padding: '4px 10px',
-            borderRadius: '999px'
-          }}>
-            {summary.marginPct || 0}%
-          </span>
-        </div>
-      </div>
-
-      {/* ── 4. HASIL SESUAI FORMAT LAPORAN YANG DIPILIH ── */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>
-            {reportFormat === 'per_produk' && `📦 Hasil: Laporan Per Produk (${byProduct.length})`}
-            {reportFormat === 'per_channel' && `🏪 Hasil: Laporan Per Channel (${byChannel.length})`}
-            {reportFormat === 'per_tanggal' && `📅 Hasil: Laporan Per Tanggal (${byDate.length})`}
-            {(reportFormat === 'detail' || reportFormat === 'ringkasan_penghasilan') && `📑 Hasil: Rincian Transaksi (${transactions.length})`}
-          </h4>
-        </div>
-
-        {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '40px', background: '#fff', borderRadius: '12px', color: '#94a3b8' }}>
-            <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
-            <p style={{ fontSize: '12px' }}>Memuat data laporan...</p>
-          </div>
-        ) : (
-          <>
-            {/* View A: Per Produk */}
-            {reportFormat === 'per_produk' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {byProduct.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '30px', background: '#fff', borderRadius: '12px', color: '#94a3b8', fontSize: '12px' }}>
-                    Tidak ada produk terjual pada periode ini.
+            {/* Konten Rekap Berdasarkan Format */}
+            <div style={{ overflowY: 'auto', maxHeight: '60vh', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {reportFormat === 'per_produk' && (
+                byProduct.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '12px' }}>
+                    Tidak ada data produk pada periode ini.
                   </div>
                 ) : (
                   byProduct.map((p, idx) => (
-                    <div 
-                      key={idx}
-                      style={{
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '12px',
-                        padding: '12px 14px',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-                      }}
-                    >
+                    <div key={idx} style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: '10px', padding: '10px 12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                          <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#0f172a' }}>
-                            {p.name}
-                          </div>
-                          <span style={{ fontSize: '10px', color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
-                            SKU: {p.sku}
-                          </span>
+                          <div style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a' }}>{p.name}</div>
+                          <span style={{ fontSize: '10px', color: '#64748b' }}>SKU: {p.sku}</span>
                         </div>
-                        <span style={{ fontSize: '11.5px', fontWeight: '800', color: themeColor, background: themeBgLight, padding: '3px 8px', borderRadius: '6px' }}>
-                          {p.quantity} pcs
-                        </span>
+                        <span style={{ fontSize: '11px', fontWeight: '800', color: themeColor }}>{p.quantity} pcs</span>
                       </div>
-
-                      <div style={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: 'repeat(3, 1fr)', 
-                        gap: '6px', 
-                        fontSize: '11px', 
-                        marginTop: '10px',
-                        paddingTop: '8px',
-                        borderTop: '1px solid #f1f5f9'
-                      }}>
-                        <div>
-                          <span style={{ color: '#64748b' }}>Omset:</span>
-                          <div style={{ fontWeight: '700', color: '#0f172a' }}>{formatRupiah(p.omset)}</div>
-                        </div>
-                        <div>
-                          <span style={{ color: '#64748b' }}>HPP:</span>
-                          <div style={{ fontWeight: '700', color: '#dc2626' }}>{formatRupiah(p.hpp)}</div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ color: '#64748b' }}>Margin:</span>
-                          <div style={{ fontWeight: '800', color: '#059669' }}>{formatRupiah(p.margin)}</div>
-                        </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #f1f5f9' }}>
+                        <span>Omset: {formatRupiah(p.omset)}</span>
+                        <span>HPP: {formatRupiah(p.hpp)}</span>
+                        <strong style={{ color: '#059669' }}>Margin: {formatRupiah(p.margin)}</strong>
                       </div>
                     </div>
                   ))
-                )}
-              </div>
-            )}
+                )
+              )}
 
-            {/* View B: Per Channel */}
-            {reportFormat === 'per_channel' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {byChannel.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '30px', background: '#fff', borderRadius: '12px', color: '#94a3b8', fontSize: '12px' }}>
-                    Belum ada data channel pada rentang tanggal ini.
+              {reportFormat === 'per_channel' && (
+                byChannel.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '12px' }}>
+                    Tidak ada data channel pada periode ini.
                   </div>
                 ) : (
-                  byChannel.map((ch, idx) => {
-                    const badge = getChannelBadge(ch.channelName);
-                    const pct = summary.omset > 0 ? Math.round((ch.omset / summary.omset) * 100) : 0;
-                    return (
-                      <div key={idx} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <span className={`store-pill ${badge.class}`}>{ch.channelName}</span>
-                          <strong style={{ fontSize: '13px', color: '#0f172a' }}>{formatRupiah(ch.omset)}</strong>
-                        </div>
-                        <div style={{ width: '100%', height: '5px', background: '#f1f5f9', borderRadius: '999px', overflow: 'hidden', marginBottom: '8px' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: themeColor, borderRadius: '999px' }} />
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b' }}>
-                          <span>{ch.count} order • {ch.quantity} pcs</span>
-                          <span>Margin: <strong style={{ color: '#059669' }}>{formatRupiah(ch.margin)}</strong></span>
-                        </div>
+                  byChannel.map((ch, idx) => (
+                    <div key={idx} style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: '10px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a' }}>{ch.channelName}</div>
+                        <span style={{ fontSize: '10px', color: '#64748b' }}>{ch.count} order • {ch.quantity} pcs</span>
                       </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a' }}>{formatRupiah(ch.omset)}</div>
+                        <span style={{ fontSize: '10.5px', color: '#059669', fontWeight: '700' }}>Margin: {formatRupiah(ch.margin)}</span>
+                      </div>
+                    </div>
+                  ))
+                )
+              )}
 
-            {/* View C: Per Tanggal */}
-            {reportFormat === 'per_tanggal' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {byDate.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '30px', background: '#fff', borderRadius: '12px', color: '#94a3b8', fontSize: '12px' }}>
-                    Belum ada data harian pada rentang tanggal ini.
+              {reportFormat === 'per_tanggal' && (
+                byDate.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '12px' }}>
+                    Tidak ada data tanggal pada periode ini.
                   </div>
                 ) : (
                   byDate.map((d, idx) => (
-                    <div key={idx} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={idx} style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: '10px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <div style={{ fontSize: '12px', fontWeight: '700', color: '#0f172a' }}>{d.date}</div>
-                        <div style={{ fontSize: '10px', color: '#64748b' }}>{d.count} pesanan</div>
+                        <span style={{ fontSize: '10px', color: '#64748b' }}>{d.count} pesanan</span>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>{formatRupiah(d.omset)}</div>
-                        <div style={{ fontSize: '10.5px', color: '#059669', fontWeight: '700' }}>Margin: {formatRupiah(d.margin)}</div>
+                        <div style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a' }}>{formatRupiah(d.omset)}</div>
+                        <span style={{ fontSize: '10.5px', color: '#059669', fontWeight: '700' }}>Margin: {formatRupiah(d.margin)}</span>
                       </div>
                     </div>
                   ))
-                )}
-              </div>
-            )}
+                )
+              )}
 
-            {/* View D: Detail Transaksi / Ringkasan Penghasilan */}
-            {(reportFormat === 'detail' || reportFormat === 'ringkasan_penghasilan') && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {transactions.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '30px', background: '#fff', borderRadius: '12px', color: '#94a3b8', fontSize: '12px' }}>
-                    Tidak ada transaksi ditemukan.
+              {(reportFormat === 'detail' || reportFormat === 'ringkasan_penghasilan') && (
+                transactions.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '12px' }}>
+                    Tidak ada transaksi pada periode ini.
                   </div>
                 ) : (
                   transactions.map((tx) => (
-                    <OrderCard 
+                    <div 
                       key={tx.id} 
-                      order={tx} 
-                      onClick={(ord) => onSelectOrder && onSelectOrder(ord)} 
-                    />
+                      onClick={() => onSelectOrder && onSelectOrder(tx)}
+                      style={{ background: '#fff', border: '1px solid #f1f5f9', borderRadius: '10px', padding: '10px 12px', cursor: 'pointer' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#0f172a' }}>{tx.invoiceNumber}</span>
+                        <span style={{ fontSize: '10px', background: '#ecfdf5', color: '#059669', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>
+                          {tx.storeName}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', marginTop: '6px', color: '#64748b' }}>
+                        <span>Omset: {formatRupiah(tx.omset)}</span>
+                        <span>Dilepas: {formatRupiah(tx.releasedValue)}</span>
+                        <strong style={{ color: '#059669' }}>Laba: {formatRupiah(tx.margin)}</strong>
+                      </div>
+                    </div>
                   ))
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
