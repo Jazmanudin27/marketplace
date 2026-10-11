@@ -14,7 +14,7 @@ class DiagnoseOrder extends Command
      *
      * @var string
      */
-    protected $signature = 'order:diagnose {ref : Nomor pesanan / order_marketplace_id} {--fix : Otomatis perbaiki jika ditemukan Master Product}';
+    protected $signature = 'order:diagnose {ref : Nomor pesanan / order_marketplace_id} {--no-fix : Jangan simpan perbaikan ke database}';
 
     /**
      * The console command description.
@@ -29,7 +29,7 @@ class DiagnoseOrder extends Command
     public function handle()
     {
         $ref = trim($this->argument('ref'));
-        $shouldFix = $this->option('fix') !== false; // Default fix true
+        $shouldFix = !$this->option('no-fix'); // Default selalu perbaiki otomatis
 
         $this->info("=== DIAGNOSA PESANAN: {$ref} ===");
 
@@ -180,7 +180,8 @@ class DiagnoseOrder extends Command
         }
 
         // Refresh dan cek ulang HPP
-        $order->refresh();
+        $order->unsetRelation('items');
+        $order->load(['items.masterProduct']);
         $this->info("\n=== HASIL AKHIR ===");
         $this->line("HPP Total Baru: Rp " . number_format($order->hpp_total, 0, ',', '.'));
         $this->line("Item yang diperbaiki: {$fixedCount} item");

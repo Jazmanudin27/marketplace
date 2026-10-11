@@ -440,21 +440,29 @@ class Order extends Model
                 $total += (float) $item->cost_price * $qty;
             } else {
                 $mp = $item->masterProduct;
-                if (!$mp && !empty($item->sku)) {
+                // Jika master product belum terhubung ATAU cost_price bernilai 0, cari Master Product via SKU yang punya HPP > 0
+                if ((!$mp || (float)$mp->cost_price <= 0) && !empty($item->sku)) {
                     $skuClean = trim($item->sku);
-                    $mp = MasterProduct::where('tenant_id', $this->tenant_id)
+                    $foundBySku = MasterProduct::where('tenant_id', $this->tenant_id)
                         ->where(function ($q) use ($skuClean, $item) {
                             $q->where('sku', $skuClean);
                             if (!empty($item->seller_sku)) {
                                 $q->orWhere('sku', trim($item->seller_sku));
                             }
                         })
+                        ->where('cost_price', '>', 0)
                         ->first();
+                    if ($foundBySku) {
+                        $mp = $foundBySku;
+                    }
                 }
-                if (!$mp && $item->marketplace_product_id) {
+                if ((!$mp || (float)$mp->cost_price <= 0) && $item->marketplace_product_id) {
                     $mktProd = MarketplaceProduct::find($item->marketplace_product_id);
                     if ($mktProd && $mktProd->master_product_id) {
-                        $mp = MasterProduct::find($mktProd->master_product_id);
+                        $foundMktMp = MasterProduct::find($mktProd->master_product_id);
+                        if ($foundMktMp && (float)$foundMktMp->cost_price > 0) {
+                            $mp = $foundMktMp;
+                        }
                     }
                 }
                 if ($mp && (float)$mp->cost_price > 0) {

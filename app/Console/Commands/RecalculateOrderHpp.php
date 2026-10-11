@@ -72,7 +72,10 @@ class RecalculateOrderHpp extends Command
             $skus = [];
             foreach ($mps as $m) {
                 if (!empty($m->sku)) {
-                    $skus[strtolower(trim($m->sku))] = $m;
+                    $k = strtolower(trim($m->sku));
+                    if (!isset($skus[$k]) || ((float)$m->cost_price > 0 && (float)$skus[$k]->cost_price <= 0)) {
+                        $skus[$k] = $m;
+                    }
                 }
             }
             $masterSkusByTenant[$tid] = $skus;
@@ -112,23 +115,25 @@ class RecalculateOrderHpp extends Command
                         continue;
                     }
 
-                    // Cari master product
+                    // Cari master product:
+                    // 1. Prioritaskan SKU persis jika ada dan memiliki cost_price > 0
                     $mp = null;
-                    if ($item->master_product_id && isset($mpMap[$item->master_product_id])) {
+                    $cleanSku = !empty($item->sku) ? strtolower(trim($item->sku)) : null;
+                    $cleanSellerSku = !empty($item->seller_sku) ? strtolower(trim($item->seller_sku)) : null;
+
+                    if ($cleanSku && isset($skuMap[$cleanSku]) && (float)$skuMap[$cleanSku]->cost_price > 0) {
+                        $mp = $skuMap[$cleanSku];
+                    } elseif ($cleanSellerSku && isset($skuMap[$cleanSellerSku]) && (float)$skuMap[$cleanSellerSku]->cost_price > 0) {
+                        $mp = $skuMap[$cleanSellerSku];
+                    } elseif ($item->master_product_id && isset($mpMap[$item->master_product_id]) && (float)$mpMap[$item->master_product_id]->cost_price > 0) {
                         $mp = $mpMap[$item->master_product_id];
-                    }
-
-                    if (!$mp && !empty($item->sku)) {
-                        $cleanSku = strtolower(trim($item->sku));
-                        $mp = $skuMap[$cleanSku] ?? null;
-                    }
-
-                    if (!$mp && !empty($item->seller_sku)) {
-                        $cleanSellerSku = strtolower(trim($item->seller_sku));
-                        $mp = $skuMap[$cleanSellerSku] ?? null;
-                    }
-
-                    if (!$mp && $item->marketplace_product_id) {
+                    } elseif ($cleanSku && isset($skuMap[$cleanSku])) {
+                        $mp = $skuMap[$cleanSku];
+                    } elseif ($cleanSellerSku && isset($skuMap[$cleanSellerSku])) {
+                        $mp = $skuMap[$cleanSellerSku];
+                    } elseif ($item->master_product_id && isset($mpMap[$item->master_product_id])) {
+                        $mp = $mpMap[$item->master_product_id];
+                    } elseif ($item->marketplace_product_id) {
                         $mkt = MarketplaceProduct::find($item->marketplace_product_id);
                         if ($mkt && $mkt->master_product_id && isset($mpMap[$mkt->master_product_id])) {
                             $mp = $mpMap[$mkt->master_product_id];
@@ -141,6 +146,14 @@ class RecalculateOrderHpp extends Command
                         $item->cost_price = $unitCost;
                         $item->hpp_subtotal = $unitCost * $qty;
                         $item->save();
+
+                        // Update mapping marketplace_products jika HPP valid
+                        if ($item->marketplace_product_id && $unitCost > 0) {
+                            MarketplaceProduct::where('id', $item->marketplace_product_id)
+                                ->orWhere('marketplace_product_id', $item->marketplace_product_id)
+                                ->update(['master_product_id' => $mp->id]);
+                        }
+
                         $itemsUpdated++;
                         $orderHasUpdate = true;
                     }

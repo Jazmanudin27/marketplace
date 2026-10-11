@@ -232,7 +232,11 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
     for (const m of mpRows) {
       if (m.id) mpById.set(m.id, m);
       if (m.sku) {
-        mpBySku.set(String(m.sku).trim().toLowerCase(), m);
+        const k = String(m.sku).trim().toLowerCase();
+        const existing = mpBySku.get(k);
+        if (!existing || (parseFloat(m.cost_price || 0) > 0 && parseFloat(existing.cost_price || 0) <= 0)) {
+          mpBySku.set(k, m);
+        }
       }
     }
   } catch (_) {}
@@ -310,11 +314,13 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
           hpp += (parseFloat(it.cost_price) * q);
         } else {
           let mProd = (it.master_product_id ? mpById.get(it.master_product_id) : null);
-          if (!mProd && it.sku) {
-            mProd = mpBySku.get(String(it.sku).trim().toLowerCase());
+          if ((!mProd || parseFloat(mProd.cost_price || 0) <= 0) && it.sku) {
+            const bySku = mpBySku.get(String(it.sku).trim().toLowerCase());
+            if (bySku && parseFloat(bySku.cost_price || 0) > 0) mProd = bySku;
           }
-          if (!mProd && it.seller_sku) {
-            mProd = mpBySku.get(String(it.seller_sku).trim().toLowerCase());
+          if ((!mProd || parseFloat(mProd.cost_price || 0) <= 0) && it.seller_sku) {
+            const bySku = mpBySku.get(String(it.seller_sku).trim().toLowerCase());
+            if (bySku && parseFloat(bySku.cost_price || 0) > 0) mProd = bySku;
           }
           const cost = parseFloat(mProd?.cost_price || it.master_cost_price || 0);
           hpp += (cost * q);
@@ -370,8 +376,14 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
       status: o.order_status,
       items: oItems.map(it => {
         let mProd = (it.master_product_id ? mpById.get(it.master_product_id) : null);
-        if (!mProd && it.sku) mProd = mpBySku.get(String(it.sku).trim().toLowerCase());
-        if (!mProd && it.seller_sku) mProd = mpBySku.get(String(it.seller_sku).trim().toLowerCase());
+        if ((!mProd || parseFloat(mProd.cost_price || 0) <= 0) && it.sku) {
+          const bySku = mpBySku.get(String(it.sku).trim().toLowerCase());
+          if (bySku && parseFloat(bySku.cost_price || 0) > 0) mProd = bySku;
+        }
+        if ((!mProd || parseFloat(mProd.cost_price || 0) <= 0) && it.seller_sku) {
+          const bySku = mpBySku.get(String(it.seller_sku).trim().toLowerCase());
+          if (bySku && parseFloat(bySku.cost_price || 0) > 0) mProd = bySku;
+        }
         return {
           id: it.id,
           name: it.product_name || mProd?.name || it.master_name,
