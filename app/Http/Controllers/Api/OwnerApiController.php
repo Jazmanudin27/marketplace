@@ -243,6 +243,17 @@ class OwnerApiController extends Controller
             });
         }
 
+        $todayOnly = $request->boolean('today_only');
+        if ($todayOnly) {
+            $today = Carbon::today();
+            $query->where(function ($q) use ($today) {
+                $q->whereDate('completed_at', $today)
+                  ->orWhere(function ($sq) use ($today) {
+                      $sq->whereNull('completed_at')->whereDate('order_date', $today);
+                  });
+            });
+        }
+
         $orders = $query->orderBy('created_at', 'desc')->paginate($limit);
 
         $formatted = $orders->getCollection()->map(function ($order) {
@@ -296,6 +307,9 @@ class OwnerApiController extends Controller
                 'completedAt'    => $order->completed_at ? Carbon::parse($order->completed_at)->format('d M Y H:i') : ($order->created_at ? Carbon::parse($order->created_at)->format('d M Y H:i') : '—'),
                 'status'         => strtoupper($order->order_status ?: 'COMPLETED'),
                 'quantity'       => max(1, $totalQty),
+                'totalAmount'    => round((float) $order->total_amount, 0),
+                'marketplaceFee' => round((float) $order->marketplace_fee, 0),
+                'refundAmount'   => round((float) $order->refund_amount, 0),
                 'releasedValue'  => round($orderReleased, 0),
                 'hppModal'       => round($orderHpp, 0),
                 'margin'         => round($orderMargin, 0),

@@ -3,9 +3,15 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 /**
  * Fetch Order list with lightweight pagination & filtering
  */
-export async function fetchOrders({ status = 'ALL', search = '', page = 1, limit = 20 } = {}) {
+export async function fetchOrders({ status = 'ALL', search = '', page = 1, limit = 20, todayOnly = false } = {}) {
   try {
-    const params = new URLSearchParams({ status, search, page: String(page), limit: String(limit) });
+    const params = new URLSearchParams({ 
+      status, 
+      search, 
+      page: String(page), 
+      limit: String(limit),
+      ...(todayOnly ? { today_only: '1' } : {})
+    });
     const token = localStorage.getItem('owner_token') || '';
     const userStr = localStorage.getItem('owner_user');
     const user = userStr ? JSON.parse(userStr) : null;

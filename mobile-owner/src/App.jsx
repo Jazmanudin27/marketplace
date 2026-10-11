@@ -252,6 +252,7 @@ export default function App() {
             metricType={selectedFinanceMetric}
             metrics={metrics}
             onClose={() => setSelectedFinanceMetric(null)}
+            onSelectOrder={(order) => setSelectedOrder(order)}
             onOpenOrders={(filter) => {
               setSelectedFinanceMetric(null);
               handleOpenOrders(filter);
