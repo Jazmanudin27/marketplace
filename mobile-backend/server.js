@@ -224,6 +224,19 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
     }
   } catch (_) {}
 
+  // Cache master_products tenant by ID dan SKU untuk fallback produk yang belum linked
+  const mpById = new Map();
+  const mpBySku = new Map();
+  try {
+    const mpRows = await query('SELECT id, sku, cost_price, name FROM master_products WHERE tenant_id = ?', [tenantId]);
+    for (const m of mpRows) {
+      if (m.id) mpById.set(m.id, m);
+      if (m.sku) {
+        mpBySku.set(String(m.sku).trim().toLowerCase(), m);
+      }
+    }
+  } catch (_) {}
+
   const orderIds = orders.map(o => o.id);
   let itemsByOrder = {};
   if (orderIds.length > 0) {
@@ -279,26 +292,36 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
       absFee = calculateOrderFee(o);
     }
 
+    const omset = parseFloat(o.total_amount || 0);
     // Refund persis Order::getRefundAmountAttribute di ERP:
     const refund = calculateOrderRefund(o, returnMap);
-    const isRefundOrReturn = ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL', 'IN_CANCEL'].includes(String(o.order_status || '').toUpperCase()) || refund > 0;
+    const isFullRefundOrReturn = ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL', 'IN_CANCEL'].includes(String(o.order_status || '').toUpperCase())
+      || (omset > 0 && refund >= omset);
 
-    // HPP persis Order::getHppTotalAttribute di ERP (Khusus pesanan refund / retur HPP bernilai 0):
+    // HPP persis Order::getHppTotalAttribute di ERP (Hanya pesanan full retur/batal yang HPP-nya 0):
     let hpp = 0;
-    if (!isRefundOrReturn) {
+    if (!isFullRefundOrReturn) {
       for (const it of oItems) {
         const sub = parseFloat(it.hpp_subtotal || 0);
+        const q = parseInt(it.quantity || 1, 10);
         if (sub > 0) {
           hpp += sub;
+        } else if (parseFloat(it.cost_price || 0) > 0) {
+          hpp += (parseFloat(it.cost_price) * q);
         } else {
-          const cost = parseFloat(it.cost_price || it.master_cost_price || 0);
-          const q = parseInt(it.quantity || 1, 10);
+          let mProd = (it.master_product_id ? mpById.get(it.master_product_id) : null);
+          if (!mProd && it.sku) {
+            mProd = mpBySku.get(String(it.sku).trim().toLowerCase());
+          }
+          if (!mProd && it.seller_sku) {
+            mProd = mpBySku.get(String(it.seller_sku).trim().toLowerCase());
+          }
+          const cost = parseFloat(mProd?.cost_price || it.master_cost_price || 0);
           hpp += (cost * q);
         }
       }
     }
 
-    const omset = parseFloat(o.total_amount || 0);
     const netAmt = parseFloat(o.net_amount || 0);
     const marginRp = netAmt - hpp;
     const marginPct = netAmt > 0 ? Math.round((marginRp / netAmt) * 10000) / 100 : 0;
@@ -345,18 +368,23 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
       marginRp,
       marginPct,
       status: o.order_status,
-      items: oItems.map(it => ({
-        id: it.id,
-        name: it.product_name || it.master_name,
-        productName: it.product_name || it.master_name,
-        sku: it.master_sku || it.sku,
-        size: it.sku_name || '',
-        quantity: parseInt(it.quantity || 1, 10),
-        qty: parseInt(it.quantity || 1, 10),
-        price: parseFloat(it.price || it.unit_price || 0),
-        totalPrice: parseFloat(it.total_price || 0),
-        costPrice: parseFloat(it.cost_price || it.master_cost_price || 0)
-      }))
+      items: oItems.map(it => {
+        let mProd = (it.master_product_id ? mpById.get(it.master_product_id) : null);
+        if (!mProd && it.sku) mProd = mpBySku.get(String(it.sku).trim().toLowerCase());
+        if (!mProd && it.seller_sku) mProd = mpBySku.get(String(it.seller_sku).trim().toLowerCase());
+        return {
+          id: it.id,
+          name: it.product_name || mProd?.name || it.master_name,
+          productName: it.product_name || mProd?.name || it.master_name,
+          sku: it.master_sku || mProd?.sku || it.sku,
+          size: it.sku_name || '',
+          quantity: parseInt(it.quantity || 1, 10),
+          qty: parseInt(it.quantity || 1, 10),
+          price: parseFloat(it.price || it.unit_price || 0),
+          totalPrice: parseFloat(it.total_price || 0),
+          costPrice: parseFloat(it.cost_price || mProd?.cost_price || it.master_cost_price || 0)
+        };
+      })
     });
   }
 

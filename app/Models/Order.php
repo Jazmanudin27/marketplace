@@ -422,20 +422,43 @@ class Order extends Model
      */
     public function getHppTotalAttribute(): float
     {
-        // Khusus pesanan refund / retur / batal, HPP bernilai 0 (barang kembali / modal tidak terpakai)
+        // Khusus pesanan full refund / retur / batal, HPP bernilai 0 (barang kembali / modal tidak terpakai)
         $status = strtoupper((string) ($this->order_status ?? ''));
-        if (in_array($status, ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL', 'IN_CANCEL']) || (float)$this->refund_amount > 0) {
+        $isFullReturn = in_array($status, ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL', 'IN_CANCEL'])
+            || ((float)$this->total_amount > 0 && (float)$this->refund_amount >= (float)$this->total_amount);
+
+        if ($isFullReturn) {
             return 0.0;
         }
 
         $total = 0.0;
         foreach ($this->items as $item) {
-            if ($item->hpp_subtotal > 0) {
+            $qty = max(1, (int)($item->quantity ?? 1));
+            if ((float)$item->hpp_subtotal > 0) {
                 $total += (float) $item->hpp_subtotal;
-            } elseif ($item->master_product_id) {
+            } elseif ((float)$item->cost_price > 0) {
+                $total += (float) $item->cost_price * $qty;
+            } else {
                 $mp = $item->masterProduct;
-                if ($mp) {
-                    $total += (float) $mp->cost_price * $item->quantity;
+                if (!$mp && !empty($item->sku)) {
+                    $skuClean = trim($item->sku);
+                    $mp = MasterProduct::where('tenant_id', $this->tenant_id)
+                        ->where(function ($q) use ($skuClean, $item) {
+                            $q->where('sku', $skuClean);
+                            if (!empty($item->seller_sku)) {
+                                $q->orWhere('sku', trim($item->seller_sku));
+                            }
+                        })
+                        ->first();
+                }
+                if (!$mp && $item->marketplace_product_id) {
+                    $mktProd = MarketplaceProduct::find($item->marketplace_product_id);
+                    if ($mktProd && $mktProd->master_product_id) {
+                        $mp = MasterProduct::find($mktProd->master_product_id);
+                    }
+                }
+                if ($mp && (float)$mp->cost_price > 0) {
+                    $total += (float) $mp->cost_price * $qty;
                 }
             }
         }

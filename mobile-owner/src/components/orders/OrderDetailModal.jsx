@@ -149,7 +149,7 @@ export default function OrderDetailModal({ order, onClose }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#475569' }}>
             <span>Total Modal HPP Barang:</span>
             <span style={{ color: '#dc2626', fontWeight: '600' }}>
-              - {formatRupiah(((order.refund || 0) > 0 || ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR'].includes(String(order.status || '').toUpperCase())) ? 0 : (order.hppModal ?? order.hpp ?? 0))}
+              - {formatRupiah((['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL'].includes(String(order.status || '').toUpperCase()) || ((order.totalAmount || order.releasedValue) > 0 && (order.refund || 0) >= (order.totalAmount || order.releasedValue))) ? 0 : (order.hppModal ?? order.hpp ?? 0))}
             </span>
           </div>
 

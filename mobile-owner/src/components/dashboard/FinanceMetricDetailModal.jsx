@@ -267,8 +267,8 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
             filtered.map((order) => {
               const badge = getChannelBadge(order.channel || order.storeName);
               const orderPenjualan = order.omset ?? order.totalAmount ?? order.releasedValue ?? 0;
-              const isOrderRefundOrReturn = ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL'].includes(String(order.status || '').toUpperCase()) || (parseFloat(order.refund || 0) > 0);
-              const orderHpp = isOrderRefundOrReturn ? 0 : (order.hpp ?? order.hppModal ?? 0);
+              const isOrderFullRefundOrReturn = ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL'].includes(String(order.status || '').toUpperCase()) || (orderPenjualan > 0 && parseFloat(order.refund || 0) >= orderPenjualan);
+              const orderHpp = isOrderFullRefundOrReturn ? 0 : (order.hpp ?? order.hppModal ?? 0);
               const orderAdmin = order.totalFee ?? order.marketplaceFee ?? 0;
               const orderMargin = order.marginRp ?? order.margin ?? 0;
 
