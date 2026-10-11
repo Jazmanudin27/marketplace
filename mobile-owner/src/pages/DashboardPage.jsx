@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import QuickFinanceGrid from '../components/dashboard/QuickFinanceGrid';
-import HighlightBanners from '../components/dashboard/HighlightBanners';
 import OwnerMenuGrid from '../components/dashboard/OwnerMenuGrid';
 import OrderCard from '../components/orders/OrderCard';
 import { Search, ArrowRight } from 'lucide-react';
@@ -32,13 +31,6 @@ export default function DashboardPage({
       <QuickFinanceGrid 
         metrics={metrics} 
         onOpenFinance={onOpenFinance} 
-      />
-
-      {/* 2 Wide Highlight Banners (Omset & Target Komisi) */}
-      <HighlightBanners 
-        metrics={metrics} 
-        onOpenFinance={onOpenFinance}
-        onOpenTarget={onOpenTarget}
       />
 
       {/* 12 Owner App Launcher Grid */}
