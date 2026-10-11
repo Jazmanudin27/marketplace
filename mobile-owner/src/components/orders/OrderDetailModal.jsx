@@ -8,7 +8,7 @@ export default function OrderDetailModal({ order, onClose }) {
   const channelBadge = getChannelBadge(order.channel || order.storeName);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" style={{ zIndex: 2200 }} onClick={onClose}>
       <div className="bottom-sheet-card" onClick={(e) => e.stopPropagation()}>
         {/* Top Drag Handle */}
         <div className="sheet-handle"></div>

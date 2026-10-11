@@ -18,7 +18,20 @@ import { initialOwnerProfile, initialOwnerMetrics, initialOrders } from './api/m
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => getCurrentOwnerUser());
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const savedTab = localStorage.getItem('owner_active_tab');
+      return savedTab || 'home';
+    } catch {
+      return 'home';
+    }
+  });
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    localStorage.setItem('owner_active_tab', tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const [profile, setProfile] = useState(() => {
     try {
       const cached = localStorage.getItem('owner_profile_cache');
@@ -98,13 +111,11 @@ export default function App() {
 
   const handleOpenOrders = (filter = 'ALL') => {
     setOrdersFilter(filter);
-    setActiveTab('orders');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    handleTabChange('orders');
   };
 
   const handleOpenFinance = () => {
-    setActiveTab('finance');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    handleTabChange('finance');
   };
 
   const handleScanClick = () => {
@@ -123,7 +134,7 @@ export default function App() {
     if (confirm('Apakah Anda yakin ingin keluar dari Portal Owner?')) {
       logoutOwner();
       setCurrentUser(null);
-      setActiveTab('home');
+      handleTabChange('home');
     }
   };
 
@@ -153,25 +164,25 @@ export default function App() {
           <SubPageHeader 
             title="Daftar Order" 
             subtitle="Semua transaksi marketplace & POS"
-            onBack={() => setActiveTab('home')} 
+            onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'analytics' ? (
           <SubPageHeader 
             title="Grafik & Analisis" 
             subtitle="Performa omset, margin & channel"
-            onBack={() => setActiveTab('home')} 
+            onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'finance' ? (
           <SubPageHeader 
             title="Keuangan & Kas" 
             subtitle="Ringkasan kas, target & laba rugi"
-            onBack={() => setActiveTab('home')} 
+            onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'profile' ? (
           <SubPageHeader 
             title="Profil & Toko" 
             subtitle="Pengaturan akun & integrasi toko"
-            onBack={() => setActiveTab('home')} 
+            onBack={() => handleTabChange('home')} 
           />
         ) : null}
 
@@ -185,20 +196,14 @@ export default function App() {
             onOpenFinance={handleOpenFinance}
             onOpenTarget={handleOpenFinance}
             onSelectFinanceMetric={(type) => setSelectedFinanceMetric(type)}
-            onOpenAnalytics={() => {
-              setActiveTab('analytics');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            onOpenAnalytics={() => handleTabChange('analytics')}
             onOpenAllModules={() => setIsAllModulesOpen(true)}
             onSelectMenu={(menuId) => {
               if (menuId === 'orders') handleOpenOrders('ALL');
               else if (menuId === 'returns') handleOpenOrders('RETURNED');
-              else if (menuId === 'analytics') {
-                setActiveTab('analytics');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
+              else if (menuId === 'analytics') handleTabChange('analytics');
               else if (menuId === 'target' || menuId === 'margin' || menuId === 'cashflow' || menuId === 'reports') handleOpenFinance();
-              else if (menuId === 'settings' || menuId === 'stores' || menuId === 'company' || menuId === 'users') setActiveTab('profile');
+              else if (menuId === 'settings' || menuId === 'stores' || menuId === 'company' || menuId === 'users') handleTabChange('profile');
               else if (menuId === 'scanner') handleScanClick();
               else if (menuId === 'all_modules') setIsAllModulesOpen(true);
               else {
@@ -239,10 +244,7 @@ export default function App() {
         {/* Floating Bottom Navigation Bar */}
         <BottomNav 
           activeTab={activeTab}
-          onTabChange={(tab) => {
-            setActiveTab(tab);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onTabChange={handleTabChange}
           onScanClick={handleScanClick}
         />
 
@@ -260,7 +262,6 @@ export default function App() {
           />
         )}
 
-        {/* Order Detail Modal */}
         {selectedOrder && (
           <OrderDetailModal 
             order={selectedOrder}
@@ -277,7 +278,7 @@ export default function App() {
             else if (actionId === 'returns') handleOpenOrders('RETURNED');
             else if (actionId === 'margin' || actionId === 'cashflow' || actionId === 'marketplace_wallets' || actionId === 'hutang_supplier') handleOpenFinance();
             else if (actionId === 'scanner') handleScanClick();
-            else if (actionId === 'stores' || actionId === 'users' || actionId === 'company') setActiveTab('profile');
+            else if (actionId === 'stores' || actionId === 'users' || actionId === 'company') handleTabChange('profile');
             else {
               alert(`🚀 Modul "${actionId}" terpilih. Sedang sinkronisasi data ERP.`);
             }

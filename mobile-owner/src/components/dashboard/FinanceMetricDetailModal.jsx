@@ -239,7 +239,6 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
                   key={order.id} 
                   onClick={() => {
                     if (onSelectOrder) {
-                      onClose();
                       onSelectOrder(order);
                     }
                   }}
