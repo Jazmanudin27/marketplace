@@ -281,13 +281,18 @@ class OwnerApiController extends Controller
                 $unitHpp = (float) ($item->cost_price ?: ($item->masterProduct ? $item->masterProduct->cost_price : 0));
                 $orderHpp += ($unitHpp * $item->quantity);
 
+                $itemPrice = (float) ($item->price ?: ($item->total_price ?: ($item->unit_price ?: 0)));
+                if ($itemPrice <= 0 && $item->quantity > 0 && (float) $order->total_amount > 0) {
+                    $itemPrice = (float) $order->total_amount / $item->quantity;
+                }
+
                 $itemsList[] = [
                     'id'             => $item->id,
                     'productName'    => $item->product_name ?: ($item->masterProduct ? $item->masterProduct->name : 'Produk'),
                     'sku'            => $item->sku ?: ($item->masterProduct ? $item->masterProduct->sku : '—'),
-                    'size'           => $item->variation_name ?: 'Standar',
+                    'size'           => $item->variation_name ?: ($item->variation ?: 'Standar'),
                     'quantity'       => (int) $item->quantity,
-                    'price'          => (float) $item->unit_price,
+                    'price'          => $itemPrice,
                     'costPrice'      => $unitHpp,
                     'marketplaceFee' => (float) ($item->marketplace_fee ?? 0),
                 ];

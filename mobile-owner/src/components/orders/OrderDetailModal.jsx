@@ -108,7 +108,7 @@ export default function OrderDetailModal({ order, onClose }) {
 
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>
-                    {formatRupiah(item.price)}
+                    {formatRupiah(item.price > 0 ? item.price : ((order.totalAmount || order.releasedValue || 0) / Math.max(1, order.quantity || 1)))}
                   </div>
                   <div style={{ fontSize: '10.5px', color: '#64748b' }}>
                     HPP: {formatRupiah(item.costPrice)}
