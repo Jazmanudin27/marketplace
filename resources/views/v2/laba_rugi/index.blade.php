@@ -294,51 +294,8 @@
         </div>
     </div>
 
-    {{-- ── Right Column: Cash Pools & Performance Summary ── --}}
+    {{-- ── Right Column: Performance Summary ── --}}
     <div class="col-lg-4">
-        <!-- Card Cash Pools -->
-        <div class="card border-0 shadow-sm rounded-3 mb-4">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h6 class="card-title fw-bold mb-0 text-dark">
-                    <i class="bi bi-wallet2 text-warning me-2"></i>Saldo Kas Real-time
-                </h6>
-            </div>
-            <div class="card-body p-3">
-                <div class="p-3 bg-light rounded-3 mb-3 border">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="small text-secondary fw-semibold">Saldo Kas Besar</span>
-                        <i class="bi bi-bank text-primary"></i>
-                    </div>
-                    <div class="fs-5 fw-bold text-dark font-monospace">
-                        Rp {{ number_format($balanceKasBesar, 0, ',', '.') }}
-                    </div>
-                    <small class="text-muted" style="font-size: 0.7rem;">Rekening Bank & Utama</small>
-                </div>
-
-                <div class="p-3 bg-light rounded-3 mb-3 border">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="small text-secondary fw-semibold">Saldo Kas Kecil (Petty Cash)</span>
-                        <i class="bi bi-cash-stack text-success"></i>
-                    </div>
-                    <div class="fs-5 fw-bold text-dark font-monospace">
-                        Rp {{ number_format($balanceKasKecil, 0, ',', '.') }}
-                    </div>
-                    <small class="text-muted" style="font-size: 0.7rem;">Operasional Harian Toko</small>
-                </div>
-
-                <div class="p-3 rounded-3 border" style="background: #f0fdf4; border-color: #bbf7d0 !important;">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="small text-success fw-bold">Total Liquid Cash</span>
-                        <i class="bi bi-check-circle-fill text-success"></i>
-                    </div>
-                    <div class="fs-5 fw-bold text-success font-monospace">
-                        Rp {{ number_format($balanceKasBesar + $balanceKasKecil, 0, ',', '.') }}
-                    </div>
-                    <small class="text-success opacity-75" style="font-size: 0.7rem;">Total Dana Siap Pakai</small>
-                </div>
-            </div>
-        </div>
-
         <!-- Card Quick Info -->
         <div class="card border-0 shadow-sm rounded-3">
             <div class="card-header bg-white py-3 border-bottom">

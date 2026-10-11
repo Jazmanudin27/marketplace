@@ -25,11 +25,18 @@ class FinancialReportController extends Controller
         // 1. REVENUE (PENDAPATAN)
         // ==========================================
         
-        // A. Online Sales (Marketplace)
+        // A. Online Sales (Marketplace - Penjualan Dilepas / Selesai)
+        // Diselaraskan dengan Laporan Penjualan Dilepas
         $onlineOrders = Order::with('items.masterProduct')
             ->where('tenant_id', $tenantId)
-            ->whereNotIn('order_status', ['CANCELLED'])
-            ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+            ->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR'])
+            ->where(function($q) use ($dateFrom, $dateTo) {
+                $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                  ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
+                      $subQ->whereNull('completed_at')
+                           ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                  });
+            })
             ->get();
 
         $onlineRevenue = (float) $onlineOrders->sum('net_amount'); // Pencairan Bersih

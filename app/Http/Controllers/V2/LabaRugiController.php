@@ -27,11 +27,18 @@ class LabaRugiController extends Controller
         $dateFrom = $request->get('date_from', Carbon::now()->startOfMonth()->toDateString());
         $dateTo   = $request->get('date_to', Carbon::now()->toDateString());
 
-        // 1. ONLINE SALES (MARKETPLACE)
+        // 1. ONLINE SALES (MARKETPLACE - PENJUALAN DILEPAS / SELESAI)
+        // Diselaraskan dengan Laporan Penjualan Dilepas (Filter status COMPLETED/SELESAI & tanggal pencairan/completed_at)
         $onlineOrders = Order::with('items.masterProduct')
             ->where('tenant_id', $tenantId)
-            ->whereNotIn('order_status', ['CANCELLED'])
-            ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+            ->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR'])
+            ->where(function($q) use ($dateFrom, $dateTo) {
+                $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                  ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
+                      $subQ->whereNull('completed_at')
+                           ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                  });
+            })
             ->get();
 
         $onlineRevenue = (float) $onlineOrders->sum('net_amount');
