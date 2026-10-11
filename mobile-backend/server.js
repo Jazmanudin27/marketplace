@@ -1084,7 +1084,7 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
         }
 
         let ordersQuery = `
-          SELECT id, store_id, total_amount, net_amount, refund_amount, marketplace_fee, order_status,
+          SELECT id, store_id, total_amount, net_amount, marketplace_fee, order_status, financial_breakdown,
                  COALESCE(completed_at, updated_at, order_date) as ref_date
           FROM orders 
           WHERE store_id IN (?)
@@ -1103,8 +1103,20 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
         if (orders.length > 0) {
           const orderIds = orders.map(o => o.id);
 
-          // Return items lookup aman & cepat
+          // Return items lookup & return orders refund lookup
           const returnMap = new Map();
+          const returnRefundMap = {};
+
+          try {
+            const returnOrderRows = await query(
+              `SELECT order_id, refund_amount FROM return_orders WHERE order_id IN (?)`,
+              [orderIds]
+            );
+            for (const rr of returnOrderRows) {
+              returnRefundMap[rr.order_id] = parseFloat(rr.refund_amount || 0);
+            }
+          } catch (_) {}
+
           try {
             const returnRows = await query(
               `SELECT roi.order_item_id, SUM(roi.quantity) as ret_qty
@@ -1142,7 +1154,7 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
 
           for (const ord of orders) {
             const totAmt = parseFloat(ord.total_amount || 0);
-            const refAmt = parseFloat(ord.refund_amount || 0);
+            const refAmt = calculateOrderRefund(ord, returnRefundMap);
             const mktFee = parseFloat(ord.marketplace_fee || 0);
             let netAmt = parseFloat(ord.net_amount || 0);
 
