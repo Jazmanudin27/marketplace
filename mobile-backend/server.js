@@ -2575,9 +2575,34 @@ app.get('/api/v2/owner/laporan-penjualan', async (req, res) => {
       }
     }
 
+    const productMap = {};
+    for (const t of rep.transactions) {
+      for (const it of (t.items || [])) {
+        const pKey = it.sku || it.name || 'Produk';
+        if (!productMap[pKey]) {
+          productMap[pKey] = {
+            sku: it.sku || '-',
+            name: it.name || it.productName || 'Produk',
+            quantity: 0,
+            omset: 0,
+            hpp: 0,
+            margin: 0
+          };
+        }
+        const q = parseInt(it.qty || it.quantity || 1, 10);
+        const itemOmset = parseFloat(it.totalPrice || (it.price * q) || 0);
+        const itemCost = parseFloat(it.costPrice || 0) * q;
+        productMap[pKey].quantity += q;
+        productMap[pKey].omset += itemOmset;
+        productMap[pKey].hpp += itemCost;
+        productMap[pKey].margin += (itemOmset - itemCost);
+      }
+    }
+
     const byStore = Object.values(storeMap).sort((a, b) => b.omset - a.omset);
     const byChannel = Object.values(channelMap).sort((a, b) => b.omset - a.omset);
     const byDate = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
+    const byProduct = Object.values(productMap).sort((a, b) => b.quantity - a.quantity);
 
     let storeOptions = [];
     try {
@@ -2613,6 +2638,7 @@ app.get('/api/v2/owner/laporan-penjualan', async (req, res) => {
       byStore,
       byChannel,
       byDate,
+      byProduct,
       transactions: rep.transactions.slice(0, 50),
     });
   } catch (err) {
