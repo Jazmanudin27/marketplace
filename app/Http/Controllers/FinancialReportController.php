@@ -51,12 +51,9 @@ class FinancialReportController extends Controller
             $offlineHpp += $sale->hpp_total;
         }
 
-        // C. Pemasukan Lain-Lain
-        $otherIncomes = Income::where('tenant_id', $tenantId)
-            ->whereBetween('income_date', [$dateFrom, $dateTo])
-            ->get();
-
-        $totalOtherIncome = (float) $otherIncomes->sum('amount');
+        // C. Pemasukan Lain-Lain Ditiadakan
+        $otherIncomes = collect();
+        $totalOtherIncome = 0.0;
 
         // Total Pendapatan & HPP
         $totalSalesRevenue = $onlineRevenue + $offlineRevenue;
@@ -115,13 +112,13 @@ class FinancialReportController extends Controller
         $totalExpenses = (float) $expenses->sum('amount');
 
         // ==========================================
-        // 3. NET PROFIT (LABA BERSIH)
+        // 3. NET PROFIT (LABA BERSIH) MURNI
         // ==========================================
-        $netProfit = $grossProfit + $totalOtherIncome - $totalExpenses;
+        $netProfit = $grossProfit - $totalExpenses;
 
         // Margin Persentase
-        $netRevenueWithOther = $totalSalesRevenue + $totalOtherIncome;
-        $profitMargin = $netRevenueWithOther > 0 ? round(($netProfit / $netRevenueWithOther) * 100, 2) : 0;
+        $netRevenueWithOther = $totalSalesRevenue;
+        $profitMargin = $totalSalesRevenue > 0 ? round(($netProfit / $totalSalesRevenue) * 100, 2) : 0;
 
         // ==========================================
         // 4. CASH POOLS BALANCES (AKUMULASI CUMULATIVE)

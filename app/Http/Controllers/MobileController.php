@@ -595,10 +595,9 @@ class MobileController extends Controller
             $offlineHpp += $sale->hpp_total;
         }
 
-        $otherIncomes = \App\Models\Income::where('tenant_id', $tenantId)
-            ->whereBetween('income_date', [$dateFrom, $dateTo])
-            ->get();
-        $totalOtherIncome = (float) $otherIncomes->sum('amount');
+        // Pemasukan Lain-Lain Ditiadakan
+        $otherIncomes = collect();
+        $totalOtherIncome = 0.0;
 
         $totalSalesRevenue = $onlineRevenue + $offlineRevenue;
         $totalHpp = $onlineHpp + $offlineHpp;
@@ -651,9 +650,9 @@ class MobileController extends Controller
 
         $totalExpenses = (float) $expenses->sum('amount');
 
-        $netProfit = $grossProfit + $totalOtherIncome - $totalExpenses;
-        $netRevenueWithOther = $totalSalesRevenue + $totalOtherIncome;
-        $profitMargin = $netRevenueWithOther > 0 ? round(($netProfit / $netRevenueWithOther) * 100, 2) : 0;
+        $netProfit = $grossProfit - $totalExpenses;
+        $netRevenueWithOther = $totalSalesRevenue;
+        $profitMargin = $totalSalesRevenue > 0 ? round(($netProfit / $totalSalesRevenue) * 100, 2) : 0;
 
         return view('mobile.owner_profit_loss', compact(
             'dateFrom', 'dateTo',

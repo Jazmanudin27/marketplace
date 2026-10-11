@@ -54,12 +54,9 @@ class LabaRugiController extends Controller
             $offlineHpp += (float) $sale->hpp_total;
         }
 
-        // 3. OTHER INCOMES
-        $otherIncomes = Income::where('tenant_id', $tenantId)
-            ->whereBetween('income_date', [$dateFrom, $dateTo])
-            ->get();
-
-        $totalOtherIncome = (float) $otherIncomes->sum('amount');
+        // 3. OTHER INCOMES - Ditiadakan (Hanya Penjualan Produk & Biaya Operasional)
+        $otherIncomes = collect();
+        $totalOtherIncome = 0.0;
 
         // TOTAL OMSET & LABA KOTOR
         $totalSalesRevenue = $onlineRevenue + $offlineRevenue;
@@ -117,10 +114,10 @@ class LabaRugiController extends Controller
 
         $totalExpenses = (float) $expenses->sum('amount');
 
-        // 5. NET PROFIT (LABA BERSIH)
-        $netProfit = $grossProfit + $totalOtherIncome - $totalExpenses;
-        $netRevenueWithOther = $totalSalesRevenue + $totalOtherIncome;
-        $profitMargin = $netRevenueWithOther > 0 ? round(($netProfit / $netRevenueWithOther) * 100, 2) : 0;
+        // 5. NET PROFIT (LABA BERSIH) MURNI
+        $netProfit = $grossProfit - $totalExpenses;
+        $netRevenueWithOther = $totalSalesRevenue;
+        $profitMargin = $totalSalesRevenue > 0 ? round(($netProfit / $totalSalesRevenue) * 100, 2) : 0;
 
         // 6. CASH POOLS
         $cumIncomesKasBesar = (float) Income::where('tenant_id', $tenantId)->where('payment_destination', 'kas_besar')->sum('amount');

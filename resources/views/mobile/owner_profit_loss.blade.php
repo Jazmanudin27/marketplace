@@ -122,13 +122,9 @@
                     <span class="text-muted">Penjualan Offline / Grosir</span>
                     <span class="text-dark fw-medium">Rp {{ number_format($offlineRevenue, 0, ',', '.') }}</span>
                 </div>
-                <div class="financial-row">
-                    <span class="text-muted">Pemasukan Lain-Lain</span>
-                    <span class="text-dark fw-medium">Rp {{ number_format($totalOtherIncome, 0, ',', '.') }}</span>
-                </div>
                 <div class="financial-row total-row">
                     <span>Total Pendapatan</span>
-                    <span class="text-success">Rp {{ number_format($totalSalesRevenue + $totalOtherIncome, 0, ',', '.') }}</span>
+                    <span class="text-success">Rp {{ number_format($totalSalesRevenue, 0, ',', '.') }}</span>
                 </div>
             </div>
 

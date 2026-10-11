@@ -146,17 +146,7 @@
                     </tr>
 
                     <tr class="table-light">
-                        <td class="fw-bold px-3 small text-dark"><i class="fas fa-chevron-right me-2 text-info" style="font-size:0.8rem;"></i>IV. PENDAPATAN & PEMASUKAN LAIN-LAIN</td>
-                        <td></td><td></td>
-                    </tr>
-                    <tr>
-                        <td class="ps-4 text-muted small">A. Pemasukan Non-Penjualan (Investasi, Refund, Jasa, Lainnya)</td>
-                        <td class="text-end font-monospace text-info small">Rp {{ number_format($totalOtherIncome, 0, ',', '.') }}</td>
-                        <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round(($totalOtherIncome / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
-                    </tr>
-
-                    <tr class="table-light">
-                        <td class="fw-bold px-3 small text-dark"><i class="fas fa-chevron-right me-2 text-warning" style="font-size:0.8rem;"></i>V. PENGELUARAN & BIAYA OPERASIONAL</td>
+                        <td class="fw-bold px-3 small text-dark"><i class="fas fa-chevron-right me-2 text-warning" style="font-size:0.8rem;"></i>IV. PENGELUARAN & BIAYA OPERASIONAL</td>
                         <td></td><td></td>
                     </tr>
                     @if(isset($expensesCategoryList) && count($expensesCategoryList) > 0)
@@ -218,38 +208,7 @@
 
 {{-- DETIL DATA PENDUKUNG --}}
 <div class="row g-3">
-    <div class="col-lg-6">
-        <div class="card border rounded shadow-sm bg-white h-100">
-            <div class="card-header bg-success bg-opacity-10 py-2 px-3 border-0">
-                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-arrow-up text-success me-2"></i>Rincian Pemasukan Lain-Lain (Periode Ini)</h6>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr><th>Tanggal</th><th>Judul</th><th>Kas Tujuan</th><th class="text-end">Nominal</th></tr>
-                        </thead>
-                        <tbody>
-                            @forelse($otherIncomes as $inc)
-                                <tr>
-                                    <td class="font-monospace small">{{ $inc->income_date->format('d/m/Y') }}</td>
-                                    <td>
-                                        <div class="fw-semibold small text-dark">{{ $inc->title }}</div>
-                                        <small class="text-muted">{{ $inc->category_label }}</small>
-                                    </td>
-                                    <td><span class="badge bg-secondary small">{{ $inc->payment_destination_label }}</span></td>
-                                    <td class="font-monospace fw-bold text-success text-end small">Rp {{ number_format($inc->amount, 0, ',', '.') }}</td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="4" class="text-center text-muted py-4">Tidak ada pemasukan lain pada periode ini.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-6">
+    <div class="col-lg-12">
         <div class="card border rounded shadow-sm bg-white h-100">
             <div class="card-header bg-danger bg-opacity-10 py-2 px-3 border-0">
                 <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-arrow-down text-danger me-2"></i>Rincian Pengeluaran Operasional (Periode Ini)</h6>

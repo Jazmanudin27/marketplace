@@ -259,18 +259,9 @@
                             <td class="text-end font-monospace fw-bold fs-6">Rp {{ number_format($grossProfit, 0, ',', '.') }}</td>
                         </tr>
 
-                        {{-- 4. PEMASUKAN LAIN-LAIN --}}
+                        {{-- 4. BIAYA OPERASIONAL --}}
                         <tr class="statement-header-row">
-                            <td colspan="2"><i class="bi bi-plus-circle me-2"></i>IV. PEMASUKAN LAIN-LAIN NON-OPERASIONAL</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-4">Pendapatan / Incomes Tambahan</td>
-                            <td class="text-end font-monospace">Rp {{ number_format($totalOtherIncome, 0, ',', '.') }}</td>
-                        </tr>
-
-                        {{-- 5. BIAYA OPERASIONAL --}}
-                        <tr class="statement-header-row">
-                            <td colspan="2"><i class="bi bi-receipt-cutoff me-2"></i>V. BIAYA & PENGELUARAN OPERASIONAL</td>
+                            <td colspan="2"><i class="bi bi-receipt-cutoff me-2"></i>IV. BIAYA & PENGELUARAN OPERASIONAL</td>
                         </tr>
                         @forelse($expensesCategoryList as $expCat)
                             <tr>
@@ -288,10 +279,10 @@
                             <td class="text-end font-monospace fw-bold text-danger">(Rp {{ number_format($totalExpenses, 0, ',', '.') }})</td>
                         </tr>
 
-                        {{-- 6. LABA BERSIH --}}
+                        {{-- 5. LABA BERSIH --}}
                         <tr class="{{ $netProfit >= 0 ? 'statement-net-positive' : 'statement-net-negative' }}">
                             <td class="fw-bold fs-6 py-3 ps-3">
-                                <i class="bi bi-graph-up-arrow me-2"></i>VI. LABA BERSIH PERIODE INI (NET PROFIT)
+                                <i class="bi bi-graph-up-arrow me-2"></i>V. LABA BERSIH PERIODE INI (NET PROFIT)
                             </td>
                             <td class="text-end font-monospace fw-bold fs-6 py-3 pe-3">
                                 Rp {{ number_format($netProfit, 0, ',', '.') }}
