@@ -15,18 +15,18 @@ export default function OrderDetailModal({ order, onClose }) {
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span style={{ fontFamily: 'monospace', fontWeight: '800', fontSize: '15px', color: '#1e293b' }}>
-                {order.invoiceNumber}
-              </span>
-              <span className={`store-pill ${channelBadge.class}`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontFamily: 'monospace', fontWeight: '800', fontSize: '15px', color: '#1e293b' }}>
+              {order.invoiceNumber}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className={`store-pill ${channelBadge.class}`} style={{ fontSize: '10px', padding: '2px 8px' }}>
                 {order.storeName}
               </span>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>
+                ID: {order.marketplaceId || order.invoiceNumber}
+              </span>
             </div>
-            <span style={{ fontSize: '11px', color: '#64748b' }}>
-              ID Marketplace: {order.marketplaceId || order.invoiceNumber}
-            </span>
           </div>
 
           <button 
