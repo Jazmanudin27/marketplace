@@ -11,6 +11,7 @@ import LabaRugiPage from './pages/LabaRugiPage';
 import MutasiKeuanganPage from './pages/MutasiKeuanganPage';
 import SaldoMarketplacePage from './pages/SaldoMarketplacePage';
 import LaporanPenjualanPage from './pages/LaporanPenjualanPage';
+import ReturMasukPage from './pages/ReturMasukPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import OrderDetailModal from './components/orders/OrderDetailModal';
@@ -262,6 +263,12 @@ export default function App() {
             subtitle="Rekap omset, HPP, fee marketplace & margin bersih"
             onBack={() => handleTabChange('home')} 
           />
+        ) : activeTab === 'retur_masuk' ? (
+          <SubPageHeader 
+            title="Retur Masuk" 
+            subtitle="Data retur marketplace & QC gudang V2"
+            onBack={() => handleTabChange('home')} 
+          />
         ) : activeTab === 'profile' ? (
           <SubPageHeader 
             title="Profil & Toko" 
@@ -285,7 +292,7 @@ export default function App() {
             onOpenAllModules={() => setIsAllModulesOpen(true)}
             onSelectMenu={(menuId) => {
               if (menuId === 'orders') handleOpenOrders('ALL');
-              else if (menuId === 'returns') handleOpenOrders('RETURNED');
+              else if (menuId === 'returns' || menuId === 'retur_masuk') handleTabChange('retur_masuk');
               else if (menuId === 'analytics') handleTabChange('analytics');
               else if (menuId === 'target' || menuId === 'target_komisi') handleTabChange('target_komisi');
               else if (menuId === 'margin' || menuId === 'laba_rugi') handleTabChange('laba_rugi');
@@ -346,6 +353,10 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'retur_masuk' && (
+          <ReturMasukPage />
+        )}
+
         {activeTab === 'laba_rugi' && (
           <LabaRugiPage />
         )}
@@ -400,7 +411,7 @@ export default function App() {
           onClose={() => setIsAllModulesOpen(false)}
           onSelectAction={(actionId) => {
             if (actionId === 'orders') handleOpenOrders('ALL');
-            else if (actionId === 'returns') handleOpenOrders('RETURNED');
+            else if (actionId === 'returns' || actionId === 'retur_masuk') handleTabChange('retur_masuk');
             else if (actionId === 'target') handleTabChange('target_komisi');
             else if (actionId === 'margin') handleTabChange('laba_rugi');
             else if (actionId === 'cashflow' || actionId === 'marketplace_wallets' || actionId === 'hutang_supplier') handleOpenFinance();

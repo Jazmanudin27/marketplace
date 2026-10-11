@@ -2647,6 +2647,178 @@ app.get('/api/v2/owner/laporan-penjualan', async (req, res) => {
   }
 });
 
+// ─── 10. RETUR MASUK (SINKRON ERP V2 ReturController) ───────────────────────
+app.get('/api/v2/owner/retur', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const { search, store_id: storeId, status, is_restocked: isRestocked } = req.query;
+    const page = Math.max(1, parseInt(req.query.page || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || '30', 10)));
+
+    let baseWhere = 'r.tenant_id = ?';
+    const baseParams = [tenantId];
+    if (search) {
+      baseWhere += ' AND (r.return_sn LIKE ? OR o.invoice_number LIKE ? OR o.order_marketplace_id LIKE ?)';
+      const s = `%${search}%`;
+      baseParams.push(s, s, s);
+    }
+    if (storeId) {
+      baseWhere += ' AND r.store_id = ?';
+      baseParams.push(storeId);
+    }
+
+    let listWhere = baseWhere;
+    const listParams = [...baseParams];
+    if (status) {
+      listWhere += ' AND r.status = ?';
+      listParams.push(status);
+    }
+    if (isRestocked !== undefined && isRestocked !== '') {
+      listWhere += ' AND r.is_restocked = ?';
+      listParams.push(parseInt(isRestocked, 10) ? 1 : 0);
+    }
+
+    const fromSql = `FROM return_orders r
+      LEFT JOIN orders o ON o.id = r.order_id
+      LEFT JOIN stores s ON s.id = r.store_id
+      LEFT JOIN channels c ON c.id = s.channel_id`;
+
+    const [statRow] = await query(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN r.is_restocked = 0 OR r.is_restocked IS NULL THEN 1 ELSE 0 END) AS pending_qc,
+              SUM(CASE WHEN r.is_restocked = 1 THEN 1 ELSE 0 END) AS already_qc,
+              SUM(CASE WHEN UPPER(r.status) = 'REQUESTED' THEN 1 ELSE 0 END) AS requested,
+              SUM(CASE WHEN UPPER(r.status) LIKE '%CLOSED%' OR UPPER(r.status) LIKE '%COMPLETED%'
+                        OR UPPER(r.status) LIKE '%SUCCESS%' OR UPPER(r.status) LIKE '%REFUNDED%' THEN 1 ELSE 0 END) AS completed,
+              COALESCE(SUM(r.refund_amount), 0) AS total_refund
+       ${fromSql} WHERE ${baseWhere}`,
+      baseParams
+    );
+
+    const [cntRow] = await query(`SELECT COUNT(*) AS cnt ${fromSql} WHERE ${listWhere}`, listParams);
+    const totalFiltered = parseInt(cntRow?.cnt || 0, 10);
+
+    const rows = await query(
+      `SELECT r.*, o.invoice_number, o.order_marketplace_id, o.buyer_name, o.total_amount AS order_total,
+              s.store_name, c.name AS channel_name, c.code AS channel_code
+       ${fromSql} WHERE ${listWhere}
+       ORDER BY r.created_at DESC, r.id DESC
+       LIMIT ? OFFSET ?`,
+      [...listParams, limit, (page - 1) * limit]
+    );
+
+    // Items: return_order_items -> order_items; fallback order_items milik order
+    const retIds = rows.map(r => r.id);
+    const orderIds = rows.map(r => r.order_id).filter(Boolean);
+    const retItemsMap = {};
+    const orderItemsMap = {};
+    if (retIds.length) {
+      try {
+        const ri = await query(
+          `SELECT roi.return_order_id, roi.quantity AS ret_qty, oi.*
+           FROM return_order_items roi
+           LEFT JOIN order_items oi ON oi.id = roi.order_item_id
+           WHERE roi.return_order_id IN (?)`,
+          [retIds]
+        );
+        for (const it of ri) {
+          (retItemsMap[it.return_order_id] = retItemsMap[it.return_order_id] || []).push({
+            name: it.product_name || 'Barang Retur',
+            sku: it.sku || '-',
+            variant: it.variant_name || '',
+            image: it.product_image || '',
+            qty: parseInt(it.ret_qty || 1, 10),
+            price: parseFloat(it.unit_price || 0),
+          });
+        }
+      } catch (_) {}
+    }
+    if (orderIds.length) {
+      try {
+        const oi = await query(
+          `SELECT * FROM order_items WHERE order_id IN (?)`,
+          [orderIds]
+        );
+        for (const it of oi) {
+          (orderItemsMap[it.order_id] = orderItemsMap[it.order_id] || []).push({
+            name: it.product_name || 'Barang Retur',
+            sku: it.sku || '-',
+            variant: it.variant_name || '',
+            image: it.product_image || '',
+            qty: parseInt(it.quantity || 1, 10),
+            price: parseFloat(it.unit_price || 0),
+          });
+        }
+      } catch (_) {}
+    }
+
+    const data = rows.map(r => {
+      const items = (retItemsMap[r.id] && retItemsMap[r.id].length) ? retItemsMap[r.id] : (orderItemsMap[r.order_id] || []);
+      return {
+        id: r.id,
+        returnSn: r.return_sn || `RTR-${r.id}`,
+        invoiceNumber: r.invoice_number || r.order_marketplace_id || '-',
+        storeName: r.store_name || 'Toko',
+        channelName: r.channel_name || 'Marketplace',
+        channelCode: (r.channel_code || '').toLowerCase(),
+        buyerName: r.buyer_name || '-',
+        reason: r.reason || '',
+        status: (r.status || 'REQUESTED').toUpperCase(),
+        refundAmount: parseFloat(r.refund_amount || 0),
+        isRestocked: !!r.is_restocked,
+        inspectionStatus: r.inspection_status || '',
+        inspectionNotes: r.inspection_notes || '',
+        trackingNumber: r.return_tracking_number || '',
+        shippingProvider: r.shipping_provider || '',
+        replacementOrderId: r.replacement_order_id || null,
+        createdAt: r.created_at,
+        dateFormatted: formatDateIndo(r.created_at),
+        items,
+        totalQty: items.reduce((a, b) => a + (b.qty || 0), 0),
+      };
+    });
+
+    let stores = [];
+    try {
+      stores = await query(
+        `SELECT s.id, s.store_name, c.name AS channel_name FROM stores s
+         LEFT JOIN channels c ON c.id = s.channel_id WHERE s.tenant_id = ? ORDER BY s.store_name`,
+        [tenantId]
+      );
+    } catch (_) {}
+
+    let statuses = [];
+    try {
+      const st = await query(
+        'SELECT DISTINCT status FROM return_orders WHERE tenant_id = ? AND status IS NOT NULL',
+        [tenantId]
+      );
+      statuses = st.map(x => x.status);
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      stats: {
+        total: parseInt(statRow?.total || 0, 10),
+        pendingQc: parseInt(statRow?.pending_qc || 0, 10),
+        alreadyQc: parseInt(statRow?.already_qc || 0, 10),
+        requested: parseInt(statRow?.requested || 0, 10),
+        completed: parseInt(statRow?.completed || 0, 10),
+        totalRefund: parseFloat(statRow?.total_refund || 0),
+      },
+      pagination: { page, limit, total: totalFiltered, lastPage: Math.max(1, Math.ceil(totalFiltered / limit)) },
+      filters: {
+        stores: stores.map(s => ({ id: s.id, name: s.store_name, channel: s.channel_name })),
+        statuses,
+      },
+      data,
+    });
+  } catch (err) {
+    console.error('[Node-API] Retur error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'mobile-owner-backend', time: new Date() });

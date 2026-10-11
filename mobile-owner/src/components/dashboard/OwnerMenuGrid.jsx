@@ -33,7 +33,7 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
     },
     {
       id: 'returns',
-      title: 'Order Retur',
+      title: 'Retur Masuk',
       category: 'Transaksi',
       icon: RotateCcw,
       gradient: 'linear-gradient(135deg, #ef4444, #dc2626)'

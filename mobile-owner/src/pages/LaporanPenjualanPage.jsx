@@ -165,7 +165,7 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
           }}
         >
           <DollarSign size={15} />
-          <span>Laporan Penjualan Dilepas (Dana Cair)</span>
+          <span>Laporan Penjualan Dilepas</span>
         </button>
 
         <button
@@ -192,7 +192,7 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
           }}
         >
           <Receipt size={15} />
-          <span>Laporan Rekap Penjualan (Semua)</span>
+          <span>Laporan Rekap Penjualan</span>
         </button>
       </div>
 

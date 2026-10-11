@@ -402,4 +402,31 @@ export async function fetchLaporanPenjualan({ dateFrom = '', dateTo = '', storeI
   return { success: false, summary: {}, byStore: [], byChannel: [], byDate: [], transactions: [] };
 }
 
+export async function fetchReturMasuk({ search = '', storeId = '', status = '', isRestocked = '', page = 1, limit = 30 } = {}) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (search) params.append('search', search);
+    if (storeId) params.append('store_id', storeId);
+    if (status) params.append('status', status);
+    if (isRestocked !== '') params.append('is_restocked', isRestocked);
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/retur?${params.toString()}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+    if (response.ok) return await response.json();
+  } catch (error) {
+    console.warn('[MetricsApi] fetchReturMasuk error:', error.message);
+  }
+  return { success: false, stats: {}, data: [], filters: { stores: [], statuses: [] }, pagination: { page: 1, lastPage: 1, total: 0 } };
+}
+
 
