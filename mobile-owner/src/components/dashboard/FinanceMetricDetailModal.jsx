@@ -259,10 +259,10 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
           ) : (
             filtered.map((order) => {
               const badge = getChannelBadge(order.channel || order.storeName);
-              const orderPenjualan = order.totalAmount || order.releasedValue || 0;
-              const orderHpp = order.hppModal || 0;
-              const orderAdmin = order.marketplaceFee || 0;
-              const orderMargin = order.margin || 0;
+              const orderPenjualan = order.omset ?? order.totalAmount ?? order.releasedValue ?? 0;
+              const orderHpp = order.hpp ?? order.hppModal ?? 0;
+              const orderAdmin = order.totalFee ?? order.marketplaceFee ?? 0;
+              const orderMargin = order.marginRp ?? order.margin ?? 0;
 
               return (
                 <div 

@@ -184,6 +184,162 @@ function calculateOrderFee(order) {
   return 0;
 }
 
+
+/**
+ * LAPORAN DETAIL TRANSAKSI PENJUALAN DILEPAS (100% Presisi Sama dengan ReportController::getSalesReportDetailData)
+ */
+async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = null) {
+  const fromStr = dateFrom + ' 00:00:00';
+  const toStr = dateTo + ' 23:59:59';
+  const validStatuses = "('COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR')";
+
+  let storeCondition = '';
+  let params = [tenantId, fromStr, toStr];
+  if (storeId) {
+    storeCondition = 'AND o.store_id = ?';
+    params.push(storeId);
+  }
+
+  // Query order yang persis sama dengan ReportController::getSalesReportDetailData
+  const orders = await query(
+    `SELECT o.*, s.store_name, c.name as channel_name, c.code as channel_code
+     FROM orders o
+     LEFT JOIN stores s ON s.id = o.store_id
+     LEFT JOIN channels c ON c.id = s.channel_id
+     WHERE o.tenant_id = ?
+       AND UPPER(o.order_status) IN ${validStatuses}
+       AND o.completed_at BETWEEN ? AND ?
+       ${storeCondition}
+     ORDER BY o.completed_at DESC, o.id DESC`,
+    params
+  );
+
+  const orderIds = orders.map(o => o.id);
+  let itemsByOrder = {};
+  if (orderIds.length > 0) {
+    const items = await query(
+      `SELECT oi.*, mp.sku as master_sku, mp.name as master_name
+       FROM order_items oi
+       LEFT JOIN master_products mp ON mp.id = oi.master_product_id
+       WHERE oi.order_id IN (?)`,
+      [orderIds]
+    );
+    for (const it of items) {
+      if (!itemsByOrder[it.order_id]) itemsByOrder[it.order_id] = [];
+      itemsByOrder[it.order_id].push(it);
+    }
+  }
+
+  let grandTotalOmset = 0;
+  let grandTotalQty = 0;
+  let grandTotalRefund = 0;
+  let grandTotalTotalFee = 0;
+  let grandTotalNetReleased = 0;
+  let grandTotalHpp = 0;
+  let grandTotalMarginRp = 0;
+
+  const transactions = [];
+
+  for (const o of orders) {
+    const oItems = itemsByOrder[o.id] || [];
+    let totalQty = 0;
+    const itemSummary = [];
+    for (const it of oItems) {
+      const q = parseInt(it.quantity || 1, 10);
+      totalQty += q;
+      itemSummary.push((it.sku || it.master_sku || '-') + ' x' + q);
+    }
+    if (totalQty <= 0) totalQty = 1;
+
+    // Hitung fee persis ReportController:
+    let absFee = 0;
+    if (o.recon_status === 'RECONCILED') {
+      absFee = Math.abs(parseFloat(o.marketplace_fee || 0));
+      if (absFee === 0) {
+        absFee = Math.abs(parseFloat(o.fee_platform_amount || 0))
+               + Math.abs(parseFloat(o.fee_free_shipping_amount || 0))
+               + Math.abs(parseFloat(o.fee_service_amount || 0))
+               + Math.abs(parseFloat(o.fee_promo_amount || 0))
+               + Math.abs(parseFloat(o.fee_other_amount || 0));
+      }
+    } else {
+      absFee = calculateOrderFee(o);
+    }
+
+    const omset = parseFloat(o.total_amount || 0);
+    const refund = parseFloat(o.refund_amount || 0);
+    const netAmt = parseFloat(o.net_amount || 0);
+    const hpp = parseFloat(o.hpp_total || 0);
+    const marginRp = netAmt - hpp;
+    const marginPct = netAmt > 0 ? Math.round((marginRp / netAmt) * 10000) / 100 : 0;
+
+    grandTotalOmset += omset;
+    grandTotalQty += totalQty;
+    grandTotalRefund += refund;
+    grandTotalTotalFee += absFee;
+    grandTotalNetReleased += netAmt;
+    grandTotalHpp += hpp;
+    grandTotalMarginRp += marginRp;
+
+    const refVal = o.order_marketplace_id || o.order_number || o.invoice_number || `ORD-${o.id}`;
+
+    transactions.push({
+      id: o.id,
+      orderNumber: refVal,
+      ref: refVal,
+      invoiceNumber: o.invoice_number || refVal,
+      storeName: o.store_name || 'Marketplace Store',
+      channel: (o.store_name || '-') + ' (' + (o.channel_name || 'Marketplace') + ')',
+      channelName: o.channel_name || 'Shopee',
+      orderDate: o.order_date,
+      completedAt: o.completed_at,
+      releasedDate: o.completed_at,
+      buyerName: o.buyer_name || 'Pelanggan MP',
+      itemsSummary: itemSummary.join(', ') || '—',
+      quantity: totalQty,
+      totalQty,
+      omset,
+      totalAmount: omset,
+      refund,
+      marketplaceFee: absFee,
+      totalFee: absFee,
+      netAmount: netAmt,
+      netReleased: netAmt,
+      hpp,
+      hppModal: hpp,
+      margin: marginRp,
+      marginRp,
+      marginPct,
+      status: o.order_status,
+      items: oItems.map(it => ({
+        id: it.id,
+        name: it.product_name || it.master_name,
+        sku: it.master_sku || it.sku,
+        qty: parseInt(it.quantity || 1, 10),
+        price: parseFloat(it.unit_price || 0),
+        totalPrice: parseFloat(it.total_price || 0)
+      }))
+    });
+  }
+
+  const grandOverallMarginPct = grandTotalNetReleased > 0
+    ? Math.round((grandTotalMarginRp / grandTotalNetReleased) * 10000) / 100
+    : 0;
+
+  return {
+    transactions,
+    totalCount: transactions.length,
+    grandTotalOmset,
+    grandTotalQty,
+    grandTotalRefund,
+    grandTotalTotalFee,
+    grandTotalNetReleased,
+    grandTotalHpp,
+    grandTotalMarginRp,
+    grandOverallMarginPct
+  };
+}
+
 // ─── 1. AUTH: LOGIN ──────────────────────────────────────────────────────────
 app.post('/api/v2/owner/login', async (req, res) => {
   try {
@@ -269,62 +425,18 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
       [tenantId]
     );
 
-    // 2. Completed orders in current month
-    const validStatuses = "('COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR')";
-    const monthOrders = await query(
-      `SELECT o.*, oi.quantity, oi.total_price, oi.cost_price, mp.cost_price as master_cost_price
-       FROM orders o
-       LEFT JOIN order_items oi ON oi.order_id = o.id
-       LEFT JOIN master_products mp ON mp.id = oi.master_product_id
-       WHERE o.tenant_id = ? 
-         AND UPPER(o.order_status) IN ${validStatuses}
-         AND o.completed_at >= ?`,
-      [tenantId, startOfMonthStr]
-    );
+    // 2. Laporan Penjualan Dilepas (Persis ReportController::getSalesReportDetailData)
+    const dateFrom = req.query.date_from || (`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`);
+    const dateTo = req.query.date_to || formatDate(now);
+    const reportData = await getReleasedSalesDetailData(tenantId, dateFrom, dateTo, req.query.store_id);
 
-    // Return orders map untuk refund akurat
-    let returnMap = {};
-    try {
-      const returnRows = await query('SELECT order_id, refund_amount FROM return_orders WHERE tenant_id = ?', [tenantId]);
-      for (const rr of returnRows) {
-        returnMap[rr.order_id] = parseFloat(rr.refund_amount || 0);
-      }
-    } catch (_) {}
-
-    const orderMap = new Map();
-    let monthGrossSales = 0;
-    let monthRefund = 0;
-    let monthFee = 0;
-    let monthHpp = 0;
-    let monthReleased = 0;
-
-    for (const row of monthOrders) {
-      if (!orderMap.has(row.id)) {
-        orderMap.set(row.id, true);
-        const gSales = parseFloat(row.total_amount || 0);
-        const rFund = calculateOrderRefund(row, returnMap);
-        const fee = calculateOrderFee(row);
-
-        monthGrossSales += gSales;
-        monthRefund += rFund;
-        monthFee += fee;
-
-        let rel = parseFloat(row.net_amount || 0);
-        if (rel <= 0) {
-          rel = Math.max(0, gSales - rFund - fee);
-          if (rel <= 0) {
-            rel = Math.max(0, gSales - rFund);
-          }
-        }
-        monthReleased += rel;
-      }
-      const qty = parseInt(row.quantity || 0, 10);
-      const cost = parseFloat(row.cost_price || row.master_cost_price || 0);
-      monthHpp += (cost * qty);
-    }
-
-    const monthOmset = monthGrossSales > 0 ? monthGrossSales : monthReleased;
-    const monthMargin = Math.max(0, monthReleased - monthHpp);
+    const monthOmset = reportData.grandTotalOmset;
+    const monthRefund = reportData.grandTotalRefund;
+    const monthFee = reportData.grandTotalTotalFee;
+    const monthHpp = reportData.grandTotalHpp;
+    const monthReleased = reportData.grandTotalNetReleased;
+    const monthMargin = reportData.grandTotalMarginRp;
+    const orderMap = { size: reportData.totalCount };
 
     // 3. Marketing Teams Target & Realisasi
     const teams = await query(
@@ -501,7 +613,33 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
 app.get('/api/v2/owner/orders', async (req, res) => {
   try {
     const tenantId = getTenantId(req);
-    const statusTab = req.query.status || 'all'; // all, perlu_dikirim, dikirim
+    const statusTab = (req.query.status || 'all').toLowerCase();
+    
+    // Jika melihat pesanan selesai / dilepas (Modal finansial atau tab dilepas), ambil persis Laporan Penjualan Dilepas
+    if (['completed', 'selesai', 'finished', 'released', 'dilepas'].includes(statusTab) || req.query.todayOnly === 'true' || req.query.tab === 'dilepas') {
+      const now = new Date();
+      const dateFrom = req.query.date_from || (`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`);
+      const dateTo = req.query.date_to || formatDate(now);
+      const rep = await getReleasedSalesDetailData(tenantId, dateFrom, dateTo, req.query.store_id);
+
+      return res.json({
+        success: true,
+        badges: {
+          all: rep.totalCount,
+          completed: rep.totalCount,
+        },
+        data: rep.transactions,
+        summary: {
+          totalCount: rep.totalCount,
+          grandTotalOmset: rep.grandTotalOmset,
+          grandTotalRefund: rep.grandTotalRefund,
+          grandTotalTotalFee: rep.grandTotalTotalFee,
+          grandTotalNetReleased: rep.grandTotalNetReleased,
+          grandTotalHpp: rep.grandTotalHpp,
+          grandTotalMarginRp: rep.grandTotalMarginRp,
+        }
+      });
+    }
     const subStatus = req.query.sub_status;      // unprocessed, processed
     const search = req.query.search;
     const startDate = req.query.start_date;
@@ -966,38 +1104,12 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
     const toStr = formatDate(dateTo) + ' 23:59:59';
     const validStatuses = "('COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR')";
 
-    // 1. Online Revenue & HPP
-    const onlineRows = await query(
-      `SELECT o.id, o.net_amount, o.total_amount, o.marketplace_fee,
-              o.recon_status, o.financial_breakdown, o.fee_platform_amount,
-              o.fee_free_shipping_amount, o.fee_service_amount, o.fee_promo_amount, o.fee_other_amount,
-              oi.quantity, oi.cost_price, mp.cost_price as master_cost_price
-       FROM orders o
-       LEFT JOIN order_items oi ON oi.order_id = o.id
-       LEFT JOIN master_products mp ON mp.id = oi.master_product_id
-       WHERE o.tenant_id = ?
-         AND UPPER(o.order_status) IN ${validStatuses}
-         AND (o.completed_at BETWEEN ? AND ? OR (o.completed_at IS NULL AND o.order_date BETWEEN ? AND ?))`,
-      [tenantId, fromStr, toStr, fromStr, toStr]
-    );
-
-    const seenOrders = new Set();
-    let onlineGross = 0;
-    let onlineNet = 0;
-    let onlineFee = 0;
-    let onlineHpp = 0;
-
-    for (const r of onlineRows) {
-      if (!seenOrders.has(r.id)) {
-        seenOrders.add(r.id);
-        onlineGross += parseFloat(r.total_amount || 0);
-        onlineNet += parseFloat(r.net_amount || 0);
-        onlineFee += calculateOrderFee(r);
-      }
-      const q = parseInt(r.quantity || 0, 10);
-      const c = parseFloat(r.cost_price || r.master_cost_price || 0);
-      onlineHpp += (c * q);
-    }
+    // 1. Online Revenue & HPP (Diselaraskan persis Laporan Penjualan Dilepas)
+    const repOnline = await getReleasedSalesDetailData(tenantId, formatDate(dateFrom), formatDate(dateTo));
+    const onlineGross = repOnline.grandTotalOmset;
+    const onlineNet = repOnline.grandTotalNetReleased;
+    const onlineFee = repOnline.grandTotalTotalFee;
+    const onlineHpp = repOnline.grandTotalHpp;
     const onlineRevenue = onlineNet > 0 ? onlineNet : onlineGross;
 
     // 2. Offline / POS Sales (sold_at or created_at)
