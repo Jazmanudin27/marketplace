@@ -615,7 +615,7 @@ class OwnerApiController extends Controller
                       $sub->whereNull('completed_at')->whereBetween('order_date', [$dateFrom, $dateTo]);
                   });
             })
-            ->with(['items.masterProduct'])
+            ->with(['items.masterProduct', 'store.channel'])
             ->get();
 
         $onlineGrossSales = (float) $onlineOrders->sum('total_amount');
@@ -626,7 +626,24 @@ class OwnerApiController extends Controller
 
         $onlineFee = 0.0;
         $onlineHpp = 0.0;
+
+        // Store breakdown
+        $storeMap = [];
         foreach ($onlineOrders as $ord) {
+            $sId = $ord->store_id ?: 0;
+            if (!isset($storeMap[$sId])) {
+                $storeMap[$sId] = [
+                    'storeName'   => $ord->store->store_name ?? ('Toko #' . $sId),
+                    'channelName' => $ord->store->channel->name ?? 'Marketplace',
+                    'ordersCount' => 0,
+                    'omset'       => 0,
+                    'fee'         => 0,
+                    'refund'      => 0,
+                    'net'         => 0,
+                    'hpp'         => 0,
+                ];
+            }
+
             if ($ord->recon_status === 'RECONCILED') {
                 $rawFee = abs((float) $ord->getRawOriginal('marketplace_fee'));
                 if ($rawFee == 0) {
@@ -636,7 +653,7 @@ class OwnerApiController extends Controller
                             + abs((float) $ord->fee_promo_amount)
                             + abs((float) $ord->fee_other_amount);
                 }
-                $onlineFee += $rawFee;
+                $ordFee = $rawFee;
             } else {
                 $absFee = (float) $ord->marketplace_fee;
                 if ($absFee <= 0 && !empty($ord->fee_breakdown_details['total_fee'])) {
@@ -650,10 +667,38 @@ class OwnerApiController extends Controller
                             + abs((float) $ord->fee_other_amount);
                     if ($colSum > 0) $absFee = $colSum;
                 }
-                $onlineFee += $absFee;
+                $ordFee = $absFee;
             }
-            $onlineHpp += (float) ($ord->hpp_total ?: 0);
+
+            $ordHpp = (float) ($ord->hpp_total ?: 0);
+            $ordRefund = (float) ($ord->refund_amount ?: 0);
+            $ordGross = (float) ($ord->total_amount ?: 0);
+            $ordNet = (float) ($ord->net_amount ?: $ordGross);
+
+            $onlineFee += $ordFee;
+            $onlineHpp += $ordHpp;
+
+            $storeMap[$sId]['ordersCount'] += 1;
+            $storeMap[$sId]['omset'] += $ordGross;
+            $storeMap[$sId]['fee'] += $ordFee;
+            $storeMap[$sId]['refund'] += $ordRefund;
+            $storeMap[$sId]['net'] += $ordNet;
+            $storeMap[$sId]['hpp'] += $ordHpp;
         }
+
+        $storeBreakdown = array_values(array_map(function ($st) {
+            return [
+                'storeName'   => $st['storeName'],
+                'channelName' => $st['channelName'],
+                'ordersCount' => $st['ordersCount'],
+                'omset'       => round($st['omset']),
+                'fee'         => round($st['fee']),
+                'refund'      => round($st['refund']),
+                'net'         => round($st['net']),
+                'hpp'         => round($st['hpp']),
+            ];
+        }, $storeMap));
+        usort($storeBreakdown, fn($a, $b) => $b['net'] <=> $a['net']);
 
         // 2. Offline / POS Sales jika ada tabel
         $offlineRevenue = 0.0;
@@ -681,13 +726,14 @@ class OwnerApiController extends Controller
         $labaKotor  = $totalOmset - $totalHpp;
         $grossMarginPct = $totalOmset > 0 ? round(($labaKotor / $totalOmset) * 100, 1) : 0.0;
 
-        // 3. Beban Operasional / Expenses
+        // 3. Beban Operasional / Expenses with Individual Transactions
         $totalOperasional = 0.0;
         $expenseCategories = [];
         if (\Illuminate\Support\Facades\Schema::hasTable('expenses')) {
             $expenses = DB::table('expenses')
                 ->where('tenant_id', $tenantId)
                 ->whereBetween('expense_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+                ->orderBy('expense_date', 'desc')
                 ->get();
 
             // Abaikan beban terkait modal pembelian / produksi barang agar tidak double counting
@@ -707,10 +753,24 @@ class OwnerApiController extends Controller
             ];
 
             foreach ($grouped as $catName => $items) {
-                $label = $defaultLabels[strtolower($catName)] ?? ucwords(str_replace('_', ' ', $catName));
+                $catKey = strtolower($catName);
+                $label = $defaultLabels[$catKey] ?? ucwords(str_replace('_', ' ', $catName));
+                $detailItems = $items->map(function ($it) {
+                    return [
+                        'id'            => $it->id,
+                        'date'          => $it->expense_date,
+                        'title'         => $it->title ?: ($it->description ?: 'Pengeluaran'),
+                        'amount'        => round((float)$it->amount),
+                        'paymentSource' => $it->payment_source ?? 'kas',
+                        'notes'         => $it->notes ?? '',
+                    ];
+                })->values()->all();
+
                 $expenseCategories[] = [
+                    'code'   => $catKey,
                     'name'   => $label,
                     'amount' => round((float) $items->sum('amount'), 0),
+                    'items'  => $detailItems,
                 ];
             }
         }
@@ -734,6 +794,7 @@ class OwnerApiController extends Controller
                 'grossMarginPct'    => $grossMarginPct,
                 'totalOperasional'  => round($totalOperasional, 0),
                 'expenseCategories' => $expenseCategories,
+                'storeBreakdown'    => $storeBreakdown,
                 'labaBersih'        => round($labaBersih, 0),
                 'netMarginPct'      => $netMarginPct,
                 'ordersCount'       => $onlineOrders->count(),

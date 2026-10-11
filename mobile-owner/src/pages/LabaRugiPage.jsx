@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Percent, Calendar, PieChart, ShoppingBag, Receipt, Building2 } from 'lucide-react';
+import { 
+  DollarSign, TrendingUp, TrendingDown, Percent, Calendar, 
+  PieChart, ShoppingBag, Receipt, Building2, ChevronDown, 
+  ChevronUp, Store, FileText, Wallet 
+} from 'lucide-react';
 import { formatRupiah } from '../utils/formatters';
 import { fetchLabaRugi } from '../api/metricsApi';
 
@@ -7,6 +11,11 @@ export default function LabaRugiPage() {
   const [period, setPeriod] = useState('month'); // 'today', 'month', 'year'
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Accordion drilldown toggle states
+  const [showSalesDetail, setShowSalesDetail] = useState(false);
+  const [showHppDetail, setShowHppDetail] = useState(false);
+  const [expandedExpenseCat, setExpandedExpenseCat] = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -30,15 +39,17 @@ export default function LabaRugiPage() {
     grossMarginPct: 0,
     totalOperasional: 0,
     expenseCategories: [],
+    storeBreakdown: [],
     labaBersih: 0,
     netMarginPct: 0,
     ordersCount: 0
   };
 
   const isNetProfitPositive = lr.labaBersih >= 0;
+  const storeBreakdown = lr.storeBreakdown || [];
 
   return (
-    <div className="mobile-body-content" style={{ paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+    <div className="mobile-body-content" style={{ paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '32px' }}>
       
       {/* Period Filter Pills */}
       <div style={{
@@ -139,7 +150,7 @@ export default function LabaRugiPage() {
         </div>
       </div>
 
-      {/* Rincian Komponen Laba Rugi */}
+      {/* Rincian Komponen Laba Rugi dengan Accordion Drilldown */}
       <div style={{
         background: '#ffffff',
         borderRadius: '20px',
@@ -149,17 +160,53 @@ export default function LabaRugiPage() {
         flexDirection: 'column',
         gap: '12px'
       }}>
-        <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-          📊 Struktur Laba Rugi ERP
-        </h4>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+            📊 Struktur Laba Rugi ERP
+          </h4>
+          <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+            Tap baris untuk rincian
+          </span>
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
           
-          {/* Omset Penjualan */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
-            <span style={{ color: '#334155', fontWeight: '600' }}>1. Pendapatan / Omset</span>
+          {/* ── 1. Omset Penjualan (Accordion Trigger) ── */}
+          <div 
+            onClick={() => setShowSalesDetail(!showSalesDetail)}
+            style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '6px 4px', 
+              borderBottom: '1px solid #f1f5f9',
+              cursor: 'pointer',
+              borderRadius: '8px',
+              background: showSalesDetail ? '#f8fafc' : 'transparent',
+              transition: 'background 0.15s ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ color: '#334155', fontWeight: '700' }}>1. Pendapatan / Omset</span>
+              <span style={{ 
+                fontSize: '10px', 
+                background: '#eff6ff', 
+                color: '#2563eb', 
+                padding: '1px 6px', 
+                borderRadius: '6px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px'
+              }}>
+                {storeBreakdown.length} Toko
+                {showSalesDetail ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </span>
+            </div>
             <strong style={{ color: '#0f172a' }}>{formatRupiah(lr.totalOmset)}</strong>
           </div>
+
+          {/* Sub-item ringkas */}
           <div style={{ paddingLeft: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b' }}>
             <span>• Online Marketplace ({lr.ordersCount} order)</span>
             <span>{formatRupiah(lr.onlineRevenue)}</span>
@@ -171,62 +218,286 @@ export default function LabaRugiPage() {
             </div>
           )}
 
-          {/* HPP Modal */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9', paddingTop: '4px' }}>
-            <span style={{ color: '#334155', fontWeight: '600' }}>2. HPP Modal Pokok Produk</span>
+          {/* ── Drilldown Rincian Toko (Accordion Content) ── */}
+          {showSalesDetail && (
+            <div style={{
+              background: '#f8fafc',
+              borderRadius: '12px',
+              padding: '10px',
+              margin: '2px 0 6px 0',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Store size={13} className="text-primary" /> Rincian Penjualan per Toko Marketplace:
+              </div>
+              {storeBreakdown.length > 0 ? (
+                storeBreakdown.map((st, idx) => (
+                  <div key={idx} style={{
+                    background: '#ffffff',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: '700', color: '#0f172a', fontSize: '11.5px' }}>
+                        {st.storeName}
+                        <span style={{ fontSize: '9.5px', marginLeft: '6px', background: '#f1f5f9', color: '#475569', padding: '1px 5px', borderRadius: '4px' }}>
+                          {st.channelName}
+                        </span>
+                      </span>
+                      <strong style={{ color: '#2563eb', fontSize: '12px' }}>{formatRupiah(st.net)}</strong>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', fontSize: '10px', color: '#64748b', paddingTop: '2px' }}>
+                      <div>Pesanan: <strong style={{ color: '#334155' }}>{st.ordersCount}</strong></div>
+                      <div>Omset: <strong style={{ color: '#334155' }}>{formatRupiah(st.omset)}</strong></div>
+                      <div>Admin: <strong style={{ color: '#dc2626' }}>-{formatRupiah(st.fee)}</strong></div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
+                  Tidak ada data rincian toko.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── 2. HPP Modal Pokok Produk (Accordion Trigger) ── */}
+          <div 
+            onClick={() => setShowHppDetail(!showHppDetail)}
+            style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '6px 4px', 
+              borderBottom: '1px solid #f1f5f9',
+              paddingTop: '6px',
+              cursor: 'pointer',
+              borderRadius: '8px',
+              background: showHppDetail ? '#fef2f2' : 'transparent',
+              transition: 'background 0.15s ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ color: '#334155', fontWeight: '700' }}>2. HPP Modal Pokok Produk</span>
+              <span style={{ 
+                fontSize: '10px', 
+                background: '#fee2e2', 
+                color: '#dc2626', 
+                padding: '1px 6px', 
+                borderRadius: '6px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px'
+              }}>
+                Rincian HPP
+                {showHppDetail ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </span>
+            </div>
             <strong style={{ color: '#4f46e5' }}>- {formatRupiah(lr.totalHpp)}</strong>
           </div>
 
-          {/* Potongan Fee Platform */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
+          {/* ── Drilldown HPP Modal (Accordion Content) ── */}
+          {showHppDetail && (
+            <div style={{
+              background: '#fef2f2',
+              borderRadius: '12px',
+              padding: '10px',
+              margin: '2px 0 6px 0',
+              border: '1px solid #fecaca',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Receipt size={13} className="text-danger" /> Beban HPP per Toko & Margin:
+              </div>
+              {storeBreakdown.map((st, idx) => {
+                const storeMargin = st.net - st.hpp;
+                return (
+                  <div key={idx} style={{
+                    background: '#ffffff',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    border: '1px solid #fee2e2',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: '600', color: '#0f172a', fontSize: '11px' }}>
+                        {st.storeName}
+                      </span>
+                      <strong style={{ color: '#b91c1c', fontSize: '11.5px' }}>- {formatRupiah(st.hpp)}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748b' }}>
+                      <span>Dana Cair: {formatRupiah(st.net)}</span>
+                      <span>Margin: <strong style={{ color: storeMargin >= 0 ? '#059669' : '#dc2626' }}>{formatRupiah(storeMargin)}</strong></span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── 3. Potongan Platform Fee ── */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 4px', borderBottom: '1px solid #f1f5f9' }}>
             <span style={{ color: '#334155', fontWeight: '600' }}>3. Potongan Marketplace</span>
             <strong style={{ color: '#d97706' }}>- {formatRupiah(lr.marketplaceFee)}</strong>
           </div>
 
-          {/* Laba Kotor Subtotal */}
+          {/* ── Subtotal Laba Kotor ── */}
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
-            padding: '6px 10px', 
-            background: '#f8fafc', 
+            padding: '8px 10px', 
+            background: '#f0f9ff', 
             borderRadius: '10px',
-            border: '1px solid #e2e8f0' 
+            border: '1px solid #bae6fd',
+            margin: '2px 0'
           }}>
-            <strong style={{ color: '#0f172a' }}>= Laba Kotor (Gross Profit)</strong>
-            <strong style={{ color: '#059669' }}>{formatRupiah(lr.labaKotor)} ({lr.grossMarginPct}%)</strong>
+            <strong style={{ color: '#0369a1' }}>= Laba Kotor (Gross Profit)</strong>
+            <strong style={{ color: '#0284c7' }}>{formatRupiah(lr.labaKotor)} ({lr.grossMarginPct}%)</strong>
           </div>
 
-          {/* Beban Operasional */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9', paddingTop: '6px' }}>
-            <span style={{ color: '#334155', fontWeight: '600' }}>4. Beban Operasional / Pengeluaran</span>
+          {/* ── 4. Beban Operasional Header ── */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 4px', borderBottom: '1px solid #f1f5f9', paddingTop: '6px' }}>
+            <span style={{ color: '#334155', fontWeight: '700' }}>4. Beban Operasional / Pengeluaran</span>
             <strong style={{ color: '#ef4444' }}>- {formatRupiah(lr.totalOperasional)}</strong>
           </div>
 
+          {/* ── Kategori Pengeluaran (Tiap Kategori Bisa Di-Tap untuk Muncul Transaksinya) ── */}
           {lr.expenseCategories && lr.expenseCategories.length > 0 ? (
-            lr.expenseCategories.map((exp, idx) => (
-              <div key={idx} style={{ paddingLeft: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b' }}>
-                <span>• {exp.name}</span>
-                <span>{formatRupiah(exp.amount)}</span>
-              </div>
-            ))
+            lr.expenseCategories.map((exp, idx) => {
+              const isExpanded = expandedExpenseCat === exp.name;
+              const hasItems = exp.items && exp.items.length > 0;
+
+              return (
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column' }}>
+                  
+                  {/* Category Header Row (Tap to expand) */}
+                  <div 
+                    onClick={() => {
+                      if (hasItems) {
+                        setExpandedExpenseCat(isExpanded ? null : exp.name);
+                      }
+                    }}
+                    style={{ 
+                      padding: '6px 8px 6px 12px', 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      fontSize: '11.5px', 
+                      color: '#334155',
+                      borderRadius: '8px',
+                      cursor: hasItems ? 'pointer' : 'default',
+                      background: isExpanded ? '#f8fafc' : 'transparent',
+                      border: isExpanded ? '1px solid #e2e8f0' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontWeight: isExpanded ? '700' : '500' }}>• {exp.name}</span>
+                      {hasItems && (
+                        <span style={{ 
+                          fontSize: '9.5px', 
+                          background: '#f1f5f9', 
+                          color: '#475569', 
+                          padding: '1px 5px', 
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}>
+                          {exp.items.length} item
+                          {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                        </span>
+                      )}
+                    </div>
+                    <strong style={{ color: '#ef4444' }}>{formatRupiah(exp.amount)}</strong>
+                  </div>
+
+                  {/* Category Items Drilldown (Accordion Content) */}
+                  {isExpanded && hasItems && (
+                    <div style={{
+                      background: '#f8fafc',
+                      borderRadius: '8px',
+                      padding: '8px',
+                      margin: '2px 0 6px 12px',
+                      border: '1px solid #e2e8f0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px'
+                    }}>
+                      <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', paddingBottom: '2px' }}>
+                        Daftar Catatan Transaksi {exp.name}:
+                      </div>
+                      {exp.items.map((it, itIdx) => (
+                        <div key={itIdx} style={{
+                          background: '#ffffff',
+                          borderRadius: '6px',
+                          padding: '6px 8px',
+                          border: '1px solid #e2e8f0',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                            <span style={{ fontWeight: '600', color: '#0f172a', fontSize: '11px' }}>
+                              {it.title}
+                            </span>
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '9.5px', color: '#64748b' }}>
+                              <span>{it.date}</span>
+                              {it.paymentSource && (
+                                <span style={{
+                                  background: it.paymentSource === 'kas_besar' ? '#dbeafe' : '#fef3c7',
+                                  color: it.paymentSource === 'kas_besar' ? '#1e40af' : '#92400e',
+                                  padding: '1px 4px',
+                                  borderRadius: '3px',
+                                  fontWeight: '600'
+                                }}>
+                                  {it.paymentSource.replace('_', ' ')}
+                                </span>
+                              )}
+                              {it.notes && <span style={{ fontStyle: 'italic' }}>({it.notes})</span>}
+                            </div>
+                          </div>
+                          <strong style={{ color: '#b91c1c', fontSize: '11px', whiteSpace: 'nowrap' }}>
+                            {formatRupiah(it.amount)}
+                          </strong>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                </div>
+              );
+            })
           ) : (
             <div style={{ paddingLeft: '12px', fontSize: '11px', color: '#94a3b8' }}>
               • Belum ada catatan biaya operasional di periode ini.
             </div>
           )}
 
-          {/* Laba Bersih Final */}
+          {/* ── 5. Laba Bersih Final ── */}
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
-            padding: '8px 10px', 
+            padding: '10px 12px', 
             background: isNetProfitPositive ? '#ecfdf5' : '#fef2f2', 
-            borderRadius: '10px',
+            borderRadius: '12px',
             border: `1px solid ${isNetProfitPositive ? '#a7f3d0' : '#fecaca'}`,
-            marginTop: '4px'
+            marginTop: '6px'
           }}>
             <strong style={{ color: '#0f172a' }}>= Laba Bersih (Net Profit)</strong>
-            <strong style={{ color: isNetProfitPositive ? '#059669' : '#dc2626', fontSize: '13px' }}>
+            <strong style={{ color: isNetProfitPositive ? '#059669' : '#dc2626', fontSize: '14px' }}>
               {formatRupiah(lr.labaBersih)}
             </strong>
           </div>

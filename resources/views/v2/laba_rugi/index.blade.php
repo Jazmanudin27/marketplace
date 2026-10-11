@@ -94,6 +94,35 @@
     border-top: 2px solid #ef4444 !important;
     border-bottom: 2px solid #ef4444 !important;
 }
+
+/* ─── Accordion Drilldown Styles ─── */
+.lr-interactive-row {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease;
+}
+.lr-interactive-row:hover {
+    background-color: #f1f5f9 !important;
+}
+.lr-chevron {
+    display: inline-block;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.72rem;
+}
+.lr-chevron.expanded {
+    transform: rotate(180deg);
+}
+.lr-subtable-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.lr-drilldown-row {
+    display: none;
+    background: #f8fafc;
+}
 </style>
 @endpush
 
@@ -223,10 +252,60 @@
                         <tr class="statement-header-row">
                             <td colspan="2"><i class="bi bi-bag-check me-2"></i>I. PENDAPATAN PENJUALAN</td>
                         </tr>
-                        <tr>
-                            <td class="ps-4 fw-semibold text-dark">A. Penjualan Online Marketplace:</td>
+                        <tr class="lr-interactive-row" onclick="toggleDrilldown('drilldown-online-sales', this)">
+                            <td class="ps-4 fw-semibold text-dark d-flex align-items-center justify-content-between">
+                                <span>A. Penjualan Online Marketplace:</span>
+                                @if(!empty($storeBreakdown) && count($storeBreakdown) > 0)
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:0.7rem;">
+                                    <i class="bi bi-chevron-down lr-chevron me-1"></i>Rincian {{ count($storeBreakdown) }} Toko
+                                </span>
+                                @endif
+                            </td>
                             <td></td>
                         </tr>
+                        @if(!empty($storeBreakdown) && count($storeBreakdown) > 0)
+                        <tr id="drilldown-online-sales" class="lr-drilldown-row">
+                            <td colspan="2" class="p-3">
+                                <div class="lr-subtable-box">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fw-bold text-dark small"><i class="bi bi-shop me-1 text-primary"></i>Rincian Penjualan per Toko Marketplace</span>
+                                        <span class="text-muted small">Total {{ count($storeBreakdown) }} Toko Aktif</span>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0 small">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Toko & Channel</th>
+                                                    <th class="text-center">Pesanan</th>
+                                                    <th class="text-end">Omset Kotor</th>
+                                                    <th class="text-end">Biaya Admin</th>
+                                                    <th class="text-end">Refund/Retur</th>
+                                                    <th class="text-end">Dana Cair Bersih</th>
+                                                    <th class="text-end">HPP Modal</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($storeBreakdown as $sb)
+                                                <tr>
+                                                    <td class="fw-medium">
+                                                        {{ $sb['store_name'] }}
+                                                        <span class="badge bg-light text-dark border ms-1">{{ $sb['channel_name'] }}</span>
+                                                    </td>
+                                                    <td class="text-center">{{ number_format($sb['orders_count'], 0, ',', '.') }}</td>
+                                                    <td class="text-end font-monospace">Rp {{ number_format($sb['gross_sales'], 0, ',', '.') }}</td>
+                                                    <td class="text-end font-monospace text-danger">(Rp {{ number_format($sb['marketplace_fee'], 0, ',', '.') }})</td>
+                                                    <td class="text-end font-monospace text-danger">{{ $sb['refund_amount'] > 0 ? '(Rp ' . number_format($sb['refund_amount'], 0, ',', '.') . ')' : 'Rp 0' }}</td>
+                                                    <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($sb['net_revenue'], 0, ',', '.') }}</td>
+                                                    <td class="text-end font-monospace text-muted">Rp {{ number_format($sb['hpp'], 0, ',', '.') }}</td>
+                                                </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        @endif
                         <tr>
                             <td class="ps-5 text-muted small">Total Omset Kotor (Gross Sales)</td>
                             <td class="text-end font-monospace">Rp {{ number_format($onlineGrossSales, 0, ',', '.') }}</td>
@@ -260,10 +339,53 @@
                         <tr class="statement-header-row">
                             <td colspan="2"><i class="bi bi-boxes me-2"></i>II. HARGA POKOK PENJUALAN (HPP)</td>
                         </tr>
-                        <tr>
-                            <td class="ps-4">HPP Modal Barang - Online Marketplace</td>
+                        <tr class="lr-interactive-row" onclick="toggleDrilldown('drilldown-online-hpp', this)">
+                            <td class="ps-4 d-flex align-items-center justify-content-between">
+                                <span>HPP Modal Barang - Online Marketplace</span>
+                                @if(!empty($storeBreakdown) && count($storeBreakdown) > 0)
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:0.7rem;">
+                                    <i class="bi bi-chevron-down lr-chevron me-1"></i>Rincian HPP Toko
+                                </span>
+                                @endif
+                            </td>
                             <td class="text-end font-monospace">Rp {{ number_format($onlineHpp, 0, ',', '.') }}</td>
                         </tr>
+                        @if(!empty($storeBreakdown) && count($storeBreakdown) > 0)
+                        <tr id="drilldown-online-hpp" class="lr-drilldown-row">
+                            <td colspan="2" class="p-3">
+                                <div class="lr-subtable-box">
+                                    <span class="fw-bold text-dark small d-block mb-2"><i class="bi bi-boxes me-1 text-danger"></i>Rincian Beban HPP per Toko Marketplace</span>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0 small">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Toko</th>
+                                                    <th class="text-center">Pesanan</th>
+                                                    <th class="text-end">Dana Cair Bersih</th>
+                                                    <th class="text-end">Total HPP Modal</th>
+                                                    <th class="text-end">Margin Toko</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($storeBreakdown as $sb)
+                                                @php $storeMargin = $sb['net_revenue'] - $sb['hpp']; @endphp
+                                                <tr>
+                                                    <td>{{ $sb['store_name'] }} ({{ $sb['channel_name'] }})</td>
+                                                    <td class="text-center">{{ number_format($sb['orders_count'], 0, ',', '.') }}</td>
+                                                    <td class="text-end font-monospace">Rp {{ number_format($sb['net_revenue'], 0, ',', '.') }}</td>
+                                                    <td class="text-end font-monospace text-danger">Rp {{ number_format($sb['hpp'], 0, ',', '.') }}</td>
+                                                    <td class="text-end font-monospace fw-bold {{ $storeMargin >= 0 ? 'text-success' : 'text-danger' }}">
+                                                        Rp {{ number_format($storeMargin, 0, ',', '.') }}
+                                                    </td>
+                                                </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        @endif
                         <tr>
                             <td class="ps-4">HPP Modal Barang - Offline POS</td>
                             <td class="text-end font-monospace">Rp {{ number_format($offlineHpp, 0, ',', '.') }}</td>
@@ -284,10 +406,61 @@
                             <td colspan="2"><i class="bi bi-receipt-cutoff me-2"></i>IV. BIAYA & PENGELUARAN OPERASIONAL</td>
                         </tr>
                         @forelse($expensesCategoryList as $expCat)
-                            <tr>
-                                <td class="ps-4">{{ $expCat['name'] }}</td>
+                            @php 
+                                $hasItems = !empty($expCat['items']) && count($expCat['items']) > 0;
+                                $rowId = 'drilldown-exp-' . preg_replace('/[^a-zA-Z0-9_-]/', '', $expCat['code']);
+                            @endphp
+                            <tr @if($hasItems) class="lr-interactive-row" onclick="toggleDrilldown('{{ $rowId }}', this)" title="Klik untuk lihat rincian pengeluaran" @endif>
+                                <td class="ps-4 d-flex align-items-center justify-content-between">
+                                    <span>{{ $expCat['name'] }}</span>
+                                    @if($hasItems)
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size:0.7rem;">
+                                            <i class="bi bi-chevron-down lr-chevron me-1"></i>{{ count($expCat['items']) }} Transaksi
+                                        </span>
+                                    @endif
+                                </td>
                                 <td class="text-end font-monospace">Rp {{ number_format($expCat['amount'], 0, ',', '.') }}</td>
                             </tr>
+                            @if($hasItems)
+                            <tr id="{{ $rowId }}" class="lr-drilldown-row">
+                                <td colspan="2" class="p-3">
+                                    <div class="lr-subtable-box">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="fw-bold text-dark small"><i class="bi bi-receipt me-1 text-danger"></i>Rincian Transaksi: {{ $expCat['name'] }}</span>
+                                            <span class="text-muted small">Total {{ count($expCat['items']) }} Catatan Pengeluaran</span>
+                                        </div>
+                                        <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+                                            <table class="table table-sm table-striped table-bordered mb-0 small">
+                                                <thead class="table-light sticky-top">
+                                                    <tr>
+                                                        <th style="width: 15%;">Tanggal</th>
+                                                        <th>Keterangan / Judul</th>
+                                                        <th style="width: 18%;">Akun / Kas</th>
+                                                        <th>Catatan</th>
+                                                        <th class="text-end" style="width: 20%;">Nominal (Rp)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($expCat['items'] as $it)
+                                                    <tr>
+                                                        <td class="text-nowrap">{{ \Carbon\Carbon::parse($it['date'])->format('d M Y') }}</td>
+                                                        <td class="fw-medium text-dark">{{ $it['title'] }}</td>
+                                                        <td>
+                                                            <span class="badge {{ $it['payment_source'] === 'kas_besar' ? 'bg-primary-subtle text-primary' : 'bg-warning-subtle text-dark' }}">
+                                                                {{ ucwords(str_replace('_', ' ', $it['payment_source'] ?? 'kas')) }}
+                                                            </span>
+                                                        </td>
+                                                        <td class="text-muted">{{ $it['notes'] ?: '-' }}</td>
+                                                        <td class="text-end font-monospace fw-bold text-danger">Rp {{ number_format($it['amount'], 0, ',', '.') }}</td>
+                                                    </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endif
                         @empty
                             <tr>
                                 <td class="ps-4 text-muted fst-italic">Belum ada rincian pengeluaran operasional</td>
@@ -400,3 +573,22 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+function toggleDrilldown(rowId, triggerEl) {
+    const target = document.getElementById(rowId);
+    if (!target) return;
+    const isHidden = (target.style.display === 'none' || target.style.display === '');
+    target.style.display = isHidden ? 'table-row' : 'none';
+    const chevron = triggerEl.querySelector('.lr-chevron');
+    if (chevron) {
+        if (isHidden) {
+            chevron.classList.add('expanded');
+        } else {
+            chevron.classList.remove('expanded');
+        }
+    }
+}
+</script>
+@endpush

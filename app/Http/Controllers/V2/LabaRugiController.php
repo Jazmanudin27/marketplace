@@ -101,17 +101,69 @@ class LabaRugiController extends Controller
             return !in_array(strtolower($exp->category), $excludedExpenseCodes);
         });
 
+        // 1b. BREAKDOWN PER TOKO MARKETPLACE (UNTUK DRILLDOWN / ACCORDION)
+        $storeBreakdown = [];
+        $ordersByStore = $onlineOrders->groupBy('store_id');
+        foreach ($ordersByStore as $sId => $sOrders) {
+            $firstOrd = $sOrders->first();
+            $sName = $firstOrd->store->store_name ?? ('Toko #' . $sId);
+            $cName = $firstOrd->store->channel->name ?? 'Marketplace';
+            $sGross = (float) $sOrders->sum('total_amount');
+            $sNet = (float) $sOrders->sum('net_amount');
+            $sRefund = 0.0;
+            $sFee = 0.0;
+            $sHpp = 0.0;
+            foreach ($sOrders as $ord) {
+                $sRefund += (float) $ord->refund_amount;
+                if ($ord->recon_status === 'RECONCILED') {
+                    $sFee += abs((float) $ord->getRawOriginal('marketplace_fee'));
+                } else {
+                    $absFee = (float) $ord->marketplace_fee;
+                    if ($absFee <= 0 && !empty($ord->fee_breakdown_details['total_fee'])) {
+                        $absFee = abs((float) $ord->fee_breakdown_details['total_fee']);
+                    }
+                    $sFee += $absFee;
+                }
+                $sHpp += (float) $ord->hpp_total;
+            }
+            $storeBreakdown[] = [
+                'store_id' => $sId,
+                'store_name' => $sName,
+                'channel_name' => $cName,
+                'orders_count' => $sOrders->count(),
+                'gross_sales' => $sGross,
+                'refund_amount' => $sRefund,
+                'marketplace_fee' => $sFee,
+                'net_revenue' => $sNet > 0 ? $sNet : $sGross,
+                'hpp' => $sHpp,
+            ];
+        }
+        usort($storeBreakdown, fn($a, $b) => $b['net_revenue'] <=> $a['net_revenue']);
+
         $groupedExpenses = $operatingExpenses->groupBy('category');
         $expensesCategoryList = [];
         foreach ($allExpenseCats as $cat) {
             if (in_array(strtolower($cat->code), $excludedExpenseCodes)) {
                 continue;
             }
-            $amt = (float) ($groupedExpenses[$cat->code] ?? collect())->sum('amount');
+            $catItems = ($groupedExpenses[$cat->code] ?? collect());
+            $amt = (float) $catItems->sum('amount');
+            $detailItems = $catItems->map(function($exp) {
+                return [
+                    'id' => $exp->id,
+                    'date' => $exp->expense_date,
+                    'title' => $exp->title ?: ($exp->description ?: 'Pengeluaran'),
+                    'amount' => (float)$exp->amount,
+                    'payment_source' => $exp->payment_source,
+                    'notes' => $exp->notes,
+                ];
+            })->sortByDesc('date')->values()->all();
+
             $expensesCategoryList[] = [
                 'code' => $cat->code,
                 'name' => $cat->name,
                 'amount' => $amt,
+                'items' => $detailItems,
             ];
         }
 
@@ -135,10 +187,22 @@ class LabaRugiController extends Controller
             }
             if (!$found) {
                 $catName = $defaultLabels[$catCode] ?? ucwords(str_replace('_', ' ', $catCode));
+                $detailItems = $group->map(function($exp) {
+                    return [
+                        'id' => $exp->id,
+                        'date' => $exp->expense_date,
+                        'title' => $exp->title ?: ($exp->description ?: 'Pengeluaran'),
+                        'amount' => (float)$exp->amount,
+                        'payment_source' => $exp->payment_source,
+                        'notes' => $exp->notes,
+                    ];
+                })->sortByDesc('date')->values()->all();
+
                 $expensesCategoryList[] = [
                     'code'   => $catCode,
                     'name'   => $catName,
                     'amount' => (float) $group->sum('amount'),
+                    'items'  => $detailItems,
                 ];
             }
         }
@@ -189,7 +253,8 @@ class LabaRugiController extends Controller
             'netProfit',
             'profitMargin',
             'balanceKasBesar',
-            'balanceKasKecil'
+            'balanceKasKecil',
+            'storeBreakdown'
         ));
     }
 }

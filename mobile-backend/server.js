@@ -1232,23 +1232,56 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
       offlineOrdersCount = seenOffline.size;
     } catch (_) {}
 
+    // 1b. Store Breakdown dari repOnline.transactions
+    const storeMap = new Map();
+    for (const tr of repOnline?.transactions || []) {
+      const sKey = tr.storeName || 'Toko Marketplace';
+      if (!storeMap.has(sKey)) {
+        storeMap.set(sKey, {
+          storeName: sKey,
+          channelName: tr.channelName || 'Marketplace',
+          ordersCount: 0,
+          omset: 0,
+          fee: 0,
+          refund: 0,
+          net: 0,
+          hpp: 0,
+        });
+      }
+      const st = storeMap.get(sKey);
+      st.ordersCount += 1;
+      st.omset += parseFloat(tr.omset || 0);
+      st.fee += parseFloat(tr.totalFee || 0);
+      st.refund += parseFloat(tr.refund || 0);
+      st.net += parseFloat(tr.netReleased || 0);
+      st.hpp += parseFloat(tr.hpp || 0);
+    }
+    const storeBreakdown = Array.from(storeMap.values()).map(st => ({
+      ...st,
+      omset: Math.round(st.omset),
+      fee: Math.round(st.fee),
+      refund: Math.round(st.refund),
+      net: Math.round(st.net),
+      hpp: Math.round(st.hpp),
+    })).sort((a, b) => b.net - a.net);
+
     const totalOmset = onlineRevenue + offlineRevenue;
     const totalHpp = onlineHpp + offlineHpp;
     const labaKotor = totalOmset - totalHpp;
     const grossMarginPct = totalOmset > 0 ? Math.round((labaKotor / totalOmset) * 1000) / 10 : 0;
 
-    // 3. Operating Expenses
+    // 3. Operating Expenses with Individual Transactions Drilldown
     let totalOperasional = 0;
     const expenseCategories = [];
     try {
       const fromDateOnly = formatDate(dateFrom);
       const toDateOnly = formatDate(dateTo);
       const expenses = await query(
-        `SELECT category, SUM(amount) as total 
+        `SELECT id, category, title, description, expense_date, amount, payment_source, notes 
          FROM expenses 
          WHERE tenant_id = ? AND expense_date BETWEEN ? AND ?
            AND LOWER(category) NOT IN ('pembelian_supplier', 'bahan_baku', 'biaya_produksi', 'supplier_payable')
-         GROUP BY category`,
+         ORDER BY expense_date DESC, id DESC`,
         [tenantId, fromDateOnly, toDateOnly]
       );
 
@@ -1259,14 +1292,34 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
         other: 'Lain-lain',
       };
 
+      const expGrouped = new Map();
       for (const exp of expenses) {
-        const amt = parseFloat(exp.total || 0);
+        const catKey = (exp.category || 'other').toLowerCase();
+        if (!expGrouped.has(catKey)) {
+          expGrouped.set(catKey, {
+            code: catKey,
+            name: labelMap[catKey] || (exp.category ? exp.category.replace(/_/g, ' ') : 'Lain-lain'),
+            amount: 0,
+            items: [],
+          });
+        }
+        const g = expGrouped.get(catKey);
+        const amt = parseFloat(exp.amount || 0);
+        g.amount += amt;
         totalOperasional += amt;
-        const catKey = (exp.category || '').toLowerCase();
-        expenseCategories.push({
-          name: labelMap[catKey] || exp.category.replace(/_/g, ' '),
+        g.items.push({
+          id: exp.id,
+          date: exp.expense_date,
+          title: exp.title || exp.description || 'Pengeluaran',
           amount: Math.round(amt),
+          paymentSource: exp.payment_source || 'kas',
+          notes: exp.notes || '',
         });
+      }
+
+      for (const [_, val] of expGrouped) {
+        val.amount = Math.round(val.amount);
+        expenseCategories.push(val);
       }
     } catch (_) {}
 
@@ -1289,6 +1342,7 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
         grossMarginPct,
         totalOperasional: Math.round(totalOperasional),
         expenseCategories,
+        storeBreakdown,
         labaBersih: Math.round(labaBersih),
         netMarginPct,
         ordersCount: (repOnline?.totalCount || 0) + offlineOrdersCount,
