@@ -963,7 +963,31 @@ app.get('/api/v2/owner/notifications', async (req, res) => {
   }
 });
 
-// ─── 6. TARGET KOMISI ───────────────────────────────────────────────────────
+// Helper tanggal format string YYYY-MM-DD aman timezone
+function extractDateStr(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val.slice(0, 10);
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return String(val).slice(0, 10);
+}
+
+const INDO_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+function formatIndoDate(dateVal) {
+  const s = extractDateStr(dateVal);
+  if (!s) return '';
+  const parts = s.split('-');
+  if (parts.length !== 3) return s;
+  const day = parseInt(parts[2], 10);
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  const year = parts[0];
+  return `${day} ${INDO_MONTHS[monthIdx] || ''} ${year}`;
+}
+
 // ─── 6. TARGET KOMISI (SINKRON 100% DENGAN ERP V2) ──────────────────────────
 app.get('/api/v2/owner/target-komisi', async (req, res) => {
   try {
@@ -1012,8 +1036,14 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
     let totalReward = 0;
     const formattedTeams = [];
 
-    const validStatuses = ['COMPLETED', 'RELEASED', 'COMPLETED_ESCROW', 'SELESAI', 'DELIVERED', 'FINISHED'];
-    const invalidStatuses = ['CANCELLED', 'CANCELED', 'BATAL', 'RETURNED', 'REFUNDED', 'RETUR', 'IN_CANCEL', 'FAILED'];
+    const validStatuses = [
+      'COMPLETED', 'RELEASED', 'COMPLETED_ESCROW', 'SELESAI', 'DELIVERED', 'FINISHED',
+      'completed', 'released', 'selesai', 'delivered', 'finished'
+    ];
+    const invalidStatuses = [
+      'CANCELLED', 'CANCELED', 'BATAL', 'RETURNED', 'REFUNDED', 'RETUR', 'IN_CANCEL', 'FAILED',
+      'cancelled', 'canceled', 'batal', 'returned', 'refunded'
+    ];
 
     for (const team of teams) {
       const tTarget = parseFloat(team.target_omset || 0);
@@ -1045,8 +1075,8 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
           const lastD = new Date(reqYear, reqMonth, 0).getDate();
           dateToStr = `${reqYear}-${String(reqMonth).padStart(2, '0')}-${String(lastD).padStart(2, '0')} 23:59:59`;
         } else if (team.date_from && team.date_to) {
-          dateFromStr = formatDate(new Date(team.date_from)) + ' 00:00:00';
-          dateToStr = formatDate(new Date(team.date_to)) + ' 23:59:59';
+          dateFromStr = `${extractDateStr(team.date_from)} 00:00:00`;
+          dateToStr = `${extractDateStr(team.date_to)} 23:59:59`;
         } else if (team.period_month && team.period_year) {
           dateFromStr = `${team.period_year}-${String(team.period_month).padStart(2, '0')}-01 00:00:00`;
           const lastD = new Date(team.period_year, team.period_month, 0).getDate();
@@ -1058,8 +1088,8 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
                  COALESCE(completed_at, updated_at, order_date) as ref_date
           FROM orders 
           WHERE store_id IN (?)
-            AND UPPER(order_status) IN (?)
-            AND UPPER(order_status) NOT IN (?)
+            AND order_status IN (?)
+            AND order_status NOT IN (?)
         `;
         const qParams = [storeIds, validStatuses, invalidStatuses];
 
@@ -1072,21 +1102,32 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
 
         if (orders.length > 0) {
           const orderIds = orders.map(o => o.id);
+
+          // Return items lookup aman & cepat
+          const returnMap = new Map();
+          try {
+            const returnRows = await query(
+              `SELECT roi.order_item_id, SUM(roi.quantity) as ret_qty
+               FROM return_orders ro
+               JOIN return_order_items roi ON roi.return_order_id = ro.id
+               WHERE ro.order_id IN (?)
+               GROUP BY roi.order_item_id`,
+              [orderIds]
+            );
+            for (const r of returnRows) {
+              returnMap.set(r.order_item_id, parseInt(r.ret_qty || 0, 10));
+            }
+          } catch (_) {}
+
           // Query detail item dengan HPP bertingkat persis seperti MarketingTeam ERP
           const items = await query(
             `SELECT oi.id, oi.order_id, oi.quantity, oi.cost_price, oi.hpp_subtotal,
                     mp1.cost_price as master_cost_price,
-                    mp2.cost_price as mkt_master_cost_price,
-                    COALESCE(ro_items.returned_qty, 0) as returned_qty
+                    mp2.cost_price as mkt_master_cost_price
              FROM order_items oi
              LEFT JOIN master_products mp1 ON mp1.id = oi.master_product_id
              LEFT JOIN marketplace_products mkp ON mkp.id = oi.marketplace_product_id
              LEFT JOIN master_products mp2 ON mp2.id = mkp.master_product_id
-             LEFT JOIN (
-               SELECT roi.order_item_id, SUM(roi.quantity) as returned_qty
-               FROM return_order_items roi
-               GROUP BY roi.order_item_id
-             ) ro_items ON ro_items.order_item_id = oi.id
              WHERE oi.order_id IN (?)`,
             [orderIds]
           );
@@ -1105,7 +1146,7 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
             const mktFee = parseFloat(ord.marketplace_fee || 0);
             let netAmt = parseFloat(ord.net_amount || 0);
 
-            // Hindari pesanan yang full refund
+            // Hindari pesanan yang full refund persis ERP
             if (refAmt > 0 && totAmt > 0 && refAmt >= totAmt) {
               continue;
             }
@@ -1113,7 +1154,7 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
             const effectiveOmset = Math.max(0, totAmt - refAmt);
             actOmset += effectiveOmset;
 
-            // Hitung nilai dasar pesanan yang dilepas (released)
+            // Hitung nilai dasar pesanan yang dilepas (released) persis ERP
             let orderReleased = netAmt;
             if (orderReleased <= 0) {
               orderReleased = Math.max(0, totAmt - refAmt - mktFee);
@@ -1128,7 +1169,7 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
 
             for (const it of ordItems) {
               const qty = parseInt(it.quantity || 0, 10);
-              let retQty = parseInt(it.returned_qty || 0, 10);
+              let retQty = returnMap.get(it.id) || 0;
 
               if (retQty === 0 && refAmt > 0 && totAmt > 0) {
                 if (refAmt >= totAmt) {
@@ -1142,7 +1183,7 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
               const itemNetQty = Math.max(0, qty - retQty);
               eligibleQty += itemNetQty;
 
-              // Unit HPP bertingkat persis ERP
+              // Unit HPP bertingkat persis MarketingTeam ERP
               let unitHpp = 0;
               const hppSub = parseFloat(it.hpp_subtotal || 0);
               if (hppSub > 0 && qty > 0) {
@@ -1168,6 +1209,11 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
         }
       }
 
+      // Pembulatan metrik
+      actMargin = Math.round(actMargin * 100) / 100;
+      actOmset = Math.round(actOmset * 100) / 100;
+      actHpp = Math.round(actHpp * 100) / 100;
+
       // Calculate reward persis MarketingTeam::getTotalRewardAttribute()
       const cType = team.commission_type || 'percentage';
       let reward = 0;
@@ -1184,6 +1230,7 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
       } else {
         reward = actQty * parseFloat(team.reward_per_qty || 0);
       }
+      reward = Math.round(reward * 100) / 100;
 
       const progressPct = tTarget > 0 ? Math.min(100, Math.round((actMargin / tTarget) * 1000) / 10) : 0;
 
@@ -1195,12 +1242,12 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
         totalReward += reward;
       }
 
-      // Period label
+      // Period label persis ERP (Contoh: "11 Okt 2026 – 10 Nov 2026")
       let pLabel = 'Semua Periode';
       if (team.date_from && team.date_to) {
-        pLabel = `${formatDate(new Date(team.date_from))} – ${formatDate(new Date(team.date_to))}`;
+        pLabel = `${formatIndoDate(team.date_from)} – ${formatIndoDate(team.date_to)}`;
       } else if (team.period_month && team.period_year) {
-        pLabel = `Bulan ${team.period_month} ${team.period_year}`;
+        pLabel = `${INDO_MONTHS[(team.period_month || 1) - 1]} ${team.period_year}`;
       }
 
       formattedTeams.push({
@@ -1211,8 +1258,8 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
         periodLabel: pLabel,
         periodMonth: team.period_month,
         periodYear: team.period_year,
-        dateFrom: team.date_from ? formatDate(new Date(team.date_from)) : '',
-        dateTo: team.date_to ? formatDate(new Date(team.date_to)) : '',
+        dateFrom: extractDateStr(team.date_from),
+        dateTo: extractDateStr(team.date_to),
         isActive,
         targetMargin: Math.round(tTarget),
         targetQty: tTargetQty,

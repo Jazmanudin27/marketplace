@@ -127,19 +127,7 @@ Route::get('/api/owner/orders', [\App\Http\Controllers\Api\OwnerApiController::c
 Route::get('/api/v2/owner/orders/{order}', [\App\Http\Controllers\Api\OwnerApiController::class, 'showOrder'])->name('api.owner.orders.show');
 Route::get('/api/owner/orders/{order}', [\App\Http\Controllers\Api\OwnerApiController::class, 'showOrder']);
 
-Route::get('/api/v2/owner/target-komisi', [\App\Http\Controllers\Api\OwnerApiController::class, 'targetKomisi'])->name('api.owner.target_komisi');
-Route::get('/api/owner/target-komisi', [\App\Http\Controllers\Api\OwnerApiController::class, 'targetKomisi']);
-Route::post('/api/v2/owner/target-komisi', [\App\Http\Controllers\Api\OwnerApiController::class, 'storeTargetKomisi']);
-Route::post('/api/owner/target-komisi', [\App\Http\Controllers\Api\OwnerApiController::class, 'storeTargetKomisi']);
-Route::put('/api/v2/owner/target-komisi/{marketingTeam}', [\App\Http\Controllers\Api\OwnerApiController::class, 'updateTargetKomisi']);
-Route::put('/api/owner/target-komisi/{marketingTeam}', [\App\Http\Controllers\Api\OwnerApiController::class, 'updateTargetKomisi']);
-Route::delete('/api/v2/owner/target-komisi/{marketingTeam}', [\App\Http\Controllers\Api\OwnerApiController::class, 'destroyTargetKomisi']);
-Route::delete('/api/owner/target-komisi/{marketingTeam}', [\App\Http\Controllers\Api\OwnerApiController::class, 'destroyTargetKomisi']);
-Route::post('/api/v2/owner/target-komisi/{marketingTeam}/toggle', [\App\Http\Controllers\Api\OwnerApiController::class, 'toggleTargetKomisi']);
-Route::post('/api/owner/target-komisi/{marketingTeam}/toggle', [\App\Http\Controllers\Api\OwnerApiController::class, 'toggleTargetKomisi']);
 
-Route::get('/api/v2/owner/laba-rugi', [\App\Http\Controllers\Api\OwnerApiController::class, 'labaRugi'])->name('api.owner.laba_rugi');
-Route::get('/api/owner/laba-rugi', [\App\Http\Controllers\Api\OwnerApiController::class, 'labaRugi']);
 
 
 
