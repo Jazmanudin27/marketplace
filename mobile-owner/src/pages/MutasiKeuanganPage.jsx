@@ -57,7 +57,7 @@ export default function MutasiKeuanganPage() {
   const [incomeForm, setIncomeForm] = useState({
     title: '',
     category: 'Pemasukan Lain',
-    payment_destination: 'kas_besar',
+    payment_destination: '',
     amount: '',
     income_date: defaultDateTo,
     description: ''
@@ -66,7 +66,7 @@ export default function MutasiKeuanganPage() {
   const [expenseForm, setExpenseForm] = useState({
     title: '',
     category: 'Operasional',
-    payment_source: 'kas_besar',
+    payment_source: '',
     employee_id: '',
     amount: '',
     expense_date: defaultDateTo,
@@ -74,8 +74,8 @@ export default function MutasiKeuanganPage() {
   });
 
   const [transferForm, setTransferForm] = useState({
-    source: 'kas_besar',
-    destination: 'kas_kecil',
+    source: '',
+    destination: '',
     amount: '',
     transfer_date: defaultDateTo,
     description: ''
@@ -99,6 +99,16 @@ export default function MutasiKeuanganPage() {
   useEffect(() => {
     loadData();
   }, [dateFrom, dateTo, account, direction]);
+
+  useEffect(() => {
+    if (data?.bankAccounts?.length > 0) {
+      const firstId = String(data.bankAccounts[0].id);
+      const secondId = data.bankAccounts[1] ? String(data.bankAccounts[1].id) : firstId;
+      setIncomeForm(prev => (!prev.payment_destination ? { ...prev, payment_destination: firstId } : prev));
+      setExpenseForm(prev => (!prev.payment_source ? { ...prev, payment_source: firstId } : prev));
+      setTransferForm(prev => (!prev.source ? { ...prev, source: firstId, destination: secondId } : prev));
+    }
+  }, [data]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -598,8 +608,6 @@ export default function MutasiKeuanganPage() {
                 }}
               >
                 <option value="all">-- Semua Akun Kas / Bank --</option>
-                <option value="kas_besar">Kas Besar</option>
-                <option value="kas_kecil">Kas Kecil</option>
                 {bankAccounts.map(b => (
                   <option key={b.id} value={b.id}>
                     {b.bank_name} {b.account_number ? `(${b.account_number})` : ''}
@@ -875,8 +883,6 @@ export default function MutasiKeuanganPage() {
                     onChange={(e) => setIncomeForm({ ...incomeForm, payment_destination: e.target.value })}
                     style={{ width: '100%', padding: '9px 10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '11.5px', background: '#ffffff' }}
                   >
-                    <option value="kas_besar">Kas Besar</option>
-                    <option value="kas_kecil">Kas Kecil</option>
                     {bankAccounts.map(b => (
                       <option key={b.id} value={b.id}>{b.bank_name} {b.account_number ? `(${b.account_number})` : ''}</option>
                     ))}
@@ -1040,8 +1046,6 @@ export default function MutasiKeuanganPage() {
                     onChange={(e) => setExpenseForm({ ...expenseForm, payment_source: e.target.value })}
                     style={{ width: '100%', padding: '9px 10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '11.5px', background: '#ffffff' }}
                   >
-                    <option value="kas_besar">Kas Besar</option>
-                    <option value="kas_kecil">Kas Kecil</option>
                     {bankAccounts.map(b => (
                       <option key={b.id} value={b.id}>{b.bank_name} {b.account_number ? `(${b.account_number})` : ''}</option>
                     ))}
@@ -1211,8 +1215,6 @@ export default function MutasiKeuanganPage() {
                     onChange={(e) => setTransferForm({ ...transferForm, source: e.target.value })}
                     style={{ width: '100%', padding: '9px 10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '11.5px', background: '#ffffff' }}
                   >
-                    <option value="kas_besar">Kas Besar</option>
-                    <option value="kas_kecil">Kas Kecil</option>
                     {bankAccounts.map(b => (
                       <option key={b.id} value={b.id}>{b.bank_name} {b.account_number ? `(${b.account_number})` : ''}</option>
                     ))}
@@ -1228,8 +1230,6 @@ export default function MutasiKeuanganPage() {
                     onChange={(e) => setTransferForm({ ...transferForm, destination: e.target.value })}
                     style={{ width: '100%', padding: '9px 10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '11.5px', background: '#ffffff' }}
                   >
-                    <option value="kas_kecil">Kas Kecil</option>
-                    <option value="kas_besar">Kas Besar</option>
                     {bankAccounts.map(b => (
                       <option key={b.id} value={b.id}>{b.bank_name} {b.account_number ? `(${b.account_number})` : ''}</option>
                     ))}
