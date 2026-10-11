@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Ruang Tech ERP Dashboard V2 - High Density Compact Enterprise Interface">
+    <meta name="description" content="Ruang Market - High Density Compact Marketplace & ERP Interface">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Portal ERP V2') | Ruang Tech ERP</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logos/ruang-market.png') }}">
+    <title>@yield('title', 'Portal ERP V2') | Ruang Market</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -158,7 +159,7 @@
             <!-- Compact Footer -->
             <footer class="v2-footer">
                 <div>
-                    <strong>Ruang Tech ERP</strong> &copy; {{ date('Y') }} — Portal Management V2 System
+                    <strong>Ruang Market</strong> &copy; {{ date('Y') }} — Marketplace &amp; ERP Management System
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     <span class="badge bg-success-subtle text-success border border-success-subtle">Engine

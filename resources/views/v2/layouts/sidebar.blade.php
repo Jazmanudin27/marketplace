@@ -6,13 +6,11 @@
 
 <aside class="v2-sidebar" id="v2Sidebar">
     <!-- Sidebar Brand Header -->
-    <div class="v2-sidebar-brand">
-        <div class="v2-brand-icon">
-            P
-        </div>
+    <div class="v2-sidebar-brand d-flex align-items-center gap-2">
+        <img src="{{ asset('images/logos/ruang-market.png') }}" alt="Ruang Market" class="rounded-2 shadow-sm" style="width: 34px; height: 34px; object-fit: contain; background: #ffffff; padding: 2px;">
         <div>
-            <div class="v2-brand-name">PORTAL <span class="text-primary" style="font-size: 0.7rem;">SYSTEM</span></div>
-            <div class="v2-brand-subtitle">Ruang Tech ERP V2</div>
+            <div class="v2-brand-name fw-bold" style="letter-spacing: -0.3px;">RUANG <span class="text-primary" style="font-size: 0.75rem;">MARKET</span></div>
+            <div class="v2-brand-subtitle">Ruang Market ERP V2</div>
         </div>
     </div>
 

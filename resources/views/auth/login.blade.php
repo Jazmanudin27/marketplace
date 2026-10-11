@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Portal Login Ruang Tech ERP">
-    <title>Masuk | Ruang Tech ERP</title>
+    <meta name="description" content="Portal Login Ruang Market">
+    <title>Masuk | Ruang Market</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -462,12 +462,12 @@
     <!-- Centered Form Container -->
     <main class="auth-container">
         <div class="auth-card">
-            <div class="card-brand-header">
-                <div class="brand-logo-icon">
-                    <i class="fas fa-cubes"></i>
+            <div class="card-brand-header text-center">
+                <div class="mb-2">
+                    <img src="{{ asset('images/logos/ruang-market.png') }}" alt="Ruang Market" style="width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(37, 99, 235, 0.2));">
                 </div>
-                <h1 class="brand-title">Ruang Tech ERP</h1>
-                <p class="brand-subtitle">Masuk untuk mengakses sistem</p>
+                <h1 class="brand-title">Ruang Market</h1>
+                <p class="brand-subtitle">Portal Manajemen Marketplace & ERP Terpadu</p>
             </div>
 
             <!-- Error Notification -->

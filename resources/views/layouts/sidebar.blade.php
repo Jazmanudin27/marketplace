@@ -74,12 +74,10 @@
 <div class="d-flex flex-column p-3 bg-primary text-white w-100" id="sidebar">
 
     <div class="d-flex align-items-center gap-2 mb-3 pb-3 border-bottom">
-        <div class="bg-white text-primary rounded p-2 d-flex align-items-center justify-content-center shadow-sm"
-            style="width: 38px; height: 38px;">
-            <i class="bi bi-rocket-takeoff-fill fs-5"></i>
-        </div>
+        <img src="{{ asset('images/logos/ruang-market.png') }}" alt="Ruang Market" class="rounded p-1 bg-white shadow-sm"
+            style="width: 38px; height: 38px; object-fit: contain;">
         <div class="lh-sm">
-            <h6 class="mb-0 fw-bold text-white">Ruang Tech</h6>
+            <h6 class="mb-0 fw-bold text-white">Ruang Market</h6>
             <small class="text-white text-opacity-75 text-uppercase fw-bold">ERP Marketplace</small>
         </div>
     </div>

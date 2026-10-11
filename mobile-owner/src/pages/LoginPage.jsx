@@ -47,26 +47,27 @@ export default function LoginPage({ onLoginSuccess }) {
     }}>
       {/* Top Brand & Header */}
       <div>
-        {/* Brand Pill */}
+        {/* Brand Pill with Logo */}
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '8px',
+          gap: '10px',
           background: 'rgba(255, 255, 255, 0.08)',
           border: '1px solid rgba(255, 255, 255, 0.15)',
           padding: '6px 14px',
           borderRadius: '999px',
-          marginBottom: '28px'
+          marginBottom: '24px'
         }}>
-          <Store size={16} color="#38bdf8" />
-          <span style={{ fontWeight: '800', fontSize: '13px', letterSpacing: '-0.2px' }}>Ruang Tech</span>
+          <img src="/ruang-market.png" alt="Ruang Market" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+          <span style={{ fontWeight: '800', fontSize: '14px', letterSpacing: '-0.2px' }}>Ruang Market</span>
           <span style={{
-            background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
+            background: 'linear-gradient(135deg, #0284c7, #2563eb)',
             fontSize: '9.5px',
             fontWeight: '800',
-            padding: '2px 6px',
+            padding: '2px 8px',
             borderRadius: '999px',
-            textTransform: 'uppercase'
+            textTransform: 'uppercase',
+            color: '#ffffff'
           }}>OWNER PRO</span>
         </div>
 

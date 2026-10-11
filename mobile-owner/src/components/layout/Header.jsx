@@ -26,9 +26,9 @@ export default function Header({ profile, onOpenKeyStatus, onOpenNotif, onLogout
     <header className="owner-header">
       {/* Top Navbar */}
       <div className="header-top-bar">
-        <div className="brand-pill-owner" title="Portal Khusus Owner">
-          <Store size={16} color="#38bdf8" />
-          <span className="brand-pill-title">Ruang Tech</span>
+        <div className="brand-pill-owner" title="Portal Khusus Owner" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <img src="/ruang-market.png" alt="Ruang Market" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+          <span className="brand-pill-title">Ruang Market</span>
           <span className="pro-badge">OWNER</span>
         </div>
 
