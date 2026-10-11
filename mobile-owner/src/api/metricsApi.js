@@ -573,6 +573,57 @@ export async function submitScanSpkPickup(data) {
   }
 }
 
+export async function processScanSpk(data) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/scan-spk/process-scan`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] processScanSpk error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function fetchScanSpkHistory({ search = '', date = '' } = {}) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const q = new URLSearchParams();
+    if (search) q.append('search', search);
+    if (date) q.append('date', date);
+
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/scan-spk/history${qs}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+    if (response.ok) return await response.json();
+  } catch (error) {
+    console.warn('[MetricsApi] fetchScanSpkHistory error:', error.message);
+  }
+  return { success: false, kpi: { todayScans: 0, todayPcs: 0, todaySpks: 0 }, data: [] };
+}
+
+
 
 
 

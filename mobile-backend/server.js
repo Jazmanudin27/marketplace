@@ -3492,6 +3492,319 @@ app.post('/api/v2/owner/scan-spk/pickup', async (req, res) => {
   }
 });
 
+// Auto-process direct barcode / QR scan karung SPK
+app.post('/api/v2/owner/scan-spk/process-scan', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    let rawCode = String(req.body.code || '').trim();
+    rawCode = rawCode.replace(/\\"/g, '"').replace(/^["']|["']$/g, '');
+
+    if (!rawCode) {
+      return res.status(400).json({ success: false, message: 'Barcode / QR code tidak boleh kosong.' });
+    }
+
+    const qtyRequested = Math.max(1, parseInt(req.body.qty || 1, 10));
+    const namaPengambil = (req.body.nama_pengambil || 'Petugas Gudang').trim();
+    const catatan = (req.body.catatan || 'Scan Barcode / QR Karung SPK').trim();
+
+    let matchedItem = null;
+    let matchedSpk = null;
+
+    // 1. Direct ITEM-{id}
+    const mItem = rawCode.match(/ITEM-(\d+)/i);
+    if (mItem) {
+      const itemId = parseInt(mItem[1], 10);
+      const [it] = await query(
+        `SELECT si.*, s.no_spk, s.tenant_id, s.tahap_saat_ini
+         FROM spk_items si
+         JOIN spks s ON s.id = si.spk_id
+         WHERE si.id = ? AND s.tenant_id = ? LIMIT 1`,
+        [itemId, tenantId]
+      );
+      if (it) {
+        matchedItem = it;
+        matchedSpk = { id: it.spk_id, no_spk: it.no_spk, tenant_id: it.tenant_id, tahap_saat_ini: it.tahap_saat_ini };
+      }
+    }
+
+    // 2. JSON embedded
+    if (!matchedItem && rawCode.includes('{') && rawCode.includes('}')) {
+      const jsonMatch = rawCode.match(/\{.*?\}/s);
+      if (jsonMatch) {
+        try {
+          const j = JSON.parse(jsonMatch[0]);
+          if (j.item_id) {
+            const [it] = await query(
+              `SELECT si.*, s.no_spk, s.tenant_id, s.tahap_saat_ini
+               FROM spk_items si
+               JOIN spks s ON s.id = si.spk_id
+               WHERE si.id = ? AND s.tenant_id = ? LIMIT 1`,
+              [parseInt(j.item_id, 10), tenantId]
+            );
+            if (it) {
+              matchedItem = it;
+              matchedSpk = { id: it.spk_id, no_spk: it.no_spk, tenant_id: it.tenant_id, tahap_saat_ini: it.tahap_saat_ini };
+            }
+          }
+          if (!matchedItem && (j.spk_id || j.no_spk || j.no_produksi)) {
+            let spkQuery = 'SELECT * FROM spks WHERE tenant_id = ? AND ';
+            const spkParams = [tenantId];
+            if (j.spk_id) { spkQuery += 'id = ?'; spkParams.push(parseInt(j.spk_id, 10)); }
+            else if (j.no_spk) { spkQuery += 'no_spk = ?'; spkParams.push(String(j.no_spk).trim()); }
+            else { spkQuery += 'no_produksi = ?'; spkParams.push(String(j.no_produksi).trim()); }
+
+            const [foundSpk] = await query(`${spkQuery} LIMIT 1`, spkParams);
+            if (foundSpk) {
+              matchedSpk = foundSpk;
+              const targetSku = j.sku ? String(j.sku).trim() : null;
+              if (targetSku) {
+                const [it] = await query(
+                  `SELECT * FROM spk_items WHERE spk_id = ? AND (sku = ? OR sku LIKE ?) LIMIT 1`,
+                  [foundSpk.id, targetSku, `%${targetSku}%`]
+                );
+                if (it) matchedItem = it;
+              }
+              if (!matchedItem) {
+                const spkItems = await query(`SELECT * FROM spk_items WHERE spk_id = ? ORDER BY id ASC`, [foundSpk.id]);
+                for (const it of spkItems) {
+                  const [pickRow] = await query(`SELECT COALESCE(SUM(qty_diambil), 0) as tot FROM spk_item_pickups WHERE spk_item_id = ?`, [it.id]);
+                  const sisa = Math.max(0, parseInt(it.quantity || 1, 10) - parseInt(pickRow?.tot || 0, 10));
+                  if (sisa > 0) {
+                    matchedItem = it;
+                    break;
+                  }
+                }
+                if (!matchedItem && spkItems.length > 0) matchedItem = spkItems[0];
+              }
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    // 3. Direct No SPK / No Produksi
+    if (!matchedItem) {
+      let spkNoSearch = rawCode.replace(/^[#]/, '').trim();
+      const mSpk = rawCode.match(/(SPK-[A-Z0-9\-]+|PROD-[A-Z0-9\-]+)/i);
+      if (mSpk) spkNoSearch = mSpk[1].trim();
+
+      const [foundSpk] = await query(
+        `SELECT * FROM spks 
+         WHERE tenant_id = ? AND (no_spk = ? OR no_produksi = ? OR no_spk LIKE ?) LIMIT 1`,
+        [tenantId, spkNoSearch, spkNoSearch, `%${spkNoSearch}%`]
+      );
+
+      if (foundSpk) {
+        matchedSpk = foundSpk;
+        const spkItems = await query(`SELECT * FROM spk_items WHERE spk_id = ? ORDER BY id ASC`, [foundSpk.id]);
+        for (const it of spkItems) {
+          const [pickRow] = await query(`SELECT COALESCE(SUM(qty_diambil), 0) as tot FROM spk_item_pickups WHERE spk_item_id = ?`, [it.id]);
+          const sisa = Math.max(0, parseInt(it.quantity || 1, 10) - parseInt(pickRow?.tot || 0, 10));
+          if (sisa > 0) {
+            matchedItem = it;
+            break;
+          }
+        }
+        if (!matchedItem && spkItems.length > 0) matchedItem = spkItems[0];
+      }
+    }
+
+    // 4. SKU match across active SPKs
+    if (!matchedItem) {
+      const [it] = await query(
+        `SELECT si.*, s.no_spk, s.tenant_id, s.tahap_saat_ini
+         FROM spk_items si
+         JOIN spks s ON s.id = si.spk_id
+         WHERE s.tenant_id = ? AND s.tahap_saat_ini != 'Selesai (Finished Good)'
+           AND (si.sku = ? OR si.sku LIKE ?)
+         ORDER BY s.id DESC LIMIT 1`,
+        [tenantId, rawCode, `%${rawCode}%`]
+      );
+      if (it) {
+        matchedItem = it;
+        matchedSpk = { id: it.spk_id, no_spk: it.no_spk, tenant_id: it.tenant_id, tahap_saat_ini: it.tahap_saat_ini };
+      }
+    }
+
+    if (!matchedItem || !matchedSpk) {
+      return res.status(404).json({
+        success: false,
+        error_type: 'not_found',
+        message: `Barcode / QR '${rawCode}' tidak ditemukan pada daftar SPK aktif.`
+      });
+    }
+
+    // Cek sisa kuota
+    const [pickRow] = await query(
+      `SELECT COALESCE(SUM(qty_diambil), 0) as tot FROM spk_item_pickups WHERE spk_item_id = ?`,
+      [matchedItem.id]
+    );
+    const curTaken = parseInt(pickRow?.tot || 0, 10);
+    const targetQty = parseInt(matchedItem.quantity || 1, 10);
+    const sisaKuota = Math.max(0, targetQty - curTaken);
+
+    if (sisaKuota <= 0) {
+      return res.status(422).json({
+        success: false,
+        error_type: 'quota_exceeded',
+        message: `SPK #${matchedSpk.no_spk}: Kuota item "${matchedItem.nama_produk}" (${matchedItem.ukuran || 'All Size'}) sudah LENGKAP (${targetQty}/${targetQty} pcs).`,
+        spkNo: matchedSpk.no_spk,
+        item: matchedItem
+      });
+    }
+
+    const qtyToTake = Math.min(qtyRequested, sisaKuota);
+    const [adminUser] = await query(`SELECT id FROM users WHERE tenant_id = ? LIMIT 1`, [tenantId]);
+    const pemberiId = adminUser?.id || 1;
+
+    const insRes = await query(
+      `INSERT INTO spk_item_pickups (spk_item_id, qty_diambil, tanggal_ambil, nama_pengambil, pemberi_id, catatan, created_at, updated_at)
+       VALUES (?, ?, NOW(), ?, ?, ?, NOW(), NOW())`,
+      [matchedItem.id, qtyToTake, namaPengambil, pemberiId, catatan]
+    );
+
+    let masterProductId = matchedItem.master_product_id;
+    if (!masterProductId && matchedItem.sku) {
+      const [mp] = await query(`SELECT id FROM master_products WHERE tenant_id = ? AND sku = ? LIMIT 1`, [tenantId, matchedItem.sku]);
+      if (mp) masterProductId = mp.id;
+    }
+
+    let balanceAfter = 0;
+    if (masterProductId) {
+      try {
+        await query(`UPDATE master_products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`, [qtyToTake, masterProductId]);
+        const [fresh] = await query(`SELECT stock FROM master_products WHERE id = ?`, [masterProductId]);
+        balanceAfter = fresh ? fresh.stock : 0;
+
+        const refText = `Scan SPK: #${matchedSpk.no_spk} (${matchedItem.nama_produk} - ${matchedItem.ukuran || 'All Size'})`;
+        await query(
+          `INSERT INTO stock_movements (tenant_id, master_product_id, user_id, type, quantity, reference, balance_after, created_at, updated_at)
+           VALUES (?, ?, ?, 'in', ?, ?, ?, NOW(), NOW())`,
+          [tenantId, masterProductId, pemberiId, qtyToTake, refText, balanceAfter]
+        );
+
+        await query(
+          `UPDATE marketplace_products SET stock = ?, sync_stock = 1, updated_at = NOW() WHERE master_product_id = ?`,
+          [balanceAfter, masterProductId]
+        );
+      } catch (e) {
+        console.warn('[Node-API] Restock from scan SPK warning:', e.message);
+      }
+    }
+
+    const allItems = await query(
+      `SELECT si.quantity, COALESCE(SUM(sip.qty_diambil), 0) as qty_diambil
+       FROM spk_items si
+       LEFT JOIN spk_item_pickups sip ON sip.spk_item_id = si.id
+       WHERE si.spk_id = ?
+       GROUP BY si.id`,
+      [matchedSpk.id]
+    );
+
+    const allComplete = allItems.every(it => parseInt(it.qty_diambil, 10) >= parseInt(it.quantity, 10));
+    if (allComplete) {
+      await query(`UPDATE spks SET tahap_saat_ini = 'Selesai (Finished Good)', updated_at = NOW() WHERE id = ?`, [matchedSpk.id]);
+    }
+
+    return res.json({
+      success: true,
+      message: `Berhasil menerima ${qtyToTake} pcs "${matchedItem.nama_produk}" (${matchedItem.ukuran || 'All Size'}).`,
+      data: {
+        pickupId: insRes.insertId,
+        spkId: matchedSpk.id,
+        noSpk: matchedSpk.no_spk,
+        itemId: matchedItem.id,
+        namaProduk: matchedItem.nama_produk,
+        sku: matchedItem.sku || '-',
+        ukuran: matchedItem.ukuran || 'All Size',
+        qtyTaken: qtyToTake,
+        sisaQty: Math.max(0, sisaKuota - qtyToTake),
+        totalTarget: targetQty,
+        totalTaken: curTaken + qtyToTake,
+        allComplete,
+        timeFormatted: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      }
+    });
+  } catch (err) {
+    console.error('[Node-API] Process scan SPK error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Histori Scan SPK
+app.get('/api/v2/owner/scan-spk/history', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const search = (req.query.search || '').trim();
+    const date = req.query.date;
+
+    let whereSql = `WHERE s.tenant_id = ?`;
+    const params = [tenantId];
+
+    if (search) {
+      whereSql += ` AND (s.no_spk LIKE ? OR si.nama_produk LIKE ? OR si.sku LIKE ? OR sip.nama_pengambil LIKE ?)`;
+      const s = `%${search}%`;
+      params.push(s, s, s, s);
+    }
+
+    if (date) {
+      whereSql += ` AND DATE(sip.tanggal_ambil) = ?`;
+      params.push(date);
+    }
+
+    const rows = await query(
+      `SELECT sip.id, sip.qty_diambil, sip.tanggal_ambil, sip.nama_pengambil, sip.catatan,
+              si.nama_produk, si.ukuran, si.sku, si.quantity as target_qty,
+              s.id as spk_id, s.no_spk, s.pemesan, s.tahap_saat_ini
+       FROM spk_item_pickups sip
+       JOIN spk_items si ON si.id = sip.spk_item_id
+       JOIN spks s ON s.id = si.spk_id
+       ${whereSql}
+       ORDER BY sip.id DESC
+       LIMIT 100`,
+      params
+    );
+
+    const [todayKpi] = await query(
+      `SELECT COUNT(*) as total_scans,
+              COALESCE(SUM(sip.qty_diambil), 0) as total_pcs,
+              COUNT(DISTINCT s.id) as total_spks
+       FROM spk_item_pickups sip
+       JOIN spk_items si ON si.id = sip.spk_item_id
+       JOIN spks s ON s.id = si.spk_id
+       WHERE s.tenant_id = ? AND DATE(sip.tanggal_ambil) = CURDATE()`,
+      [tenantId]
+    );
+
+    return res.json({
+      success: true,
+      kpi: {
+        todayScans: parseInt(todayKpi?.total_scans || 0, 10),
+        todayPcs: parseInt(todayKpi?.total_pcs || 0, 10),
+        todaySpks: parseInt(todayKpi?.total_spks || 0, 10),
+      },
+      data: rows.map(r => ({
+        id: r.id,
+        spkId: r.spk_id,
+        noSpk: r.no_spk,
+        namaProduk: r.nama_produk,
+        sku: r.sku || '-',
+        ukuran: r.ukuran || 'All Size',
+        qtyDiambil: parseInt(r.qty_diambil, 10),
+        targetQty: parseInt(r.target_qty, 10),
+        namaPengambil: r.nama_pengambil,
+        catatan: r.catatan || '',
+        tanggalAmbil: r.tanggal_ambil,
+        dateFormatted: formatDateIndo(r.tanggal_ambil),
+        timeFormatted: new Date(r.tanggal_ambil).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      }))
+    });
+  } catch (err) {
+    console.error('[Node-API] Scan SPK history error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'mobile-owner-backend', time: new Date() });
