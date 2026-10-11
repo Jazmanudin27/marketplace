@@ -34,14 +34,19 @@ export async function fetchOwnerMetrics() {
   };
 }
 
-export async function fetchTargetKomisi() {
+export async function fetchTargetKomisi(month = null, year = null) {
   try {
     const token = localStorage.getItem('owner_token') || '';
     const userStr = localStorage.getItem('owner_user');
     const user = userStr ? JSON.parse(userStr) : null;
     const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
 
-    const response = await fetch(`${API_BASE_URL}/api/v2/owner/target-komisi`, {
+    const params = new URLSearchParams();
+    if (month) params.append('month', month);
+    if (year) params.append('year', year);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/target-komisi${qs}`, {
       headers: {
         'Accept': 'application/json',
         'Authorization': `Bearer ${token}`,

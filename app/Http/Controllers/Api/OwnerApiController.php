@@ -428,13 +428,45 @@ class OwnerApiController extends Controller
 
     /**
      * GET /api/v2/owner/target-komisi
-     * Data real target marketing dan reward tim dari ERP
+     * Data real target marketing dan reward tim dari ERP (Selaras 100% dengan V2 TargetKomisiController)
      */
     public function targetKomisi(Request $request)
     {
         $tenantId = $this->getTenantId($request);
+
+        // Ambil daftar tahun unik dari data tim & orders milik tenant
+        $currentYear = (int) date('Y');
+        $teamYears = MarketingTeam::where('tenant_id', $tenantId)
+            ->whereNotNull('period_year')
+            ->pluck('period_year')
+            ->toArray();
+        $orderYears = DB::table('orders')
+            ->where('tenant_id', $tenantId)
+            ->whereNotNull('order_date')
+            ->selectRaw('YEAR(order_date) as yr')
+            ->pluck('yr')
+            ->toArray();
+
+        $availableYears = array_values(array_unique(array_filter(array_merge([$currentYear], $teamYears, $orderYears))));
+        rsort($availableYears);
+
+        // Filter Bulan & Tahun (opsional)
+        $reqMonth = $request->filled('month') ? (int) $request->month : null;
+        $reqYear  = $request->filled('year') ? (int) $request->year : null;
+
+        // Query teams
         $teams = MarketingTeam::where('tenant_id', $tenantId)
             ->with(['stores.channel'])
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('description', 'like', '%' . $request->search . '%');
+            })
+            ->when($reqMonth, function ($q) use ($reqMonth) {
+                $q->where('period_month', $reqMonth);
+            })
+            ->when($reqYear, function ($q) use ($reqYear) {
+                $q->where('period_year', $reqYear);
+            })
             ->orderBy('id', 'desc')
             ->get();
 
@@ -446,19 +478,36 @@ class OwnerApiController extends Controller
         $totalReward = 0.0;
 
         foreach ($teams as $team) {
-            $metrics = $team->calculateActualMetrics();
+            $metrics = $team->calculateActualMetrics($reqMonth, $reqYear);
             $tTarget = (float) ($team->target_omset ?: 0);
             $tTargetQty = (int) ($team->target_qty ?: 0);
-            $tActualMargin = (float) ($metrics['margin'] ?? 0);
-            $tActualQty = (int) ($metrics['qty'] ?? 0);
-            $tReward = (float) ($team->total_reward ?? 0);
-            $progressPct = $tTarget > 0 ? round(($tActualMargin / $tTarget) * 100, 1) : 0.0;
+            $actMargin = (float) ($metrics['margin'] ?? 0);
+            $actQty = (int) ($metrics['qty'] ?? 0);
+
+            // Perhitungan komisi yang konsisten dengan V2 TargetKomisiController
+            $cType = $team->commission_type ?: 'percentage';
+            $tReward = 0.0;
+            if ($cType === 'percentage') {
+                $tReward = max(0.0, $actMargin) * ((float)$team->commission_rate / 100);
+                if ($tTarget > 0 && $actMargin >= $tTarget && (float)$team->reward_fixed_nominal > 0) {
+                    $tReward += (float)$team->reward_fixed_nominal;
+                }
+            } elseif ($cType === 'nominal') {
+                if ($tTarget > 0 && $actMargin >= $tTarget) {
+                    $tReward = (float)$team->reward_fixed_nominal;
+                }
+            } else {
+                $tReward = (float) ($actQty * (float)$team->reward_per_qty);
+            }
+            $tReward = round($tReward, 2);
+
+            $progressPct = $tTarget > 0 ? min(100.0, round(($actMargin / $tTarget) * 100, 1)) : 0.0;
 
             if ($team->is_active) {
                 $totalTargetMargin += $tTarget;
                 $totalTargetQty += $tTargetQty;
-                $totalActualMargin += $tActualMargin;
-                $totalActualQty += $tActualQty;
+                $totalActualMargin += $actMargin;
+                $totalActualQty += $actQty;
                 $totalReward += $tReward;
             }
 
@@ -471,25 +520,35 @@ class OwnerApiController extends Controller
             });
 
             $formattedTeams[] = [
-                'id'              => $team->id,
-                'name'            => $team->name,
-                'description'     => $team->description,
-                'isActive'        => (bool) $team->is_active,
-                'targetMargin'    => round($tTarget, 0),
-                'targetQty'       => $tTargetQty,
-                'actualMargin'    => round($tActualMargin, 0),
-                'actualQty'       => $tActualQty,
-                'progressPercent' => $progressPct,
-                'rewardEarned'    => round($tReward, 0),
-                'commissionRate'  => (float) ($team->commission_percent ?: 0),
-                'rewardType'      => $team->reward_type,
-                'stores'          => $storesLinked,
+                'id'                 => $team->id,
+                'name'               => $team->name,
+                'description'        => $team->description,
+                'periodLabel'        => $team->period_label,
+                'periodMonth'        => $team->period_month,
+                'periodYear'         => $team->period_year,
+                'isActive'           => (bool) $team->is_active,
+                'targetMargin'       => round($tTarget, 0),
+                'targetQty'          => $tTargetQty,
+                'actualMargin'       => round($actMargin, 0),
+                'actualQty'          => $actQty,
+                'actualOmset'        => round((float) ($metrics['omset'] ?? 0), 0),
+                'actualHpp'          => round((float) ($metrics['hpp'] ?? 0), 0),
+                'progressPercent'    => $progressPct,
+                'rewardEarned'       => round($tReward, 0),
+                'commissionType'     => $cType,
+                'commissionRate'     => (float) ($team->commission_rate ?: 0),
+                'rewardFixedNominal' => (float) ($team->reward_fixed_nominal ?: 0),
+                'rewardPerQty'       => (float) ($team->reward_per_qty ?: 0),
+                'stores'             => $storesLinked,
             ];
         }
 
         $overallProgress = $totalTargetMargin > 0
             ? round(($totalActualMargin / $totalTargetMargin) * 100, 1)
             : 0.0;
+
+        $totalStoresCount = Store::where('tenant_id', $tenantId)->count();
+        $totalStoresLinked = $teams->pluck('stores')->flatten()->unique('id')->count();
 
         return response()->json([
             'success' => true,
@@ -500,7 +559,13 @@ class OwnerApiController extends Controller
                 'totalActualQty'     => $totalActualQty,
                 'totalReward'        => round($totalReward, 0),
                 'progressPercent'    => $overallProgress,
+                'totalTeams'         => $teams->count(),
                 'activeTeamsCount'   => $teams->where('is_active', true)->count(),
+                'totalStoresLinked'  => $totalStoresLinked,
+                'totalStoresCount'   => $totalStoresCount,
+                'availableYears'     => $availableYears,
+                'selectedMonth'      => $reqMonth,
+                'selectedYear'       => $reqYear,
             ],
             'teams'   => $formattedTeams,
         ]);
