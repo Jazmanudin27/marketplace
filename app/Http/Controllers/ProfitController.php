@@ -99,7 +99,10 @@ class ProfitController extends Controller
             : 0;
 
         // 3b. OPERATIONAL & NON-HPP EXPENSES (Deductions)
+        $excludedExpenseCodes = ['pembelian_supplier', 'bahan_baku', 'biaya_produksi', 'supplier_payable'];
+
         $expenseQuery = \App\Models\Expense::where('tenant_id', $tenantId)
+            ->whereNotIn('category', $excludedExpenseCodes)
             ->whereDate('expense_date', '>=', $dateFrom)
             ->whereDate('expense_date', '<=', $dateTo);
 
@@ -107,6 +110,7 @@ class ProfitController extends Controller
         
         // Grouping needs to re-fetch or use query clone
         $expensesByCategory = \App\Models\Expense::where('tenant_id', $tenantId)
+            ->whereNotIn('category', $excludedExpenseCodes)
             ->whereDate('expense_date', '>=', $dateFrom)
             ->whereDate('expense_date', '<=', $dateTo)
             ->selectRaw('category, SUM(amount) as total')
@@ -140,7 +144,6 @@ class ProfitController extends Controller
             'expense_salary' => $expensesByCategory['salary'] ?? 0.0,
             'expense_rent' => $expensesByCategory['rent'] ?? 0.0,
             'expense_utilities' => $expensesByCategory['utilities'] ?? 0.0,
-            'expense_supplier' => $expensesByCategory['pembelian_supplier'] ?? 0.0,
             'expense_other' => $expensesByCategory['other'] ?? 0.0,
         ];
 

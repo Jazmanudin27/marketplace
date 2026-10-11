@@ -177,12 +177,7 @@
                             <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round((($expensesByCategory['utilities'] ?? 0) / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
                         </tr>
                         <tr>
-                            <td class="ps-4 text-muted small">D. Bayar Hutang Supplier</td>
-                            <td class="text-end font-monospace text-muted small">- Rp {{ number_format($expensesByCategory['pembelian_supplier'] ?? 0, 0, ',', '.') }}</td>
-                            <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round((($expensesByCategory['pembelian_supplier'] ?? 0) / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-4 text-muted small">E. Lain-lain</td>
+                            <td class="ps-4 text-muted small">D. Lain-lain</td>
                             <td class="text-end font-monospace text-muted small">- Rp {{ number_format($expensesByCategory['other'] ?? 0, 0, ',', '.') }}</td>
                             <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round((($expensesByCategory['other'] ?? 0) / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
                         </tr>

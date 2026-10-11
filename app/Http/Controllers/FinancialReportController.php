@@ -74,18 +74,27 @@ class FinancialReportController extends Controller
             $allExpenseCats = FinanceCategory::where('tenant_id', $tenantId)->expense()->get();
         }
 
+        // Filter kategori pengeluaran modal/HPP yang tidak boleh masuk beban operasional
+        $excludedExpenseCodes = ['pembelian_supplier', 'bahan_baku', 'biaya_produksi', 'supplier_payable'];
+
+        $operatingExpenses = $expenses->filter(function ($exp) use ($excludedExpenseCodes) {
+            return !in_array(strtolower($exp->category), $excludedExpenseCodes);
+        });
+
         $defaultLabels = [
             'salary'               => 'Gaji Karyawan',
             'rent'                 => 'Sewa Tempat',
             'utilities'            => 'Utilitas & Operasional',
-            'pembelian_supplier'   => 'Bayar Hutang Supplier',
             'other'                => 'Lain-lain',
         ];
 
         $expensesCategoryList = [];
-        $groupedExpenses = $expenses->groupBy('category');
+        $groupedExpenses = $operatingExpenses->groupBy('category');
 
         foreach ($allExpenseCats as $cat) {
+            if (in_array(strtolower($cat->code), $excludedExpenseCodes)) {
+                continue;
+            }
             $catAmount = (float) ($groupedExpenses[$cat->code] ?? collect())->sum('amount');
             $expensesCategoryList[$cat->code] = [
                 'name'   => $cat->name,
@@ -94,6 +103,9 @@ class FinancialReportController extends Controller
         }
 
         foreach ($groupedExpenses as $catCode => $group) {
+            if (in_array(strtolower($catCode), $excludedExpenseCodes)) {
+                continue;
+            }
             if (!isset($expensesCategoryList[$catCode])) {
                 $catName = $defaultLabels[$catCode] ?? ucwords(str_replace('_', ' ', $catCode));
                 $expensesCategoryList[$catCode] = [
@@ -109,7 +121,7 @@ class FinancialReportController extends Controller
             $expensesByCategory[$code] = $item['amount'];
         }
 
-        $totalExpenses = (float) $expenses->sum('amount');
+        $totalExpenses = (float) $operatingExpenses->sum('amount');
 
         // ==========================================
         // 3. NET PROFIT (LABA BERSIH) MURNI

@@ -75,9 +75,19 @@ class LabaRugiController extends Controller
             $allExpenseCats = FinanceCategory::where('tenant_id', $tenantId)->expense()->get();
         }
 
-        $groupedExpenses = $expenses->groupBy('category');
+        // Filter kategori pengeluaran modal/HPP yang tidak boleh masuk biaya operasional (double counting)
+        $excludedExpenseCodes = ['pembelian_supplier', 'bahan_baku', 'biaya_produksi', 'supplier_payable'];
+
+        $operatingExpenses = $expenses->filter(function ($exp) use ($excludedExpenseCodes) {
+            return !in_array(strtolower($exp->category), $excludedExpenseCodes);
+        });
+
+        $groupedExpenses = $operatingExpenses->groupBy('category');
         $expensesCategoryList = [];
         foreach ($allExpenseCats as $cat) {
+            if (in_array(strtolower($cat->code), $excludedExpenseCodes)) {
+                continue;
+            }
             $amt = (float) ($groupedExpenses[$cat->code] ?? collect())->sum('amount');
             $expensesCategoryList[] = [
                 'code' => $cat->code,
@@ -91,10 +101,12 @@ class LabaRugiController extends Controller
             'salary'               => 'Gaji Karyawan',
             'rent'                 => 'Sewa Tempat',
             'utilities'            => 'Utilitas & Operasional',
-            'pembelian_supplier'   => 'Bayar Hutang Supplier',
             'other'                => 'Lain-lain',
         ];
         foreach ($groupedExpenses as $catCode => $group) {
+            if (in_array(strtolower($catCode), $excludedExpenseCodes)) {
+                continue;
+            }
             $found = false;
             foreach ($expensesCategoryList as $existing) {
                 if ($existing['code'] === $catCode) {
@@ -112,7 +124,7 @@ class LabaRugiController extends Controller
             }
         }
 
-        $totalExpenses = (float) $expenses->sum('amount');
+        $totalExpenses = (float) $operatingExpenses->sum('amount');
 
         // 5. NET PROFIT (LABA BERSIH) MURNI
         $netProfit = $grossProfit - $totalExpenses;

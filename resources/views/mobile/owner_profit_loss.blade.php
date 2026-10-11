@@ -177,10 +177,6 @@
                         <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['utilities'] ?? 0, 0, ',', '.') }}</span>
                     </div>
                     <div class="financial-row">
-                        <span class="text-muted">Pembayaran Hutang Supplier</span>
-                        <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['pembelian_supplier'] ?? 0, 0, ',', '.') }}</span>
-                    </div>
-                    <div class="financial-row">
                         <span class="text-muted">Beban Lain-Lain</span>
                         <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['other'] ?? 0, 0, ',', '.') }}</span>
                     </div>
