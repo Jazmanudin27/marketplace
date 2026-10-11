@@ -13,8 +13,7 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
   const items = [
     {
       id: 'omset',
-      label: 'Penjualan',
-      sublabel: 'Bulan ini',
+      sublabel: 'Penjualan',
       value: formatRupiah(omset),
       icon: DollarSign,
       gradient: 'linear-gradient(135deg, #10b981, #059669)', // Emerald
@@ -24,8 +23,7 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
     },
     {
       id: 'admin',
-      label: 'Biaya Admin',
-      sublabel: 'Marketplace',
+      sublabel: 'Biaya Admin',
       value: formatRupiah(biayaAdmin),
       icon: Percent,
       gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', // Amber
@@ -35,8 +33,7 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
     },
     {
       id: 'refund',
-      label: 'Refund',
-      sublabel: 'Retur/Batal',
+      sublabel: 'Refund',
       value: formatRupiah(refund),
       icon: RotateCcw,
       gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', // Red
@@ -46,8 +43,7 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
     },
     {
       id: 'hpp',
-      label: 'HPP',
-      sublabel: 'Modal Pokok',
+      sublabel: 'HPP',
       value: formatRupiah(hpp),
       icon: Box,
       gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', // Indigo
@@ -57,8 +53,7 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
     },
     {
       id: 'margin',
-      label: 'Margin',
-      sublabel: 'Laba Bersih',
+      sublabel: 'Margin',
       value: formatRupiah(margin),
       icon: TrendingUp,
       gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)', // Sky blue
@@ -94,7 +89,6 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
                 <IconComp size={16} strokeWidth={2.4} color="#ffffff" />
               </div>
               <div className="finance-strip-info">
-                <span className="finance-strip-label">{item.label}</span>
                 <span className="finance-strip-val" style={{ color: item.textColor }}>
                   {item.value}
                 </span>
