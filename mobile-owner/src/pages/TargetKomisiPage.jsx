@@ -377,35 +377,28 @@ export default function TargetKomisiPage({ initialMetrics }) {
           )}
         </div>
 
-        {/* Status Acuan Realisasi Banner */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          fontSize: '10.5px',
-          padding: '6px 10px',
-          borderRadius: '8px',
-          background: (selectedMonth || selectedYear) ? '#eff6ff' : '#ecfdf5',
-          color: (selectedMonth || selectedYear) ? '#1d4ed8' : '#047857',
-          fontWeight: '600'
-        }}>
-          {selectedMonth || selectedYear ? (
-            <>
-              <Calendar size={13} />
-              <span>
-                Filter: {selectedMonth ? MONTH_NAMES[parseInt(selectedMonth)] : 'Semua Bulan'} {selectedYear || ''}
-              </span>
-            </>
-          ) : (
-            <>
-              <Lock size={13} />
-              <span>Tanggal Dana Cair Terkunci Otomatis Sesuai Pengaturan Tim ERP</span>
-            </>
-          )}
-        </div>
+        {/* Filter Status Badge (hanya muncul saat ada filter bulan/tahun aktif) */}
+        {(selectedMonth || selectedYear) && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '10.5px',
+            padding: '6px 10px',
+            borderRadius: '8px',
+            background: '#eff6ff',
+            color: '#1d4ed8',
+            fontWeight: '600'
+          }}>
+            <Calendar size={13} />
+            <span>
+              Filter Aktif: {selectedMonth ? MONTH_NAMES[parseInt(selectedMonth)] : 'Semua Bulan'} {selectedYear || ''}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* 4 ERP KPI Grid Widgets */}
+      {/* KPI Grid Widgets: Tim Marketing & Toko Terhubung */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
@@ -453,71 +446,6 @@ export default function TargetKomisiPage({ initialMetrics }) {
           <span style={{ fontSize: '10px', color: '#64748b' }}>
             Dari {summary.totalStoresCount || summary.totalStoresLinked} Toko Terdaftar
           </span>
-        </div>
-
-        {/* Widget 3: Target & Margin Realisasi */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '16px',
-          padding: '12px 14px',
-          border: '1px solid #e2e8f0',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          gridColumn: 'span 2'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>Target Margin (Rp)</span>
-            <Target size={16} color="#0284c7" />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <div style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>
-              {formatRupiah(summary.totalTargetMargin)}
-            </div>
-            <span style={{ fontSize: '11px', fontWeight: '800', color: '#0284c7' }}>
-              {summary.progressPercent}% Tercapai
-            </span>
-          </div>
-
-          {/* Progress Bar */}
-          <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '999px', overflow: 'hidden', margin: '4px 0' }}>
-            <div style={{
-              width: `${Math.min(100, summary.progressPercent)}%`,
-              height: '100%',
-              background: summary.progressPercent >= 100 ? '#10b981' : '#0284c7',
-              borderRadius: '999px'
-            }} />
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px' }}>
-            <span style={{ color: '#059669', fontWeight: '700' }}>
-              Margin Realisasi: {formatRupiah(summary.totalActualMargin)}
-            </span>
-            <span style={{ color: '#64748b' }}>
-              {summary.totalActualQty?.toLocaleString('id-ID')} pcs
-            </span>
-          </div>
-        </div>
-
-        {/* Widget 4: Komisi Realisasi Banner */}
-        <div style={{
-          background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-          borderRadius: '16px',
-          padding: '14px 16px',
-          color: '#ffffff',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gridColumn: 'span 2',
-          boxShadow: '0 6px 18px rgba(124, 58, 237, 0.25)'
-        }}>
-          <div>
-            <span style={{ fontSize: '11px', color: '#ddd6fe', fontWeight: '600' }}>Total Komisi Realisasi</span>
-            <div style={{ fontSize: '20px', fontWeight: '800', color: '#fef08a' }}>
-              {formatRupiah(summary.totalReward)}
-            </div>
-          </div>
-          <Award size={28} color="#fef08a" />
         </div>
       </div>
 
