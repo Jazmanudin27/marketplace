@@ -104,12 +104,34 @@
                         <td></td><td></td>
                     </tr>
                     <tr>
-                        <td class="ps-4 text-muted small">A. Penjualan Online (Escrow Bersih / Marketplace Payout)</td>
-                        <td class="text-end font-monospace small text-dark">Rp {{ number_format($onlineRevenue, 0, ',', '.') }}</td>
-                        <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round(($onlineRevenue / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
+                        <td class="ps-4 fw-semibold small text-dark" colspan="3">A. Penjualan Online Marketplace:</td>
                     </tr>
                     <tr>
-                        <td class="ps-4 text-muted small">B. Penjualan Offline (Toko Fisik)</td>
+                        <td class="ps-5 text-muted small">— Omset Kotor (Gross Sales)</td>
+                        <td class="text-end font-monospace small text-dark">Rp {{ number_format($onlineGrossSales, 0, ',', '.') }}</td>
+                        <td class="text-end text-muted small">—</td>
+                    </tr>
+                    @if($onlineRefunds > 0)
+                    <tr>
+                        <td class="ps-5 text-danger small">— Refund / Retur Marketplace</td>
+                        <td class="text-end font-monospace small text-danger">- Rp {{ number_format($onlineRefunds, 0, ',', '.') }}</td>
+                        <td class="text-end text-danger small">—</td>
+                    </tr>
+                    @endif
+                    @if($onlineMarketplaceFee > 0)
+                    <tr>
+                        <td class="ps-5 text-danger small">— Potongan Biaya Admin & Layanan Marketplace</td>
+                        <td class="text-end font-monospace small text-danger">- Rp {{ number_format($onlineMarketplaceFee, 0, ',', '.') }}</td>
+                        <td class="text-end text-danger small">—</td>
+                    </tr>
+                    @endif
+                    <tr class="bg-light">
+                        <td class="ps-5 text-primary fw-semibold small">Subtotal Pencairan Bersih Online Marketplace</td>
+                        <td class="text-end font-monospace fw-bold small text-primary">Rp {{ number_format($onlineRevenue, 0, ',', '.') }}</td>
+                        <td class="text-end fw-semibold text-primary small">{{ $totalSalesRevenue > 0 ? round(($onlineRevenue / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
+                    </tr>
+                    <tr>
+                        <td class="ps-4 text-muted small">B. Penjualan Offline (Toko Fisik / POS)</td>
                         <td class="text-end font-monospace small text-dark">Rp {{ number_format($offlineRevenue, 0, ',', '.') }}</td>
                         <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round(($offlineRevenue / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
                     </tr>

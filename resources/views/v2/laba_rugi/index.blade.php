@@ -224,15 +224,35 @@
                             <td colspan="2"><i class="bi bi-bag-check me-2"></i>I. PENDAPATAN PENJUALAN</td>
                         </tr>
                         <tr>
-                            <td class="ps-4">Penjualan Online Marketplace (Pencairan Bersih)</td>
-                            <td class="text-end font-monospace">Rp {{ number_format($onlineRevenue, 0, ',', '.') }}</td>
+                            <td class="ps-4 fw-semibold text-dark">A. Penjualan Online Marketplace:</td>
+                            <td></td>
                         </tr>
                         <tr>
-                            <td class="ps-4">Penjualan Offline POS (Kasir Store)</td>
+                            <td class="ps-5 text-muted small">Total Omset Kotor (Gross Sales)</td>
+                            <td class="text-end font-monospace">Rp {{ number_format($onlineGrossSales, 0, ',', '.') }}</td>
+                        </tr>
+                        @if($onlineRefunds > 0)
+                        <tr>
+                            <td class="ps-5 text-danger small">Total Refund / Retur Marketplace</td>
+                            <td class="text-end font-monospace text-danger">(Rp {{ number_format($onlineRefunds, 0, ',', '.') }})</td>
+                        </tr>
+                        @endif
+                        @if($onlineMarketplaceFee > 0)
+                        <tr>
+                            <td class="ps-5 text-danger small">Total Potongan Biaya Admin Marketplace</td>
+                            <td class="text-end font-monospace text-danger">(Rp {{ number_format($onlineMarketplaceFee, 0, ',', '.') }})</td>
+                        </tr>
+                        @endif
+                        <tr class="bg-light">
+                            <td class="ps-4 fw-semibold text-primary">Subtotal Pencairan Bersih Online Marketplace</td>
+                            <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($onlineRevenue, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4 fw-semibold text-dark">B. Penjualan Offline POS (Kasir Store)</td>
                             <td class="text-end font-monospace">Rp {{ number_format($offlineRevenue, 0, ',', '.') }}</td>
                         </tr>
                         <tr class="statement-subtotal-row">
-                            <td class="ps-4 fw-bold">TOTAL PENDAPATAN PENJUALAN</td>
+                            <td class="ps-4 fw-bold">TOTAL PENDAPATAN PENJUALAN (BERSIH)</td>
                             <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($totalSalesRevenue, 0, ',', '.') }}</td>
                         </tr>
 
@@ -294,8 +314,62 @@
         </div>
     </div>
 
-    {{-- ── Right Column: Performance Summary ── --}}
+    {{-- ── Right Column: Performance & Marketplace Escrow Summary ── --}}
     <div class="col-lg-4">
+        <!-- Card Marketplace Escrow Summary -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="card-title fw-bold mb-0 text-dark">
+                    <i class="bi bi-shop text-primary me-2"></i>Rekap Penjualan Dilepas (Online)
+                </h6>
+            </div>
+            <div class="card-body p-3">
+                <div class="p-3 bg-light rounded-3 mb-2 border">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small text-secondary fw-semibold">Total Omset Kotor (Gross)</span>
+                        <i class="bi bi-graph-up-arrow text-primary"></i>
+                    </div>
+                    <div class="fs-5 fw-bold text-dark font-monospace">
+                        Rp {{ number_format($onlineGrossSales, 0, ',', '.') }}
+                    </div>
+                    <small class="text-muted" style="font-size: 0.7rem;">Nilai transaksi bruto pesanan marketplace</small>
+                </div>
+
+                <div class="p-3 bg-light rounded-3 mb-2 border">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small text-danger fw-semibold">Total Refund / Retur</span>
+                        <i class="bi bi-arrow-counterclockwise text-danger"></i>
+                    </div>
+                    <div class="fs-5 fw-bold text-danger font-monospace">
+                        -Rp {{ number_format($onlineRefunds, 0, ',', '.') }}
+                    </div>
+                    <small class="text-muted" style="font-size: 0.7rem;">Pengembalian dana pembeli / batal</small>
+                </div>
+
+                <div class="p-3 bg-light rounded-3 mb-2 border">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small text-warning text-dark fw-semibold">Total Potongan Marketplace</span>
+                        <i class="bi bi-percent text-warning"></i>
+                    </div>
+                    <div class="fs-5 fw-bold text-danger font-monospace">
+                        -Rp {{ number_format($onlineMarketplaceFee, 0, ',', '.') }}
+                    </div>
+                    <small class="text-muted" style="font-size: 0.7rem;">Biaya komisi platform, gratis ongkir, promo & layanan</small>
+                </div>
+
+                <div class="p-3 rounded-3 border" style="background: #f0fdf4; border-color: #bbf7d0 !important;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small text-success fw-bold">Total Dana Dilepas (Net)</span>
+                        <i class="bi bi-cash-stack text-success"></i>
+                    </div>
+                    <div class="fs-5 fw-bold text-success font-monospace">
+                        Rp {{ number_format($onlineRevenue, 0, ',', '.') }}
+                    </div>
+                    <small class="text-success opacity-75" style="font-size: 0.7rem;">Pencairan bersih masuk saldo penjual</small>
+                </div>
+            </div>
+        </div>
+
         <!-- Card Quick Info -->
         <div class="card border-0 shadow-sm rounded-3">
             <div class="card-header bg-white py-3 border-bottom">

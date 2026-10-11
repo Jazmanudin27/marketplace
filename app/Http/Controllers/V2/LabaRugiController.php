@@ -43,8 +43,20 @@ class LabaRugiController extends Controller
 
         $onlineRevenue = (float) $onlineOrders->sum('net_amount');
         $onlineGrossSales = (float) $onlineOrders->sum('total_amount');
+        $onlineRefunds = 0.0;
+        $onlineMarketplaceFee = 0.0;
         $onlineHpp = 0.0;
         foreach ($onlineOrders as $order) {
+            $onlineRefunds += (float) $order->refund_amount;
+            if ($order->recon_status === 'RECONCILED') {
+                $onlineMarketplaceFee += abs((float) $order->getRawOriginal('marketplace_fee'));
+            } else {
+                $absFee = (float) $order->marketplace_fee;
+                if ($absFee <= 0 && !empty($order->fee_breakdown_details['total_fee'])) {
+                    $absFee = abs((float) $order->fee_breakdown_details['total_fee']);
+                }
+                $onlineMarketplaceFee += $absFee;
+            }
             $onlineHpp += (float) $order->hpp_total;
         }
 
@@ -160,6 +172,8 @@ class LabaRugiController extends Controller
             'onlineOrders',
             'onlineRevenue',
             'onlineGrossSales',
+            'onlineRefunds',
+            'onlineMarketplaceFee',
             'onlineHpp',
             'offlineSales',
             'offlineRevenue',

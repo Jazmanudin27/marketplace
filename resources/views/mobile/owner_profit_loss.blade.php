@@ -115,11 +115,31 @@
             <div class="mb-4">
                 <h6 class="section-title">1. Pendapatan (Revenue)</h6>
                 <div class="financial-row">
-                    <span class="text-muted">Penjualan Online (Marketplace)</span>
-                    <span class="text-dark fw-medium">Rp {{ number_format($onlineRevenue, 0, ',', '.') }}</span>
+                    <span class="text-dark fw-semibold">A. Penjualan Online Marketplace</span>
+                    <span></span>
                 </div>
-                <div class="financial-row">
-                    <span class="text-muted">Penjualan Offline / Grosir</span>
+                <div class="financial-row ps-3">
+                    <span class="text-muted small">Total Omset Kotor</span>
+                    <span class="text-dark small">Rp {{ number_format($onlineGrossSales, 0, ',', '.') }}</span>
+                </div>
+                @if($onlineRefunds > 0)
+                <div class="financial-row ps-3">
+                    <span class="text-danger small">Total Refund / Retur</span>
+                    <span class="text-danger small">-Rp {{ number_format($onlineRefunds, 0, ',', '.') }}</span>
+                </div>
+                @endif
+                @if($onlineMarketplaceFee > 0)
+                <div class="financial-row ps-3">
+                    <span class="text-danger small">Potongan Marketplace</span>
+                    <span class="text-danger small">-Rp {{ number_format($onlineMarketplaceFee, 0, ',', '.') }}</span>
+                </div>
+                @endif
+                <div class="financial-row ps-3 bg-light py-1 rounded">
+                    <span class="text-primary small fw-semibold">Pencairan Bersih Online</span>
+                    <span class="text-primary small fw-bold">Rp {{ number_format($onlineRevenue, 0, ',', '.') }}</span>
+                </div>
+                <div class="financial-row mt-2">
+                    <span class="text-dark fw-semibold">B. Penjualan Offline POS</span>
                     <span class="text-dark fw-medium">Rp {{ number_format($offlineRevenue, 0, ',', '.') }}</span>
                 </div>
                 <div class="financial-row total-row">
