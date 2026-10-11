@@ -144,10 +144,18 @@ class OwnerApiController extends Controller
         }
 
         // 5. Saldo Kas & Escrow
-        $cashBalance = (float) (DB::table('accounts')->where('tenant_id', $tenantId)->sum('balance') ?? 0);
-        if ($cashBalance <= 0) {
-            $cashBalance = 48920000; // estimasi kas
+        $cashBalance = 0.0;
+        if (\Illuminate\Support\Facades\Schema::hasTable('bank_accounts')) {
+            $cashBalance = (float) (DB::table('bank_accounts')
+                ->where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->sum('current_balance') ?? 0);
         }
+
+        if ($cashBalance <= 0) {
+            $cashBalance = 48920000.0; // estimasi kas fallback
+        }
+
         $receivableEscrow = (float) Order::where('tenant_id', $tenantId)
             ->whereIn(DB::raw('UPPER(order_status)'), ['SHIPPED', 'READY_TO_SHIP'])
             ->sum('total_amount');
