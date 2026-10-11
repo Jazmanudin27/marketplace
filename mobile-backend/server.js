@@ -188,10 +188,18 @@ function calculateOrderFee(order) {
 /**
  * LAPORAN DETAIL TRANSAKSI PENJUALAN DILEPAS (100% Presisi Sama dengan ReportController::getSalesReportDetailData)
  */
-async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = null) {
+async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = null, isReturnOnly = false) {
   const fromStr = dateFrom + ' 00:00:00';
   const toStr = dateTo + ' 23:59:59';
-  const validStatuses = "('COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR')";
+  
+  let statusCondition = '';
+  if (isReturnOnly) {
+    statusCondition = "AND UPPER(o.order_status) IN ('RETURNED', 'REFUNDED', 'RETURN', 'RETUR')";
+  } else {
+    // Persis ERP ReportController::getReleasedSalesSummary: Hanya pesanan selesai/cair (COMPLETED, DELIVERED, SELESAI, FINISHED)
+    // Retur dan Batal TIDAK masuk (persis 277 transaksi di laporan ERP)
+    statusCondition = "AND UPPER(o.order_status) IN ('COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED') AND UPPER(o.order_status) NOT IN ('CANCELLED', 'CANCELED', 'BATAL', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR')";
+  }
 
   let storeCondition = '';
   let params = [tenantId, fromStr, toStr];
@@ -207,7 +215,7 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
      LEFT JOIN stores s ON s.id = o.store_id
      LEFT JOIN channels c ON c.id = s.channel_id
      WHERE o.tenant_id = ?
-       AND UPPER(o.order_status) IN ${validStatuses}
+       ${statusCondition}
        AND o.completed_at IS NOT NULL
        AND o.completed_at BETWEEN ? AND ?
        ${storeCondition}
@@ -663,12 +671,8 @@ app.get('/api/v2/owner/orders', async (req, res) => {
       const now = new Date();
       const dateFrom = req.query.date_from || (`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`);
       const dateTo = req.query.date_to || formatDate(now);
-      const rep = await getReleasedSalesDetailData(tenantId, dateFrom, dateTo, req.query.store_id);
-
-      let txList = rep.transactions;
-      if (['returned', 'refund', 'retur'].includes(statusTab)) {
-        txList = txList.filter(t => (t.refund || 0) > 0 || ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR'].includes(String(t.status || '').toUpperCase()));
-      }
+      const isReturnOnly = ['returned', 'refund', 'retur'].includes(statusTab);
+      const rep = await getReleasedSalesDetailData(tenantId, dateFrom, dateTo, req.query.store_id, isReturnOnly);
 
       return res.json({
         success: true,
@@ -676,9 +680,9 @@ app.get('/api/v2/owner/orders', async (req, res) => {
           all: rep.totalCount,
           completed: rep.totalCount,
         },
-        data: txList,
+        data: rep.transactions,
         summary: {
-          totalCount: txList.length,
+          totalCount: rep.totalCount,
           grandTotalOmset: rep.grandTotalOmset,
           grandTotalRefund: rep.grandTotalRefund,
           grandTotalTotalFee: rep.grandTotalTotalFee,
