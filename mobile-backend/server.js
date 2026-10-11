@@ -1166,6 +1166,7 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
     // 2. Offline / POS Sales (sold_at or created_at)
     let offlineRevenue = 0;
     let offlineHpp = 0;
+    let offlineOrdersCount = 0;
     try {
       const offlineRows = await query(
         `SELECT os.id, os.grand_total, os.total_amount,
@@ -1188,6 +1189,7 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
         const c = parseFloat(off.master_cost_price || 0);
         offlineHpp += (c * q);
       }
+      offlineOrdersCount = seenOffline.size;
     } catch (_) {}
 
     const totalOmset = onlineRevenue + offlineRevenue;
@@ -1249,7 +1251,7 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
         expenseCategories,
         labaBersih: Math.round(labaBersih),
         netMarginPct,
-        ordersCount: seenOrders.size,
+        ordersCount: (repOnline?.totalCount || 0) + offlineOrdersCount,
       }
     });
   } catch (err) {
