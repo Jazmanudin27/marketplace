@@ -2,14 +2,48 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ScanLine, Search, Package, Plus, Minus, Check, RefreshCw, 
   ArrowDownRight, ArrowUpRight, Hammer, AlertCircle, CheckCircle2, 
-  Store, History, Layers
+  Store, History, Layers, Camera, CameraOff, SwitchCamera, 
+  Volume2, VolumeX, Zap
 } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { formatRupiah } from '../utils/formatters';
 import { 
   searchScanKemasan, 
   adjustScanKemasanStock, 
   requestScanKemasanProduction 
 } from '../api/metricsApi';
+
+// Synthesize beep sound for hardware scanner feel
+function playBeep(success = true) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (success) {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    } else {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, ctx.currentTime);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
+    }
+  } catch (_) {}
+
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(success ? [60] : [100, 50, 100]);
+  }
+}
 
 export default function ScanKemasanPage() {
   const [codeInput, setCodeInput] = useState('');
@@ -20,6 +54,16 @@ export default function ScanKemasanPage() {
   const [marketplaceListings, setMarketplaceListings] = useState([]);
   const [quickProducts, setQuickProducts] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Phone Camera Scanner State
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState('environment'); // 'environment' | 'user'
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const qrCodeScannerRef = useRef(null);
+  const lastScannedTextRef = useRef('');
+  const lastScanTimestampRef = useRef(0);
 
   // Operation Tab: 'adjust' | 'produce'
   const [opTab, setOpTab] = useState('adjust');
@@ -41,6 +85,128 @@ export default function ScanKemasanPage() {
   const showToast = (text, type = 'success') => {
     setToast({ text, type });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  // Battery saving & unmount cleanup: turn off camera on background / leave page
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopCamera();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', stopCamera);
+    window.addEventListener('beforeunload', stopCamera);
+
+    return () => {
+      stopCamera();
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pagehide', stopCamera);
+      window.removeEventListener('beforeunload', stopCamera);
+    };
+  }, []);
+
+  // ── CAMERA CONTROLS (HTML5-QRCode) ──
+  const startCamera = async (facing = cameraFacing) => {
+    setCameraLoading(true);
+    try {
+      await stopCamera();
+
+      // Show container immediately so DOM has valid computed dimensions
+      setIsCameraActive(true);
+      await new Promise(r => setTimeout(r, 100));
+
+      const readerElem = document.getElementById('kemasan-camera-reader');
+      if (!readerElem) {
+        setIsCameraActive(false);
+        setCameraLoading(false);
+        return;
+      }
+
+      const html5QrCode = new Html5Qrcode('kemasan-camera-reader');
+      qrCodeScannerRef.current = html5QrCode;
+
+      // Safe config with dimension bounds >= 120px to avoid Html5Qrcode < 50px exception
+      const config = {
+        fps: 10,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const vw = Number(viewfinderWidth) || 300;
+          const vh = Number(viewfinderHeight) || 280;
+          const minEdge = Math.min(vw, vh);
+          const boxSize = Math.max(Math.floor(minEdge * 0.72), 160);
+          return {
+            width: Math.max(Math.min(boxSize, vw - 20), 120),
+            height: Math.max(Math.min(Math.floor(boxSize * 0.7), vh - 20), 100)
+          };
+        },
+        aspectRatio: 1.0,
+      };
+
+      await html5QrCode.start(
+        { facingMode: facing },
+        config,
+        (decodedText) => {
+          const now = Date.now();
+          // Debounce same text within 2.5s
+          if (decodedText === lastScannedTextRef.current && (now - lastScanTimestampRef.current) < 2500) {
+            return;
+          }
+          // Debounce consecutive scan within 1s
+          if ((now - lastScanTimestampRef.current) < 1000) {
+            return;
+          }
+          lastScannedTextRef.current = decodedText;
+          lastScanTimestampRef.current = now;
+
+          if (soundEnabled) playBeep(true);
+          setCodeInput(decodedText);
+          handleSearch(decodedText);
+        },
+        () => {}
+      );
+    } catch (err) {
+      console.warn('Kemasan camera activation failed:', err);
+      await stopCamera();
+      showToast('Gagal membuka kamera HP: ' + (err?.message || 'Pastikan izin kamera diizinkan.'), 'error');
+    } finally {
+      setCameraLoading(false);
+    }
+  };
+
+  const stopCamera = async () => {
+    if (qrCodeScannerRef.current) {
+      try {
+        await qrCodeScannerRef.current.stop();
+      } catch (_) {}
+      try {
+        await qrCodeScannerRef.current.clear();
+      } catch (_) {}
+      qrCodeScannerRef.current = null;
+    }
+
+    // Forcefully stop any running hardware camera tracks to save battery
+    try {
+      const videoElem = document.querySelector('#kemasan-camera-reader video');
+      if (videoElem && videoElem.srcObject) {
+        const stream = videoElem.srcObject;
+        if (typeof stream.getTracks === 'function') {
+          stream.getTracks().forEach(track => {
+            try { track.stop(); } catch (_) {}
+          });
+        }
+        videoElem.srcObject = null;
+      }
+    } catch (_) {}
+
+    setIsCameraActive(false);
+  };
+
+  const toggleCameraFacing = async () => {
+    const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    setCameraFacing(nextFacing);
+    if (isCameraActive) {
+      await startCamera(nextFacing);
+    }
   };
 
   // Initial load: fetch suggestions / quick products
@@ -153,33 +319,176 @@ export default function ScanKemasanPage() {
         </div>
       )}
 
-      {/* Viewfinder / Input Box */}
+      {/* CSS untuk HTML5-QRCode Scanner Feed */}
+      <style>{`
+        #kemasan-camera-reader video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+          border-radius: 12px;
+        }
+        #kemasan-camera-reader {
+          border: none !important;
+        }
+        #kemasan-camera-reader img {
+          display: none !important;
+        }
+      `}</style>
+
+      {/* Card Kamera Scanner HP & Form Input */}
       <div style={{
         background: '#fff', border: '1px solid #e2e8f0', borderRadius: '18px',
-        padding: '16px', marginBottom: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+        padding: '14px', marginBottom: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
-        <div style={{
-          border: '2px dashed #cbd5e1', borderRadius: '14px', padding: '18px 12px',
-          background: 'linear-gradient(180deg, #f8fafc, #f1f5f9)', textAlign: 'center',
-          marginBottom: '14px'
-        }}>
-          <div style={{
-            width: '46px', height: '46px', borderRadius: '12px', background: '#e0f2fe',
-            color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 8px'
-          }}>
-            <ScanLine size={24} />
+        {/* Header Kamera & Kontrol */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{
+              width: '8px', height: '8px', borderRadius: '999px',
+              background: isCameraActive ? '#10b981' : '#94a3b8',
+              boxShadow: isCameraActive ? '0 0 8px #10b981' : 'none'
+            }} />
+            <span style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a' }}>
+              {isCameraActive ? 'Kamera HP Aktif' : 'Kamera HP Siap Digunakan'}
+            </span>
           </div>
-          <div style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>
-            Pemindai Barcode Kemasan
-          </div>
-          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-            Tembak barcode kemasan atau ketik SKU produk
+
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {isCameraActive && (
+              <button
+                type="button"
+                onClick={toggleCameraFacing}
+                title="Ganti Kamera Depan/Belakang"
+                style={{
+                  padding: '5px 8px', borderRadius: '8px', border: '1px solid #cbd5e1',
+                  background: '#f8fafc', color: '#475569', fontSize: '11px', fontWeight: '700',
+                  display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer'
+                }}
+              >
+                <SwitchCamera size={14} /> Ganti
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              title={soundEnabled ? 'Suara Beep Aktif' : 'Suara Beep Mati'}
+              style={{
+                padding: '5px 8px', borderRadius: '8px', border: '1px solid #cbd5e1',
+                background: soundEnabled ? '#e0f2fe' : '#f8fafc',
+                color: soundEnabled ? '#0284c7' : '#94a3b8',
+                display: 'flex', alignItems: 'center', cursor: 'pointer'
+              }}
+            >
+              {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+            </button>
           </div>
         </div>
 
+        {/* Area Viewfinder Kamera Video Feed */}
+        <div style={{
+          background: '#0f172a', borderRadius: '16px', overflow: 'hidden',
+          position: 'relative', minHeight: isCameraActive ? '280px' : '200px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          {/* HTML5-QRCode Reader Element */}
+          <div 
+            id="kemasan-camera-reader" 
+            style={{ 
+              width: '100%', 
+              minHeight: isCameraActive ? '260px' : '0px',
+              display: isCameraActive ? 'block' : 'none'
+            }} 
+          />
+
+          {/* Viewfinder Placeholder saat Kamera Mati */}
+          {!isCameraActive && (
+            <div style={{ textAlign: 'center', padding: '24px 16px', color: '#94a3b8' }}>
+              <div style={{
+                width: '54px', height: '54px', borderRadius: '16px', background: 'rgba(255,255,255,0.1)',
+                color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 12px'
+              }}>
+                <Camera size={28} />
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff' }}>
+                Scan Kemasan Pakai Kamera HP
+              </div>
+              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px', marginBottom: '14px' }}>
+                Arahkan kamera ke stiker barcode / QR pada kemasan produk
+              </div>
+
+              <button
+                type="button"
+                onClick={() => startCamera()}
+                disabled={cameraLoading}
+                style={{
+                  padding: '10px 20px', borderRadius: '12px', border: 'none',
+                  background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                  color: '#fff', fontSize: '13px', fontWeight: '800', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+                }}
+              >
+                {cameraLoading ? (
+                  <>
+                    <RefreshCw size={15} className="spin-animate" /> Membuka Kamera...
+                  </>
+                ) : (
+                  <>
+                    <Camera size={16} /> Buka Kamera HP Sekarang
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Visual Scanner Overlay when camera is active */}
+          {isCameraActive && (
+            <div style={{
+              position: 'absolute', inset: 0, pointerEvents: 'none',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px'
+            }}>
+              <div style={{
+                background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)',
+                color: '#fff', padding: '4px 12px', borderRadius: '999px', fontSize: '11px',
+                fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px'
+              }}>
+                <Zap size={12} color="#38bdf8" /> Arahkan ke Barcode / QR Kemasan
+              </div>
+
+              {/* Corner Targets */}
+              <div style={{
+                width: '210px', height: '210px', border: '2px solid rgba(56, 189, 248, 0.6)',
+                borderRadius: '16px', position: 'relative', boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.3)'
+              }}>
+                {/* Laser line animation */}
+                <div style={{
+                  position: 'absolute', left: 0, right: 0, top: '50%', height: '2px',
+                  background: 'linear-gradient(90deg, transparent, #38bdf8, #0284c7, transparent)',
+                  boxShadow: '0 0 8px #38bdf8', animation: 'pulse 1.5s infinite'
+                }} />
+              </div>
+
+              <button
+                type="button"
+                onClick={stopCamera}
+                style={{
+                  pointerEvents: 'auto', background: 'rgba(239, 68, 68, 0.9)',
+                  color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '999px',
+                  fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px',
+                  cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                }}
+              >
+                <CameraOff size={13} /> Tutup Kamera
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Input & Search Button */}
-        <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} style={{ display: 'flex', gap: '8px' }}>
+        <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
           <div style={{
             flex: 1, display: 'flex', alignItems: 'center', gap: '8px',
             background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px',

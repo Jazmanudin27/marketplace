@@ -47,13 +47,6 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
       gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)'
     },
     {
-      id: 'offline_sales',
-      title: 'POS Kasir',
-      category: 'Transaksi',
-      icon: Receipt,
-      gradient: 'linear-gradient(135deg, #10b981, #059669)'
-    },
-    {
       id: 'analytics',
       title: 'Grafik',
       category: 'Analisis',
@@ -73,20 +66,6 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
       category: 'Produksi',
       icon: QrCode,
       gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
-    },
-    {
-      id: 'pembelian',
-      title: 'Beli Stok',
-      category: 'Pembelian',
-      icon: PackagePlus,
-      gradient: 'linear-gradient(135deg, #f59e0b, #d97706)'
-    },
-    {
-      id: 'titipan',
-      title: 'Konsinyasi',
-      category: 'Konsinyasi',
-      icon: HandCoins,
-      gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)'
     },
     {
       id: 'saldo_marketplace',

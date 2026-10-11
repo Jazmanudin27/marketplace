@@ -34,7 +34,6 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
         { id: 'orders', title: 'Pesanan Masuk', desc: 'Daftar transaksi marketplace & POS', icon: ShoppingBag, color: '#2563eb' },
         { id: 'returns', title: 'Retur Masuk', desc: 'Komplain pembeli & QC retur barang', icon: RotateCcw, color: '#ef4444' },
         { id: 'laporan_penjualan', title: 'Laporan Penjualan', desc: 'Rekap omset, HPP, fee & margin', icon: FileText, color: '#4f46e5' },
-        { id: 'offline_sales', title: 'Penjualan Offline', desc: 'Kasir fisik toko / order manual', icon: Receipt, color: '#10b981' },
         { id: 'target', title: 'Target Marketing', desc: 'Realisasi omset & komisi tim', icon: Target, color: '#0ea5e9' },
         { id: 'scan_spk', title: 'Scan SPK Produksi', desc: 'Scan penerimaan karung & kuota SPK', icon: QrCode, color: '#8b5cf6' },
       ]
@@ -48,11 +47,10 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
       ]
     },
     {
-      group: 'Pembelian & Titipan Barang',
+      group: 'Pembelian & Bahan',
       items: [
         { id: 'pembelian_masuk', title: 'Pemasukan Barang', desc: 'Penerimaan barang dari supplier', icon: PackagePlus, color: '#f59e0b' },
         { id: 'pembelian_keluar', title: 'Pengeluaran Bahan', desc: 'Bahan keluar untuk produksi', icon: PackageMinus, color: '#ea580c' },
-        { id: 'titipan', title: 'Titipan Barang (Konsinyasi)', desc: 'Barang titipan pihak ketiga & supplier', icon: HandCoins, color: '#d946ef' },
         { id: 'hutang_supplier', title: 'Hutang Supplier', desc: 'Tagihan tempo pembelian barang', icon: CreditCard, color: '#e11d48' },
       ]
     },
