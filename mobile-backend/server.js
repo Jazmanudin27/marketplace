@@ -493,7 +493,7 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
         for (const tr of teamRows) {
           if (!seenOrders.has(tr.id)) {
             seenOrders.add(tr.id);
-            const rFund = calculateOrderRefund(tr, returnMap);
+            const rFund = calculateOrderRefund(tr);
             const fee = calculateOrderFee(tr);
             let rel = parseFloat(tr.net_amount || 0);
             if (rel <= 0) {
@@ -962,7 +962,7 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
         for (const ord of orders) {
           if (!seenOrders.has(ord.id)) {
             seenOrders.add(ord.id);
-            const rFund = calculateOrderRefund(ord, returnMap);
+            const rFund = calculateOrderRefund(ord);
             const fee = calculateOrderFee(ord);
             let released = parseFloat(ord.net_amount || 0);
             if (released <= 0) {
