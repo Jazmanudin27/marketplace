@@ -296,6 +296,16 @@ class SecretRepairDashboardController extends Controller
                     $output = "⚖️ Berhasil memperbarui status rekonsiliasi untuk {$updated} pesanan ERP.";
                     break;
 
+                case 'recalculate_order_hpp':
+                    $from = $request->input('date_from', '2026-09-01');
+                    $to = $request->input('date_to', '2026-10-31');
+                    Artisan::call('orders:recalculate-hpp', [
+                        '--from' => $from,
+                        '--to'   => $to,
+                    ]);
+                    $output = "📦 Hasil Update HPP Penjualan ({$from} s/d {$to}):\n" . Artisan::output();
+                    break;
+
                 case 'clear_system_cache':
                     Cache::flush();
                     Artisan::call('view:clear');
@@ -2447,6 +2457,35 @@ class SecretRepairDashboardController extends Controller
             'synced_count' => $syncedCount,
             'message'      => "Berhasil menyinkronkan dan menyimpan {$syncedCount} pesanan mismatch ke database ERP!",
         ]);
+    }
+
+    /**
+     * Endpoint langsung via link browser: GET/POST /fix/update-hpp
+     */
+    public function recalculateHpp(Request $request)
+    {
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+
+        $from = $request->input('from', '2026-09-01');
+        $to = $request->input('to', '2026-10-31');
+
+        Artisan::call('orders:recalculate-hpp', [
+            '--from' => $from,
+            '--to'   => $to,
+        ]);
+        $output = Artisan::output();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil memperbarui HPP penjualan',
+                'output'  => $output
+            ]);
+        }
+
+        return redirect('/fix')->with('success', 'Berhasil memperbarui HPP penjualan: ' . nl2br(e($output)));
     }
 }
 

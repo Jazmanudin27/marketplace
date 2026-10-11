@@ -878,6 +878,24 @@
                 </div>
             </div>
 
+            <!-- Action: Update HPP Penjualan (September & Oktober) -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card-action border-top border-4 border-success">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-success text-white fw-bold px-2 py-1" style="font-size: 0.72rem;"><i class="fas fa-calculator me-1"></i>UPDATE HPP</span>
+                            <h6 class="fw-bold text-dark mb-0">Update HPP Penjualan (Sept &amp; Okt)</h6>
+                        </div>
+                        <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.45;">
+                            Memperbarui modal HPP transaksi historis berdasarkan harga pokok terbaru di Master Produk (Periode 1 Sept s/d 31 Okt 2026).
+                        </p>
+                    </div>
+                    <button type="button" class="btn-custom btn-success fw-semibold" onclick="triggerRepair('recalculate_order_hpp', this)">
+                        <i class="fas fa-calculator me-1"></i> Update HPP September &amp; Oktober
+                    </button>
+                </div>
+            </div>
+
             <!-- Action 0.5: Sync Product Stock -->
             <div class="col-lg-4 col-md-6">
                 <div class="card-action border-top border-4 border-info">
