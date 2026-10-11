@@ -267,6 +267,9 @@ class OfflineSale extends Model
      */
     public function getHppTotalAttribute(): float
     {
+        if (in_array(strtolower((string) $this->status), ['cancelled', 'batal', 'returned', 'retur'])) {
+            return 0.0;
+        }
         $total = 0.0;
         foreach ($this->items as $item) {
             if ($item->masterProduct) {
