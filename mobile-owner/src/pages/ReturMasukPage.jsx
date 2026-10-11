@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Search, RotateCcw, Package, ShieldCheck, Clock, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  Search, RotateCcw, Package, ShieldCheck, Clock, CheckCircle2, 
+  ChevronLeft, ChevronRight, X, AlertCircle, Check, HelpCircle, 
+  CheckCircle, RefreshCw 
+} from 'lucide-react';
 import { formatRupiah, getChannelBadge } from '../utils/formatters';
-import { fetchReturMasuk } from '../api/metricsApi';
+import { fetchReturMasuk, submitReturQc } from '../api/metricsApi';
 
 const STATUS_STYLE = (s) => {
   const v = String(s || '').toUpperCase();
@@ -27,28 +31,105 @@ export default function ReturMasukPage() {
   const [qcTab, setQcTab] = useState(''); // '', '0', '1'
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      setIsLoading(true);
-      const res = await fetchReturMasuk({ search, storeId, status, isRestocked: qcTab, page });
-      if (!alive) return;
-      if (res?.success) {
-        setStats(res.stats || {});
-        setData(res.data || []);
-        setStores(res.filters?.stores || []);
-        setStatuses(res.filters?.statuses || []);
-        setPagination(res.pagination || { page: 1, lastPage: 1, total: 0 });
-      }
-      setIsLoading(false);
-    })();
-    return () => { alive = false; };
+  // QC Modal State
+  const [qcModalData, setQcModalData] = useState(null);
+  const [qcItemsState, setQcItemsState] = useState({});
+  const [qcNotes, setQcNotes] = useState('');
+  const [isSubmittingQc, setIsSubmittingQc] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    const res = await fetchReturMasuk({ search, storeId, status, isRestocked: qcTab, page });
+    if (res?.success) {
+      setStats(res.stats || {});
+      setData(res.data || []);
+      setStores(res.filters?.stores || []);
+      setStatuses(res.filters?.statuses || []);
+      setPagination(res.pagination || { page: 1, lastPage: 1, total: 0 });
+    }
+    setIsLoading(false);
   }, [search, storeId, status, qcTab, page]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   useEffect(() => {
     const t = setTimeout(() => { setPage(1); setSearch(searchInput.trim()); }, 400);
     return () => clearTimeout(t);
   }, [searchInput]);
+
+  const showToast = (text, type = 'success') => {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const openQcModal = (retur) => {
+    const initialItems = {};
+    (retur.items || []).forEach((it, idx) => {
+      const key = it.id || it.orderItemId || `item_${idx}`;
+      initialItems[key] = {
+        id: it.id,
+        orderItemId: it.orderItemId,
+        inspection_status: it.inspectionStatus === 'DEFECTIVE' ? 'DEFECTIVE' : 'GOOD',
+        inspection_notes: it.inspectionNotes || '',
+      };
+    });
+    setQcItemsState(initialItems);
+    setQcNotes(retur.inspectionNotes || '');
+    setQcModalData(retur);
+  };
+
+  const handleItemStatusChange = (itemKey, newStatus) => {
+    setQcItemsState(prev => ({
+      ...prev,
+      [itemKey]: {
+        ...(prev[itemKey] || {}),
+        inspection_status: newStatus
+      }
+    }));
+  };
+
+  const handleItemNoteChange = (itemKey, note) => {
+    setQcItemsState(prev => ({
+      ...prev,
+      [itemKey]: {
+        ...(prev[itemKey] || {}),
+        inspection_notes: note
+      }
+    }));
+  };
+
+  const handleSubmitQc = async () => {
+    if (!qcModalData) return;
+    setIsSubmittingQc(true);
+
+    const itemsPayload = Object.values(qcItemsState).map(it => ({
+      id: it.id,
+      orderItemId: it.orderItemId,
+      inspection_status: it.inspection_status || 'GOOD',
+      inspection_notes: it.inspection_notes || '',
+    }));
+
+    const hasGood = itemsPayload.some(it => it.inspection_status === 'GOOD');
+    const overallStatus = hasGood ? 'GOOD' : 'DEFECTIVE';
+
+    const res = await submitReturQc(qcModalData.id, {
+      items: itemsPayload,
+      inspection_status: overallStatus,
+      inspection_notes: qcNotes,
+    });
+
+    setIsSubmittingQc(false);
+    if (res?.success) {
+      showToast(res.message || 'Pemeriksaan QC berhasil disimpan.');
+      setQcModalData(null);
+      loadData();
+    } else {
+      showToast(res?.message || 'Gagal menyimpan QC.', 'error');
+    }
+  };
 
   const qcTabs = [
     { id: '', label: 'Semua', count: stats.total },
@@ -63,6 +144,20 @@ export default function ReturMasukPage() {
 
   return (
     <div className="mobile-body-content" style={{ paddingTop: '14px', paddingBottom: '90px' }}>
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed', top: '16px', left: '16px', right: '16px', zIndex: 99999,
+          background: toastMessage.type === 'error' ? '#ef4444' : '#10b981',
+          color: '#fff', padding: '12px 16px', borderRadius: '12px', fontSize: '12.5px',
+          fontWeight: '600', boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+          display: 'flex', alignItems: 'center', gap: '8px'
+        }}>
+          {toastMessage.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+          <span>{toastMessage.text}</span>
+        </div>
+      )}
+
       {/* KPI */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '12px' }}>
         {[
@@ -146,6 +241,8 @@ export default function ReturMasukPage() {
           {data.map(r => {
             const st = STATUS_STYLE(r.status);
             const badge = getChannelBadge(r.channelCode || r.channelName);
+            const isGood = r.inspectionStatus === 'GOOD';
+
             return (
               <div key={r.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '12px 14px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
                 {/* Header */}
@@ -189,7 +286,7 @@ export default function ReturMasukPage() {
                   </div>
                 )}
 
-                {/* Footer */}
+                {/* Footer Info */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
                   <div>
                     <div style={{ fontSize: '10px', color: '#64748b' }}>Refund</div>
@@ -202,18 +299,66 @@ export default function ReturMasukPage() {
                     <span style={{
                       fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '999px',
                       display: 'inline-flex', alignItems: 'center', gap: '3px',
-                      background: r.isRestocked ? '#ecfdf5' : '#f5f3ff',
-                      color: r.isRestocked ? '#059669' : '#7c3aed'
+                      background: r.isRestocked ? (isGood ? '#ecfdf5' : '#fef2f2') : '#f5f3ff',
+                      color: r.isRestocked ? (isGood ? '#059669' : '#dc2626') : '#7c3aed'
                     }}>
                       <ShieldCheck size={11} />
-                      {r.isRestocked ? `QC ${r.inspectionStatus === 'GOOD' ? 'Layak Jual' : (r.inspectionStatus || 'Selesai')}` : 'Belum QC'}
+                      {r.isRestocked ? (isGood ? 'QC Layak Jual (Restock)' : 'QC Cacat / Rusak') : 'Belum QC'}
                     </span>
                   </div>
                 </div>
 
-                <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '6px' }}>
+                <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '6px', marginBottom: '8px' }}>
                   {r.dateFormatted} • Pembeli: {r.buyerName}
                 </div>
+
+                {/* Tombol Terima Barang (QC) */}
+                {!r.isRestocked ? (
+                  <button
+                    type="button"
+                    onClick={() => openQcModal(r)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #059669, #047857)',
+                      color: '#fff',
+                      border: 'none',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      boxShadow: '0 2px 6px rgba(5,150,105,0.25)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <CheckCircle size={15} /> Terima Barang (QC)
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openQcModal(r)}
+                    style={{
+                      width: '100%',
+                      padding: '7px 12px',
+                      borderRadius: '10px',
+                      background: '#f8fafc',
+                      color: '#475569',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '11.5px',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <ShieldCheck size={14} color="#059669" /> Lihat / Edit Hasil QC
+                  </button>
+                )}
               </div>
             );
           })}
@@ -240,6 +385,217 @@ export default function ReturMasukPage() {
           >
             <ChevronRight size={15} />
           </button>
+        </div>
+      )}
+
+      {/* ── MODAL TERIMA BARANG (QC INSPEKSI GUDANG) ── */}
+      {qcModalData && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: '#fff', width: '100%', maxWidth: '520px',
+            maxHeight: '90vh', borderTopLeftRadius: '22px', borderTopRightRadius: '22px',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            boxShadow: '0 -8px 30px rgba(0,0,0,0.25)', animation: 'slideUp 0.25s ease'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '14px 16px', background: 'linear-gradient(135deg, #059669, #047857)',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+            }}>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ShieldCheck size={18} /> Terima Barang & QC Gudang
+                </div>
+                <div style={{ fontSize: '11px', opacity: 0.9, marginTop: '2px' }}>
+                  {qcModalData.returnSn} • {qcModalData.storeName}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQcModalData(null)}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '999px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '14px 16px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Info Ringkas */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 12px', fontSize: '11.5px', color: '#475569' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span>Invoice:</span>
+                  <strong style={{ color: '#0f172a' }}>{qcModalData.invoiceNumber}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span>Pembeli:</span>
+                  <strong style={{ color: '#0f172a' }}>{qcModalData.buyerName}</strong>
+                </div>
+                {qcModalData.reason && (
+                  <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #e2e8f0', color: '#dc2626' }}>
+                    <strong>Alasan Retur:</strong> {qcModalData.reason}
+                  </div>
+                )}
+              </div>
+
+              {qcModalData.isRestocked && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '8px 12px', fontSize: '11px', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle size={14} />
+                  <span>Barang ini sudah pernah di-QC sebelumnya. Anda dapat memperbarui hasil pemeriksaan.</span>
+                </div>
+              )}
+
+              {/* Items List */}
+              <div style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a' }}>
+                Pemeriksaan Kondisi Item ({qcModalData.items?.length || 0}):
+              </div>
+
+              {(qcModalData.items || []).map((it, idx) => {
+                const key = it.id || it.orderItemId || `item_${idx}`;
+                const cur = qcItemsState[key] || { inspection_status: 'GOOD', inspection_notes: '' };
+                const isGood = cur.inspection_status === 'GOOD';
+
+                return (
+                  <div key={key} style={{
+                    border: '1px solid #e2e8f0', borderRadius: '14px', padding: '12px',
+                    background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.02)'
+                  }}>
+                    {/* Item Name */}
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
+                      {it.image ? (
+                        <img src={it.image} alt="" style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Package size={16} color="#94a3b8" />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#0f172a' }}>{it.name}</div>
+                        <div style={{ fontSize: '10.5px', color: '#64748b' }}>
+                          SKU: {it.sku} {it.variant ? `• ${it.variant}` : ''} • Qty: <strong style={{ color: '#dc2626' }}>{it.qty} pcs</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status Options Toggle */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleItemStatusChange(key, 'GOOD')}
+                        style={{
+                          padding: '8px 10px', borderRadius: '10px', fontSize: '11.5px', fontWeight: '700',
+                          border: isGood ? '2px solid #059669' : '1px solid #e2e8f0',
+                          background: isGood ? '#ecfdf5' : '#f8fafc',
+                          color: isGood ? '#065f46' : '#64748b',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Check size={14} color={isGood ? '#059669' : '#94a3b8'} />
+                        Layak Jual
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleItemStatusChange(key, 'DEFECTIVE')}
+                        style={{
+                          padding: '8px 10px', borderRadius: '10px', fontSize: '11.5px', fontWeight: '700',
+                          border: !isGood ? '2px solid #dc2626' : '1px solid #e2e8f0',
+                          background: !isGood ? '#fef2f2' : '#f8fafc',
+                          color: !isGood ? '#991b1b' : '#64748b',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <X size={14} color={!isGood ? '#dc2626' : '#94a3b8'} />
+                        Cacat / Rusak
+                      </button>
+                    </div>
+
+                    <div style={{ fontSize: '10.5px', color: isGood ? '#059669' : '#b91c1c', marginBottom: '6px', fontWeight: '600' }}>
+                      {isGood ? '✓ Stok gudang master & marketplace otomatis bertambah' : '✗ Tidak menambah stok (barang rusak/cacat)'}
+                    </div>
+
+                    {/* Catatan Item */}
+                    <input
+                      type="text"
+                      placeholder="Catatan fisik (mis: Segel utuh / ada noda)..."
+                      value={cur.inspection_notes || ''}
+                      onChange={(e) => handleItemNoteChange(key, e.target.value)}
+                      style={{
+                        width: '100%', padding: '7px 10px', borderRadius: '8px',
+                        border: '1px solid #cbd5e1', fontSize: '11.5px', outline: 'none', background: '#fff'
+                      }}
+                    />
+                  </div>
+                );
+              })}
+
+              {/* Catatan Tambahan Global */}
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  Catatan Umum Pemeriksaan:
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Catatan rangkuman hasil penerimaan barang retur..."
+                  value={qcNotes}
+                  onChange={(e) => setQcNotes(e.target.value)}
+                  style={{
+                    width: '100%', padding: '8px 10px', borderRadius: '10px',
+                    border: '1px solid #cbd5e1', fontSize: '12px', outline: 'none',
+                    resize: 'none', fontFamily: 'inherit'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div style={{
+              padding: '12px 16px', borderTop: '1px solid #e2e8f0', background: '#f8fafc',
+              display: 'flex', gap: '10px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setQcModalData(null)}
+                disabled={isSubmittingQc}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1',
+                  background: '#fff', color: '#475569', fontSize: '12.5px', fontWeight: '700',
+                  cursor: 'pointer'
+                }}
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSubmitQc}
+                disabled={isSubmittingQc}
+                style={{
+                  flex: 2, padding: '10px', borderRadius: '10px', border: 'none',
+                  background: isSubmittingQc ? '#94a3b8' : 'linear-gradient(135deg, #059669, #047857)',
+                  color: '#fff', fontSize: '12.5px', fontWeight: '700', cursor: isSubmittingQc ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  boxShadow: '0 2px 8px rgba(5,150,105,0.3)'
+                }}
+              >
+                {isSubmittingQc ? (
+                  <>
+                    <RefreshCw size={15} className="spin-animate" /> Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck size={16} /> Simpan Hasil QC
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

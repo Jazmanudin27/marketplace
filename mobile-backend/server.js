@@ -2715,7 +2715,7 @@ app.get('/api/v2/owner/retur', async (req, res) => {
     if (retIds.length) {
       try {
         const ri = await query(
-          `SELECT roi.return_order_id, roi.quantity AS ret_qty, oi.*
+          `SELECT roi.id AS return_item_id, roi.return_order_id, roi.quantity AS ret_qty, roi.inspection_status, roi.inspection_notes, oi.*
            FROM return_order_items roi
            LEFT JOIN order_items oi ON oi.id = roi.order_item_id
            WHERE roi.return_order_id IN (?)`,
@@ -2723,12 +2723,16 @@ app.get('/api/v2/owner/retur', async (req, res) => {
         );
         for (const it of ri) {
           (retItemsMap[it.return_order_id] = retItemsMap[it.return_order_id] || []).push({
+            id: it.return_item_id,
+            orderItemId: it.id,
             name: it.product_name || 'Barang Retur',
             sku: it.sku || '-',
             variant: it.variant_name || '',
             image: it.product_image || '',
             qty: parseInt(it.ret_qty || 1, 10),
             price: parseFloat(it.unit_price || 0),
+            inspectionStatus: it.inspection_status || '',
+            inspectionNotes: it.inspection_notes || '',
           });
         }
       } catch (_) {}
@@ -2741,12 +2745,16 @@ app.get('/api/v2/owner/retur', async (req, res) => {
         );
         for (const it of oi) {
           (orderItemsMap[it.order_id] = orderItemsMap[it.order_id] || []).push({
+            id: null,
+            orderItemId: it.id,
             name: it.product_name || 'Barang Retur',
             sku: it.sku || '-',
             variant: it.variant_name || '',
             image: it.product_image || '',
             qty: parseInt(it.quantity || 1, 10),
             price: parseFloat(it.unit_price || 0),
+            inspectionStatus: '',
+            inspectionNotes: '',
           });
         }
       } catch (_) {}
@@ -2815,6 +2823,164 @@ app.get('/api/v2/owner/retur', async (req, res) => {
     });
   } catch (err) {
     console.error('[Node-API] Retur error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Terima Barang & Simpan Hasil QC Retur
+app.post('/api/v2/owner/retur/:id/qc', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const returnId = req.params.id;
+    const { items, inspection_status, inspection_notes } = req.body;
+
+    const [ret] = await query(
+      `SELECT r.*, s.store_name, o.id AS orig_order_id, o.invoice_number 
+       FROM return_orders r
+       LEFT JOIN stores s ON s.id = r.store_id
+       LEFT JOIN orders o ON o.id = r.order_id
+       WHERE r.id = ? AND r.tenant_id = ?`,
+      [returnId, tenantId]
+    );
+
+    if (!ret) {
+      return res.status(404).json({ success: false, message: 'Data retur tidak ditemukan.' });
+    }
+
+    // Ambil item retur yang tersimpan
+    let rItems = await query(
+      `SELECT roi.*, oi.master_product_id, oi.marketplace_product_id, oi.sku, oi.product_name
+       FROM return_order_items roi
+       LEFT JOIN order_items oi ON oi.id = roi.order_item_id
+       WHERE roi.return_order_id = ?`,
+      [returnId]
+    );
+
+    // Jika tabel return_order_items masih kosong (data lama), isi dari order_items
+    if (!rItems || rItems.length === 0) {
+      if (ret.order_id) {
+        const origOrderItems = await query(
+          `SELECT * FROM order_items WHERE order_id = ?`,
+          [ret.order_id]
+        );
+        for (const oi of origOrderItems) {
+          try {
+            await query(
+              `INSERT INTO return_order_items (return_order_id, order_item_id, quantity, inspection_status, inspection_notes, created_at, updated_at)
+               VALUES (?, ?, ?, 'PENDING', NULL, NOW(), NOW())`,
+              [returnId, oi.id, oi.quantity || 1]
+            );
+          } catch (_) {}
+        }
+        rItems = await query(
+          `SELECT roi.*, oi.master_product_id, oi.marketplace_product_id, oi.sku, oi.product_name
+           FROM return_order_items roi
+           LEFT JOIN order_items oi ON oi.id = roi.order_item_id
+           WHERE roi.return_order_id = ?`,
+          [returnId]
+        );
+      }
+    }
+
+    const itemsInputMap = {};
+    if (Array.isArray(items)) {
+      items.forEach(it => {
+        if (it.id) itemsInputMap[it.id] = it;
+        else if (it.orderItemId) itemsInputMap[`oi_${it.orderItemId}`] = it;
+      });
+    }
+
+    const wasAlreadyRestocked = !!ret.is_restocked;
+    let hasGood = false;
+
+    for (const rItem of rItems) {
+      const input = itemsInputMap[rItem.id] || itemsInputMap[`oi_${rItem.order_item_id}`] || {};
+      const status = input.inspection_status || inspection_status || 'GOOD';
+      const notes = input.inspection_notes !== undefined ? input.inspection_notes : (inspection_notes || '');
+
+      if (status === 'GOOD') {
+        hasGood = true;
+      }
+
+      await query(
+        `UPDATE return_order_items 
+         SET inspection_status = ?, inspection_notes = ?, updated_at = NOW() 
+         WHERE id = ?`,
+        [status, notes, rItem.id]
+      );
+
+      // Hanya restock jika belum pernah direstock sebelumnya & kondisi GOOD (Layak Jual)
+      if (!wasAlreadyRestocked && status === 'GOOD') {
+        let masterProductId = rItem.master_product_id;
+        if (!masterProductId && rItem.marketplace_product_id) {
+          const [mp] = await query(
+            `SELECT master_product_id FROM marketplace_products WHERE id = ? LIMIT 1`,
+            [rItem.marketplace_product_id]
+          );
+          if (mp && mp.master_product_id) masterProductId = mp.master_product_id;
+        }
+        if (!masterProductId && rItem.sku) {
+          const [mpBySku] = await query(
+            `SELECT id FROM master_products WHERE tenant_id = ? AND sku = ? LIMIT 1`,
+            [tenantId, rItem.sku]
+          );
+          if (mpBySku) masterProductId = mpBySku.id;
+        }
+
+        if (masterProductId) {
+          const restockQty = Math.max(1, parseInt(rItem.quantity || 1, 10));
+          await query(
+            `UPDATE master_products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`,
+            [restockQty, masterProductId]
+          );
+          const [freshMp] = await query(`SELECT stock FROM master_products WHERE id = ?`, [masterProductId]);
+          const newStock = freshMp ? freshMp.stock : 0;
+
+          const refText = `Terima Retur (Layak Jual): ${ret.return_sn}${notes ? ' - ' + notes : ''}`;
+          try {
+            await query(
+              `INSERT INTO stock_movements (tenant_id, master_product_id, user_id, type, quantity, reference, balance_after, created_at, updated_at)
+               VALUES (?, ?, ?, 'in', ?, ?, ?, NOW(), NOW())`,
+              [tenantId, masterProductId, null, restockQty, refText, newStock]
+            );
+          } catch (_) {}
+
+          try {
+            await query(
+              `UPDATE marketplace_products 
+               SET stock = ?, sync_stock = 1, updated_at = NOW() 
+               WHERE master_product_id = ?`,
+              [newStock, masterProductId]
+            );
+          } catch (_) {}
+        }
+      }
+    }
+
+    const overallStatus = hasGood ? 'GOOD' : 'DEFECTIVE';
+    const finalNotes = inspection_notes || (hasGood ? 'Pemeriksaan fisik: Layak Jual (stok gudang bertambah)' : 'Pemeriksaan fisik: Rusak / Cacat');
+
+    await query(
+      `UPDATE return_orders 
+       SET is_restocked = 1, inspection_status = ?, inspection_notes = ?, updated_at = NOW() 
+       WHERE id = ? AND tenant_id = ?`,
+      [overallStatus, finalNotes, returnId, tenantId]
+    );
+
+    return res.json({
+      success: true,
+      message: hasGood 
+        ? 'Pemeriksaan QC berhasil disimpan. Barang layak jual telah dimasukkan ke stok gudang.'
+        : 'Pemeriksaan QC berhasil disimpan (Barang ditandai rusak/cacat).',
+      data: {
+        id: returnId,
+        isRestocked: true,
+        inspectionStatus: overallStatus,
+        inspectionNotes: finalNotes
+      }
+    });
+  } catch (err) {
+    console.error('[Node-API] Restock QC error:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 });

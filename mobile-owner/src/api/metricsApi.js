@@ -429,4 +429,29 @@ export async function fetchReturMasuk({ search = '', storeId = '', status = '', 
   return { success: false, stats: {}, data: [], filters: { stores: [], statuses: [] }, pagination: { page: 1, lastPage: 1, total: 0 } };
 }
 
+export async function submitReturQc(returnId, data) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/retur/${returnId}/qc`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] submitReturQc error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+
 
