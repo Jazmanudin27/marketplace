@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Store, Key, Bell, LogOut, Calendar, Clock } from 'lucide-react';
 import { formatIndonesianDate } from '../../utils/formatters';
 
-export default function Header({ profile, onOpenKeyStatus, onOpenNotif, onLogout }) {
+export default function Header({ profile, onOpenNotif, onLogout, unreadCount = 0 }) {
   const [currentDate, setCurrentDate] = useState(formatIndonesianDate());
 
   // Real-time dynamic clock ticking every second like a real mobile app
@@ -27,29 +27,42 @@ export default function Header({ profile, onOpenKeyStatus, onOpenNotif, onLogout
       {/* Top Navbar */}
       <div className="header-top-bar">
         <div className="brand-pill-owner" title="Portal Khusus Owner" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <img src="/ruang-market.png" alt="Ruang Market" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-          <span className="brand-pill-title">Ruang Market</span>
-          <span className="pro-badge">OWNER</span>
+          <img src="/ruang-market.png" alt="Ruang Market" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+          <span className="brand-pill-title" style={{ fontSize: '15px', fontWeight: '800' }}>Ruang Market</span>
         </div>
 
         <div className="header-actions">
           <button 
             type="button" 
             className="action-circle-btn" 
-            onClick={onOpenKeyStatus}
-            title="Koneksi & Sinkronisasi API"
-          >
-            <Key size={16} />
-          </button>
-          
-          <button 
-            type="button" 
-            className="action-circle-btn" 
             onClick={onOpenNotif}
             title="Notifikasi Masuk"
           >
-            <Bell size={16} />
-            <span className="notif-badge-dot"></span>
+            <Bell size={17} />
+            {unreadCount > 0 && (
+              <span 
+                style={{
+                  position: 'absolute',
+                  top: '-3px',
+                  right: '-3px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '10px',
+                  fontWeight: '800',
+                  borderRadius: '999px',
+                  minWidth: '18px',
+                  height: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 4px',
+                  border: '2px solid #1e1b4b',
+                  boxShadow: '0 2px 6px rgba(239, 68, 68, 0.4)'
+                }}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </button>
 
           <button 

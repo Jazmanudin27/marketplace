@@ -11,6 +11,7 @@ import LoginPage from './pages/LoginPage';
 import OrderDetailModal from './components/orders/OrderDetailModal';
 import AllModulesModal from './components/dashboard/AllModulesModal';
 import FinanceMetricDetailModal from './components/dashboard/FinanceMetricDetailModal';
+import NotificationModal from './components/dashboard/NotificationModal';
 import { fetchOrders } from './api/ordersApi';
 import { fetchOwnerMetrics } from './api/metricsApi';
 import { getCurrentOwnerUser, logoutOwner } from './api/authApi';
@@ -60,11 +61,29 @@ export default function App() {
   const [selectedFinanceMetric, setSelectedFinanceMetric] = useState(null);
   const [ordersFilter, setOrdersFilter] = useState('ALL');
   const [isAllModulesOpen, setIsAllModulesOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [readNotifIds, setReadNotifIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('owner_read_notif_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const [isDataLoading, setIsDataLoading] = useState(() => {
     // If no cached metrics exist yet, start with loading true so user sees shimmer instead of 0
     return !localStorage.getItem('owner_metrics_cache');
   });
+
+  // Filter pesanan yang BELUM dikirim / harus dikirim dan belum diproses
+  const pendingOrders = (orders || []).filter((o) => {
+    const s = String(o.status || '').toUpperCase();
+    return s === 'READY_TO_SHIP' || s === 'SIAP_KIRIM' || s === 'NEW' || s === 'UNPAID' || s === 'IN_PROCESS';
+  });
+
+  // Unread count: hanya pending orders yang belum pernah dilihat
+  const unreadPendingCount = pendingOrders.filter(o => !readNotifIds.includes(o.id)).length;
 
   // Synchronize profile with logged-in user if available
   useEffect(() => {
@@ -130,12 +149,17 @@ export default function App() {
     alert('📷 Fitur Scanner Barcode Gudang V2 aktif. Arahkan kamera ke barcode pesanan pick & pack.');
   };
 
-  const handleOpenKeyStatus = () => {
-    alert('🔑 Sinkronisasi API Marketplace Aktif: \n• Shopee Open API: Online\n• TikTok Shop API: Online\n• Tokopedia API: Online\n• Status Database: 100% Realtime');
-  };
-
   const handleOpenNotif = () => {
-    alert('🔔 Notifikasi Terbaru:\n• 18 pesanan baru masuk dari Shopee & TikTok Shop.\n• 2 komplain retur perlu verifikasi owner.');
+    setIsNotifOpen(true);
+    // Saat notif dibuka/dilihat, tandai semua pending order saat ini sudah dibaca
+    const currentPendingIds = pendingOrders.map(o => o.id);
+    const updated = Array.from(new Set([...readNotifIds, ...currentPendingIds]));
+    setReadNotifIds(updated);
+    try {
+      localStorage.setItem('owner_read_notif_ids', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed saving read notifs:', e);
+    }
   };
 
   const handleLogout = () => {
@@ -164,7 +188,7 @@ export default function App() {
         {activeTab === 'home' ? (
           <Header 
             profile={profile}
-            onOpenKeyStatus={handleOpenKeyStatus}
+            unreadCount={unreadPendingCount}
             onOpenNotif={handleOpenNotif}
             onLogout={handleLogout}
           />
@@ -277,6 +301,15 @@ export default function App() {
             onClose={() => setSelectedOrder(null)}
           />
         )}
+
+        {/* Notification Modal (Maks 5 Pesanan Belum Diproses) */}
+        <NotificationModal 
+          isOpen={isNotifOpen}
+          orders={orders}
+          onClose={() => setIsNotifOpen(false)}
+          onSelectOrder={(order) => setSelectedOrder(order)}
+          onViewAllOrders={(filter) => handleOpenOrders(filter || 'READY_TO_SHIP')}
+        />
 
         {/* All Modules ERP Catalog Drawer */}
         <AllModulesModal 
