@@ -18,9 +18,30 @@ import { initialOwnerProfile, initialOwnerMetrics, initialOrders } from './api/m
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => getCurrentOwnerUser());
   const [activeTab, setActiveTab] = useState('home');
-  const [profile, setProfile] = useState(initialOwnerProfile);
-  const [metrics, setMetrics] = useState(initialOwnerMetrics);
-  const [orders, setOrders] = useState(initialOrders);
+  const [profile, setProfile] = useState(() => {
+    try {
+      const cached = localStorage.getItem('owner_profile_cache');
+      return cached ? JSON.parse(cached) : initialOwnerProfile;
+    } catch {
+      return initialOwnerProfile;
+    }
+  });
+  const [metrics, setMetrics] = useState(() => {
+    try {
+      const cached = localStorage.getItem('owner_metrics_cache');
+      return cached ? JSON.parse(cached) : initialOwnerMetrics;
+    } catch {
+      return initialOwnerMetrics;
+    }
+  });
+  const [orders, setOrders] = useState(() => {
+    try {
+      const cached = localStorage.getItem('owner_orders_cache');
+      return cached ? JSON.parse(cached) : initialOrders;
+    } catch {
+      return initialOrders;
+    }
+  });
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [ordersFilter, setOrdersFilter] = useState('ALL');
   const [isAllModulesOpen, setIsAllModulesOpen] = useState(false);
@@ -39,7 +60,7 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Load API data on mount if logged in
+  // Load API data on mount if logged in (Instant Cache-Then-Network)
   useEffect(() => {
     if (!currentUser) return;
 
@@ -49,10 +70,20 @@ export default function App() {
           fetchOwnerMetrics(),
           fetchOrders({ status: 'ALL' })
         ]);
-        if (metricRes?.data) setMetrics(metricRes.data);
-        if (ordersRes?.data) setOrders(ordersRes.data);
+        if (metricRes?.data) {
+          setMetrics(metricRes.data);
+          localStorage.setItem('owner_metrics_cache', JSON.stringify(metricRes.data));
+        }
+        if (metricRes?.profile) {
+          setProfile(prev => ({ ...prev, ...metricRes.profile }));
+          localStorage.setItem('owner_profile_cache', JSON.stringify(metricRes.profile));
+        }
+        if (ordersRes?.data) {
+          setOrders(ordersRes.data);
+          localStorage.setItem('owner_orders_cache', JSON.stringify(ordersRes.data));
+        }
       } catch (err) {
-        console.warn('API fetch error, using local dataset:', err);
+        console.warn('API fetch error:', err);
       }
     }
     loadData();

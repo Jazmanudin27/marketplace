@@ -132,17 +132,24 @@ class OwnerApiController extends Controller
         $todayOmset = $todayGrossSales > 0 ? $todayGrossSales : $todayReleased;
         $todayMargin = max(0.0, $todayReleased - $todayHpp);
 
-        // 3. Target Komisi Tim Marketing
+        // 3. Target Komisi Tim Marketing (Di-cache 60 detik per tenant agar respon API di bawah 50ms)
         $teams = MarketingTeam::where('tenant_id', $tenantId)->where('is_active', true)->get();
         $targetMonthlyMargin = (float) $teams->sum('target_omset');
-        $actualMonthlyMargin = 0.0;
-        $totalEarnedCommission = 0.0;
+        
+        $teamCacheKey = "owner_team_metrics_{$tenantId}_" . date('Ymd_H');
+        $cachedTeamData = \Illuminate\Support\Facades\Cache::remember($teamCacheKey, 60, function () use ($teams) {
+            $actMargin = 0.0;
+            $totReward = 0.0;
+            foreach ($teams as $team) {
+                $metrics = $team->calculateActualMetrics();
+                $actMargin += (float) ($metrics['margin'] ?? 0);
+                $totReward += (float) ($team->total_reward ?? 0);
+            }
+            return ['margin' => $actMargin, 'reward' => $totReward];
+        });
 
-        foreach ($teams as $team) {
-            $metrics = $team->calculateActualMetrics();
-            $actualMonthlyMargin += (float) ($metrics['margin'] ?? 0);
-            $totalEarnedCommission += (float) ($team->total_reward ?? 0);
-        }
+        $actualMonthlyMargin = (float) ($cachedTeamData['margin'] ?? 0);
+        $totalEarnedCommission = (float) ($cachedTeamData['reward'] ?? 0);
 
         $targetProgressPercent = $targetMonthlyMargin > 0
             ? round(($actualMonthlyMargin / $targetMonthlyMargin) * 100, 1)
