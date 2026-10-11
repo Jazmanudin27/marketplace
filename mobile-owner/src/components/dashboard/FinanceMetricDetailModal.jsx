@@ -285,27 +285,27 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
                     transition: 'transform 0.15s ease'
                   }}
                 >
-                  {/* Row 1: Invoice, Store & Jam */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {/* Row 1: Invoice & Store (Kiri), Jam Selesai & Arrow (Kanan) */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                       <span style={{ fontSize: '12.5px', fontWeight: '800', fontFamily: 'monospace', color: '#0f172a' }}>
                         {order.invoiceNumber}
                       </span>
-                      <span className={`store-pill ${badge.class}`} style={{ fontSize: '9.5px', padding: '1.5px 6px' }}>
-                        {order.storeName}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span className={`store-pill ${badge.class}`} style={{ fontSize: '9.5px', padding: '1.5px 6px' }}>
+                          {order.storeName}
+                        </span>
+                        <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                          • {order.quantity} pcs
+                        </span>
+                      </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10.5px', color: '#64748b' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10.5px', color: '#64748b', paddingTop: '2px' }}>
                       <Clock size={11} color="#94a3b8" />
                       <span>{order.completedAt}</span>
                       <ChevronRight size={13} color="#94a3b8" />
                     </div>
-                  </div>
-
-                  {/* Row 2: Pembeli & Qty */}
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>
-                    Pembeli: <strong style={{ color: '#0f172a' }}>{order.buyerName}</strong> • {order.quantity} pcs
                   </div>
 
                   {/* Row 3: Grid 4 Komponen Finansial Lengkap (Penjualan, HPP, Admin, Margin) */}
