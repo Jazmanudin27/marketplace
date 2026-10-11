@@ -30,6 +30,52 @@ function formatDate(d) {
   return d.toISOString().split('T')[0];
 }
 
+// Helper akurat untuk mendeteksi nominal refund/retur (persis Order.php accessor ERP)
+function calculateOrderRefund(order, returnMap = {}) {
+  // 1. Cek relasi return_orders jika ada
+  if (returnMap && returnMap[order.id]) {
+    const r = parseFloat(returnMap[order.id]);
+    if (r > 0) return r;
+  }
+
+  // 2. Cek JSON financial_breakdown
+  let fb = order.financial_breakdown;
+  if (typeof fb === 'string') {
+    try { fb = JSON.parse(fb); } catch (_) { fb = {}; }
+  }
+  if (fb && typeof fb === 'object') {
+    const keys = [
+      'customer_refund_amount', 'gross_sales_refund_amount', 'seller_return_refund',
+      'buyer_return_refund_amount', 'refund_amount', 'return_amount',
+      'customer_order_refund_amount', 'total_adjustment_amount'
+    ];
+    for (const k of keys) {
+      if (fb[k] && parseFloat(fb[k]) !== 0) {
+        return Math.abs(parseFloat(fb[k]));
+      }
+    }
+    const stmtList = fb.statement_transactions || fb.statement_transaction_list || fb.transactions || [];
+    if (Array.isArray(stmtList)) {
+      for (const st of stmtList) {
+        if (!st || typeof st !== 'object') continue;
+        for (const k of keys) {
+          if (st[k] && parseFloat(st[k]) !== 0) {
+            return Math.abs(parseFloat(st[k]));
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Fallback jika status pesanan RETURNED / REFUNDED / RETUR / CANCELLED
+  const st = (order.order_status || '').toUpperCase();
+  if (['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL'].includes(st)) {
+    return parseFloat(order.total_amount || 0);
+  }
+
+  return 0;
+}
+
 // ─── 1. AUTH: LOGIN ──────────────────────────────────────────────────────────
 app.post('/api/v2/owner/login', async (req, res) => {
   try {
@@ -128,25 +174,49 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
       [tenantId, startOfMonthStr, startOfMonthStr]
     );
 
+    // Return orders map untuk refund akurat
+    let returnMap = {};
+    try {
+      const returnRows = await query('SELECT order_id, refund_amount FROM return_orders WHERE tenant_id = ?', [tenantId]);
+      for (const rr of returnRows) {
+        returnMap[rr.order_id] = parseFloat(rr.refund_amount || 0);
+      }
+    } catch (_) {}
+
     const orderMap = new Map();
     let monthGrossSales = 0;
     let monthRefund = 0;
     let monthFee = 0;
     let monthHpp = 0;
+    let monthReleased = 0;
 
     for (const row of monthOrders) {
       if (!orderMap.has(row.id)) {
         orderMap.set(row.id, true);
-        monthGrossSales += parseFloat(row.total_amount || 0);
-        monthFee += Math.abs(parseFloat(row.marketplace_fee || 0));
+        const gSales = parseFloat(row.total_amount || 0);
+        const rFund = calculateOrderRefund(row, returnMap);
+        const fee = Math.abs(parseFloat(row.marketplace_fee || 0));
+
+        monthGrossSales += gSales;
+        monthRefund += rFund;
+        monthFee += fee;
+
+        let rel = parseFloat(row.net_amount || 0);
+        if (rel <= 0) {
+          rel = Math.max(0, gSales - rFund - fee);
+          if (rel <= 0) {
+            rel = Math.max(0, gSales - rFund);
+          }
+        }
+        monthReleased += rel;
       }
       const qty = parseInt(row.quantity || 0, 10);
       const cost = parseFloat(row.cost_price || row.master_cost_price || 0);
       monthHpp += (cost * qty);
     }
 
-    const monthOmset = monthGrossSales;
-    const monthMargin = Math.max(0, monthGrossSales - monthHpp - monthFee);
+    const monthOmset = monthGrossSales > 0 ? monthGrossSales : monthReleased;
+    const monthMargin = Math.max(0, monthReleased - monthHpp);
 
     // 3. Marketing Teams Target & Realisasi
     const teams = await query(
@@ -201,9 +271,13 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
         for (const tr of teamRows) {
           if (!seenOrders.has(tr.id)) {
             seenOrders.add(tr.id);
+            const rFund = calculateOrderRefund(tr, returnMap);
             let rel = parseFloat(tr.net_amount || 0);
             if (rel <= 0) {
-              rel = Math.max(0, parseFloat(tr.total_amount || 0) - parseFloat(tr.marketplace_fee || 0));
+              rel = Math.max(0, parseFloat(tr.total_amount || 0) - rFund - Math.abs(parseFloat(tr.marketplace_fee || 0)));
+              if (rel <= 0) {
+                rel = Math.max(0, parseFloat(tr.total_amount || 0) - rFund);
+              }
             }
             teamVal += rel;
           }
@@ -390,13 +464,18 @@ app.get('/api/v2/owner/orders', async (req, res) => {
       );
       for (const item of items) {
         if (!itemsByOrderId[item.order_id]) itemsByOrderId[item.order_id] = [];
+        const unitP = parseFloat(item.unit_price || 0);
+        const totP = parseFloat(item.total_price || 0);
+        const qty = parseInt(item.quantity || 1, 10);
+        const price = unitP > 0 ? unitP : (qty > 0 && totP > 0 ? totP / qty : totP);
+
         itemsByOrderId[item.order_id].push({
           id: item.id,
           name: item.product_name,
           sku: item.master_sku || item.sku || '-',
-          qty: item.quantity,
-          price: parseFloat(item.unit_price || 0),
-          totalPrice: parseFloat(item.total_price || 0),
+          qty,
+          price,
+          totalPrice: totP > 0 ? totP : (price * qty),
         });
       }
     }
@@ -631,11 +710,15 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
         for (const ord of orders) {
           if (!seenOrders.has(ord.id)) {
             seenOrders.add(ord.id);
+            const rFund = calculateOrderRefund(ord, returnMap);
             let released = parseFloat(ord.net_amount || 0);
             if (released <= 0) {
-              released = Math.max(0, parseFloat(ord.total_amount || 0) - parseFloat(ord.marketplace_fee || 0));
+              released = Math.max(0, parseFloat(ord.total_amount || 0) - rFund - Math.abs(parseFloat(ord.marketplace_fee || 0)));
+              if (released <= 0) {
+                released = Math.max(0, parseFloat(ord.total_amount || 0) - rFund);
+              }
             }
-            actOmset += parseFloat(ord.total_amount || 0);
+            actOmset += Math.max(0, parseFloat(ord.total_amount || 0) - rFund);
             actMargin += released;
           }
           const q = parseInt(ord.quantity || 0, 10);
