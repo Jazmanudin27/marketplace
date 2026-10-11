@@ -25,9 +25,13 @@ function getTenantId(req) {
   return 1;
 }
 
-// Format date helper: YYYY-MM-DD
 function formatDate(d) {
-  return d.toISOString().split('T')[0];
+  if (!d) return '';
+  const dateObj = (d instanceof Date) ? d : new Date(d);
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 // Helper akurat untuk mendeteksi nominal refund/retur (persis Order.php accessor ERP)
@@ -1277,7 +1281,7 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
       const fromDateOnly = formatDate(dateFrom);
       const toDateOnly = formatDate(dateTo);
       const expenses = await query(
-        `SELECT id, category, title, description, expense_date, amount, payment_source, notes 
+        `SELECT id, category, title, description, expense_date, amount, payment_source 
          FROM expenses 
          WHERE tenant_id = ? AND expense_date BETWEEN ? AND ?
            AND LOWER(category) NOT IN ('pembelian_supplier', 'bahan_baku', 'biaya_produksi', 'supplier_payable')
@@ -1309,11 +1313,11 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
         totalOperasional += amt;
         g.items.push({
           id: exp.id,
-          date: exp.expense_date,
+          date: exp.expense_date ? formatDate(new Date(exp.expense_date)) : '',
           title: exp.title || exp.description || 'Pengeluaran',
           amount: Math.round(amt),
           paymentSource: exp.payment_source || 'kas',
-          notes: exp.notes || '',
+          notes: exp.description || '',
         });
       }
 
@@ -1321,7 +1325,9 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
         val.amount = Math.round(val.amount);
         expenseCategories.push(val);
       }
-    } catch (_) {}
+    } catch (expErr) {
+      console.error('[Node-API] Error fetching expenses for laba-rugi:', expErr);
+    }
 
     const labaBersih = labaKotor - totalOperasional;
     const netMarginPct = totalOmset > 0 ? Math.round((labaBersih / totalOmset) * 1000) / 10 : 0;

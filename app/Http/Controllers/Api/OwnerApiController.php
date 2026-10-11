@@ -762,7 +762,7 @@ class OwnerApiController extends Controller
                         'title'         => $it->title ?: ($it->description ?: 'Pengeluaran'),
                         'amount'        => round((float)$it->amount),
                         'paymentSource' => $it->payment_source ?? 'kas',
-                        'notes'         => $it->notes ?? '',
+                        'notes'         => $it->description ?? '',
                     ];
                 })->values()->all();
 

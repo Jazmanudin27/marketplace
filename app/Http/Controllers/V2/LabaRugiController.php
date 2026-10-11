@@ -155,7 +155,7 @@ class LabaRugiController extends Controller
                     'title' => $exp->title ?: ($exp->description ?: 'Pengeluaran'),
                     'amount' => (float)$exp->amount,
                     'payment_source' => $exp->payment_source,
-                    'notes' => $exp->notes,
+                    'notes' => $exp->description ?: '',
                 ];
             })->sortByDesc('date')->values()->all();
 
@@ -194,7 +194,7 @@ class LabaRugiController extends Controller
                         'title' => $exp->title ?: ($exp->description ?: 'Pengeluaran'),
                         'amount' => (float)$exp->amount,
                         'payment_source' => $exp->payment_source,
-                        'notes' => $exp->notes,
+                        'notes' => $exp->description ?: '',
                     ];
                 })->sortByDesc('date')->values()->all();
 
