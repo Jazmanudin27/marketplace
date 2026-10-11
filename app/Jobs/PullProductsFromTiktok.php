@@ -41,6 +41,7 @@ class PullProductsFromTiktok implements ShouldQueue
             return;
         }
 
+        @set_time_limit(0);
         try {
             $accessToken = $this->store->getValidAccessToken();
             $shopCipher = $this->store->shop_cipher;
@@ -65,26 +66,28 @@ class PullProductsFromTiktok implements ShouldQueue
                 
                 foreach ($products as $product) {
                     $productId = $product['id'];
-                    
-                    // Fetch product detail for image and real price
+                    $skus = $product['skus'] ?? [];
+                    $productName = $product['title'] ?? 'Produk TikTok';
+                    $mainImage = $product['main_images'][0]['urls'][0] ?? $product['images'][0]['url'] ?? null;
+                    $description = $product['description'] ?? null;
                     $detailData = [];
-                    try {
-                        $detailData = $tiktokService->getProductDetail($accessToken, $shopCipher, $productId);
-                    } catch (\Exception $e) {
-                        Log::warning("[TikTok] Gagal mengambil detail produk {$productId}: " . $e->getMessage());
+
+                    // Optimasi kilat: Hanya panggil API getProductDetail jika skus tidak tersedia di hasil search
+                    if (empty($skus)) {
+                        try {
+                            $detailData = $tiktokService->getProductDetail($accessToken, $shopCipher, $productId);
+                            if (!empty($detailData)) {
+                                $productName = $detailData['title'] ?? $productName;
+                                if (!empty($detailData['main_images'][0]['urls'][0])) {
+                                    $mainImage = $detailData['main_images'][0]['urls'][0];
+                                }
+                                $description = $detailData['description'] ?? $description;
+                                $skus = $detailData['skus'] ?? [];
+                            }
+                        } catch (\Exception $e) {
+                            Log::warning("[TikTok] Gagal mengambil detail produk {$productId}: " . $e->getMessage());
+                        }
                     }
-
-                    $productName = $detailData['title'] ?? $product['title'];
-                    $mainImage = null;
-                    if (!empty($detailData['main_images'][0]['urls'][0])) {
-                        $mainImage = $detailData['main_images'][0]['urls'][0];
-                    }
-
-                    // Ambil deskripsi produk
-                    $description = $detailData['description'] ?? null;
-
-                    // Use SKUs from detail data if available, otherwise fallback to search data
-                    $skus = $detailData['skus'] ?? $product['skus'] ?? [];
 
                     // Cek setting Pre-Order & Lead Time dari TikTok Shop
                     $isTiktokPo = !empty($detailData['is_pre_order']) || !empty($detailData['pre_order']);
