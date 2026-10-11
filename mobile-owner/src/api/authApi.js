@@ -15,7 +15,19 @@ export async function loginOwner({ login, password }) {
       body: JSON.stringify({ login, password }),
     });
 
-    const data = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    let data;
+
+    if (contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      console.error('[AuthApi] Server non-JSON response:', text);
+      return {
+        success: false,
+        message: `Server mengembalikan respon (${response.status}): Silakan periksa konfigurasi domain atau rute API di web server.`
+      };
+    }
 
     if (response.ok && data.success) {
       if (data.data?.token) {
@@ -35,7 +47,7 @@ export async function loginOwner({ login, password }) {
     console.error('[AuthApi] Server fetch error:', error);
     return { 
       success: false, 
-      message: 'Gagal menghubungi server database: ' + error.message 
+      message: 'Gagal terhubung ke API backend: ' + error.message 
     };
   }
 }
