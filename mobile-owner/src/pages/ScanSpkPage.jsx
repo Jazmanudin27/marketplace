@@ -127,9 +127,13 @@ export default function ScanSpkPage() {
     try {
       await stopCamera();
 
-      // Ensure element exists in DOM
+      // Show container immediately so DOM has valid computed dimensions
+      setIsCameraActive(true);
+      await new Promise(r => setTimeout(r, 100));
+
       const readerElem = document.getElementById('spk-camera-reader');
       if (!readerElem) {
+        setIsCameraActive(false);
         setCameraLoading(false);
         return;
       }
@@ -137,12 +141,18 @@ export default function ScanSpkPage() {
       const html5QrCode = new Html5Qrcode('spk-camera-reader');
       qrCodeScannerRef.current = html5QrCode;
 
+      // Safe config with dimension bounds >= 120px to avoid Html5Qrcode < 50px exception
       const config = {
-        fps: 15,
+        fps: 10,
         qrbox: (viewfinderWidth, viewfinderHeight) => {
-          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          const boxSize = Math.floor(minEdge * 0.75);
-          return { width: boxSize, height: boxSize };
+          const vw = Number(viewfinderWidth) || 300;
+          const vh = Number(viewfinderHeight) || 280;
+          const minEdge = Math.min(vw, vh);
+          const boxSize = Math.max(Math.floor(minEdge * 0.72), 160);
+          return {
+            width: Math.max(Math.min(boxSize, vw - 20), 120),
+            height: Math.max(Math.min(Math.floor(boxSize * 0.7), vh - 20), 100)
+          };
         },
         aspectRatio: 1.0,
       };
@@ -170,12 +180,10 @@ export default function ScanSpkPage() {
           // Frame error ignore
         }
       );
-
-      setIsCameraActive(true);
     } catch (err) {
       console.warn('Camera activation failed:', err);
-      setIsCameraActive(false);
-      showToast('Gagal membuka kamera HP. Pastikan izin kamera telah diizinkan di browser.', 'error');
+      await stopCamera();
+      showToast('Gagal membuka kamera HP: ' + (err?.message || 'Pastikan izin kamera diizinkan.'), 'error');
     } finally {
       setCameraLoading(false);
     }
@@ -184,9 +192,9 @@ export default function ScanSpkPage() {
   const stopCamera = async () => {
     if (qrCodeScannerRef.current) {
       try {
-        if (qrCodeScannerRef.current.isScanning) {
-          await qrCodeScannerRef.current.stop();
-        }
+        await qrCodeScannerRef.current.stop();
+      } catch (_) {}
+      try {
         await qrCodeScannerRef.current.clear();
       } catch (_) {}
       qrCodeScannerRef.current = null;
@@ -358,6 +366,21 @@ export default function ScanSpkPage() {
               </div>
             </div>
 
+            <style>{`
+              #spk-camera-reader video {
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: cover !important;
+                border-radius: 12px;
+              }
+              #spk-camera-reader {
+                border: none !important;
+              }
+              #spk-camera-reader img {
+                display: none !important;
+              }
+            `}</style>
+
             {/* Area Viewfinder Kamera Video Feed */}
             <div style={{
               background: '#0f172a', borderRadius: '16px', overflow: 'hidden',
@@ -369,6 +392,7 @@ export default function ScanSpkPage() {
                 id="spk-camera-reader" 
                 style={{ 
                   width: '100%', 
+                  minHeight: isCameraActive ? '260px' : '0px',
                   display: isCameraActive ? 'block' : 'none'
                 }} 
               />
