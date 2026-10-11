@@ -7,7 +7,7 @@ export default function QuickStatusGrid({ metrics, onSelectStatus }) {
       id: 'NEW',
       type: 'green',
       icon: PackagePlus,
-      label: 'Pesanan Baru',
+      label: 'Order Baru',
       count: metrics?.ordersNew ?? 0,
       badge: metrics?.ordersNew > 0 ? String(metrics.ordersNew) : null,
       statusFilter: 'ALL'
@@ -16,7 +16,7 @@ export default function QuickStatusGrid({ metrics, onSelectStatus }) {
       id: 'TO_SHIP',
       type: 'orange',
       icon: Truck,
-      label: 'Perlu Dikirim',
+      label: 'Siap Kirim',
       count: metrics?.ordersToShip ?? 0,
       badge: metrics?.ordersToShip > 0 ? String(metrics.ordersToShip) : null,
       statusFilter: 'READY_TO_SHIP'
@@ -25,7 +25,7 @@ export default function QuickStatusGrid({ metrics, onSelectStatus }) {
       id: 'RETURNED',
       type: 'red',
       icon: RotateCcw,
-      label: 'Komplain / Retur',
+      label: 'Retur',
       count: metrics?.ordersReturned ?? 0,
       badge: metrics?.ordersReturned > 0 ? String(metrics.ordersReturned) : null,
       statusFilter: 'RETURNED'
@@ -34,7 +34,7 @@ export default function QuickStatusGrid({ metrics, onSelectStatus }) {
       id: 'COMPLETED',
       type: 'blue',
       icon: CheckCircle2,
-      label: 'Selesai Hari Ini',
+      label: 'Selesai',
       count: metrics?.ordersCompletedToday ?? 0,
       badge: metrics?.ordersCompletedToday > 0 ? String(metrics.ordersCompletedToday) : null,
       statusFilter: 'COMPLETED'
@@ -60,7 +60,7 @@ export default function QuickStatusGrid({ metrics, onSelectStatus }) {
             </div>
 
             <span className="status-card-label">{card.label}</span>
-            <span className="status-card-count">{card.count} pesanan</span>
+            <span className="status-card-count">{card.count} order</span>
           </div>
         );
       })}

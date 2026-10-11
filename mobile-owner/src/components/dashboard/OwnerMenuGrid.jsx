@@ -26,63 +26,63 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
   const mainMenus = [
     {
       id: 'orders',
-      title: 'Pesanan Masuk',
+      title: 'Order Masuk',
       category: 'Transaksi',
       icon: ShoppingBag,
       gradient: 'linear-gradient(135deg, #2563eb, #1d4ed8)'
     },
     {
       id: 'returns',
-      title: 'Pesanan Retur',
+      title: 'Order Retur',
       category: 'Transaksi',
       icon: RotateCcw,
       gradient: 'linear-gradient(135deg, #ef4444, #dc2626)'
     },
     {
       id: 'target',
-      title: 'Target Marketing',
+      title: 'Target Tim',
       category: 'Marketing',
       icon: Target,
       gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)'
     },
     {
       id: 'offline_sales',
-      title: 'POS Offline',
+      title: 'POS Kasir',
       category: 'Transaksi',
       icon: Receipt,
       gradient: 'linear-gradient(135deg, #10b981, #059669)'
     },
     {
       id: 'warehouse',
-      title: 'Gudang Jadi',
+      title: 'Gudang',
       category: 'Gudang',
       icon: Boxes,
       gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
     },
     {
       id: 'scanner',
-      title: 'Scan & Kemas',
+      title: 'Scan QC',
       category: 'Gudang',
       icon: ScanLine,
       gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)'
     },
     {
       id: 'pembelian',
-      title: 'Masuk Barang',
+      title: 'Beli Stok',
       category: 'Pembelian',
       icon: PackagePlus,
       gradient: 'linear-gradient(135deg, #f59e0b, #d97706)'
     },
     {
       id: 'titipan',
-      title: 'Titipan Barang',
+      title: 'Konsinyasi',
       category: 'Konsinyasi',
       icon: HandCoins,
       gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)'
     },
     {
       id: 'cashflow',
-      title: 'Mutasi Kas',
+      title: 'Buku Kas',
       category: 'Keuangan',
       icon: CreditCard,
       gradient: 'linear-gradient(135deg, #14b8a6, #0d9488)'
@@ -96,14 +96,14 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
     },
     {
       id: 'master_products',
-      title: 'Master Produk',
+      title: 'Katalog',
       category: 'Master',
       icon: Layers,
       gradient: 'linear-gradient(135deg, #a855f7, #9333ea)'
     },
     {
       id: 'all_modules',
-      title: 'Semua Modul',
+      title: 'Lainnya',
       category: 'ERP Lengkap',
       icon: Grid,
       gradient: 'linear-gradient(135deg, #475569, #334155)',

@@ -36,14 +36,14 @@ export default function HighlightBanners({ metrics, onOpenFinance, onOpenTarget 
             <Target size={20} strokeWidth={2.5} />
           </div>
           <div>
-            <span className="banner-title">Target Komisi</span>
+            <span className="banner-title">Target Margin</span>
           </div>
         </div>
         <div className="banner-value">
-          {metrics?.targetProgressPercent ?? 0}% Tercapai
+          {metrics?.targetProgressPercent ?? 0}%
         </div>
         <div className="banner-sub">
-          Margin: {formatRupiah(metrics?.actualMonthlyMargin ?? 0)}
+          Tercapai: {formatRupiah(metrics?.actualMonthlyMargin ?? 0)}
         </div>
       </div>
     </div>

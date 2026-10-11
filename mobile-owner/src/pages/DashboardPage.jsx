@@ -56,7 +56,7 @@ export default function DashboardPage({
       <div>
         <div className="section-title-wrap">
           <h3 className="section-title">
-            <span>📋 Transaksi Terbaru Selesai</span>
+            <span>📋 Order Terbaru</span>
           </h3>
           <span 
             className="section-view-all" 
@@ -82,7 +82,7 @@ export default function DashboardPage({
           <Search size={16} color="#94a3b8" />
           <input 
             type="text"
-            placeholder="Cari invoice, toko, atau nama pembeli..."
+            placeholder="Cari order, toko, pembeli..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{

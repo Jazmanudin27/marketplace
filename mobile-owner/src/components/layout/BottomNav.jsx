@@ -4,7 +4,7 @@ import { Home, Package, ScanLine, Wallet, User } from 'lucide-react';
 export default function BottomNav({ activeTab, onTabChange, onScanClick }) {
   const tabs = [
     { id: 'home', label: 'Beranda', icon: Home },
-    { id: 'orders', label: 'Pesanan', icon: Package },
+    { id: 'orders', label: 'Order', icon: Package },
     { id: 'scan', label: 'Scan', icon: ScanLine, isCenter: true },
     { id: 'finance', label: 'Keuangan', icon: Wallet },
     { id: 'profile', label: 'Profil', icon: User }
