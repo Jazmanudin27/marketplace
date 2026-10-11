@@ -987,6 +987,7 @@ function formatIndoDate(dateVal) {
   const year = parts[0];
   return `${day} ${INDO_MONTHS[monthIdx] || ''} ${year}`;
 }
+const formatDateIndo = formatIndoDate;
 
 // ─── 6. TARGET KOMISI (SINKRON 100% DENGAN ERP V2) ──────────────────────────
 app.get('/api/v2/owner/target-komisi', async (req, res) => {

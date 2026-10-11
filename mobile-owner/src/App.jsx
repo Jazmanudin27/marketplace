@@ -226,8 +226,8 @@ export default function App() {
           />
         ) : activeTab === 'finance' ? (
           <SubPageHeader 
-            title="Keuangan & Kas" 
-            subtitle="Ringkasan kas, target & laba rugi"
+            title="Mutasi Keuangan" 
+            subtitle="Buku mutasi kas masuk, keluar & transfer dana"
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'target_komisi' ? (
