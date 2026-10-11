@@ -2487,6 +2487,33 @@ class SecretRepairDashboardController extends Controller
 
         return redirect('/fix')->with('success', 'Berhasil memperbarui HPP penjualan: ' . nl2br(e($output)));
     }
+
+    /**
+     * Endpoint diagnosa & auto-fix HPP satu order via link browser: /fix/diagnose-order?ref=261005S60MB623
+     */
+    public function diagnoseOrder(Request $request)
+    {
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+
+        $ref = $request->input('ref', '261005S60MB623');
+        Artisan::call('order:diagnose', [
+            'ref'   => $ref,
+            '--fix' => true,
+        ]);
+        $output = Artisan::output();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'ref'     => $ref,
+                'output'  => $output
+            ]);
+        }
+
+        return redirect('/fix')->with('success', 'Hasil Diagnosa & Fix Order ' . $ref . ":\n\n" . nl2br(e($output)));
+    }
 }
 
 

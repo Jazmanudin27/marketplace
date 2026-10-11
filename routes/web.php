@@ -1219,6 +1219,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/fix/sync-order/{order}', [\App\Http\Controllers\SecretRepairDashboardController::class, 'syncSingleOrder'])->name('secret_repair.sync_single_order');
     Route::post('/fix/sync-mismatches', [\App\Http\Controllers\SecretRepairDashboardController::class, 'syncMismatches'])->name('secret_repair.sync_mismatches');
     Route::match(['get', 'post'], '/fix/update-hpp', [\App\Http\Controllers\SecretRepairDashboardController::class, 'recalculateHpp'])->name('secret_repair.update_hpp');
+    Route::match(['get', 'post'], '/fix/diagnose-order', [\App\Http\Controllers\SecretRepairDashboardController::class, 'diagnoseOrder'])->name('secret_repair.diagnose_order');
 });
 
 
