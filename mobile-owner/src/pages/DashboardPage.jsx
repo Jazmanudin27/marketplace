@@ -12,8 +12,9 @@ export default function DashboardPage({
   onOpenFinance, 
   onOpenTarget,
   onOpenAnalytics,
+  onOpenAllModules,
   onSelectMenu,
-  onOpenAllModules
+  onSelectFinanceMetric
 }) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -31,6 +32,7 @@ export default function DashboardPage({
       <QuickFinanceGrid 
         metrics={metrics} 
         onOpenFinance={onOpenFinance} 
+        onSelectMetric={onSelectFinanceMetric}
       />
 
       {/* 12 Owner App Launcher Grid */}

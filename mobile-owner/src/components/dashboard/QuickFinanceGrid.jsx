@@ -2,7 +2,7 @@ import React from 'react';
 import { DollarSign, Percent, RotateCcw, Box, TrendingUp } from 'lucide-react';
 import { formatRupiah } from '../../utils/formatters';
 
-export default function QuickFinanceGrid({ metrics, onOpenFinance }) {
+export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetric }) {
   // Nilai real-time dari database
   const omset = metrics?.todayOmset ?? 0;
   const hpp = metrics?.todayHpp ?? 0;
@@ -78,7 +78,10 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance }) {
             <div 
               key={item.id} 
               className={`finance-grid-card ${isFullSpan ? 'full-span-card' : ''}`}
-              onClick={onOpenFinance}
+              onClick={() => {
+                if (onSelectMetric) onSelectMetric(item.id);
+                else if (onOpenFinance) onOpenFinance();
+              }}
               style={{
                 borderColor: item.borderColor,
                 background: '#ffffff'

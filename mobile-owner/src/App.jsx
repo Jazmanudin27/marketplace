@@ -10,6 +10,7 @@ import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import OrderDetailModal from './components/orders/OrderDetailModal';
 import AllModulesModal from './components/dashboard/AllModulesModal';
+import FinanceMetricDetailModal from './components/dashboard/FinanceMetricDetailModal';
 import { fetchOrders } from './api/ordersApi';
 import { fetchOwnerMetrics } from './api/metricsApi';
 import { getCurrentOwnerUser, logoutOwner } from './api/authApi';
@@ -43,6 +44,7 @@ export default function App() {
     }
   });
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedFinanceMetric, setSelectedFinanceMetric] = useState(null);
   const [ordersFilter, setOrdersFilter] = useState('ALL');
   const [isAllModulesOpen, setIsAllModulesOpen] = useState(false);
 
@@ -182,6 +184,7 @@ export default function App() {
             onViewAllOrders={handleOpenOrders}
             onOpenFinance={handleOpenFinance}
             onOpenTarget={handleOpenFinance}
+            onSelectFinanceMetric={(type) => setSelectedFinanceMetric(type)}
             onOpenAnalytics={() => {
               setActiveTab('analytics');
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -242,6 +245,19 @@ export default function App() {
           }}
           onScanClick={handleScanClick}
         />
+
+        {/* Financial Metric Breakdown Modal (Penjualan, Admin, Refund, HPP, Margin) */}
+        {selectedFinanceMetric && (
+          <FinanceMetricDetailModal 
+            metricType={selectedFinanceMetric}
+            metrics={metrics}
+            onClose={() => setSelectedFinanceMetric(null)}
+            onOpenOrders={(filter) => {
+              setSelectedFinanceMetric(null);
+              handleOpenOrders(filter);
+            }}
+          />
+        )}
 
         {/* Order Detail Modal */}
         {selectedOrder && (
