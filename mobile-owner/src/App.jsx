@@ -13,14 +13,14 @@ import AllModulesModal from './components/dashboard/AllModulesModal';
 import { fetchOrders } from './api/ordersApi';
 import { fetchOwnerMetrics } from './api/metricsApi';
 import { getCurrentOwnerUser, logoutOwner } from './api/authApi';
-import { mockOwnerProfile, mockOwnerMetrics, mockOrders } from './api/mockData';
+import { initialOwnerProfile, initialOwnerMetrics, initialOrders } from './api/mockData';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => getCurrentOwnerUser());
   const [activeTab, setActiveTab] = useState('home');
-  const [profile, setProfile] = useState(mockOwnerProfile);
-  const [metrics, setMetrics] = useState(mockOwnerMetrics);
-  const [orders, setOrders] = useState(mockOrders);
+  const [profile, setProfile] = useState(initialOwnerProfile);
+  const [metrics, setMetrics] = useState(initialOwnerMetrics);
+  const [orders, setOrders] = useState(initialOrders);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [ordersFilter, setOrdersFilter] = useState('ALL');
   const [isAllModulesOpen, setIsAllModulesOpen] = useState(false);

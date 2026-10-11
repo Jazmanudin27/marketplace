@@ -1,4 +1,4 @@
-import { mockOwnerMetrics, mockOwnerProfile } from './mockData';
+import { initialOwnerMetrics, initialOwnerProfile } from './mockData';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -24,12 +24,12 @@ export async function fetchOwnerMetrics() {
       }
     }
   } catch (error) {
-    console.warn('[MetricsApi] Live fetch error, using fallback:', error.message);
+    console.warn('[MetricsApi] Live fetch error:', error.message);
   }
 
   return {
-    success: true,
-    data: mockOwnerMetrics,
-    profile: mockOwnerProfile
+    success: false,
+    data: initialOwnerMetrics,
+    profile: initialOwnerProfile
   };
 }

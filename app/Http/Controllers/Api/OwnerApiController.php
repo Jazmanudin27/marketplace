@@ -87,10 +87,14 @@ class OwnerApiController extends Controller
         $todayOmset = 0.0;
         $todayReleased = 0.0;
         $todayHpp = 0.0;
+        $todayMarketplaceFee = 0.0;
+        $todayRefund = 0.0;
 
         foreach ($completedTodayOrders as $order) {
             $effectiveOmset = (float) $order->total_amount - (float) $order->refund_amount;
             $todayOmset += max(0.0, $effectiveOmset);
+            $todayMarketplaceFee += (float) ($order->marketplace_fee ?? 0);
+            $todayRefund += (float) ($order->refund_amount ?? 0);
 
             $released = (float) $order->net_amount;
             if ($released <= 0) {
@@ -111,15 +115,6 @@ class OwnerApiController extends Controller
 
         $todayMargin = max(0.0, $todayReleased - $todayHpp);
 
-        // Fallback jika belum ada order selesai hari ini agar tampilan owner tetap informatif
-        if ($todayOmset <= 0) {
-            $todayOmset = (float) Order::where('tenant_id', $tenantId)->whereDate('created_at', $today)->sum('total_amount');
-            if ($todayOmset <= 0) {
-                $latestCompleted = Order::where('tenant_id', $tenantId)->latest()->first();
-                $todayOmset = $latestCompleted ? (float) $latestCompleted->total_amount : 0.0;
-            }
-        }
-
         // 3. Target Komisi Tim Marketing
         $teams = MarketingTeam::where('tenant_id', $tenantId)->where('is_active', true)->get();
         $targetMonthlyMargin = (float) $teams->sum('target_omset');
@@ -139,9 +134,6 @@ class OwnerApiController extends Controller
         // 4. Toko Terhubung
         $stores = Store::where('tenant_id', $tenantId)->with('channel')->get();
         $connectedMarketplaces = $stores->pluck('channel.name')->filter()->unique()->values()->toArray();
-        if (empty($connectedMarketplaces)) {
-            $connectedMarketplaces = ['Shopee', 'TikTok Shop', 'Tokopedia', 'POS Offline'];
-        }
 
         // 5. Saldo Kas & Escrow
         $cashBalance = 0.0;
@@ -150,10 +142,6 @@ class OwnerApiController extends Controller
                 ->where('tenant_id', $tenantId)
                 ->where('is_active', true)
                 ->sum('current_balance') ?? 0);
-        }
-
-        if ($cashBalance <= 0) {
-            $cashBalance = 48920000.0; // estimasi kas fallback
         }
 
         $receivableEscrow = (float) Order::where('tenant_id', $tenantId)
@@ -174,6 +162,8 @@ class OwnerApiController extends Controller
                 'todayOmset'            => round($todayOmset, 0),
                 'todayMargin'           => round($todayMargin, 0),
                 'todayHpp'              => round($todayHpp, 0),
+                'todayMarketplaceFee'   => round($todayMarketplaceFee, 0),
+                'todayRefund'           => round($todayRefund, 0),
                 'targetMonthlyMargin'   => round($targetMonthlyMargin, 0),
                 'actualMonthlyMargin'   => round($actualMonthlyMargin, 0),
                 'targetProgressPercent' => $targetProgressPercent,
@@ -184,11 +174,11 @@ class OwnerApiController extends Controller
                 'connectedMarketplaces' => $connectedMarketplaces,
             ],
             'profile' => [
-                'name'                  => $ownerUser ? $ownerUser->name : 'Dina Saparinda, S.Kom',
-                'role'                  => 'Super Admin / Business Owner',
-                'tenantName'            => $tenantModel ? $tenantModel->name : 'Ruang Seragam',
-                'avatarInitials'        => strtoupper(substr($ownerUser ? $ownerUser->name : 'DS', 0, 2)),
-                'email'                 => $ownerUser ? $ownerUser->email : 'owner@ruangseragam.com',
+                'name'                  => $ownerUser ? $ownerUser->name : 'Owner',
+                'role'                  => $ownerUser ? ($ownerUser->role ?: 'Business Owner') : 'Owner',
+                'tenantName'            => $tenantModel ? $tenantModel->name : '',
+                'avatarInitials'        => strtoupper(substr($ownerUser ? $ownerUser->name : 'OW', 0, 2)),
+                'email'                 => $ownerUser ? $ownerUser->email : '',
                 'storesCount'           => $stores->count(),
                 'connectedMarketplaces' => $connectedMarketplaces,
             ],

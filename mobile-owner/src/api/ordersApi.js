@@ -1,5 +1,3 @@
-import { mockOrders } from './mockData';
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 /**
@@ -28,37 +26,13 @@ export async function fetchOrders({ status = 'ALL', search = '', page = 1, limit
       }
     }
   } catch (error) {
-    console.warn('[OrdersApi] Live API fetch error, fallback to mock dataset:', error.message);
-  }
-
-  // Realistic client-side filtering fallback for smooth instant UX
-  let filtered = [...mockOrders];
-
-  if (status && status !== 'ALL') {
-    if (status === 'READY_TO_SHIP') {
-      filtered = filtered.filter(o => o.status === 'READY_TO_SHIP' || o.status === 'PERLU_DIKIRIM');
-    } else if (status === 'COMPLETED') {
-      filtered = filtered.filter(o => o.status === 'COMPLETED' || o.status === 'SELESAI');
-    } else if (status === 'SHIPPED') {
-      filtered = filtered.filter(o => o.status === 'SHIPPED');
-    } else if (status === 'RETURNED') {
-      filtered = filtered.filter(o => o.status === 'RETURNED' || o.status === 'RETUR');
-    }
-  }
-
-  if (search) {
-    const q = search.toLowerCase();
-    filtered = filtered.filter(o => 
-      o.invoiceNumber.toLowerCase().includes(q) ||
-      o.storeName.toLowerCase().includes(q) ||
-      o.buyerName.toLowerCase().includes(q)
-    );
+    console.warn('[OrdersApi] Live API fetch error:', error.message);
   }
 
   return {
-    success: true,
-    data: filtered,
-    total: filtered.length,
+    success: false,
+    data: [],
+    total: 0,
     page,
     limit
   };
@@ -89,12 +63,11 @@ export async function fetchOrderDetail(orderId) {
       }
     }
   } catch (error) {
-    console.warn('[OrdersApi] Detail live fetch error, fallback:', error.message);
+    console.warn('[OrdersApi] Detail live fetch error:', error.message);
   }
 
-  const order = mockOrders.find(o => o.id === Number(orderId) || o.invoiceNumber === String(orderId));
   return {
-    success: true,
-    data: order || mockOrders[0]
+    success: false,
+    data: null
   };
 }

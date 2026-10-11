@@ -3,11 +3,11 @@ import { DollarSign, Percent, RotateCcw, Box, TrendingUp } from 'lucide-react';
 import { formatRupiah } from '../../utils/formatters';
 
 export default function QuickFinanceGrid({ metrics, onOpenFinance }) {
-  // Hitung perkiraan biaya admin & refund jika belum ada di payload
-  const omset = metrics?.todayOmset ?? 14850000;
-  const hpp = metrics?.todayHpp ?? 11610000;
-  const margin = metrics?.todayMargin ?? (omset > hpp ? omset - hpp : 3240000);
-  const biayaAdmin = metrics?.todayMarketplaceFee ?? Math.round(omset * 0.08); // estimasi 8% fee
+  // Nilai real-time dari database
+  const omset = metrics?.todayOmset ?? 0;
+  const hpp = metrics?.todayHpp ?? 0;
+  const margin = metrics?.todayMargin ?? 0;
+  const biayaAdmin = metrics?.todayMarketplaceFee ?? 0;
   const refund = metrics?.todayRefund ?? 0;
 
   const items = [
