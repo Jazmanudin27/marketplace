@@ -14,7 +14,7 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
     {
       id: 'omset',
       label: 'Penjualan',
-      sublabel: 'Hari ini',
+      sublabel: 'Bulan ini',
       value: formatRupiah(omset),
       icon: DollarSign,
       gradient: 'linear-gradient(135deg, #10b981, #059669)', // Emerald

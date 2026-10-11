@@ -72,37 +72,37 @@ class OwnerApiController extends Controller
             })
             ->count();
 
-        // 2. Online Sales Dilepas Hari Ini (Diselaraskan persis dengan Laporan Penjualan Dilepas & Laba Rugi V2)
-        $completedTodayOrders = Order::where('tenant_id', $tenantId)
+        // 2. Online Sales Dilepas Bulan Ini (Diselaraskan persis dengan Laporan Penjualan Dilepas & Laba Rugi V2)
+        $completedMonthOrders = Order::where('tenant_id', $tenantId)
             ->whereIn(DB::raw('UPPER(order_status)'), ['COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR'])
-            ->where(function ($q) use ($today) {
-                $q->whereDate('completed_at', $today)
-                  ->orWhere(function ($sq) use ($today) {
-                      $sq->whereNull('completed_at')->whereDate('order_date', $today);
+            ->where(function ($q) use ($startOfMonth) {
+                $q->where('completed_at', '>=', $startOfMonth)
+                  ->orWhere(function ($sq) use ($startOfMonth) {
+                      $sq->whereNull('completed_at')->where('order_date', '>=', $startOfMonth);
                   });
             })
             ->with(['items.masterProduct'])
             ->get();
 
-        $todayGrossSales = 0.0;
-        $todayReleased = 0.0;
-        $todayHpp = 0.0;
-        $todayMarketplaceFee = 0.0;
-        $todayRefund = 0.0;
+        $monthGrossSales = 0.0;
+        $monthReleased = 0.0;
+        $monthHpp = 0.0;
+        $monthMarketplaceFee = 0.0;
+        $monthRefund = 0.0;
 
-        foreach ($completedTodayOrders as $order) {
-            $todayGrossSales += (float) $order->total_amount;
-            $todayRefund += (float) $order->refund_amount;
+        foreach ($completedMonthOrders as $order) {
+            $monthGrossSales += (float) $order->total_amount;
+            $monthRefund += (float) $order->refund_amount;
 
             // Marketplace Fee (Reconciled vs Unreconciled fee breakdown)
             if ($order->recon_status === 'RECONCILED') {
-                $todayMarketplaceFee += abs((float) $order->getRawOriginal('marketplace_fee'));
+                $monthMarketplaceFee += abs((float) $order->getRawOriginal('marketplace_fee'));
             } else {
                 $absFee = (float) $order->marketplace_fee;
                 if ($absFee <= 0 && !empty($order->fee_breakdown_details['total_fee'])) {
                     $absFee = abs((float) $order->fee_breakdown_details['total_fee']);
                 }
-                $todayMarketplaceFee += $absFee;
+                $monthMarketplaceFee += $absFee;
             }
 
             // Dana Bersih Dilepas
@@ -113,24 +113,24 @@ class OwnerApiController extends Controller
                     $released = max(0.0, (float) $order->total_amount - (float) $order->refund_amount);
                 }
             }
-            $todayReleased += $released;
+            $monthReleased += $released;
 
             // HPP total (menggunakan hpp_total jika ada, fallback per-item)
             if ($order->hpp_total && (float) $order->hpp_total > 0) {
-                $todayHpp += (float) $order->hpp_total;
+                $monthHpp += (float) $order->hpp_total;
             } else {
                 $orderHpp = 0.0;
                 foreach ($order->items as $item) {
                     $unitHpp = (float) ($item->cost_price ?: ($item->masterProduct ? $item->masterProduct->cost_price : 0));
                     $orderHpp += ($unitHpp * $item->quantity);
                 }
-                $todayHpp += $orderHpp;
+                $monthHpp += $orderHpp;
             }
         }
 
-        // Penjualan Hari Ini = Dana Penjualan Dilepas (Net Released) / Omset Bersih
-        $todayOmset = $todayGrossSales > 0 ? $todayGrossSales : $todayReleased;
-        $todayMargin = max(0.0, $todayReleased - $todayHpp);
+        // Penjualan Bulan Ini = Dana Penjualan Dilepas (Net Released) / Omset Bersih
+        $monthOmset = $monthGrossSales > 0 ? $monthGrossSales : $monthReleased;
+        $monthMargin = max(0.0, $monthReleased - $monthHpp);
 
         // 3. Target Komisi Tim Marketing (Di-cache 60 detik per tenant agar respon API di bawah 50ms)
         $teams = MarketingTeam::where('tenant_id', $tenantId)->where('is_active', true)->get();
@@ -182,12 +182,18 @@ class OwnerApiController extends Controller
                 'ordersNew'             => $ordersNew,
                 'ordersToShip'          => $ordersToShip,
                 'ordersReturned'        => $ordersReturned,
-                'ordersCompletedToday'  => $ordersCompletedToday,
-                'todayOmset'            => round($todayOmset, 0),
-                'todayMargin'           => round($todayMargin, 0),
-                'todayHpp'              => round($todayHpp, 0),
-                'todayMarketplaceFee'   => round($todayMarketplaceFee, 0),
-                'todayRefund'           => round($todayRefund, 0),
+                'ordersCompletedToday'  => $completedMonthOrders->count(),
+                'ordersCompletedMonth'  => $completedMonthOrders->count(),
+                'todayOmset'            => round($monthOmset, 0),
+                'todayMargin'           => round($monthMargin, 0),
+                'todayHpp'              => round($monthHpp, 0),
+                'todayMarketplaceFee'   => round($monthMarketplaceFee, 0),
+                'todayRefund'           => round($monthRefund, 0),
+                'monthOmset'            => round($monthOmset, 0),
+                'monthMargin'           => round($monthMargin, 0),
+                'monthHpp'              => round($monthHpp, 0),
+                'monthMarketplaceFee'   => round($monthMarketplaceFee, 0),
+                'monthRefund'           => round($monthRefund, 0),
                 'targetMonthlyMargin'   => round($targetMonthlyMargin, 0),
                 'actualMonthlyMargin'   => round($actualMonthlyMargin, 0),
                 'targetProgressPercent' => $targetProgressPercent,
@@ -243,13 +249,13 @@ class OwnerApiController extends Controller
             });
         }
 
-        $todayOnly = $request->boolean('today_only');
-        if ($todayOnly) {
-            $today = Carbon::today();
-            $query->where(function ($q) use ($today) {
-                $q->whereDate('completed_at', $today)
-                  ->orWhere(function ($sq) use ($today) {
-                      $sq->whereNull('completed_at')->whereDate('order_date', $today);
+        $monthOnly = $request->boolean('month_only') || $request->boolean('today_only');
+        if ($monthOnly) {
+            $startOfMonth = Carbon::now()->startOfMonth();
+            $query->where(function ($q) use ($startOfMonth) {
+                $q->where('completed_at', '>=', $startOfMonth)
+                  ->orWhere(function ($sq) use ($startOfMonth) {
+                      $sq->whereNull('completed_at')->where('order_date', '>=', $startOfMonth);
                   });
             });
         }
