@@ -127,6 +127,12 @@ Route::get('/api/owner/orders', [\App\Http\Controllers\Api\OwnerApiController::c
 Route::get('/api/v2/owner/orders/{order}', [\App\Http\Controllers\Api\OwnerApiController::class, 'showOrder'])->name('api.owner.orders.show');
 Route::get('/api/owner/orders/{order}', [\App\Http\Controllers\Api\OwnerApiController::class, 'showOrder']);
 
+Route::get('/api/v2/owner/target-komisi', [\App\Http\Controllers\Api\OwnerApiController::class, 'targetKomisi'])->name('api.owner.target_komisi');
+Route::get('/api/owner/target-komisi', [\App\Http\Controllers\Api\OwnerApiController::class, 'targetKomisi']);
+
+Route::get('/api/v2/owner/laba-rugi', [\App\Http\Controllers\Api\OwnerApiController::class, 'labaRugi'])->name('api.owner.laba_rugi');
+Route::get('/api/owner/laba-rugi', [\App\Http\Controllers\Api\OwnerApiController::class, 'labaRugi']);
+
 // =========================================================================
 // Shopee OAuth Callback
 // Shopee OAuth Callback — TIDAK memerlukan auth karena Shopee redirect langsung

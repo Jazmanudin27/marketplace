@@ -6,6 +6,8 @@ import DashboardPage from './pages/DashboardPage';
 import OrdersPage from './pages/OrdersPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import FinancePage from './pages/FinancePage';
+import TargetKomisiPage from './pages/TargetKomisiPage';
+import LabaRugiPage from './pages/LabaRugiPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import OrderDetailModal from './components/orders/OrderDetailModal';
@@ -227,6 +229,18 @@ export default function App() {
             subtitle="Ringkasan kas, target & laba rugi"
             onBack={() => handleTabChange('home')} 
           />
+        ) : activeTab === 'target_komisi' ? (
+          <SubPageHeader 
+            title="Target Komisi" 
+            subtitle="Target omset & realisasi komisi marketing ERP"
+            onBack={() => handleTabChange('home')} 
+          />
+        ) : activeTab === 'laba_rugi' ? (
+          <SubPageHeader 
+            title="Laba Rugi" 
+            subtitle="Laporan keuangan & profitabilitas real ERP"
+            onBack={() => handleTabChange('home')} 
+          />
         ) : activeTab === 'profile' ? (
           <SubPageHeader 
             title="Profil & Toko" 
@@ -252,7 +266,9 @@ export default function App() {
               if (menuId === 'orders') handleOpenOrders('ALL');
               else if (menuId === 'returns') handleOpenOrders('RETURNED');
               else if (menuId === 'analytics') handleTabChange('analytics');
-              else if (menuId === 'target' || menuId === 'margin' || menuId === 'cashflow' || menuId === 'reports') handleOpenFinance();
+              else if (menuId === 'target' || menuId === 'target_komisi') handleTabChange('target_komisi');
+              else if (menuId === 'margin' || menuId === 'laba_rugi') handleTabChange('laba_rugi');
+              else if (menuId === 'cashflow' || menuId === 'reports') handleOpenFinance();
               else if (menuId === 'settings' || menuId === 'stores' || menuId === 'company' || menuId === 'users') handleTabChange('profile');
               else if (menuId === 'scanner') handleScanClick();
               else if (menuId === 'all_modules') setIsAllModulesOpen(true);
@@ -284,6 +300,16 @@ export default function App() {
           <FinancePage 
             metrics={metrics}
           />
+        )}
+
+        {activeTab === 'target_komisi' && (
+          <TargetKomisiPage 
+            initialMetrics={metrics}
+          />
+        )}
+
+        {activeTab === 'laba_rugi' && (
+          <LabaRugiPage />
         )}
 
         {activeTab === 'profile' && (
@@ -337,7 +363,9 @@ export default function App() {
           onSelectAction={(actionId) => {
             if (actionId === 'orders') handleOpenOrders('ALL');
             else if (actionId === 'returns') handleOpenOrders('RETURNED');
-            else if (actionId === 'margin' || actionId === 'cashflow' || actionId === 'marketplace_wallets' || actionId === 'hutang_supplier') handleOpenFinance();
+            else if (actionId === 'target') handleTabChange('target_komisi');
+            else if (actionId === 'margin') handleTabChange('laba_rugi');
+            else if (actionId === 'cashflow' || actionId === 'marketplace_wallets' || actionId === 'hutang_supplier') handleOpenFinance();
             else if (actionId === 'scanner') handleScanClick();
             else if (actionId === 'stores' || actionId === 'users' || actionId === 'company') handleTabChange('profile');
             else {

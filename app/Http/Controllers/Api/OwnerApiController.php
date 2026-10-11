@@ -420,10 +420,191 @@ class OwnerApiController extends Controller
             ->with(['store.channel', 'items.masterProduct'])
             ->firstOrFail();
 
-        // format single order
+    /**
+     * GET /api/v2/owner/target-komisi
+     * Data real target marketing dan reward tim dari ERP
+     */
+    public function targetKomisi(Request $request)
+    {
+        $tenantId = $this->getTenantId($request);
+        $teams = MarketingTeam::where('tenant_id', $tenantId)
+            ->with(['stores.channel'])
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $formattedTeams = [];
+        $totalTargetMargin = 0.0;
+        $totalTargetQty = 0;
+        $totalActualMargin = 0.0;
+        $totalActualQty = 0;
+        $totalReward = 0.0;
+
+        foreach ($teams as $team) {
+            $metrics = $team->calculateActualMetrics();
+            $tTarget = (float) ($team->target_omset ?: 0);
+            $tTargetQty = (int) ($team->target_qty ?: 0);
+            $tActualMargin = (float) ($metrics['margin'] ?? 0);
+            $tActualQty = (int) ($metrics['qty'] ?? 0);
+            $tReward = (float) ($team->total_reward ?? 0);
+            $progressPct = $tTarget > 0 ? round(($tActualMargin / $tTarget) * 100, 1) : 0.0;
+
+            if ($team->is_active) {
+                $totalTargetMargin += $tTarget;
+                $totalTargetQty += $tTargetQty;
+                $totalActualMargin += $tActualMargin;
+                $totalActualQty += $tActualQty;
+                $totalReward += $tReward;
+            }
+
+            $storesLinked = $team->stores->map(function ($s) {
+                return [
+                    'id'        => $s->id,
+                    'name'      => $s->store_name,
+                    'channel'   => $s->channel ? $s->channel->name : 'POS',
+                ];
+            });
+
+            $formattedTeams[] = [
+                'id'              => $team->id,
+                'name'            => $team->name,
+                'description'     => $team->description,
+                'isActive'        => (bool) $team->is_active,
+                'targetMargin'    => round($tTarget, 0),
+                'targetQty'       => $tTargetQty,
+                'actualMargin'    => round($tActualMargin, 0),
+                'actualQty'       => $tActualQty,
+                'progressPercent' => $progressPct,
+                'rewardEarned'    => round($tReward, 0),
+                'commissionRate'  => (float) ($team->commission_percent ?: 0),
+                'rewardType'      => $team->reward_type,
+                'stores'          => $storesLinked,
+            ];
+        }
+
+        $overallProgress = $totalTargetMargin > 0
+            ? round(($totalActualMargin / $totalTargetMargin) * 100, 1)
+            : 0.0;
+
         return response()->json([
             'success' => true,
-            'data'    => $order,
+            'summary' => [
+                'totalTargetMargin'  => round($totalTargetMargin, 0),
+                'totalTargetQty'     => $totalTargetQty,
+                'totalActualMargin'  => round($totalActualMargin, 0),
+                'totalActualQty'     => $totalActualQty,
+                'totalReward'        => round($totalReward, 0),
+                'progressPercent'    => $overallProgress,
+                'activeTeamsCount'   => $teams->where('is_active', true)->count(),
+            ],
+            'teams'   => $formattedTeams,
+        ]);
+    }
+
+    /**
+     * GET /api/v2/owner/laba-rugi
+     * Laporan Laba Rugi real-time ERP
+     */
+    public function labaRugi(Request $request)
+    {
+        $tenantId = $this->getTenantId($request);
+        $period = $request->input('period', 'month'); // 'today', 'month', 'year'
+
+        $now = Carbon::now();
+        if ($period === 'today') {
+            $dateFrom = $now->copy()->startOfDay();
+            $dateTo   = $now->copy()->endOfDay();
+            $periodLabel = $now->translatedFormat('d F Y');
+        } elseif ($period === 'year') {
+            $dateFrom = $now->copy()->startOfYear();
+            $dateTo   = $now->copy()->endOfYear();
+            $periodLabel = 'Tahun ' . $now->year;
+        } else {
+            $dateFrom = $now->copy()->startOfMonth();
+            $dateTo   = $now->copy()->endOfMonth();
+            $periodLabel = $now->translatedFormat('F Y');
+        }
+
+        // 1. Online revenue, HPP, & fee
+        $onlineOrders = Order::where('tenant_id', $tenantId)
+            ->where(function ($q) use ($dateFrom, $dateTo) {
+                $q->whereBetween('completed_at', [$dateFrom, $dateTo])
+                  ->orWhere(function ($sub) use ($dateFrom, $dateTo) {
+                      $sub->whereNull('completed_at')->whereBetween('order_date', [$dateFrom, $dateTo]);
+                  });
+            })
+            ->whereNotIn(DB::raw('UPPER(order_status)'), ['CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL', 'RETURNED', 'REFUNDED'])
+            ->with(['items.masterProduct'])
+            ->get();
+
+        $onlineRevenue = (float) $onlineOrders->sum('total_amount');
+        $onlineFee     = (float) $onlineOrders->sum('marketplace_fee');
+        $onlineHpp     = 0.0;
+        foreach ($onlineOrders as $ord) {
+            foreach ($ord->items as $item) {
+                $cost = (float) ($item->cost_price ?: ($item->masterProduct ? $item->masterProduct->cost_price : 0));
+                $onlineHpp += ($cost * $item->quantity);
+            }
+        }
+
+        // 2. Offline / POS Sales jika ada tabel
+        $offlineRevenue = 0.0;
+        $offlineHpp = 0.0;
+        if (\Illuminate\Support\Facades\Schema::hasTable('offline_sales')) {
+            $offlineOrders = DB::table('offline_sales')
+                ->where('tenant_id', $tenantId)
+                ->whereBetween('sale_date', [$dateFrom, $dateTo])
+                ->get();
+            $offlineRevenue = (float) $offlineOrders->sum('total_amount');
+            $offlineHpp     = (float) $offlineOrders->sum('hpp_total');
+        }
+
+        $totalOmset = $onlineRevenue + $offlineRevenue;
+        $totalHpp   = $onlineHpp + $offlineHpp;
+        $labaKotor  = max(0.0, $totalOmset - $totalHpp - $onlineFee);
+        $grossMarginPct = $totalOmset > 0 ? round(($labaKotor / $totalOmset) * 100, 1) : 0.0;
+
+        // 3. Beban Operasional / Expenses
+        $totalOperasional = 0.0;
+        $expenseCategories = [];
+        if (\Illuminate\Support\Facades\Schema::hasTable('expenses')) {
+            $expenses = DB::table('expenses')
+                ->where('tenant_id', $tenantId)
+                ->whereBetween('expense_date', [$dateFrom, $dateTo])
+                ->get();
+
+            $totalOperasional = (float) $expenses->sum('amount');
+            $grouped = $expenses->groupBy('category');
+            foreach ($grouped as $catName => $items) {
+                $expenseCategories[] = [
+                    'name'   => ucwords(str_replace('_', ' ', $catName)),
+                    'amount' => round((float) $items->sum('amount'), 0),
+                ];
+            }
+        }
+
+        $labaBersih = $labaKotor - $totalOperasional;
+        $netMarginPct = $totalOmset > 0 ? round(($labaBersih / $totalOmset) * 100, 1) : 0.0;
+
+        return response()->json([
+            'success' => true,
+            'period'  => [
+                'type'  => $period,
+                'label' => $periodLabel,
+            ],
+            'data'    => [
+                'totalOmset'        => round($totalOmset, 0),
+                'onlineRevenue'     => round($onlineRevenue, 0),
+                'offlineRevenue'    => round($offlineRevenue, 0),
+                'totalHpp'          => round($totalHpp, 0),
+                'marketplaceFee'    => round($onlineFee, 0),
+                'labaKotor'         => round($labaKotor, 0),
+                'grossMarginPct'    => $grossMarginPct,
+                'totalOperasional'  => round($totalOperasional, 0),
+                'expenseCategories' => $expenseCategories,
+                'labaBersih'        => round($labaBersih, 0),
+                'netMarginPct'      => $netMarginPct,
+                'ordersCount'       => $onlineOrders->count(),
+            ]
         ]);
     }
 }

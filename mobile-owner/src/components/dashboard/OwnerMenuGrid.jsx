@@ -40,7 +40,7 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
     },
     {
       id: 'target',
-      title: 'Target Tim',
+      title: 'Target Komisi',
       category: 'Marketing',
       icon: Target,
       gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)'
@@ -95,11 +95,11 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
       gradient: 'linear-gradient(135deg, #14b8a6, #0d9488)'
     },
     {
-      id: 'margin',
+      id: 'laba_rugi',
       title: 'Laba Rugi',
       category: 'Keuangan',
       icon: LineChart,
-      gradient: 'linear-gradient(135deg, #f97316, #c2410c)'
+      gradient: 'linear-gradient(135deg, #10b981, #047857)'
     },
     {
       id: 'master_products',

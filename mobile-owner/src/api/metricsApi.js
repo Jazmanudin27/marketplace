@@ -33,3 +33,54 @@ export async function fetchOwnerMetrics() {
     profile: initialOwnerProfile
   };
 }
+
+export async function fetchTargetKomisi() {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/target-komisi`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result && result.success) return result;
+    }
+  } catch (error) {
+    console.warn('[MetricsApi] fetchTargetKomisi error:', error.message);
+  }
+  return { success: false, summary: null, teams: [] };
+}
+
+export async function fetchLabaRugi(period = 'month') {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/laba-rugi?period=${period}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result && result.success) return result;
+    }
+  } catch (error) {
+    console.warn('[MetricsApi] fetchLabaRugi error:', error.message);
+  }
+  return { success: false, data: null };
+}
+

@@ -12,14 +12,11 @@ export default function OrdersPage({ orders, orderCounts, isLoading = false, onS
   const counts = orderCounts?.tabCounts || {};
   const procCounts = orderCounts?.processCounts || {};
 
-  // Status mapping matching ERP
+  // Status mapping matching ERP (Hanya order aktif: Semua, Perlu Dikirim, Dikirim)
   const filterTabs = [
     { id: 'ALL', label: 'Semua', count: counts.ALL ?? (orders || []).length },
     { id: 'READY_TO_SHIP', label: 'Perlu Dikirim', count: counts.READY_TO_SHIP ?? (orders || []).filter(o => ['READY_TO_SHIP', 'IN_PROCESS', 'PROCESSED', 'SIAP_KIRIM'].includes(o.status)).length, isUrgent: true },
-    { id: 'SHIPPED', label: 'Dikirim', count: counts.SHIPPED ?? (orders || []).filter(o => ['SHIPPED', 'DIKIRIM'].includes(o.status)).length },
-    { id: 'COMPLETED', label: 'Selesai', count: counts.COMPLETED ?? (orders || []).filter(o => ['COMPLETED', 'RELEASED', 'SELESAI', 'DELIVERED', 'FINISHED'].includes(o.status)).length },
-    { id: 'RETURNED', label: 'Retur', count: counts.RETURNED ?? (orders || []).filter(o => ['RETURNED', 'REFUNDED', 'RETUR', 'IN_CANCEL', 'CANCELLED', 'CANCELED'].includes(o.status)).length },
-    { id: 'CANCELLED', label: 'Dibatalkan', count: counts.CANCELLED ?? (orders || []).filter(o => ['CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL'].includes(o.status)).length }
+    { id: 'SHIPPED', label: 'Dikirim', count: counts.SHIPPED ?? (orders || []).filter(o => ['SHIPPED', 'DIKIRIM'].includes(o.status)).length }
   ];
 
   // Process sub-tabs (Khusus tab Perlu Dikirim / ALL)
