@@ -43,7 +43,8 @@ export default function DashboardPage({
           if (menuId === 'orders') onViewAllOrders('ALL');
           else if (menuId === 'returns') onViewAllOrders('RETURNED');
           else if (menuId === 'analytics') onOpenAnalytics && onOpenAnalytics();
-          else if (menuId === 'cashflow' || menuId === 'margin') onOpenFinance();
+          else if (menuId === 'cashflow' || menuId === 'mutasi') onSelectMenu && onSelectMenu('mutasi');
+          else if (menuId === 'margin' || menuId === 'laba_rugi') onSelectMenu && onSelectMenu('laba_rugi');
           else if (menuId === 'target') onOpenTarget();
           else if (onSelectMenu) onSelectMenu(menuId);
         }}

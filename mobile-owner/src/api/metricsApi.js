@@ -189,3 +189,134 @@ export async function fetchLabaRugi(period = 'month') {
   return { success: false, data: null };
 }
 
+// ─── MUTASI KEUANGAN API ─────────────────────────────────────────────────────
+
+export async function fetchMutasiKeuangan(params = {}) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const q = new URLSearchParams();
+    if (params.dateFrom) q.append('date_from', params.dateFrom);
+    if (params.dateTo) q.append('date_to', params.dateTo);
+    if (params.account && params.account !== 'all') q.append('account', params.account);
+    if (params.category && params.category !== 'all') q.append('category', params.category);
+    if (params.direction && params.direction !== 'all') q.append('direction', params.direction);
+    if (params.sourceType && params.sourceType !== 'all') q.append('source_type', params.sourceType);
+    if (params.search) q.append('search', params.search);
+
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/mutasi-keuangan${qs}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result && result.success) return result;
+    }
+  } catch (error) {
+    console.warn('[MetricsApi] fetchMutasiKeuangan error:', error.message);
+  }
+  return { success: false, mutations: [], summary: {} };
+}
+
+export async function createMutationIncome(data) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/mutasi-keuangan/income`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      },
+      body: JSON.stringify(data)
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] createMutationIncome error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function createMutationExpense(data) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/mutasi-keuangan/expense`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      },
+      body: JSON.stringify(data)
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] createMutationExpense error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function createMutationTransfer(data) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/mutasi-keuangan/transfer`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      },
+      body: JSON.stringify(data)
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] createMutationTransfer error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function deleteMutation(type, id) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/mutasi-keuangan/${type}/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] deleteMutation error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+

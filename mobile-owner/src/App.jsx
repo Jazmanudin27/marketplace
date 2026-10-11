@@ -8,6 +8,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import FinancePage from './pages/FinancePage';
 import TargetKomisiPage from './pages/TargetKomisiPage';
 import LabaRugiPage from './pages/LabaRugiPage';
+import MutasiKeuanganPage from './pages/MutasiKeuanganPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import OrderDetailModal from './components/orders/OrderDetailModal';
@@ -241,6 +242,12 @@ export default function App() {
             subtitle="Laporan keuangan & profitabilitas real ERP"
             onBack={() => handleTabChange('home')} 
           />
+        ) : activeTab === 'mutasi_keuangan' ? (
+          <SubPageHeader 
+            title="Mutasi Keuangan" 
+            subtitle="Buku mutasi kas masuk, keluar & transfer dana"
+            onBack={() => handleTabChange('home')} 
+          />
         ) : activeTab === 'profile' ? (
           <SubPageHeader 
             title="Profil & Toko" 
@@ -268,7 +275,8 @@ export default function App() {
               else if (menuId === 'analytics') handleTabChange('analytics');
               else if (menuId === 'target' || menuId === 'target_komisi') handleTabChange('target_komisi');
               else if (menuId === 'margin' || menuId === 'laba_rugi') handleTabChange('laba_rugi');
-              else if (menuId === 'cashflow' || menuId === 'reports') handleOpenFinance();
+              else if (menuId === 'mutasi' || menuId === 'mutasi_keuangan' || menuId === 'cashflow') handleTabChange('mutasi_keuangan');
+              else if (menuId === 'reports') handleOpenFinance();
               else if (menuId === 'settings' || menuId === 'stores' || menuId === 'company' || menuId === 'users') handleTabChange('profile');
               else if (menuId === 'scanner') handleScanClick();
               else if (menuId === 'all_modules') setIsAllModulesOpen(true);
@@ -307,6 +315,10 @@ export default function App() {
           <TargetKomisiPage 
             initialMetrics={metrics}
           />
+        )}
+
+        {activeTab === 'mutasi_keuangan' && (
+          <MutasiKeuanganPage />
         )}
 
         {activeTab === 'laba_rugi' && (

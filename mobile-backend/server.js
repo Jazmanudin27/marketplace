@@ -1704,6 +1704,436 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
   }
 });
 
+// ─── 8. MUTASI KEUANGAN V2 (KAS MASUK, KELUAR, DAN TRANSFER) ───────────────
+app.get('/api/v2/owner/mutasi-keuangan', async (req, res) => {
+  try {
+    const tenantId = req.headers['x-tenant-id'] || '1';
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const todayStr = `${curYear}-${curMonth}-${String(now.getDate()).padStart(2, '0')}`;
+    const firstDayStr = `${curYear}-${curMonth}-01`;
+
+    const dateFrom = req.query.date_from || firstDayStr;
+    const dateTo = req.query.date_to || todayStr;
+    const account = req.query.account || 'all';
+    const category = req.query.category || 'all';
+    const direction = req.query.direction || 'all';
+    const sourceType = req.query.source_type || 'all';
+    const search = (req.query.search || '').trim().toLowerCase();
+
+    // 1. Bank Accounts
+    const bankAccounts = await query(
+      'SELECT id, bank_name, account_number, account_name FROM bank_accounts WHERE tenant_id = ? AND is_active = 1 ORDER BY bank_name ASC',
+      [tenantId]
+    );
+
+    const resolveAccountLabel = (val) => {
+      if (!val || val === 'all') return 'Semua Akun Kas / Bank';
+      const b = bankAccounts.find(x => String(x.id) === String(val) || String(x.bank_name).toLowerCase() === String(val).toLowerCase());
+      if (b) {
+        let lbl = b.bank_name;
+        if (b.account_number) lbl += ` (${b.account_number})`;
+        if (b.account_name) lbl += ` - ${b.account_name}`;
+        return lbl;
+      }
+      if (val === 'kas_kecil') return 'Kas Kecil';
+      if (val === 'kas_besar') return 'Kas Besar';
+      return String(val).replace(/_/g, ' ').toUpperCase();
+    };
+
+    const matchedBank = bankAccounts.find(x => String(x.id) === String(account) || String(x.bank_name).toLowerCase() === String(account).toLowerCase());
+
+    const accountMatches = (recordVal) => {
+      if (!recordVal || account === 'all') return true;
+      if (String(recordVal).toLowerCase() === String(account).toLowerCase()) return true;
+      if (matchedBank) {
+        if (String(recordVal).toLowerCase() === String(matchedBank.bank_name).toLowerCase()) return true;
+        if (String(recordVal) === String(matchedBank.id)) return true;
+      }
+      return false;
+    };
+
+    // 2. Saldo Awal (Beginning Balance before dateFrom)
+    let beginningBalance = 0;
+
+    let prevIncomesQuery = 'SELECT SUM(amount) as tot FROM incomes WHERE tenant_id = ? AND income_date < ?';
+    const prevIncParams = [tenantId, dateFrom];
+    if (account !== 'all') {
+      if (matchedBank) {
+        prevIncomesQuery += ' AND (payment_destination = ? OR payment_destination = ? OR payment_destination = ?)';
+        prevIncParams.push(account, matchedBank.bank_name, String(matchedBank.id));
+      } else {
+        prevIncomesQuery += ' AND payment_destination = ?';
+        prevIncParams.push(account);
+      }
+    }
+    const prevIncRow = await query(prevIncomesQuery, prevIncParams);
+    beginningBalance += parseFloat(prevIncRow[0]?.tot || 0);
+
+    let prevExpensesQuery = 'SELECT SUM(amount) as tot FROM expenses WHERE tenant_id = ? AND expense_date < ?';
+    const prevExpParams = [tenantId, dateFrom];
+    if (account !== 'all') {
+      if (matchedBank) {
+        prevExpensesQuery += ' AND (payment_source = ? OR payment_source = ? OR payment_source = ?)';
+        prevExpParams.push(account, matchedBank.bank_name, String(matchedBank.id));
+      } else {
+        prevExpensesQuery += ' AND payment_source = ?';
+        prevExpParams.push(account);
+      }
+    }
+    const prevExpRow = await query(prevExpensesQuery, prevExpParams);
+    beginningBalance -= parseFloat(prevExpRow[0]?.tot || 0);
+
+    const prevTransfers = await query(
+      'SELECT source, destination, amount FROM fund_transfers WHERE tenant_id = ? AND transfer_date < ?',
+      [tenantId, dateFrom]
+    );
+    for (const pt of prevTransfers) {
+      const amt = parseFloat(pt.amount || 0);
+      if (account !== 'all') {
+        if (accountMatches(pt.destination)) beginningBalance += amt;
+        if (accountMatches(pt.source)) beginningBalance -= amt;
+      }
+    }
+
+    // 3. Transactions within period
+    let transactions = [];
+
+    // A. Incomes
+    if (sourceType === 'all' || sourceType === 'income') {
+      let incQuery = 'SELECT id, title, category, payment_destination, amount, income_date, description FROM incomes WHERE tenant_id = ? AND income_date >= ? AND income_date <= ?';
+      const incParams = [tenantId, dateFrom, dateTo];
+      if (account !== 'all') {
+        if (matchedBank) {
+          incQuery += ' AND (payment_destination = ? OR payment_destination = ? OR payment_destination = ?)';
+          incParams.push(account, matchedBank.bank_name, String(matchedBank.id));
+        } else {
+          incQuery += ' AND payment_destination = ?';
+          incParams.push(account);
+        }
+      }
+      if (category !== 'all') {
+        incQuery += ' AND category = ?';
+        incParams.push(category);
+      }
+      const incRows = await query(incQuery, incParams);
+      for (const inc of incRows) {
+        const fullDesc = `${inc.title || ''}${inc.description ? ' (' + inc.description + ')' : ''}`;
+        if (search && !fullDesc.toLowerCase().includes(search) && !String(inc.category || '').toLowerCase().includes(search)) {
+          continue;
+        }
+        const amt = parseFloat(inc.amount || 0);
+        const dStr = extractDateStr(inc.income_date);
+        transactions.push({
+          id: inc.id,
+          model_type: 'income',
+          datetime: `${dStr} 00:00:00`,
+          date_formatted: formatDateIndo(dStr),
+          date: dStr,
+          reference: `INC-${String(inc.id).padStart(5, '0')}`,
+          type: 'income',
+          type_label: 'Pemasukan',
+          type_badge: 'bg-success',
+          category_label: inc.category || 'Pemasukan Lain',
+          account_label: resolveAccountLabel(inc.payment_destination),
+          description: fullDesc,
+          inflow: amt,
+          outflow: 0
+        });
+      }
+    }
+
+    // B. Expenses
+    if (sourceType === 'all' || sourceType === 'expense') {
+      let expQuery = `SELECT e.id, e.title, e.category, e.payment_source, e.amount, e.expense_date, e.description,
+                             e.employee_id, emp.name as employee_name
+                      FROM expenses e
+                      LEFT JOIN employees emp ON emp.id = e.employee_id
+                      WHERE e.tenant_id = ? AND e.expense_date >= ? AND e.expense_date <= ?`;
+      const expParams = [tenantId, dateFrom, dateTo];
+      if (account !== 'all') {
+        if (matchedBank) {
+          expQuery += ' AND (e.payment_source = ? OR e.payment_source = ? OR e.payment_source = ?)';
+          expParams.push(account, matchedBank.bank_name, String(matchedBank.id));
+        } else {
+          expQuery += ' AND e.payment_source = ?';
+          expParams.push(account);
+        }
+      }
+      if (category !== 'all') {
+        expQuery += ' AND e.category = ?';
+        expParams.push(category);
+      }
+      const expRows = await query(expQuery, expParams);
+      for (const exp of expRows) {
+        let desc = exp.title || '';
+        if (exp.employee_name) desc += ` [PIC: ${exp.employee_name}]`;
+        if (exp.description) desc += ` - ${exp.description}`;
+        if (search && !desc.toLowerCase().includes(search) && !String(exp.category || '').toLowerCase().includes(search)) {
+          continue;
+        }
+        const amt = parseFloat(exp.amount || 0);
+        const dStr = extractDateStr(exp.expense_date);
+        transactions.push({
+          id: exp.id,
+          model_type: 'expense',
+          datetime: `${dStr} 00:00:00`,
+          date_formatted: formatDateIndo(dStr),
+          date: dStr,
+          reference: `EXP-${String(exp.id).padStart(5, '0')}`,
+          type: 'expense',
+          type_label: 'Pengeluaran',
+          type_badge: 'bg-danger',
+          category_label: exp.category || 'Pengeluaran',
+          account_label: resolveAccountLabel(exp.payment_source),
+          description: desc,
+          inflow: 0,
+          outflow: amt
+        });
+      }
+    }
+
+    // C. Fund Transfers
+    if ((sourceType === 'all' || sourceType === 'transfer') && (category === 'all' || category === 'transfer')) {
+      const trQuery = 'SELECT id, source, destination, amount, transfer_date, description FROM fund_transfers WHERE tenant_id = ? AND transfer_date >= ? AND transfer_date <= ?';
+      const trRows = await query(trQuery, [tenantId, dateFrom, dateTo]);
+      for (const tr of trRows) {
+        const srcLabel = resolveAccountLabel(tr.source);
+        const dstLabel = resolveAccountLabel(tr.destination);
+        const amt = parseFloat(tr.amount || 0);
+        const dStr = extractDateStr(tr.transfer_date);
+        const baseDesc = tr.description ? ` (${tr.description})` : '';
+
+        if (search && !String(tr.description || '').toLowerCase().includes(search) && !srcLabel.toLowerCase().includes(search) && !dstLabel.toLowerCase().includes(search)) {
+          continue;
+        }
+
+        if (account === 'all') {
+          transactions.push({
+            id: tr.id,
+            model_type: 'transfer',
+            datetime: `${dStr} 00:00:00`,
+            date_formatted: formatDateIndo(dStr),
+            date: dStr,
+            reference: `TRF-${String(tr.id).padStart(5, '0')}`,
+            type: 'transfer',
+            type_label: 'Transfer Kas',
+            type_badge: 'bg-warning',
+            category_label: 'Transfer Internal',
+            account_label: `${srcLabel} ➔ ${dstLabel}`,
+            description: `Pindah dana dari ${srcLabel} ke ${dstLabel}${baseDesc}`,
+            inflow: 0,
+            outflow: 0
+          });
+        } else {
+          if (accountMatches(tr.source)) {
+            transactions.push({
+              id: tr.id,
+              model_type: 'transfer_out',
+              datetime: `${dStr} 00:00:00`,
+              date_formatted: formatDateIndo(dStr),
+              date: dStr,
+              reference: `TRF-${String(tr.id).padStart(5, '0')}`,
+              type: 'transfer_out',
+              type_label: 'Transfer Keluar',
+              type_badge: 'bg-warning',
+              category_label: 'Transfer Keluar',
+              account_label: srcLabel,
+              description: `Transfer keluar ke ${dstLabel}${baseDesc}`,
+              inflow: 0,
+              outflow: amt
+            });
+          }
+          if (accountMatches(tr.destination)) {
+            transactions.push({
+              id: tr.id,
+              model_type: 'transfer_in',
+              datetime: `${dStr} 00:00:00`,
+              date_formatted: formatDateIndo(dStr),
+              date: dStr,
+              reference: `TRF-${String(tr.id).padStart(5, '0')}`,
+              type: 'transfer_in',
+              type_label: 'Transfer Masuk',
+              type_badge: 'bg-info',
+              category_label: 'Transfer Masuk',
+              account_label: dstLabel,
+              description: `Transfer masuk dari ${srcLabel}${baseDesc}`,
+              inflow: amt,
+              outflow: 0
+            });
+          }
+        }
+      }
+    }
+
+    // Direction filter
+    if (direction === 'in') {
+      transactions = transactions.filter(t => t.inflow > 0);
+    } else if (direction === 'out') {
+      transactions = transactions.filter(t => t.outflow > 0);
+    }
+
+    // Sort Chronologically (ASC) to compute running balance
+    transactions.sort((a, b) => {
+      if (a.datetime < b.datetime) return -1;
+      if (a.datetime > b.datetime) return 1;
+      return a.id - b.id;
+    });
+
+    let running = beginningBalance;
+    let totalInflow = 0;
+    let totalOutflow = 0;
+    let inflowCount = 0;
+    let outflowCount = 0;
+
+    for (const t of transactions) {
+      if (t.inflow > 0) {
+        totalInflow += t.inflow;
+        inflowCount++;
+      }
+      if (t.outflow > 0) {
+        totalOutflow += t.outflow;
+        outflowCount++;
+      }
+      running = running + t.inflow - t.outflow;
+      t.running_balance = running;
+    }
+
+    const endingBalance = running;
+    const netCashFlow = totalInflow - totalOutflow;
+
+    // Reverse for UI display (newest first)
+    transactions.reverse();
+
+    // Master lists for modal dropdowns
+    const expenseCategories = await query(
+      'SELECT id, name FROM finance_categories WHERE tenant_id = ? AND type = "expense" AND is_active = 1 ORDER BY name ASC',
+      [tenantId]
+    );
+    const incomeCategories = await query(
+      'SELECT id, name FROM finance_categories WHERE tenant_id = ? AND type = "income" AND is_active = 1 ORDER BY name ASC',
+      [tenantId]
+    );
+    const employees = await query(
+      'SELECT id, name FROM employees WHERE tenant_id = ? AND is_active = 1 ORDER BY name ASC',
+      [tenantId]
+    );
+
+    return res.json({
+      success: true,
+      summary: {
+        beginningBalance: Math.round(beginningBalance),
+        totalInflow: Math.round(totalInflow),
+        totalOutflow: Math.round(totalOutflow),
+        netCashFlow: Math.round(netCashFlow),
+        endingBalance: Math.round(endingBalance),
+        inflowCount,
+        outflowCount,
+        totalCount: transactions.length
+      },
+      filters: {
+        dateFrom,
+        dateTo,
+        account,
+        category,
+        direction,
+        search
+      },
+      bankAccounts,
+      expenseCategories,
+      incomeCategories,
+      employees,
+      mutations: transactions
+    });
+  } catch (err) {
+    console.error('[Node-API] Mutasi keuangan error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Create Income
+app.post('/api/v2/owner/mutasi-keuangan/income', async (req, res) => {
+  try {
+    const tenantId = req.headers['x-tenant-id'] || '1';
+    const { title, category, payment_destination, amount, income_date, description } = req.body;
+    if (!title || !amount || parseFloat(amount) <= 0) {
+      return res.status(422).json({ success: false, message: 'Judul dan nominal wajib diisi.' });
+    }
+    const result = await query(
+      `INSERT INTO incomes (tenant_id, title, category, payment_destination, amount, income_date, description, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [tenantId, title, category || 'Pemasukan Lain', payment_destination || 'kas_besar', parseFloat(amount), income_date || new Date(), description || null]
+    );
+    return res.json({ success: true, message: 'Pemasukan berhasil dicatat!', id: result.insertId });
+  } catch (err) {
+    console.error('[Node-API] Create income error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Create Expense
+app.post('/api/v2/owner/mutasi-keuangan/expense', async (req, res) => {
+  try {
+    const tenantId = req.headers['x-tenant-id'] || '1';
+    const { title, category, payment_source, amount, expense_date, description, employee_id } = req.body;
+    if (!title || !amount || parseFloat(amount) <= 0) {
+      return res.status(422).json({ success: false, message: 'Judul dan nominal wajib diisi.' });
+    }
+    const result = await query(
+      `INSERT INTO expenses (tenant_id, employee_id, title, category, payment_source, amount, expense_date, description, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [tenantId, employee_id || null, title, category || 'Operasional', payment_source || 'kas_besar', parseFloat(amount), expense_date || new Date(), description || null]
+    );
+    return res.json({ success: true, message: 'Pengeluaran berhasil dicatat!', id: result.insertId });
+  } catch (err) {
+    console.error('[Node-API] Create expense error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Create Fund Transfer
+app.post('/api/v2/owner/mutasi-keuangan/transfer', async (req, res) => {
+  try {
+    const tenantId = req.headers['x-tenant-id'] || '1';
+    const { source, destination, amount, transfer_date, description } = req.body;
+    if (!source || !destination || !amount || parseFloat(amount) <= 0) {
+      return res.status(422).json({ success: false, message: 'Akun asal, tujuan, dan nominal wajib diisi.' });
+    }
+    if (source === destination) {
+      return res.status(422).json({ success: false, message: 'Akun sumber dan akun tujuan tidak boleh sama.' });
+    }
+    const result = await query(
+      `INSERT INTO fund_transfers (tenant_id, source, destination, amount, transfer_date, description, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [tenantId, source, destination, parseFloat(amount), transfer_date || new Date(), description || null]
+    );
+    return res.json({ success: true, message: 'Transfer dana berhasil dicatat!', id: result.insertId });
+  } catch (err) {
+    console.error('[Node-API] Create transfer error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Delete Mutation
+app.delete('/api/v2/owner/mutasi-keuangan/:type/:id', async (req, res) => {
+  try {
+    const tenantId = req.headers['x-tenant-id'] || '1';
+    const { type, id } = req.params;
+    let table = null;
+    if (type === 'income') table = 'incomes';
+    else if (type === 'expense') table = 'expenses';
+    else if (type === 'transfer' || type === 'transfer_in' || type === 'transfer_out') table = 'fund_transfers';
+    else return res.status(400).json({ success: false, message: 'Tipe mutasi tidak valid.' });
+
+    await query(`DELETE FROM ${table} WHERE id = ? AND tenant_id = ?`, [id, tenantId]);
+    return res.json({ success: true, message: 'Transaksi mutasi berhasil dihapus!' });
+  } catch (err) {
+    console.error('[Node-API] Delete mutation error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'mobile-owner-backend', time: new Date() });

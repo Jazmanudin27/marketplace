@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Wallet, ArrowDownRight, ArrowUpRight, ShieldCheck, Target, CreditCard, Award, ChevronRight, BarChart2 } from 'lucide-react';
+import { Wallet, ArrowDownRight, ArrowUpRight, ShieldCheck, Target, CreditCard, Award, ChevronRight, BarChart2, ArrowLeftRight } from 'lucide-react';
 import { formatRupiah } from '../utils/formatters';
 import TargetKomisiPage from './TargetKomisiPage';
 import LabaRugiPage from './LabaRugiPage';
+import MutasiKeuanganPage from './MutasiKeuanganPage';
 
 export default function FinancePage({ metrics, onOpenTargetKomisi, initialSubTab = 'ringkasan' }) {
-  const [subTab, setSubTab] = useState(initialSubTab); // 'ringkasan' | 'target_komisi' | 'laba_rugi'
+  const [subTab, setSubTab] = useState(initialSubTab); // 'ringkasan' | 'target_komisi' | 'mutasi' | 'laba_rugi'
 
   return (
     <div className="mobile-body-content" style={{ paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -13,11 +14,11 @@ export default function FinancePage({ metrics, onOpenTargetKomisi, initialSubTab
       {/* Segmented Top Tabs */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
+        gridTemplateColumns: '1fr 1fr 1fr 1fr',
         background: '#e2e8f0',
         padding: '3px',
         borderRadius: '14px',
-        gap: '4px'
+        gap: '3px'
       }}>
         <button
           type="button"
@@ -27,16 +28,17 @@ export default function FinancePage({ metrics, onOpenTargetKomisi, initialSubTab
             background: subTab === 'ringkasan' ? '#ffffff' : 'transparent',
             color: subTab === 'ringkasan' ? '#0f172a' : '#64748b',
             fontWeight: subTab === 'ringkasan' ? '800' : '600',
-            fontSize: '11px',
-            padding: '8px 4px',
-            borderRadius: '11px',
+            fontSize: '10.5px',
+            padding: '7px 2px',
+            borderRadius: '10px',
             cursor: 'pointer',
-            boxShadow: subTab === 'ringkasan' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+            boxShadow: subTab === 'ringkasan' ? '0 2px 5px rgba(0,0,0,0.08)' : 'none',
             transition: 'all 0.2s ease',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            textAlign: 'center'
           }}
         >
-          💰 Kas & Ringkasan
+          💰 Kas
         </button>
         <button
           type="button"
@@ -46,16 +48,37 @@ export default function FinancePage({ metrics, onOpenTargetKomisi, initialSubTab
             background: subTab === 'target_komisi' ? '#2563eb' : 'transparent',
             color: subTab === 'target_komisi' ? '#ffffff' : '#64748b',
             fontWeight: subTab === 'target_komisi' ? '800' : '600',
-            fontSize: '11px',
-            padding: '8px 4px',
-            borderRadius: '11px',
+            fontSize: '10.5px',
+            padding: '7px 2px',
+            borderRadius: '10px',
             cursor: 'pointer',
-            boxShadow: subTab === 'target_komisi' ? '0 2px 6px rgba(37,99,235,0.25)' : 'none',
+            boxShadow: subTab === 'target_komisi' ? '0 2px 5px rgba(37,99,235,0.25)' : 'none',
             transition: 'all 0.2s ease',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            textAlign: 'center'
           }}
         >
-          🎯 Target & Komisi V2
+          🎯 Target V2
+        </button>
+        <button
+          type="button"
+          onClick={() => setSubTab('mutasi')}
+          style={{
+            border: 'none',
+            background: subTab === 'mutasi' ? '#0f172a' : 'transparent',
+            color: subTab === 'mutasi' ? '#ffffff' : '#64748b',
+            fontWeight: subTab === 'mutasi' ? '800' : '600',
+            fontSize: '10.5px',
+            padding: '7px 2px',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            boxShadow: subTab === 'mutasi' ? '0 2px 5px rgba(15,23,42,0.25)' : 'none',
+            transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap',
+            textAlign: 'center'
+          }}
+        >
+          🔁 Mutasi
         </button>
         <button
           type="button"
@@ -65,13 +88,14 @@ export default function FinancePage({ metrics, onOpenTargetKomisi, initialSubTab
             background: subTab === 'laba_rugi' ? '#ffffff' : 'transparent',
             color: subTab === 'laba_rugi' ? '#0f172a' : '#64748b',
             fontWeight: subTab === 'laba_rugi' ? '800' : '600',
-            fontSize: '11px',
-            padding: '8px 4px',
-            borderRadius: '11px',
+            fontSize: '10.5px',
+            padding: '7px 2px',
+            borderRadius: '10px',
             cursor: 'pointer',
-            boxShadow: subTab === 'laba_rugi' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+            boxShadow: subTab === 'laba_rugi' ? '0 2px 5px rgba(0,0,0,0.08)' : 'none',
             transition: 'all 0.2s ease',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            textAlign: 'center'
           }}
         >
           📊 Laba Rugi
@@ -83,12 +107,17 @@ export default function FinancePage({ metrics, onOpenTargetKomisi, initialSubTab
         <TargetKomisiPage initialMetrics={metrics} />
       )}
 
-      {/* SUB-TAB 2: LABA RUGI */}
+      {/* SUB-TAB 2: MUTASI KEUANGAN */}
+      {subTab === 'mutasi' && (
+        <MutasiKeuanganPage />
+      )}
+
+      {/* SUB-TAB 3: LABA RUGI */}
       {subTab === 'laba_rugi' && (
         <LabaRugiPage />
       )}
 
-      {/* SUB-TAB 3: RINGKASAN KAS & METRIK */}
+      {/* SUB-TAB 4: RINGKASAN KAS & METRIK */}
       {subTab === 'ringkasan' && (
         <>
           {/* Main Cash Balance Card */}

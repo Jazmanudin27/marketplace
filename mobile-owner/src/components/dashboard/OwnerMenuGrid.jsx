@@ -89,7 +89,7 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
     },
     {
       id: 'cashflow',
-      title: 'Buku Kas',
+      title: 'Mutasi Kas',
       category: 'Keuangan',
       icon: CreditCard,
       gradient: 'linear-gradient(135deg, #14b8a6, #0d9488)'
