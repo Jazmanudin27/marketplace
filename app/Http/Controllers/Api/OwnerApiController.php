@@ -75,12 +75,7 @@ class OwnerApiController extends Controller
         // 2. Online Sales Dilepas Bulan Ini (Diselaraskan persis dengan Laporan Penjualan Dilepas & Laba Rugi V2)
         $completedMonthOrders = Order::where('tenant_id', $tenantId)
             ->whereIn(DB::raw('UPPER(order_status)'), ['COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR'])
-            ->where(function ($q) use ($startOfMonth) {
-                $q->where('completed_at', '>=', $startOfMonth)
-                  ->orWhere(function ($sq) use ($startOfMonth) {
-                      $sq->whereNull('completed_at')->where('order_date', '>=', $startOfMonth);
-                  });
-            })
+            ->where('completed_at', '>=', $startOfMonth)
             ->with(['items.masterProduct'])
             ->get();
 

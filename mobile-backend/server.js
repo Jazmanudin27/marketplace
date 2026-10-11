@@ -278,8 +278,8 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
        LEFT JOIN master_products mp ON mp.id = oi.master_product_id
        WHERE o.tenant_id = ? 
          AND UPPER(o.order_status) IN ${validStatuses}
-         AND (o.completed_at >= ? OR (o.completed_at IS NULL AND o.order_date >= ?))`,
-      [tenantId, startOfMonthStr, startOfMonthStr]
+         AND o.completed_at >= ?`,
+      [tenantId, startOfMonthStr]
     );
 
     // Return orders map untuk refund akurat
