@@ -12,7 +12,7 @@ const jwt = require('jsonwebtoken');
 const { query } = require('./db');
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '5001', 10);
+const PORT = parseInt(process.env.PORT || '5009', 10);
 const JWT_SECRET = process.env.JWT_SECRET || 'erp_mobile_owner_secret_jwt_2026';
 
 app.use(cors());
