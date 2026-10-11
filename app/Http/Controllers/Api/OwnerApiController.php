@@ -241,6 +241,24 @@ class OwnerApiController extends Controller
             }
         }
 
+        // Sub-filter Process Status (to_process / processed)
+        $processStatus = $request->input('process_status');
+        if ($processStatus === 'to_process') {
+            $query->where(function ($sub) {
+                $sub->where('is_printed', false)->orWhereNull('is_printed');
+            })
+            ->where(function ($q2) {
+                $q2->whereNull('tracking_number')->orWhere('tracking_number', '');
+            });
+        } elseif ($processStatus === 'processed') {
+            $query->where(function ($sub) {
+                $sub->where('is_printed', true)
+                    ->orWhere(function ($q2) {
+                        $q2->whereNotNull('tracking_number')->where('tracking_number', '!=', '');
+                    });
+            });
+        }
+
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('invoice_number', 'like', "%{$search}%")
@@ -317,6 +335,8 @@ class OwnerApiController extends Controller
                 'trackingNumber' => $order->tracking_number,
                 'completedAt'    => $order->completed_at ? Carbon::parse($order->completed_at)->format('d M Y H:i') : ($order->created_at ? Carbon::parse($order->created_at)->format('d M Y H:i') : '—'),
                 'status'         => strtoupper($order->order_status ?: 'COMPLETED'),
+                'isPrinted'      => (bool) $order->is_printed,
+                'processStatus'  => ((bool) $order->is_printed || (!empty($order->tracking_number))) ? 'processed' : 'to_process',
                 'quantity'       => max(1, $totalQty),
                 'totalAmount'    => round((float) $order->total_amount, 0),
                 'marketplaceFee' => round((float) $order->marketplace_fee, 0),
@@ -330,12 +350,62 @@ class OwnerApiController extends Controller
             ];
         });
 
+        $unprocessedStatuses = ['UNPAID', 'PENDING', 'READY_TO_SHIP', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS'];
+        $processedStatuses   = ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE', 'COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED'];
+
+        // Exact ERP Tab counts
+        $countBase = Order::where('tenant_id', $tenantId);
+        $rawCounts = (clone $countBase)
+            ->selectRaw('UPPER(order_status) as status_key, COUNT(*) as total')
+            ->groupBy('status_key')
+            ->pluck('total', 'status_key');
+
+        $tabStatusMap = [
+            'READY_TO_SHIP' => ['READY_TO_SHIP', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS'],
+            'SHIPPED'       => ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE', 'DELIVERED'],
+            'COMPLETED'     => ['COMPLETED', 'FINISHED', 'SELESAI'],
+            'RETURNED'      => ['TO_RETURN', 'RETURN', 'RETURNED', 'REFUNDED', 'RETUR', 'RETURNING'],
+            'CANCELLED'     => ['CANCELLED', 'BATAL', 'IN_CANCEL', 'CANCELED'],
+        ];
+
+        $tabCounts = [
+            'ALL'           => (clone $countBase)->count(),
+            'READY_TO_SHIP' => $rawCounts->only($tabStatusMap['READY_TO_SHIP'])->sum(),
+            'SHIPPED'       => $rawCounts->only($tabStatusMap['SHIPPED'])->sum(),
+            'COMPLETED'     => $rawCounts->only($tabStatusMap['COMPLETED'])->sum(),
+            'RETURNED'      => $rawCounts->only($tabStatusMap['RETURNED'])->sum(),
+            'CANCELLED'     => $rawCounts->only($tabStatusMap['CANCELLED'])->sum(),
+        ];
+
+        // Process Counts for READY_TO_SHIP: Belum diproses vs Telah diproses
+        $readyBase = (clone $countBase)->whereIn(DB::raw('UPPER(order_status)'), $tabStatusMap['READY_TO_SHIP']);
+        $toProcessCount = (clone $readyBase)->where(function($q) use ($unprocessedStatuses) {
+            $q->where(function ($sub) {
+                $sub->where('is_printed', false)->orWhereNull('is_printed');
+            })
+            ->where(function($q2) {
+                $q2->whereNull('tracking_number')->orWhere('tracking_number', '');
+            });
+        })->count();
+
+        $processedCount = (clone $readyBase)->where(function($q) use ($processedStatuses) {
+            $q->where('is_printed', true)
+              ->orWhere(function($q2) {
+                  $q2->whereNotNull('tracking_number')->where('tracking_number', '!=', '');
+              });
+        })->count();
+
         return response()->json([
-            'success' => true,
-            'data'    => $formatted,
-            'total'   => $orders->total(),
-            'page'    => $orders->currentPage(),
-            'limit'   => $orders->perPage(),
+            'success'       => true,
+            'data'          => $formatted,
+            'total'         => $orders->total(),
+            'page'          => $orders->currentPage(),
+            'limit'         => $orders->perPage(),
+            'tabCounts'     => $tabCounts,
+            'processCounts' => [
+                'to_process' => $toProcessCount,
+                'processed'  => $processedCount,
+            ]
         ]);
     }
 

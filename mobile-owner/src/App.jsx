@@ -99,6 +99,15 @@ export default function App() {
     }
   }, [currentUser]);
 
+  const [orderCounts, setOrderCounts] = useState(() => {
+    try {
+      const cached = localStorage.getItem('owner_order_counts_cache');
+      return cached ? JSON.parse(cached) : { tabCounts: {}, processCounts: {} };
+    } catch {
+      return { tabCounts: {}, processCounts: {} };
+    }
+  });
+
   // Load API data on mount if logged in (Instant Cache-Then-Network)
   useEffect(() => {
     if (!currentUser) return;
@@ -121,6 +130,14 @@ export default function App() {
         if (ordersRes?.data) {
           setOrders(ordersRes.data);
           localStorage.setItem('owner_orders_cache', JSON.stringify(ordersRes.data));
+        }
+        if (ordersRes?.tabCounts) {
+          const countsObj = {
+            tabCounts: ordersRes.tabCounts,
+            processCounts: ordersRes.processCounts || { to_process: 0, processed: 0 }
+          };
+          setOrderCounts(countsObj);
+          localStorage.setItem('owner_order_counts_cache', JSON.stringify(countsObj));
         }
       } catch (err) {
         console.warn('API fetch error:', err);
@@ -249,6 +266,8 @@ export default function App() {
         {activeTab === 'orders' && (
           <OrdersPage 
             orders={orders}
+            orderCounts={orderCounts}
+            isLoading={isDataLoading}
             initialFilter={ordersFilter}
             onSelectOrder={(order) => setSelectedOrder(order)}
           />
