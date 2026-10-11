@@ -70,13 +70,14 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance }) {
 
   return (
     <div className="quick-finance-wrapper">
-      <div className="finance-metric-strip">
+      <div className="finance-metric-grid-2col">
         {items.map((item) => {
           const IconComp = item.icon;
+          const isFullSpan = item.id === 'margin'; // Margin span 2 kolom agar megah di bawah
           return (
             <div 
               key={item.id} 
-              className="finance-strip-card"
+              className={`finance-grid-card ${isFullSpan ? 'full-span-card' : ''}`}
               onClick={onOpenFinance}
               style={{
                 borderColor: item.borderColor,
@@ -87,7 +88,7 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance }) {
                 className="finance-strip-icon"
                 style={{ background: item.gradient }}
               >
-                <IconComp size={15} strokeWidth={2.4} color="#ffffff" />
+                <IconComp size={16} strokeWidth={2.4} color="#ffffff" />
               </div>
               <div className="finance-strip-info">
                 <span className="finance-strip-label">{item.label}</span>
