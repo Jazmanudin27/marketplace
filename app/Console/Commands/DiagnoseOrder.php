@@ -79,62 +79,79 @@ class DiagnoseOrder extends Command
             $this->line("  Item Cost Price      : Rp " . number_format($it->cost_price, 0, ',', '.'));
             $this->line("  Item HPP Subtotal    : Rp " . number_format($it->hpp_subtotal, 0, ',', '.'));
 
-            // Analisa pencarian Master Product
-            $mp = null;
-            $matchMethod = '';
-
-            // 1. Cek by master_product_id
-            if ($it->master_product_id) {
-                $mp = MasterProduct::where('tenant_id', $order->tenant_id)->find($it->master_product_id);
-                if ($mp) $matchMethod = "Relasi ID (#{$mp->id})";
-            }
-
-            // 2. Cek by SKU
-            if (!$mp && !empty($it->sku)) {
+            // 1. Cek apakah ada Master Product yang memiliki SKU persis sama dengan SKU pesanan
+            $mpByExactSku = null;
+            if (!empty($it->sku)) {
                 $skuTrim = trim($it->sku);
-                $mp = MasterProduct::where('tenant_id', $order->tenant_id)
+                $mpByExactSku = MasterProduct::where('tenant_id', $order->tenant_id)
                     ->where(function($q) use ($skuTrim) {
                         $q->where('sku', $skuTrim)
                           ->orWhere(MasterProduct::raw('LOWER(TRIM(sku))'), strtolower($skuTrim));
                     })->first();
-                if ($mp) $matchMethod = "Kecocokan SKU ('{$skuTrim}') -> Master ID #{$mp->id}";
             }
 
-            // 3. Cek by Seller SKU
-            if (!$mp && !empty($it->seller_sku)) {
-                $sellerSkuTrim = trim($it->seller_sku);
-                $mp = MasterProduct::where('tenant_id', $order->tenant_id)
-                    ->where(function($q) use ($sellerSkuTrim) {
-                        $q->where('sku', $sellerSkuTrim)
-                          ->orWhere(MasterProduct::raw('LOWER(TRIM(sku))'), strtolower($sellerSkuTrim));
-                    })->first();
-                if ($mp) $matchMethod = "Kecocokan Seller SKU ('{$sellerSkuTrim}') -> Master ID #{$mp->id}";
+            // 2. Cek relasi master_product_id saat ini
+            $mpCurrent = null;
+            if ($it->master_product_id) {
+                $mpCurrent = MasterProduct::where('tenant_id', $order->tenant_id)->find($it->master_product_id);
             }
 
-            // 4. Cek via Marketplace Product
-            if (!$mp && $it->marketplace_product_id) {
-                $mkt = MarketplaceProduct::where('store_id', $order->store_id)
-                    ->where(function($q) use ($it) {
-                        $q->where('id', $it->marketplace_product_id)
-                          ->orWhere('marketplace_product_id', $it->marketplace_product_id);
-                        if (!empty($it->sku_id)) {
-                            $q->orWhere('marketplace_variant_id', $it->sku_id);
-                        }
-                    })->first();
-                if ($mkt && $mkt->master_product_id) {
-                    $mp = MasterProduct::where('tenant_id', $order->tenant_id)->find($mkt->master_product_id);
-                    if ($mp) $matchMethod = "Tabel MarketplaceProduct ('{$mkt->name}') -> Master ID #{$mp->id}";
-                }
+            $this->line("  --- Analisa SKU & Master Product ---");
+            if ($mpByExactSku) {
+                $this->info("  [1] Master Product dengan SKU PERSIS ('{$it->sku}'):");
+                $this->info("      ID #{$mpByExactSku->id} | SKU: {$mpByExactSku->sku} | HPP: Rp " . number_format($mpByExactSku->cost_price, 0, ',', '.') . " | Nama: {$mpByExactSku->name}");
+            } else {
+                $this->warn("  [1] TIDAK ADA Master Product dengan SKU '{$it->sku}' di Tenant {$order->tenant_id}.");
+            }
+
+            if ($mpCurrent) {
+                $this->info("  [2] Master Product yang saat ini TERHUBUNG (ID #{$mpCurrent->id}):");
+                $this->info("      SKU Master: {$mpCurrent->sku} | HPP: Rp " . number_format($mpCurrent->cost_price, 0, ',', '.') . " | Nama: {$mpCurrent->name}");
+            }
+
+            // Tentukan Master Product mana yang akan dipakai
+            // Prioritas: Master Product dengan SKU persis (jika ada dan punya HPP), atau MP saat ini jika punya HPP
+            $mp = null;
+            $matchMethod = '';
+
+            if ($mpByExactSku && (float)$mpByExactSku->cost_price > 0) {
+                $mp = $mpByExactSku;
+                $matchMethod = "SKU Persis ('{$mpByExactSku->sku}')";
+            } elseif ($mpCurrent && (float)$mpCurrent->cost_price > 0) {
+                $mp = $mpCurrent;
+                $matchMethod = "Relasi ID (#{$mpCurrent->id})";
+            } elseif ($mpByExactSku) {
+                $mp = $mpByExactSku;
+                $matchMethod = "SKU Persis ('{$mpByExactSku->sku}') (HPP masih 0)";
+            } elseif ($mpCurrent) {
+                $mp = $mpCurrent;
+                $matchMethod = "Relasi ID (#{$mpCurrent->id}) (HPP masih 0)";
             }
 
             if ($mp) {
-                $this->info("  -> Master Product Ditemukan via {$matchMethod}");
-                $this->info("     Nama Master       : {$mp->name}");
-                $this->info("     SKU Master        : {$mp->sku}");
-                $this->info("     HPP (cost_price)  : Rp " . number_format($mp->cost_price, 0, ',', '.'));
+                $this->info("  -> Terpilih: Master ID #{$mp->id} ({$matchMethod})");
+                $this->info("     HPP (cost_price): Rp " . number_format($mp->cost_price, 0, ',', '.'));
 
                 if ((float)$mp->cost_price <= 0) {
-                    $this->warn("     PERINGATAN: Nilai cost_price di Master Product ini adalah 0!");
+                    $this->warn("     PERINGATAN: cost_price di Master Product ini bernilai 0 di menu Master Produk ERP!");
+                    
+                    // Cek produk serupa yang memiliki cost_price > 0
+                    $similar = MasterProduct::where('tenant_id', $order->tenant_id)
+                        ->where('cost_price', '>', 0)
+                        ->where(function($q) use ($it, $mp) {
+                            $words = explode(' ', trim($it->product_name));
+                            foreach (array_slice($words, 0, 3) as $w) {
+                                if (strlen($w) > 3) $q->where('name', 'LIKE', "%{$w}%");
+                            }
+                        })
+                        ->take(3)
+                        ->get();
+                    if ($similar->isNotEmpty()) {
+                        $this->line("     Contoh produk serupa yang punya HPP:");
+                        foreach ($similar as $sm) {
+                            $this->line("       - ID #{$sm->id} [{$sm->sku}] Rp " . number_format($sm->cost_price, 0, ',', '.') . " : {$sm->name}");
+                        }
+                    }
                 } else {
                     $qty = max(1, (int)$it->quantity);
                     $newSubtotal = (float)$mp->cost_price * $qty;
@@ -144,6 +161,14 @@ class DiagnoseOrder extends Command
                         $it->cost_price = (float)$mp->cost_price;
                         $it->hpp_subtotal = $newSubtotal;
                         $it->save();
+
+                        // Update juga mapping di marketplace_products jika ada
+                        if ($it->marketplace_product_id) {
+                            MarketplaceProduct::where('id', $it->marketplace_product_id)
+                                ->orWhere('marketplace_product_id', $it->marketplace_product_id)
+                                ->update(['master_product_id' => $mp->id]);
+                        }
+
                         $this->info("     BERHASIL DIPERBAIKI: HPP Subtotal diupdate menjadi Rp " . number_format($newSubtotal, 0, ',', '.'));
                         $fixedCount++;
                     }
