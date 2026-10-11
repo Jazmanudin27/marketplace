@@ -420,6 +420,12 @@ class OwnerApiController extends Controller
             ->with(['store.channel', 'items.masterProduct'])
             ->firstOrFail();
 
+        return response()->json([
+            'success' => true,
+            'data'    => $order,
+        ]);
+    }
+
     /**
      * GET /api/v2/owner/target-komisi
      * Data real target marketing dan reward tim dari ERP
