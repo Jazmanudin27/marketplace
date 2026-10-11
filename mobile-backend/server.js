@@ -354,6 +354,12 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
           hpp += (cost * q);
         }
       }
+
+      // Partial refund: hitung HPP proporsional hanya untuk barang yang tidak direfund
+      if (refund > 0 && omset > 0 && refund < omset) {
+        const remainingRatio = Math.max(0, (omset - refund) / omset);
+        hpp = Math.round(hpp * remainingRatio);
+      }
     }
 
     const netAmt = parseFloat(o.net_amount || 0);
@@ -916,6 +922,12 @@ app.get('/api/v2/owner/orders', async (req, res) => {
             hpp += (cost * q);
           }
         }
+
+        // Partial refund: hitung HPP proporsional hanya untuk barang yang tidak direfund
+        if (refund > 0 && omset > 0 && refund < omset) {
+          const remainingRatio = Math.max(0, (omset - refund) / omset);
+          hpp = Math.round(hpp * remainingRatio);
+        }
       }
 
       const netAmount = parseFloat(ord.net_amount || 0);
@@ -1048,6 +1060,17 @@ app.get('/api/v2/owner/orders/:id', async (req, res) => {
     const omset = parseFloat(ord.total_amount || 0);
     const absFee = calculateOrderFee(ord);
     const refund = calculateOrderRefund(ord, returnMap);
+
+    const isFullRefundOrReturn = ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL', 'IN_CANCEL'].includes(String(ord.order_status || '').toUpperCase())
+      || (omset > 0 && refund >= omset);
+
+    if (isFullRefundOrReturn) {
+      hpp = 0;
+    } else if (refund > 0 && omset > 0 && refund < omset) {
+      const remainingRatio = Math.max(0, (omset - refund) / omset);
+      hpp = Math.round(hpp * remainingRatio);
+    }
+
     const netAmount = parseFloat(ord.net_amount || 0);
     const releasedVal = netAmount > 0 ? netAmount : Math.max(0, omset - absFee);
     const margin = releasedVal - hpp;

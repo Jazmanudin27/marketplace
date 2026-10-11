@@ -470,6 +470,15 @@ class Order extends Model
                 }
             }
         }
+
+        // Partial refund: potong HPP proporsional sesuai nominal barang yang direfund
+        $omset = (float) $this->total_amount;
+        $refund = (float) $this->refund_amount;
+        if ($refund > 0 && $omset > 0 && $refund < $omset) {
+            $remainingRatio = max(0.0, ($omset - $refund) / $omset);
+            $total = round($total * $remainingRatio);
+        }
+
         return $total;
     }
 
