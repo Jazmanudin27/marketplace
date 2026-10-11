@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/layout/Header';
+import SubPageHeader from './components/layout/SubPageHeader';
 import BottomNav from './components/layout/BottomNav';
 import DashboardPage from './pages/DashboardPage';
 import OrdersPage from './pages/OrdersPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 import FinancePage from './pages/FinancePage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
@@ -106,13 +108,39 @@ export default function App() {
   return (
     <div className="mobile-app-wrapper">
       <div className="mobile-screen">
-        {/* Top Header */}
-        <Header 
-          profile={profile}
-          onOpenKeyStatus={handleOpenKeyStatus}
-          onOpenNotif={handleOpenNotif}
-          onLogout={handleLogout}
-        />
+        {/* Top Header: Beranda Full Header, Sub-Halaman Gunakan Header Biasa dg Tombol Back & Radius Bottom */}
+        {activeTab === 'home' ? (
+          <Header 
+            profile={profile}
+            onOpenKeyStatus={handleOpenKeyStatus}
+            onOpenNotif={handleOpenNotif}
+            onLogout={handleLogout}
+          />
+        ) : activeTab === 'orders' ? (
+          <SubPageHeader 
+            title="Daftar Order" 
+            subtitle="Semua transaksi marketplace & POS"
+            onBack={() => setActiveTab('home')} 
+          />
+        ) : activeTab === 'analytics' ? (
+          <SubPageHeader 
+            title="Grafik & Analisis" 
+            subtitle="Performa omset, margin & channel"
+            onBack={() => setActiveTab('home')} 
+          />
+        ) : activeTab === 'finance' ? (
+          <SubPageHeader 
+            title="Keuangan & Kas" 
+            subtitle="Ringkasan kas, target & laba rugi"
+            onBack={() => setActiveTab('home')} 
+          />
+        ) : activeTab === 'profile' ? (
+          <SubPageHeader 
+            title="Profil & Toko" 
+            subtitle="Pengaturan akun & integrasi toko"
+            onBack={() => setActiveTab('home')} 
+          />
+        ) : null}
 
         {/* Tab Content */}
         {activeTab === 'home' && (
@@ -123,10 +151,18 @@ export default function App() {
             onViewAllOrders={handleOpenOrders}
             onOpenFinance={handleOpenFinance}
             onOpenTarget={handleOpenFinance}
+            onOpenAnalytics={() => {
+              setActiveTab('analytics');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             onOpenAllModules={() => setIsAllModulesOpen(true)}
             onSelectMenu={(menuId) => {
               if (menuId === 'orders') handleOpenOrders('ALL');
               else if (menuId === 'returns') handleOpenOrders('RETURNED');
+              else if (menuId === 'analytics') {
+                setActiveTab('analytics');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
               else if (menuId === 'target' || menuId === 'margin' || menuId === 'cashflow' || menuId === 'reports') handleOpenFinance();
               else if (menuId === 'settings' || menuId === 'stores' || menuId === 'company' || menuId === 'users') setActiveTab('profile');
               else if (menuId === 'scanner') handleScanClick();
@@ -143,6 +179,13 @@ export default function App() {
             orders={orders}
             initialFilter={ordersFilter}
             onSelectOrder={(order) => setSelectedOrder(order)}
+          />
+        )}
+
+        {activeTab === 'analytics' && (
+          <AnalyticsPage 
+            metrics={metrics}
+            orders={orders}
           />
         )}
 

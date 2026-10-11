@@ -53,6 +53,13 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
       gradient: 'linear-gradient(135deg, #10b981, #059669)'
     },
     {
+      id: 'analytics',
+      title: 'Grafik',
+      category: 'Analisis',
+      icon: LineChart,
+      gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)'
+    },
+    {
       id: 'warehouse',
       title: 'Gudang',
       category: 'Gudang',

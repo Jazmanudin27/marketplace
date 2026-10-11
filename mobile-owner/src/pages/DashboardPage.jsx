@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import QuickStatusGrid from '../components/dashboard/QuickStatusGrid';
+import QuickFinanceGrid from '../components/dashboard/QuickFinanceGrid';
 import HighlightBanners from '../components/dashboard/HighlightBanners';
 import OwnerMenuGrid from '../components/dashboard/OwnerMenuGrid';
 import OrderCard from '../components/orders/OrderCard';
@@ -12,6 +12,7 @@ export default function DashboardPage({
   onViewAllOrders, 
   onOpenFinance, 
   onOpenTarget,
+  onOpenAnalytics,
   onSelectMenu,
   onOpenAllModules
 }) {
@@ -27,10 +28,10 @@ export default function DashboardPage({
 
   return (
     <div className="mobile-body-content">
-      {/* 4 Quick Status Cards (Pesanan Baru, Perlu Dikirim, Komplain/Retur, Selesai) */}
-      <QuickStatusGrid 
+      {/* 5 Metrik Finansial: Penjualan Hari ini, Biaya Admin, Refund, HPP, Margin */}
+      <QuickFinanceGrid 
         metrics={metrics} 
-        onSelectStatus={(status) => onViewAllOrders && onViewAllOrders(status)} 
+        onOpenFinance={onOpenFinance} 
       />
 
       {/* 2 Wide Highlight Banners (Omset & Target Komisi) */}
@@ -45,6 +46,7 @@ export default function DashboardPage({
         onSelectMenu={(menuId) => {
           if (menuId === 'orders') onViewAllOrders('ALL');
           else if (menuId === 'returns') onViewAllOrders('RETURNED');
+          else if (menuId === 'analytics') onOpenAnalytics && onOpenAnalytics();
           else if (menuId === 'cashflow' || menuId === 'margin') onOpenFinance();
           else if (menuId === 'target') onOpenTarget();
           else if (onSelectMenu) onSelectMenu(menuId);

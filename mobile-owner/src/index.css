@@ -699,3 +699,349 @@ body {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* =========================================================
+   SUB-PAGE HEADER (Warna Biru Logo, Back Button & Radius)
+   ========================================================= */
+.subpage-header {
+  background: linear-gradient(145deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
+  padding: 16px 18px 24px;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  box-shadow: 0 10px 24px -4px rgba(37, 99, 235, 0.35);
+  color: #ffffff;
+}
+
+.subpage-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.subpage-back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.subpage-back-btn:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.subpage-title-wrap {
+  flex: 1;
+  text-align: center;
+}
+
+.subpage-title {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  margin: 0;
+  color: #ffffff;
+}
+
+.subpage-subtitle {
+  font-size: 11.5px;
+  color: #bfdbfe;
+  margin: 2px 0 0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subpage-right-action {
+  width: 40px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* =========================================================
+   QUICK FINANCE METRICS (5 Strip Cards: Penjualan, Biaya Admin, Refund, HPP, Margin)
+   ========================================================= */
+.quick-finance-wrapper {
+  margin-top: -34px;
+  position: relative;
+  z-index: 10;
+}
+
+.finance-metric-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 10px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.finance-metric-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.finance-strip-card {
+  min-width: 140px;
+  flex: 1 0 auto;
+  border-radius: 18px;
+  padding: 12px 12px 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.finance-strip-card:active {
+  transform: scale(0.96);
+}
+
+.finance-strip-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.finance-strip-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.finance-strip-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.finance-strip-val {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+
+.finance-strip-sub {
+  font-size: 9.5px;
+  color: #94a3b8;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   ANALYTICS & CHARTS
+   ========================================================= */
+.analytics-range-pills {
+  display: flex;
+  gap: 8px;
+  background: #e2e8f0;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+}
+
+.range-pill {
+  flex: 1;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.range-pill.active {
+  background: #ffffff;
+  color: #1e1b4b;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.analytics-hero-card {
+  background: linear-gradient(145deg, #1e1b4b 0%, #2563eb 100%);
+  border-radius: 22px;
+  padding: 20px;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analytics-badge-tag {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.analytics-hero-subgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding-top: 12px;
+  margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.analytics-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 18px 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.analytics-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Bar Chart Layout */
+.bar-chart-container {
+  height: 170px;
+  display: flex;
+  align-items: flex-end;
+  padding: 10px 4px 6px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.bar-chart-bars {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+  gap: 8px;
+}
+
+.bar-col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.bar-val-bubble {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.bar-track {
+  width: 100%;
+  max-width: 24px;
+  height: 110px;
+  background: #f1f5f9;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.bar-fill {
+  width: 100%;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 8px 8px 0 0;
+  transition: height 0.4s ease;
+}
+
+.bar-fill.today {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+}
+
+.bar-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.bar-label.today-text {
+  color: #059669;
+  font-weight: 800;
+}
+
+.chart-legend-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+/* Stacked bar */
+.stacked-progress-bar {
+  height: 12px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.channel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.channel-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.channel-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.channel-bullet {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}

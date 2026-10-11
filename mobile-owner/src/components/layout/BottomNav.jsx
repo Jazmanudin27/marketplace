@@ -1,11 +1,11 @@
 import React from 'react';
-import { Home, Package, ScanLine, Wallet, User } from 'lucide-react';
+import { Home, Package, BarChart3, Wallet, User } from 'lucide-react';
 
 export default function BottomNav({ activeTab, onTabChange, onScanClick }) {
   const tabs = [
     { id: 'home', label: 'Beranda', icon: Home },
     { id: 'orders', label: 'Order', icon: Package },
-    { id: 'scan', label: 'Scan', icon: ScanLine, isCenter: true },
+    { id: 'analytics', label: 'Grafik', icon: BarChart3, isCenter: true },
     { id: 'finance', label: 'Keuangan', icon: Wallet },
     { id: 'profile', label: 'Profil', icon: User }
   ];
@@ -17,15 +17,16 @@ export default function BottomNav({ activeTab, onTabChange, onScanClick }) {
           const IconComp = tab.icon;
 
           if (tab.isCenter) {
+            const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 type="button"
-                className="dock-center-fab"
-                onClick={onScanClick}
-                title="Scanner Cepat Gudang / Barcode"
+                className={`dock-center-fab ${isActive ? 'active' : ''}`}
+                onClick={() => onTabChange('analytics')}
+                title="Grafik & Analisis Penjualan"
               >
-                <IconComp size={24} strokeWidth={2.5} />
+                <IconComp size={22} strokeWidth={2.4} />
               </button>
             );
           }

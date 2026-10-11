@@ -4,11 +4,7 @@ import { formatRupiah } from '../utils/formatters';
 
 export default function FinancePage({ metrics }) {
   return (
-    <div className="mobile-body-content" style={{ paddingTop: '20px' }}>
-      <div>
-        <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>Ringkasan Keuangan</h2>
-        <p style={{ fontSize: '12px', color: '#64748b' }}>Arus kas harian dan realisasi laba rugi</p>
-      </div>
+    <div className="mobile-body-content" style={{ paddingTop: '16px' }}>
 
       {/* Main Cash Balance Card */}
       <div style={{

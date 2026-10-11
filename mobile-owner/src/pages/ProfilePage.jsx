@@ -3,11 +3,7 @@ import { Store, ShieldCheck, RefreshCw, Smartphone, LogOut, CheckCircle2 } from 
 
 export default function ProfilePage({ profile, onLogout }) {
   return (
-    <div className="mobile-body-content" style={{ paddingTop: '20px' }}>
-      <div>
-        <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>Profil Owner & Toko</h2>
-        <p style={{ fontSize: '12px', color: '#64748b' }}>Pengaturan akses dan sinkronisasi channel marketplace</p>
-      </div>
+    <div className="mobile-body-content" style={{ paddingTop: '16px' }}>
 
       {/* Profile Card */}
       <div style={{

@@ -40,15 +40,24 @@ export default function OrdersPage({ orders, onSelectOrder, initialFilter = 'ALL
   const totalFilteredMargin = filteredOrders.reduce((acc, curr) => acc + (curr.margin || 0), 0);
 
   return (
-    <div className="mobile-body-content" style={{ paddingTop: '20px' }}>
-      {/* Page Title & Stats */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>Daftar Pesanan</h2>
-          <p style={{ fontSize: '12px', color: '#64748b' }}>
-            {filteredOrders.length} Pesanan • Total Margin: <strong style={{ color: '#4338ca' }}>{formatRupiah(totalFilteredMargin)}</strong>
-          </p>
-        </div>
+    <div className="mobile-body-content" style={{ paddingTop: '16px' }}>
+      {/* Quick Summary Pill */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        background: '#ffffff',
+        padding: '10px 14px',
+        borderRadius: '14px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+      }}>
+        <span style={{ fontSize: '12px', color: '#64748b' }}>
+          Ditemukan <strong style={{ color: '#0f172a' }}>{filteredOrders.length} Order</strong>
+        </span>
+        <span style={{ fontSize: '12px', color: '#64748b' }}>
+          Margin: <strong style={{ color: '#16a34a' }}>{formatRupiah(totalFilteredMargin)}</strong>
+        </span>
       </div>
 
       {/* Filter Tabs */}
