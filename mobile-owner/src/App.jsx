@@ -12,6 +12,8 @@ import MutasiKeuanganPage from './pages/MutasiKeuanganPage';
 import SaldoMarketplacePage from './pages/SaldoMarketplacePage';
 import LaporanPenjualanPage from './pages/LaporanPenjualanPage';
 import ReturMasukPage from './pages/ReturMasukPage';
+import ScanKemasanPage from './pages/ScanKemasanPage';
+import ScanSpkPage from './pages/ScanSpkPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import OrderDetailModal from './components/orders/OrderDetailModal';
@@ -169,7 +171,7 @@ export default function App() {
   };
 
   const handleScanClick = () => {
-    alert('📷 Fitur Scanner Barcode Gudang V2 aktif. Arahkan kamera ke barcode pesanan pick & pack.');
+    handleTabChange('scan_kemasan');
   };
 
   const handleOpenNotif = () => {
@@ -269,6 +271,18 @@ export default function App() {
             subtitle="Data retur marketplace & QC gudang V2"
             onBack={() => handleTabChange('home')} 
           />
+        ) : activeTab === 'scan_kemasan' ? (
+          <SubPageHeader 
+            title="Scan & Kemasan" 
+            subtitle="Pemindai barcode kemasan, update stok & request produksi"
+            onBack={() => handleTabChange('home')} 
+          />
+        ) : activeTab === 'scan_spk' ? (
+          <SubPageHeader 
+            title="Scan SPK Produksi" 
+            subtitle="Pemindai QR SPK & penerimaan hasil jahit gudang"
+            onBack={() => handleTabChange('home')} 
+          />
         ) : activeTab === 'profile' ? (
           <SubPageHeader 
             title="Profil & Toko" 
@@ -299,8 +313,9 @@ export default function App() {
               else if (menuId === 'mutasi' || menuId === 'mutasi_keuangan' || menuId === 'cashflow') handleTabChange('mutasi_keuangan');
               else if (menuId === 'saldo_marketplace' || menuId === 'marketplace_wallets') handleTabChange('saldo_marketplace');
               else if (menuId === 'laporan_penjualan' || menuId === 'reports') handleTabChange('laporan_penjualan');
+              else if (menuId === 'scan_kemasan' || menuId === 'scanner') handleTabChange('scan_kemasan');
+              else if (menuId === 'scan_spk' || menuId === 'spks') handleTabChange('scan_spk');
               else if (menuId === 'settings' || menuId === 'stores' || menuId === 'company' || menuId === 'users') handleTabChange('profile');
-              else if (menuId === 'scanner') handleScanClick();
               else if (menuId === 'all_modules') setIsAllModulesOpen(true);
               else {
                 alert(`📌 Modul "${menuId}" aktif. Membuka data sinkronisasi ERP.`);
@@ -355,6 +370,14 @@ export default function App() {
 
         {activeTab === 'retur_masuk' && (
           <ReturMasukPage />
+        )}
+
+        {activeTab === 'scan_kemasan' && (
+          <ScanKemasanPage />
+        )}
+
+        {activeTab === 'scan_spk' && (
+          <ScanSpkPage />
         )}
 
         {activeTab === 'laba_rugi' && (
@@ -415,7 +438,8 @@ export default function App() {
             else if (actionId === 'target') handleTabChange('target_komisi');
             else if (actionId === 'margin') handleTabChange('laba_rugi');
             else if (actionId === 'cashflow' || actionId === 'marketplace_wallets' || actionId === 'hutang_supplier') handleOpenFinance();
-            else if (actionId === 'scanner') handleScanClick();
+            else if (actionId === 'scan_kemasan' || actionId === 'scanner') handleTabChange('scan_kemasan');
+            else if (actionId === 'scan_spk' || actionId === 'spks') handleTabChange('scan_spk');
             else if (actionId === 'stores' || actionId === 'users' || actionId === 'company') handleTabChange('profile');
             else {
               alert(`🚀 Modul "${actionId}" terpilih. Sedang sinkronisasi data ERP.`);

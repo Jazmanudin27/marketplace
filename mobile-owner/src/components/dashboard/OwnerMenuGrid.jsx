@@ -5,6 +5,7 @@ import {
   Target, 
   Boxes, 
   ScanLine, 
+  QrCode,
   PackagePlus, 
   PackageMinus, 
   HandCoins, 
@@ -60,18 +61,18 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
       gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)'
     },
     {
-      id: 'warehouse',
-      title: 'Gudang',
-      category: 'Gudang',
-      icon: Boxes,
-      gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
-    },
-    {
-      id: 'scanner',
-      title: 'Scan QC',
+      id: 'scan_kemasan',
+      title: 'Scan Kemasan',
       category: 'Gudang',
       icon: ScanLine,
       gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)'
+    },
+    {
+      id: 'scan_spk',
+      title: 'Scan SPK',
+      category: 'Produksi',
+      icon: QrCode,
+      gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
     },
     {
       id: 'pembelian',

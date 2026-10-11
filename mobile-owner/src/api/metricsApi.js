@@ -453,5 +453,126 @@ export async function submitReturQc(returnId, data) {
   }
 }
 
+// ─── SCAN KEMASAN API ────────────────────────────────────────────────────────
+
+export async function searchScanKemasan(code = '') {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const url = `${API_BASE_URL}/api/v2/owner/scan-kemasan/search?code=${encodeURIComponent(code)}`;
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+    if (response.ok) return await response.json();
+  } catch (error) {
+    console.warn('[MetricsApi] searchScanKemasan error:', error.message);
+  }
+  return { success: false, matched: null, suggestions: [], recentMovements: [], marketplaceListings: [] };
+}
+
+export async function adjustScanKemasanStock(data) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/scan-kemasan/adjust-stock`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] adjustScanKemasanStock error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function requestScanKemasanProduction(data) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/scan-kemasan/request-production`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] requestScanKemasanProduction error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+// ─── SCAN SPK API ────────────────────────────────────────────────────────────
+
+export async function lookupScanSpk(code = '') {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const url = `${API_BASE_URL}/api/v2/owner/scan-spk/lookup?code=${encodeURIComponent(code)}`;
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+    return await response.json();
+  } catch (error) {
+    console.warn('[MetricsApi] lookupScanSpk error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function submitScanSpkPickup(data) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/scan-spk/pickup`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] submitScanSpkPickup error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+
 
 

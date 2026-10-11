@@ -19,6 +19,7 @@ import {
   Truck, 
   FileText, 
   ShieldCheck, 
+  QrCode,
   ArrowUpRight,
   ChevronRight
 } from 'lucide-react';
@@ -35,7 +36,7 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
         { id: 'laporan_penjualan', title: 'Laporan Penjualan', desc: 'Rekap omset, HPP, fee & margin', icon: FileText, color: '#4f46e5' },
         { id: 'offline_sales', title: 'Penjualan Offline', desc: 'Kasir fisik toko / order manual', icon: Receipt, color: '#10b981' },
         { id: 'target', title: 'Target Marketing', desc: 'Realisasi omset & komisi tim', icon: Target, color: '#0ea5e9' },
-        { id: 'spks', title: 'SPK Produksi', desc: 'Surat perintah kerja konveksi', icon: FileText, color: '#8b5cf6' },
+        { id: 'scan_spk', title: 'Scan SPK Produksi', desc: 'Scan penerimaan karung & kuota SPK', icon: QrCode, color: '#8b5cf6' },
       ]
     },
     {
@@ -43,7 +44,7 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
       items: [
         { id: 'warehouse', title: 'Mutasi Masuk & Keluar', desc: 'Pergerakan stok gudang jadi', icon: Boxes, color: '#7c3aed' },
         { id: 'stock_opname', title: 'Opname Stok Jadi', desc: 'Pengecekan fisik stok akhir', icon: ShieldCheck, color: '#6366f1' },
-        { id: 'scanner', title: 'Scan & Kemas Barcode', desc: 'Fulfillment cepat pesanan', icon: ScanLine, color: '#06b6d4' },
+        { id: 'scan_kemasan', title: 'Scan & Kemasan', desc: 'Scan barcode produk, update stok & request produksi', icon: ScanLine, color: '#06b6d4' },
       ]
     },
     {

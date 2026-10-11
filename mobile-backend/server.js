@@ -2985,6 +2985,513 @@ app.post('/api/v2/owner/retur/:id/qc', async (req, res) => {
   }
 });
 
+// ─── 11. SCAN KEMASAN PRODUK ────────────────────────────────────────────────
+app.get('/api/v2/owner/scan-kemasan/search', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const code = (req.query.code || '').trim();
+
+    if (!code) {
+      const recent = await query(
+        `SELECT id, name, sku, barcode, stock, min_stock, cost_price, price, image_url 
+         FROM master_products 
+         WHERE tenant_id = ? 
+         ORDER BY updated_at DESC LIMIT 12`,
+        [tenantId]
+      );
+      return res.json({ success: true, products: recent, matched: null });
+    }
+
+    let [matched] = await query(
+      `SELECT id, name, sku, barcode, stock, min_stock, cost_price, price, image_url 
+       FROM master_products 
+       WHERE tenant_id = ? AND (sku = ? OR barcode = ?) LIMIT 1`,
+      [tenantId, code, code]
+    );
+
+    if (!matched) {
+      const [mp] = await query(
+        `SELECT master_product_id FROM marketplace_products 
+         WHERE (marketplace_sku = ? OR barcode = ?) AND master_product_id IS NOT NULL LIMIT 1`,
+        [code, code]
+      );
+      if (mp && mp.master_product_id) {
+        const [found] = await query(
+          `SELECT id, name, sku, barcode, stock, min_stock, cost_price, price, image_url 
+           FROM master_products WHERE id = ? AND tenant_id = ? LIMIT 1`,
+          [mp.master_product_id, tenantId]
+        );
+        if (found) matched = found;
+      }
+    }
+
+    let suggestions = [];
+    if (!matched) {
+      suggestions = await query(
+        `SELECT id, name, sku, barcode, stock, min_stock, cost_price, price, image_url 
+         FROM master_products 
+         WHERE tenant_id = ? AND (sku LIKE ? OR barcode LIKE ? OR name LIKE ?) 
+         ORDER BY name ASC LIMIT 10`,
+        [tenantId, `%${code}%`, `%${code}%`, `%${code}%`]
+      );
+      if (suggestions.length === 1) {
+        matched = suggestions[0];
+      }
+    }
+
+    let recentMovements = [];
+    let marketplaceListings = [];
+    if (matched) {
+      try {
+        recentMovements = await query(
+          `SELECT type, quantity, reference, balance_after, created_at 
+           FROM stock_movements 
+           WHERE tenant_id = ? AND master_product_id = ? 
+           ORDER BY id DESC LIMIT 5`,
+          [tenantId, matched.id]
+        );
+      } catch (_) {}
+
+      try {
+        marketplaceListings = await query(
+          `SELECT mp.marketplace_sku, mp.name, mp.stock, s.store_name, c.name as channel_name 
+           FROM marketplace_products mp
+           LEFT JOIN stores s ON s.id = mp.store_id
+           LEFT JOIN channels c ON c.id = s.channel_id
+           WHERE mp.master_product_id = ? LIMIT 6`,
+          [matched.id]
+        );
+      } catch (_) {}
+    }
+
+    return res.json({
+      success: true,
+      matched,
+      suggestions: matched ? [] : suggestions,
+      recentMovements: recentMovements.map(m => ({
+        type: m.type,
+        quantity: m.quantity,
+        reference: m.reference,
+        balanceAfter: m.balance_after,
+        dateFormatted: formatDateIndo(m.created_at)
+      })),
+      marketplaceListings
+    });
+  } catch (err) {
+    console.error('[Node-API] Scan Kemasan search error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/v2/owner/scan-kemasan/adjust-stock', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const { product_id, type, quantity, reference } = req.body;
+
+    if (!product_id || !type || quantity === undefined) {
+      return res.status(400).json({ success: false, message: 'Data penyesuaian stok belum lengkap.' });
+    }
+
+    const qty = parseInt(quantity, 10);
+    if (isNaN(qty) || (type !== 'adj' && qty <= 0)) {
+      return res.status(400).json({ success: false, message: 'Jumlah kuantitas tidak valid.' });
+    }
+
+    const [product] = await query(
+      `SELECT id, sku, name, stock FROM master_products WHERE id = ? AND tenant_id = ? LIMIT 1`,
+      [product_id, tenantId]
+    );
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Produk tidak ditemukan.' });
+    }
+
+    let actualQty = 0;
+    let newStock = product.stock;
+
+    if (type === 'in') {
+      actualQty = Math.abs(qty);
+      newStock += actualQty;
+      await query(`UPDATE master_products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`, [actualQty, product.id]);
+    } else if (type === 'out') {
+      actualQty = -Math.abs(qty);
+      newStock = Math.max(0, newStock - Math.abs(qty));
+      await query(`UPDATE master_products SET stock = GREATEST(0, stock - ?), updated_at = NOW() WHERE id = ?`, [Math.abs(qty), product.id]);
+    } else {
+      actualQty = qty - product.stock;
+      newStock = Math.max(0, qty);
+      await query(`UPDATE master_products SET stock = ?, updated_at = NOW() WHERE id = ?`, [newStock, product.id]);
+    }
+
+    const refText = reference || `Scan Kemasan: Penyesuaian stok (${type.toUpperCase()})`;
+    try {
+      await query(
+        `INSERT INTO stock_movements (tenant_id, master_product_id, user_id, type, quantity, reference, balance_after, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        [tenantId, product.id, null, type, actualQty, refText, newStock]
+      );
+    } catch (_) {}
+
+    try {
+      await query(
+        `UPDATE marketplace_products SET stock = ?, sync_stock = 1, updated_at = NOW() WHERE master_product_id = ?`,
+        [newStock, product.id]
+      );
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      message: `Stok produk ${product.sku} berhasil diperbarui menjadi ${newStock} pcs.`,
+      newStock
+    });
+  } catch (err) {
+    console.error('[Node-API] Adjust stock error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/v2/owner/scan-kemasan/request-production', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const { product_id, quantity, notes } = req.body;
+
+    if (!product_id || !quantity) {
+      return res.status(400).json({ success: false, message: 'Produk dan kuantitas wajib diisi.' });
+    }
+
+    const qty = parseInt(quantity, 10);
+    if (isNaN(qty) || qty <= 0) {
+      return res.status(400).json({ success: false, message: 'Kuantitas harus lebih dari 0.' });
+    }
+
+    const [product] = await query(
+      `SELECT id, name, sku FROM master_products WHERE id = ? AND tenant_id = ? LIMIT 1`,
+      [product_id, tenantId]
+    );
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Produk tidak ditemukan.' });
+    }
+
+    const [adminUser] = await query(`SELECT id FROM users WHERE tenant_id = ? LIMIT 1`, [tenantId]);
+    const userId = adminUser?.id || 1;
+
+    await query(
+      `INSERT INTO production_orders (tenant_id, master_product_id, quantity, status, requested_by, created_at, updated_at)
+       VALUES (?, ?, ?, 'pending', ?, NOW(), NOW())`,
+      [tenantId, product.id, qty, userId]
+    );
+
+    return res.json({
+      success: true,
+      message: `Permintaan produksi ${qty} pcs untuk ${product.name} (${product.sku}) berhasil dibuat.`
+    });
+  } catch (err) {
+    console.error('[Node-API] Request production error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── 12. SCAN SPK PRODUKSI ──────────────────────────────────────────────────
+app.get('/api/v2/owner/scan-spk/lookup', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    let code = (req.query.code || '').trim();
+    code = code.replace(/\\"/g, '"').replace(/^["']|["']$/g, '');
+
+    if (!code) {
+      const activeSpks = await query(
+        `SELECT s.id, s.no_spk, s.no_produksi, s.pemesan, s.instansi, s.tahap_saat_ini, s.is_urgent, s.deadline,
+                COUNT(si.id) as total_items, COALESCE(SUM(si.quantity), 0) as total_qty
+         FROM spks s
+         LEFT JOIN spk_items si ON si.spk_id = s.id
+         WHERE s.tenant_id = ? AND s.tahap_saat_ini != 'Selesai (Finished Good)'
+         GROUP BY s.id
+         ORDER BY s.is_urgent DESC, s.deadline ASC, s.id DESC LIMIT 15`,
+        [tenantId]
+      );
+
+      const recentPickups = await query(
+        `SELECT sip.id, sip.qty_diambil, sip.tanggal_ambil, sip.nama_pengambil, sip.catatan,
+                si.nama_produk, si.ukuran, si.sku, s.no_spk
+         FROM spk_item_pickups sip
+         JOIN spk_items si ON si.id = sip.spk_item_id
+         JOIN spks s ON s.id = si.spk_id
+         WHERE s.tenant_id = ?
+         ORDER BY sip.id DESC LIMIT 15`,
+        [tenantId]
+      );
+
+      return res.json({
+        success: true,
+        activeSpks: activeSpks.map(s => ({
+          ...s,
+          deadlineFormatted: s.deadline ? formatDateIndo(s.deadline) : '-'
+        })),
+        recentPickups: recentPickups.map(p => ({
+          ...p,
+          dateFormatted: formatDateIndo(p.tanggal_ambil)
+        })),
+        matchedSpk: null
+      });
+    }
+
+    let parsedItemId = null;
+    let parsedSku = null;
+    let parsedSpkId = null;
+    if (code.startsWith('{') && code.endsWith('}')) {
+      try {
+        const j = JSON.parse(code);
+        if (j.item_id) parsedItemId = parseInt(j.item_id, 10);
+        if (j.spk_id) parsedSpkId = parseInt(j.spk_id, 10);
+        if (j.sku) parsedSku = String(j.sku).trim();
+      } catch (_) {}
+    }
+
+    if (!parsedItemId) {
+      const mItem = code.match(/ITEM-(\d+)/i);
+      if (mItem) parsedItemId = parseInt(mItem[1], 10);
+    }
+    if (!parsedSpkId) {
+      const mSpk = code.match(/SPK-(\d+)/i);
+      if (mSpk) parsedSpkId = parseInt(mSpk[1], 10);
+    }
+
+    let targetSpkId = parsedSpkId;
+    let targetItemId = parsedItemId;
+
+    if (targetItemId && !targetSpkId) {
+      const [it] = await query(`SELECT spk_id FROM spk_items WHERE id = ? LIMIT 1`, [targetItemId]);
+      if (it) targetSpkId = it.spk_id;
+    }
+
+    if (!targetSpkId) {
+      const [byNo] = await query(
+        `SELECT id FROM spks WHERE tenant_id = ? AND (no_spk = ? OR no_produksi = ? OR no_spk LIKE ?) LIMIT 1`,
+        [tenantId, code, code, `%${code}%`]
+      );
+      if (byNo) targetSpkId = byNo.id;
+    }
+
+    if (!targetSpkId) {
+      const [bySku] = await query(
+        `SELECT s.id, si.id as item_id 
+         FROM spk_items si
+         JOIN spks s ON s.id = si.spk_id
+         WHERE s.tenant_id = ? AND (si.sku = ? OR si.sku LIKE ?) 
+         ORDER BY s.id DESC LIMIT 1`,
+        [tenantId, code, `%${code}%`]
+      );
+      if (bySku) {
+        targetSpkId = bySku.id;
+        targetItemId = bySku.item_id;
+      }
+    }
+
+    if (!targetSpkId) {
+      return res.status(404).json({
+        success: false,
+        message: `SPK atau Item dengan kode "${code}" tidak ditemukan.`
+      });
+    }
+
+    const [spk] = await query(
+      `SELECT s.*, u.name as penginput_name 
+       FROM spks s 
+       LEFT JOIN users u ON u.id = s.penginput_id
+       WHERE s.id = ? AND s.tenant_id = ? LIMIT 1`,
+      [targetSpkId, tenantId]
+    );
+
+    if (!spk) {
+      return res.status(404).json({ success: false, message: 'SPK tidak ditemukan atau beda tenant.' });
+    }
+
+    const items = await query(
+      `SELECT si.*, 
+              COALESCE(SUM(sip.qty_diambil), 0) as qty_diambil
+       FROM spk_items si
+       LEFT JOIN spk_item_pickups sip ON sip.spk_item_id = si.id
+       WHERE si.spk_id = ?
+       GROUP BY si.id
+       ORDER BY si.id ASC`,
+      [targetSpkId]
+    );
+
+    const formattedItems = items.map(it => {
+      const targetQty = parseInt(it.quantity || 1, 10);
+      const taken = parseInt(it.qty_diambil || 0, 10);
+      const sisa = Math.max(0, targetQty - taken);
+      return {
+        id: it.id,
+        spkId: it.spk_id,
+        masterProductId: it.master_product_id,
+        namaProduk: it.nama_produk,
+        sku: it.sku || '-',
+        ukuran: it.ukuran || 'All Size',
+        quantity: targetQty,
+        qtyDiambil: taken,
+        sisaQty: sisa,
+        isCompleted: sisa === 0,
+        status: it.status || 'Belum Mulai',
+        hpp: parseFloat(it.hpp || 0),
+      };
+    });
+
+    const totalTarget = formattedItems.reduce((a, b) => a + b.quantity, 0);
+    const totalDiambil = formattedItems.reduce((a, b) => a + b.qtyDiambil, 0);
+    const totalSisa = Math.max(0, totalTarget - totalDiambil);
+    const percentComplete = totalTarget > 0 ? Math.min(100, Math.round((totalDiambil / totalTarget) * 100)) : 0;
+
+    const spkPickups = await query(
+      `SELECT sip.id, sip.qty_diambil, sip.tanggal_ambil, sip.nama_pengambil, sip.catatan,
+              si.nama_produk, si.ukuran, si.sku
+       FROM spk_item_pickups sip
+       JOIN spk_items si ON si.id = sip.spk_item_id
+       WHERE si.spk_id = ?
+       ORDER BY sip.id DESC LIMIT 20`,
+      [targetSpkId]
+    );
+
+    return res.json({
+      success: true,
+      spk: {
+        id: spk.id,
+        noSpk: spk.no_spk,
+        noProduksi: spk.no_produksi || '-',
+        tanggal: spk.tanggal,
+        tanggalFormatted: formatDateIndo(spk.tanggal),
+        deadline: spk.deadline,
+        deadlineFormatted: spk.deadline ? formatDateIndo(spk.deadline) : '-',
+        pemesan: spk.pemesan || '-',
+        noHpPemesan: spk.no_hp_pemesan || '-',
+        instansi: spk.instansi || '-',
+        tahapSaatIni: spk.tahap_saat_ini || 'Perencanaan',
+        isUrgent: !!spk.is_urgent,
+        imageUrl: spk.image_url || null,
+        penginput: spk.penginput_name || '-',
+      },
+      items: formattedItems,
+      matchedItemId: targetItemId,
+      progress: {
+        totalTarget,
+        totalDiambil,
+        totalSisa,
+        percentComplete,
+        allCompleted: totalSisa === 0,
+      },
+      recentPickups: spkPickups.map(p => ({
+        ...p,
+        dateFormatted: formatDateIndo(p.tanggal_ambil)
+      }))
+    });
+  } catch (err) {
+    console.error('[Node-API] Scan SPK lookup error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/v2/owner/scan-spk/pickup', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const { spk_id, item_id, qty, nama_pengambil, catatan } = req.body;
+
+    if (!spk_id || !item_id) {
+      return res.status(400).json({ success: false, message: 'SPK ID dan Item ID wajib diisi.' });
+    }
+
+    const qtyRequested = Math.max(1, parseInt(qty || 1, 10));
+    const [spk] = await query(`SELECT * FROM spks WHERE id = ? AND tenant_id = ? LIMIT 1`, [spk_id, tenantId]);
+    if (!spk) {
+      return res.status(404).json({ success: false, message: 'SPK tidak ditemukan.' });
+    }
+
+    const [item] = await query(`SELECT * FROM spk_items WHERE id = ? AND spk_id = ? LIMIT 1`, [item_id, spk_id]);
+    if (!item) {
+      return res.status(404).json({ success: false, message: 'Item SPK tidak ditemukan.' });
+    }
+
+    const [takenRow] = await query(
+      `SELECT COALESCE(SUM(qty_diambil), 0) as tot FROM spk_item_pickups WHERE spk_item_id = ?`,
+      [item.id]
+    );
+    const curTaken = parseInt(takenRow?.tot || 0, 10);
+    const targetQty = parseInt(item.quantity || 1, 10);
+    const sisaKuota = Math.max(0, targetQty - curTaken);
+
+    if (sisaKuota <= 0) {
+      return res.status(422).json({
+        success: false,
+        message: `Kuota untuk item "${item.nama_produk}" (${item.ukuran || 'All Size'}) sudah lengkap (${targetQty}/${targetQty} pcs).`
+      });
+    }
+
+    const qtyToTake = Math.min(qtyRequested, sisaKuota);
+    const [adminUser] = await query(`SELECT id FROM users WHERE tenant_id = ? LIMIT 1`, [tenantId]);
+    const pemberiId = adminUser?.id || 1;
+    const penerima = (nama_pengambil || 'Petugas Gudang').trim();
+    const noteText = (catatan || 'Scan Terima Hasil SPK Mobile').trim();
+
+    await query(
+      `INSERT INTO spk_item_pickups (spk_item_id, qty_diambil, tanggal_ambil, nama_pengambil, pemberi_id, catatan, created_at, updated_at)
+       VALUES (?, ?, NOW(), ?, ?, ?, NOW(), NOW())`,
+      [item.id, qtyToTake, penerima, pemberiId, noteText]
+    );
+
+    let masterProductId = item.master_product_id;
+    if (!masterProductId && item.sku) {
+      const [mp] = await query(`SELECT id FROM master_products WHERE tenant_id = ? AND sku = ? LIMIT 1`, [tenantId, item.sku]);
+      if (mp) masterProductId = mp.id;
+    }
+
+    if (masterProductId) {
+      try {
+        await query(`UPDATE master_products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`, [qtyToTake, masterProductId]);
+        const [fresh] = await query(`SELECT stock FROM master_products WHERE id = ?`, [masterProductId]);
+        const newStock = fresh ? fresh.stock : 0;
+
+        const refText = `Scan Terima SPK #${spk.no_spk} (${item.nama_produk} - ${item.ukuran || 'All Size'})`;
+        await query(
+          `INSERT INTO stock_movements (tenant_id, master_product_id, user_id, type, quantity, reference, balance_after, created_at, updated_at)
+           VALUES (?, ?, ?, 'in', ?, ?, ?, NOW(), NOW())`,
+          [tenantId, masterProductId, pemberiId, qtyToTake, refText, newStock]
+        );
+
+        await query(
+          `UPDATE marketplace_products SET stock = ?, sync_stock = 1, updated_at = NOW() WHERE master_product_id = ?`,
+          [newStock, masterProductId]
+        );
+      } catch (e) {
+        console.warn('[Node-API] Restock from SPK warning:', e.message);
+      }
+    }
+
+    const allItems = await query(
+      `SELECT si.quantity, COALESCE(SUM(sip.qty_diambil), 0) as qty_diambil
+       FROM spk_items si
+       LEFT JOIN spk_item_pickups sip ON sip.spk_item_id = si.id
+       WHERE si.spk_id = ?
+       GROUP BY si.id`,
+      [spk_id]
+    );
+
+    const allComplete = allItems.every(it => parseInt(it.qty_diambil, 10) >= parseInt(it.quantity, 10));
+    if (allComplete && spk.tahap_saat_ini !== 'Selesai (Finished Good)') {
+      await query(`UPDATE spks SET tahap_saat_ini = 'Selesai (Finished Good)', updated_at = NOW() WHERE id = ?`, [spk_id]);
+    }
+
+    return res.json({
+      success: true,
+      message: `Berhasil menerima ${qtyToTake} pcs "${item.nama_produk}" (${item.ukuran || 'All Size'}). Stok barang jadi otomatis bertambah.`,
+      qtyTaken: qtyToTake,
+      allComplete
+    });
+  } catch (err) {
+    console.error('[Node-API] SPK pickup error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'mobile-owner-backend', time: new Date() });
