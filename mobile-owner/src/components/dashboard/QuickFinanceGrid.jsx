@@ -13,7 +13,8 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
   const items = [
     {
       id: 'omset',
-      sublabel: 'Penjualan',
+      label: 'Penjualan',
+      sublabel: 'Bulan ini',
       value: formatRupiah(omset),
       icon: DollarSign,
       gradient: 'linear-gradient(135deg, #10b981, #059669)', // Emerald
@@ -23,7 +24,8 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
     },
     {
       id: 'admin',
-      sublabel: 'Biaya Admin',
+      label: 'Biaya Admin',
+      sublabel: 'Marketplace',
       value: formatRupiah(biayaAdmin),
       icon: Percent,
       gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', // Amber
@@ -33,7 +35,8 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
     },
     {
       id: 'refund',
-      sublabel: 'Refund',
+      label: 'Refund',
+      sublabel: 'Retur/Batal',
       value: formatRupiah(refund),
       icon: RotateCcw,
       gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', // Red
@@ -43,7 +46,8 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
     },
     {
       id: 'hpp',
-      sublabel: 'HPP',
+      label: 'HPP',
+      sublabel: 'Modal Pokok',
       value: formatRupiah(hpp),
       icon: Box,
       gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', // Indigo
@@ -53,7 +57,8 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
     },
     {
       id: 'margin',
-      sublabel: 'Margin',
+      label: 'Margin',
+      sublabel: 'Laba Bersih',
       value: formatRupiah(margin),
       icon: TrendingUp,
       gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)', // Sky blue
@@ -86,9 +91,10 @@ export default function QuickFinanceGrid({ metrics, onOpenFinance, onSelectMetri
                 className="finance-strip-icon"
                 style={{ background: item.gradient }}
               >
-                <IconComp size={16} strokeWidth={2.4} color="#ffffff" />
+                <IconComp size={14} strokeWidth={2.2} color="#ffffff" />
               </div>
               <div className="finance-strip-info">
+                <span className="finance-strip-label">{item.label}</span>
                 <span className="finance-strip-val" style={{ color: item.textColor }}>
                   {item.value}
                 </span>

@@ -7,6 +7,7 @@ import { Search, ArrowRight } from 'lucide-react';
 export default function DashboardPage({ 
   metrics, 
   orders, 
+  isLoading = false,
   onSelectOrder, 
   onViewAllOrders, 
   onOpenFinance, 
@@ -33,6 +34,7 @@ export default function DashboardPage({
         metrics={metrics} 
         onOpenFinance={onOpenFinance} 
         onSelectMetric={onSelectFinanceMetric}
+        isLoading={isLoading}
       />
 
       {/* 12 Owner App Launcher Grid */}
@@ -94,7 +96,39 @@ export default function DashboardPage({
 
         {/* Orders Card List */}
         <div className="order-cards-list">
-          {recentOrders.length > 0 ? (
+          {isLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[1, 2, 3].map((i) => (
+                <div 
+                  key={i}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '16px',
+                    padding: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="skeleton-shimmer skeleton-text" style={{ width: '120px', height: '14px' }} />
+                    <div className="skeleton-shimmer skeleton-text" style={{ width: '80px', height: '18px', borderRadius: '999px' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <div className="skeleton-shimmer skeleton-text" style={{ width: '90px', height: '10px' }} />
+                      <div className="skeleton-shimmer skeleton-text" style={{ width: '100px', height: '14px' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
+                      <div className="skeleton-shimmer skeleton-text" style={{ width: '80px', height: '10px' }} />
+                      <div className="skeleton-shimmer skeleton-text" style={{ width: '90px', height: '14px' }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : recentOrders.length > 0 ? (
             recentOrders.map((order) => (
               <OrderCard 
                 key={order.id} 

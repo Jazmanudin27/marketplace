@@ -219,8 +219,38 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
         {/* Daftar Transaksi Riil dengan 4 Komponen Lengkap: Penjualan, HPP, Admin, Margin */}
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '2px' }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '30px', color: '#64748b', fontSize: '12px' }}>
-              Memuat transaksi riil bulan ini...
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[1, 2, 3, 4].map((i) => (
+                <div 
+                  key={i}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '16px',
+                    padding: '12px 14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="skeleton-shimmer skeleton-text" style={{ width: '110px', height: '14px' }} />
+                    <div className="skeleton-shimmer skeleton-text" style={{ width: '70px', height: '18px', borderRadius: '999px' }} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', background: '#f8fafc', padding: '8px', borderRadius: '10px' }}>
+                    {[1, 2, 3, 4].map((col) => (
+                      <div key={col} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div className="skeleton-shimmer skeleton-text" style={{ width: '80%', height: '9px' }} />
+                        <div className="skeleton-shimmer skeleton-text" style={{ width: '100%', height: '12px' }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div className="skeleton-shimmer skeleton-text" style={{ width: '120px', height: '12px' }} />
+                    <div className="skeleton-shimmer skeleton-text" style={{ width: '50px', height: '12px' }} />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: '12px' }}>

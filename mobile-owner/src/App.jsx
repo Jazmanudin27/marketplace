@@ -61,6 +61,11 @@ export default function App() {
   const [ordersFilter, setOrdersFilter] = useState('ALL');
   const [isAllModulesOpen, setIsAllModulesOpen] = useState(false);
 
+  const [isDataLoading, setIsDataLoading] = useState(() => {
+    // If no cached metrics exist yet, start with loading true so user sees shimmer instead of 0
+    return !localStorage.getItem('owner_metrics_cache');
+  });
+
   // Synchronize profile with logged-in user if available
   useEffect(() => {
     if (currentUser) {
@@ -80,6 +85,7 @@ export default function App() {
     if (!currentUser) return;
 
     async function loadData() {
+      setIsDataLoading(true);
       try {
         const [metricRes, ordersRes] = await Promise.all([
           fetchOwnerMetrics(),
@@ -99,6 +105,8 @@ export default function App() {
         }
       } catch (err) {
         console.warn('API fetch error:', err);
+      } finally {
+        setIsDataLoading(false);
       }
     }
     loadData();
@@ -191,6 +199,7 @@ export default function App() {
           <DashboardPage 
             metrics={metrics}
             orders={orders}
+            isLoading={isDataLoading}
             onSelectOrder={(order) => setSelectedOrder(order)}
             onViewAllOrders={handleOpenOrders}
             onOpenFinance={handleOpenFinance}
