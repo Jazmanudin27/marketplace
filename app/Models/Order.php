@@ -422,6 +422,12 @@ class Order extends Model
      */
     public function getHppTotalAttribute(): float
     {
+        // Khusus pesanan refund / retur / batal, HPP bernilai 0 (barang kembali / modal tidak terpakai)
+        $status = strtoupper((string) ($this->order_status ?? ''));
+        if (in_array($status, ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL', 'IN_CANCEL']) || (float)$this->refund_amount > 0) {
+            return 0.0;
+        }
+
         $total = 0.0;
         foreach ($this->items as $item) {
             if ($item->hpp_subtotal > 0) {

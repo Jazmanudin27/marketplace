@@ -136,19 +136,28 @@ export default function OrderDetailModal({ order, onClose }) {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#475569' }}>
             <span>Dana Dilepas Marketplace:</span>
-            <strong style={{ color: '#0f172a' }}>{formatRupiah(order.releasedValue)}</strong>
+            <strong style={{ color: '#0f172a' }}>{formatRupiah(order.releasedValue ?? order.netReleased ?? order.netAmount ?? 0)}</strong>
           </div>
+
+          {((order.refund || 0) > 0 || ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR'].includes(String(order.status || '').toUpperCase())) && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#ef4444' }}>
+              <span>Potongan Refund / Retur:</span>
+              <strong style={{ color: '#ef4444' }}>- {formatRupiah(order.refund || 0)}</strong>
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#475569' }}>
             <span>Total Modal HPP Barang:</span>
-            <span style={{ color: '#dc2626', fontWeight: '600' }}>- {formatRupiah(order.hppModal)}</span>
+            <span style={{ color: '#dc2626', fontWeight: '600' }}>
+              - {formatRupiah(((order.refund || 0) > 0 || ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR'].includes(String(order.status || '').toUpperCase())) ? 0 : (order.hppModal ?? order.hpp ?? 0))}
+            </span>
           </div>
 
           <div style={{ borderTop: '1px dashed #cbd5e1', margin: '4px 0' }}></div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', color: '#1e1b4b' }}>
             <strong style={{ color: '#4338ca' }}>Margin Bersih (Laba):</strong>
-            <strong style={{ color: '#4338ca', fontSize: '15px' }}>{formatRupiah(order.margin)}</strong>
+            <strong style={{ color: '#4338ca', fontSize: '15px' }}>{formatRupiah(order.marginRp ?? order.margin ?? 0)}</strong>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#059669', background: '#ecfdf5', padding: '6px 10px', borderRadius: '8px', marginTop: '4px' }}>

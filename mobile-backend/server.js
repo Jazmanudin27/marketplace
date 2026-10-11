@@ -279,21 +279,24 @@ async function getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId = 
       absFee = calculateOrderFee(o);
     }
 
-    // HPP persis Order::getHppTotalAttribute di ERP:
-    let hpp = 0;
-    for (const it of oItems) {
-      const sub = parseFloat(it.hpp_subtotal || 0);
-      if (sub > 0) {
-        hpp += sub;
-      } else {
-        const cost = parseFloat(it.cost_price || it.master_cost_price || 0);
-        const q = parseInt(it.quantity || 1, 10);
-        hpp += (cost * q);
-      }
-    }
-
     // Refund persis Order::getRefundAmountAttribute di ERP:
     const refund = calculateOrderRefund(o, returnMap);
+    const isRefundOrReturn = ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL', 'IN_CANCEL'].includes(String(o.order_status || '').toUpperCase()) || refund > 0;
+
+    // HPP persis Order::getHppTotalAttribute di ERP (Khusus pesanan refund / retur HPP bernilai 0):
+    let hpp = 0;
+    if (!isRefundOrReturn) {
+      for (const it of oItems) {
+        const sub = parseFloat(it.hpp_subtotal || 0);
+        if (sub > 0) {
+          hpp += sub;
+        } else {
+          const cost = parseFloat(it.cost_price || it.master_cost_price || 0);
+          const q = parseInt(it.quantity || 1, 10);
+          hpp += (cost * q);
+        }
+      }
+    }
 
     const omset = parseFloat(o.total_amount || 0);
     const netAmt = parseFloat(o.net_amount || 0);

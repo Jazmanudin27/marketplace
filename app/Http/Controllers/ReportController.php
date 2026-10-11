@@ -2665,7 +2665,8 @@ class ReportController extends Controller
                     }
                 }
 
-                $hpp = (float)$o->hpp_total;
+                $isRefundOrReturn = in_array(strtoupper((string)$o->order_status), ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL', 'IN_CANCEL']) || (float)$refundAmt > 0;
+                $hpp = $isRefundOrReturn ? 0.0 : (float)$o->hpp_total;
                 $marginRp = $netAmt - $hpp;
                 $margin1PctRp = $marginRp * 0.01;
                 $marginPct = $netAmt > 0 ? round(($marginRp / $netAmt) * 100, 2) : 0.0;
