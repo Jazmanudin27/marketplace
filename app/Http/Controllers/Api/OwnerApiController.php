@@ -578,7 +578,159 @@ class OwnerApiController extends Controller
                 'selectedMonth'      => $reqMonth,
                 'selectedYear'       => $reqYear,
             ],
-            'teams'   => $formattedTeams,
+            'teams'           => $formattedTeams,
+            'availableStores' => Store::where('tenant_id', $tenantId)
+                                    ->with('channel')
+                                    ->orderBy('store_name')
+                                    ->get()
+                                    ->map(function ($st) {
+                                        return [
+                                            'id'      => $st->id,
+                                            'name'    => $st->store_name,
+                                            'channel' => $st->channel ? $st->channel->name : 'POS',
+                                        ];
+                                    }),
+        ]);
+    }
+
+    /**
+     * POST /api/v2/owner/target-komisi
+     */
+    public function storeTargetKomisi(Request $request)
+    {
+        $tenantId = $this->getTenantId($request);
+        $request->validate([
+            'name'         => 'required|string|max:255',
+            'target_omset' => 'required|numeric|min:0',
+        ]);
+
+        $pMonth = (int) ($request->period_month ?? date('n'));
+        $pYear  = (int) ($request->period_year ?? date('Y'));
+
+        $dateFrom = $request->date_from;
+        $dateTo   = $request->date_to;
+
+        if (empty($dateFrom) || empty($dateTo)) {
+            $dateFrom = sprintf('%04d-%02d-01', $pYear, $pMonth);
+            $dateTo   = date('Y-m-t', strtotime($dateFrom));
+        }
+
+        $team = MarketingTeam::create([
+            'tenant_id'            => $tenantId,
+            'name'                 => $request->name,
+            'code'                 => $request->code ?? null,
+            'description'          => $request->description,
+            'target_omset'         => (float) ($request->target_omset ?? 0),
+            'commission_type'      => $request->commission_type ?: 'percentage',
+            'commission_rate'      => (float) ($request->commission_rate ?? 0),
+            'reward_fixed_nominal' => (float) ($request->reward_fixed_nominal ?? 0),
+            'target_qty'           => (int) ($request->target_qty ?? 0),
+            'reward_per_qty'       => (float) ($request->reward_per_qty ?? 0),
+            'period_month'         => $pMonth,
+            'period_year'          => $pYear,
+            'date_from'            => $dateFrom,
+            'date_to'              => $dateTo,
+            'is_active'            => $request->has('is_active') ? (bool) $request->is_active : true,
+        ]);
+
+        if ($request->has('store_ids') && is_array($request->store_ids)) {
+            $team->stores()->sync($request->store_ids);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Tim '{$team->name}' berhasil ditambahkan.",
+            'data'    => $team,
+        ]);
+    }
+
+    /**
+     * PUT /api/v2/owner/target-komisi/{marketingTeam}
+     */
+    public function updateTargetKomisi(Request $request, MarketingTeam $marketingTeam)
+    {
+        $tenantId = $this->getTenantId($request);
+        abort_unless($marketingTeam->tenant_id === $tenantId, 403);
+
+        $request->validate([
+            'name'         => 'required|string|max:255',
+            'target_omset' => 'required|numeric|min:0',
+        ]);
+
+        $pMonth = (int) ($request->period_month ?? $marketingTeam->period_month ?? date('n'));
+        $pYear  = (int) ($request->period_year ?? $marketingTeam->period_year ?? date('Y'));
+
+        $dateFrom = $request->date_from;
+        $dateTo   = $request->date_to;
+
+        if (empty($dateFrom) || empty($dateTo)) {
+            $dateFrom = sprintf('%04d-%02d-01', $pYear, $pMonth);
+            $dateTo   = date('Y-m-t', strtotime($dateFrom));
+        }
+
+        $marketingTeam->update([
+            'name'                 => $request->name,
+            'code'                 => $request->code ?? $marketingTeam->code,
+            'description'          => $request->description,
+            'target_omset'         => (float) ($request->target_omset ?? 0),
+            'commission_type'      => $request->commission_type ?: 'percentage',
+            'commission_rate'      => (float) ($request->commission_rate ?? 0),
+            'reward_fixed_nominal' => (float) ($request->reward_fixed_nominal ?? 0),
+            'target_qty'           => (int) ($request->target_qty ?? 0),
+            'reward_per_qty'       => (float) ($request->reward_per_qty ?? 0),
+            'period_month'         => $pMonth,
+            'period_year'          => $pYear,
+            'date_from'            => $dateFrom,
+            'date_to'              => $dateTo,
+            'is_active'            => $request->has('is_active') ? (bool) $request->is_active : $marketingTeam->is_active,
+        ]);
+
+        if ($request->has('store_ids') && is_array($request->store_ids)) {
+            $marketingTeam->stores()->sync($request->store_ids);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Data tim '{$marketingTeam->name}' berhasil diperbarui.",
+            'data'    => $marketingTeam,
+        ]);
+    }
+
+    /**
+     * DELETE /api/v2/owner/target-komisi/{marketingTeam}
+     */
+    public function destroyTargetKomisi(Request $request, MarketingTeam $marketingTeam)
+    {
+        $tenantId = $this->getTenantId($request);
+        abort_unless($marketingTeam->tenant_id === $tenantId, 403);
+
+        $name = $marketingTeam->name;
+        $marketingTeam->stores()->detach();
+        $marketingTeam->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Tim '{$name}' berhasil dihapus.",
+        ]);
+    }
+
+    /**
+     * POST /api/v2/owner/target-komisi/{marketingTeam}/toggle
+     */
+    public function toggleTargetKomisi(Request $request, MarketingTeam $marketingTeam)
+    {
+        $tenantId = $this->getTenantId($request);
+        abort_unless($marketingTeam->tenant_id === $tenantId, 403);
+
+        $marketingTeam->update([
+            'is_active' => !$marketingTeam->is_active,
+        ]);
+
+        $statusStr = $marketingTeam->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return response()->json([
+            'success' => true,
+            'message' => "Status tim '{$marketingTeam->name}' berhasil {$statusStr}.",
+            'is_active' => (bool) $marketingTeam->is_active,
         ]);
     }
 

@@ -964,6 +964,7 @@ app.get('/api/v2/owner/notifications', async (req, res) => {
 });
 
 // ─── 6. TARGET KOMISI ───────────────────────────────────────────────────────
+// ─── 6. TARGET KOMISI (SINKRON 100% DENGAN ERP V2) ──────────────────────────
 app.get('/api/v2/owner/target-komisi', async (req, res) => {
   try {
     const tenantId = getTenantId(req);
@@ -986,6 +987,16 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
       params
     );
 
+    // Ambil daftar seluruh toko milik tenant untuk opsi form input/edit di mobile
+    const availableStores = await query(
+      `SELECT s.id, s.store_name as name, COALESCE(c.name, 'POS') as channel 
+       FROM stores s 
+       LEFT JOIN channels c ON c.id = s.channel_id 
+       WHERE s.tenant_id = ? 
+       ORDER BY s.store_name ASC`,
+      [tenantId]
+    );
+
     // Available years
     const orderYears = await query(
       'SELECT DISTINCT YEAR(order_date) as yr FROM orders WHERE tenant_id = ? AND order_date IS NOT NULL',
@@ -1001,6 +1012,9 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
     let totalReward = 0;
     const formattedTeams = [];
 
+    const validStatuses = ['COMPLETED', 'RELEASED', 'COMPLETED_ESCROW', 'SELESAI', 'DELIVERED', 'FINISHED'];
+    const invalidStatuses = ['CANCELLED', 'CANCELED', 'BATAL', 'RETURNED', 'REFUNDED', 'RETUR', 'IN_CANCEL', 'FAILED'];
+
     for (const team of teams) {
       const tTarget = parseFloat(team.target_omset || 0);
       const tTargetQty = parseInt(team.target_qty || 0, 10);
@@ -1008,7 +1022,7 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
 
       // Stores linked
       const storeRows = await query(
-        `SELECT s.id, s.store_name, c.name as channel_name 
+        `SELECT s.id, s.store_name, COALESCE(c.name, 'POS') as channel_name 
          FROM marketing_team_stores mts 
          JOIN stores s ON s.id = mts.store_id 
          LEFT JOIN channels c ON c.id = s.channel_id 
@@ -1023,65 +1037,143 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
       let actHpp = 0;
 
       if (storeIds.length > 0) {
-        let dateCondition = '';
-        const qParams = [storeIds];
+        let dateFromStr = null;
+        let dateToStr = null;
 
         if (reqMonth && reqYear) {
-          dateCondition = 'AND MONTH(COALESCE(o.completed_at, o.updated_at, o.order_date)) = ? AND YEAR(COALESCE(o.completed_at, o.updated_at, o.order_date)) = ?';
-          qParams.push(reqMonth, reqYear);
+          dateFromStr = `${reqYear}-${String(reqMonth).padStart(2, '0')}-01 00:00:00`;
+          const lastD = new Date(reqYear, reqMonth, 0).getDate();
+          dateToStr = `${reqYear}-${String(reqMonth).padStart(2, '0')}-${String(lastD).padStart(2, '0')} 23:59:59`;
         } else if (team.date_from && team.date_to) {
-          dateCondition = 'AND COALESCE(o.completed_at, o.updated_at, o.order_date) BETWEEN ? AND ?';
-          qParams.push(formatDate(new Date(team.date_from)) + ' 00:00:00');
-          qParams.push(formatDate(new Date(team.date_to)) + ' 23:59:59');
+          dateFromStr = formatDate(new Date(team.date_from)) + ' 00:00:00';
+          dateToStr = formatDate(new Date(team.date_to)) + ' 23:59:59';
         } else if (team.period_month && team.period_year) {
-          dateCondition = 'AND MONTH(COALESCE(o.completed_at, o.updated_at, o.order_date)) = ? AND YEAR(COALESCE(o.completed_at, o.updated_at, o.order_date)) = ?';
-          qParams.push(team.period_month, team.period_year);
+          dateFromStr = `${team.period_year}-${String(team.period_month).padStart(2, '0')}-01 00:00:00`;
+          const lastD = new Date(team.period_year, team.period_month, 0).getDate();
+          dateToStr = `${team.period_year}-${String(team.period_month).padStart(2, '0')}-${String(lastD).padStart(2, '0')} 23:59:59`;
         }
 
-        const orders = await query(
-          `SELECT o.id, o.net_amount, o.total_amount, o.marketplace_fee,
-                  o.recon_status, o.financial_breakdown, o.fee_platform_amount,
-                  o.fee_free_shipping_amount, o.fee_service_amount, o.fee_promo_amount, o.fee_other_amount,
-                  oi.quantity, oi.cost_price, mp.cost_price as master_cost_price
-           FROM orders o 
-           LEFT JOIN order_items oi ON oi.order_id = o.id 
-           LEFT JOIN master_products mp ON mp.id = oi.master_product_id 
-           WHERE o.store_id IN (?)
-             AND UPPER(o.order_status) IN ('COMPLETED', 'RELEASED', 'COMPLETED_ESCROW', 'SELESAI', 'DELIVERED', 'FINISHED')
-             AND UPPER(o.order_status) NOT IN ('CANCELLED', 'CANCELED', 'BATAL', 'RETURNED', 'REFUNDED')
-             ${dateCondition}`,
-          qParams
-        );
+        let ordersQuery = `
+          SELECT id, store_id, total_amount, net_amount, refund_amount, marketplace_fee, order_status,
+                 COALESCE(completed_at, updated_at, order_date) as ref_date
+          FROM orders 
+          WHERE store_id IN (?)
+            AND UPPER(order_status) IN (?)
+            AND UPPER(order_status) NOT IN (?)
+        `;
+        const qParams = [storeIds, validStatuses, invalidStatuses];
 
-        const seenOrders = new Set();
-        for (const ord of orders) {
-          if (!seenOrders.has(ord.id)) {
-            seenOrders.add(ord.id);
-            const rFund = calculateOrderRefund(ord);
-            const fee = calculateOrderFee(ord);
-            let released = parseFloat(ord.net_amount || 0);
-            if (released <= 0) {
-              released = Math.max(0, parseFloat(ord.total_amount || 0) - rFund - fee);
-              if (released <= 0) {
-                released = Math.max(0, parseFloat(ord.total_amount || 0) - rFund);
+        if (dateFromStr && dateToStr) {
+          ordersQuery += ` AND COALESCE(completed_at, updated_at, order_date) BETWEEN ? AND ?`;
+          qParams.push(dateFromStr, dateToStr);
+        }
+
+        const orders = await query(ordersQuery, qParams);
+
+        if (orders.length > 0) {
+          const orderIds = orders.map(o => o.id);
+          // Query detail item dengan HPP bertingkat persis seperti MarketingTeam ERP
+          const items = await query(
+            `SELECT oi.id, oi.order_id, oi.quantity, oi.cost_price, oi.hpp_subtotal,
+                    mp1.cost_price as master_cost_price,
+                    mp2.cost_price as mkt_master_cost_price,
+                    COALESCE(ro_items.returned_qty, 0) as returned_qty
+             FROM order_items oi
+             LEFT JOIN master_products mp1 ON mp1.id = oi.master_product_id
+             LEFT JOIN marketplace_products mkp ON mkp.id = oi.marketplace_product_id
+             LEFT JOIN master_products mp2 ON mp2.id = mkp.master_product_id
+             LEFT JOIN (
+               SELECT roi.order_item_id, SUM(roi.quantity) as returned_qty
+               FROM return_order_items roi
+               GROUP BY roi.order_item_id
+             ) ro_items ON ro_items.order_item_id = oi.id
+             WHERE oi.order_id IN (?)`,
+            [orderIds]
+          );
+
+          const itemsByOrder = new Map();
+          for (const it of items) {
+            if (!itemsByOrder.has(it.order_id)) {
+              itemsByOrder.set(it.order_id, []);
+            }
+            itemsByOrder.get(it.order_id).push(it);
+          }
+
+          for (const ord of orders) {
+            const totAmt = parseFloat(ord.total_amount || 0);
+            const refAmt = parseFloat(ord.refund_amount || 0);
+            const mktFee = parseFloat(ord.marketplace_fee || 0);
+            let netAmt = parseFloat(ord.net_amount || 0);
+
+            // Hindari pesanan yang full refund
+            if (refAmt > 0 && totAmt > 0 && refAmt >= totAmt) {
+              continue;
+            }
+
+            const effectiveOmset = Math.max(0, totAmt - refAmt);
+            actOmset += effectiveOmset;
+
+            // Hitung nilai dasar pesanan yang dilepas (released)
+            let orderReleased = netAmt;
+            if (orderReleased <= 0) {
+              orderReleased = Math.max(0, totAmt - refAmt - mktFee);
+              if (orderReleased <= 0) {
+                orderReleased = Math.max(0, totAmt - refAmt);
               }
             }
-            actOmset += Math.max(0, parseFloat(ord.total_amount || 0) - rFund);
-            actMargin += released;
+
+            const ordItems = itemsByOrder.get(ord.id) || [];
+            let eligibleQty = 0;
+            let orderEligibleHpp = 0;
+
+            for (const it of ordItems) {
+              const qty = parseInt(it.quantity || 0, 10);
+              let retQty = parseInt(it.returned_qty || 0, 10);
+
+              if (retQty === 0 && refAmt > 0 && totAmt > 0) {
+                if (refAmt >= totAmt) {
+                  retQty = qty;
+                } else {
+                  const ratio = refAmt / totAmt;
+                  retQty = Math.min(qty, Math.round(qty * ratio));
+                }
+              }
+
+              const itemNetQty = Math.max(0, qty - retQty);
+              eligibleQty += itemNetQty;
+
+              // Unit HPP bertingkat persis ERP
+              let unitHpp = 0;
+              const hppSub = parseFloat(it.hpp_subtotal || 0);
+              if (hppSub > 0 && qty > 0) {
+                unitHpp = hppSub / qty;
+              } else if (parseFloat(it.cost_price || 0) > 0) {
+                unitHpp = parseFloat(it.cost_price);
+              } else if (parseFloat(it.master_cost_price || 0) > 0) {
+                unitHpp = parseFloat(it.master_cost_price);
+              } else if (parseFloat(it.mkt_master_cost_price || 0) > 0) {
+                unitHpp = parseFloat(it.mkt_master_cost_price);
+              }
+
+              orderEligibleHpp += (unitHpp * itemNetQty);
+            }
+
+            orderReleased = Math.max(0, orderReleased);
+            const orderMargin = orderReleased - orderEligibleHpp;
+
+            actQty += eligibleQty;
+            actHpp += orderEligibleHpp;
+            actMargin += orderMargin;
           }
-          const q = parseInt(ord.quantity || 0, 10);
-          const c = parseFloat(ord.cost_price || ord.master_cost_price || 0);
-          actQty += q;
-          actHpp += (c * q);
         }
-        actMargin = Math.max(0, actMargin - actHpp);
       }
 
-      // Calculate reward
+      // Calculate reward persis MarketingTeam::getTotalRewardAttribute()
       const cType = team.commission_type || 'percentage';
       let reward = 0;
       if (cType === 'percentage') {
-        reward = actMargin * (parseFloat(team.commission_rate || 0) / 100);
+        const basisMargin = Math.max(0, actMargin);
+        reward = basisMargin * (parseFloat(team.commission_rate || 0) / 100);
         if (tTarget > 0 && actMargin >= tTarget && parseFloat(team.reward_fixed_nominal || 0) > 0) {
           reward += parseFloat(team.reward_fixed_nominal || 0);
         }
@@ -1114,10 +1206,13 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
       formattedTeams.push({
         id: team.id,
         name: team.name,
-        description: team.description,
+        code: team.code || '',
+        description: team.description || '',
         periodLabel: pLabel,
         periodMonth: team.period_month,
         periodYear: team.period_year,
+        dateFrom: team.date_from ? formatDate(new Date(team.date_from)) : '',
+        dateTo: team.date_to ? formatDate(new Date(team.date_to)) : '',
         isActive,
         targetMargin: Math.round(tTarget),
         targetQty: tTargetQty,
@@ -1165,9 +1260,199 @@ app.get('/api/v2/owner/target-komisi', async (req, res) => {
         selectedYear: reqYear,
       },
       teams: formattedTeams,
+      availableStores: availableStores || [],
     });
   } catch (err) {
     console.error('[Node-API] Target komisi error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/v2/owner/target-komisi (Tambah Tim Marketing baru & Target)
+app.post('/api/v2/owner/target-komisi', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const {
+      name,
+      code,
+      description,
+      target_omset,
+      commission_type,
+      commission_rate,
+      reward_fixed_nominal,
+      target_qty,
+      reward_per_qty,
+      period_month,
+      period_year,
+      date_from,
+      date_to,
+      store_ids,
+      is_active
+    } = req.body;
+
+    if (!name || name.trim() === '') {
+      return res.status(422).json({ success: false, message: 'Nama Tim wajib diisi.' });
+    }
+
+    const pMonth = parseInt(period_month, 10) || (new Date().getMonth() + 1);
+    const pYear = parseInt(period_year, 10) || (new Date().getFullYear());
+    let dFrom = date_from;
+    let dTo = date_to;
+    if (!dFrom || !dTo) {
+      dFrom = `${pYear}-${String(pMonth).padStart(2, '0')}-01`;
+      const lastDay = new Date(pYear, pMonth, 0).getDate();
+      dTo = `${pYear}-${String(pMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    }
+
+    const insertResult = await query(
+      `INSERT INTO marketing_teams 
+       (tenant_id, name, code, description, target_omset, commission_type, commission_rate, reward_fixed_nominal, target_qty, reward_per_qty, period_month, period_year, date_from, date_to, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [
+        tenantId,
+        name.trim(),
+        code || null,
+        description || null,
+        parseFloat(target_omset || 0),
+        commission_type || 'percentage',
+        parseFloat(commission_rate || 0),
+        parseFloat(reward_fixed_nominal || 0),
+        parseInt(target_qty || 0, 10),
+        parseFloat(reward_per_qty || 0),
+        pMonth,
+        pYear,
+        dFrom,
+        dTo,
+        is_active !== undefined ? (is_active ? 1 : 0) : 1
+      ]
+    );
+
+    const newTeamId = insertResult.insertId;
+
+    if (Array.isArray(store_ids) && store_ids.length > 0) {
+      for (const sId of store_ids) {
+        await query(
+          `INSERT INTO marketing_team_stores (marketing_team_id, store_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())`,
+          [newTeamId, sId]
+        );
+      }
+    }
+
+    return res.json({ success: true, message: `Tim '${name}' berhasil ditambahkan.` });
+  } catch (err) {
+    console.error('[Node-API] Create target komisi error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// PUT /api/v2/owner/target-komisi/:id (Update Tim & Target)
+app.put('/api/v2/owner/target-komisi/:id', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const teamId = parseInt(req.params.id, 10);
+    const {
+      name,
+      code,
+      description,
+      target_omset,
+      commission_type,
+      commission_rate,
+      reward_fixed_nominal,
+      target_qty,
+      reward_per_qty,
+      period_month,
+      period_year,
+      date_from,
+      date_to,
+      store_ids,
+      is_active
+    } = req.body;
+
+    const [existing] = await query('SELECT id FROM marketing_teams WHERE id = ? AND tenant_id = ?', [teamId, tenantId]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Tim tidak ditemukan.' });
+    }
+
+    const pMonth = parseInt(period_month, 10) || (new Date().getMonth() + 1);
+    const pYear = parseInt(period_year, 10) || (new Date().getFullYear());
+    let dFrom = date_from;
+    let dTo = date_to;
+    if (!dFrom || !dTo) {
+      dFrom = `${pYear}-${String(pMonth).padStart(2, '0')}-01`;
+      const lastDay = new Date(pYear, pMonth, 0).getDate();
+      dTo = `${pYear}-${String(pMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    }
+
+    await query(
+      `UPDATE marketing_teams SET
+         name = ?, code = ?, description = ?, target_omset = ?, commission_type = ?,
+         commission_rate = ?, reward_fixed_nominal = ?, target_qty = ?, reward_per_qty = ?,
+         period_month = ?, period_year = ?, date_from = ?, date_to = ?, is_active = ?,
+         updated_at = NOW()
+       WHERE id = ? AND tenant_id = ?`,
+      [
+        name ? name.trim() : 'Tim Marketing',
+        code || null,
+        description || null,
+        parseFloat(target_omset || 0),
+        commission_type || 'percentage',
+        parseFloat(commission_rate || 0),
+        parseFloat(reward_fixed_nominal || 0),
+        parseInt(target_qty || 0, 10),
+        parseFloat(reward_per_qty || 0),
+        pMonth,
+        pYear,
+        dFrom,
+        dTo,
+        is_active !== undefined ? (is_active ? 1 : 0) : 1,
+        teamId,
+        tenantId
+      ]
+    );
+
+    if (Array.isArray(store_ids)) {
+      await query('DELETE FROM marketing_team_stores WHERE marketing_team_id = ?', [teamId]);
+      for (const sId of store_ids) {
+        await query(
+          `INSERT INTO marketing_team_stores (marketing_team_id, store_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())`,
+          [teamId, sId]
+        );
+      }
+    }
+
+    return res.json({ success: true, message: `Data tim berhasil diperbarui.` });
+  } catch (err) {
+    console.error('[Node-API] Update target komisi error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/v2/owner/target-komisi/:id (Hapus Tim)
+app.delete('/api/v2/owner/target-komisi/:id', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const teamId = parseInt(req.params.id, 10);
+    await query('DELETE FROM marketing_team_stores WHERE marketing_team_id = ?', [teamId]);
+    await query('DELETE FROM marketing_teams WHERE id = ? AND tenant_id = ?', [teamId, tenantId]);
+    return res.json({ success: true, message: 'Tim berhasil dihapus.' });
+  } catch (err) {
+    console.error('[Node-API] Delete target komisi error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/v2/owner/target-komisi/:id/toggle (Toggle Aktif/Nonaktif)
+app.post('/api/v2/owner/target-komisi/:id/toggle', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const teamId = parseInt(req.params.id, 10);
+    await query(
+      'UPDATE marketing_teams SET is_active = NOT is_active, updated_at = NOW() WHERE id = ? AND tenant_id = ?',
+      [teamId, tenantId]
+    );
+    return res.json({ success: true, message: 'Status tim berhasil diubah.' });
+  } catch (err) {
+    console.error('[Node-API] Toggle target komisi error:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 });
