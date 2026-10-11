@@ -385,52 +385,33 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
             </div>
           </div>
 
-          {/* Tombol Action Sesuai Screenshot (Export CSV & Cetak Rekap) */}
+          {/* Tombol Action (Cetak Rekap) */}
           <div style={{
             display: 'flex',
-            justifyContent: 'space-between',
             alignItems: 'center',
             paddingTop: '12px',
             borderTop: '1px solid #f1f5f9'
           }}>
             <button
-              onClick={handleExportCsv}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: `1.5px solid ${themeColor}`,
-                background: '#ffffff',
-                color: themeColor,
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer'
-              }}
-            >
-              <Download size={14} />
-              <span>Export CSV</span>
-            </button>
-
-            <button
               onClick={handleCetakClick}
               style={{
+                width: '100%',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '8px 18px',
-                borderRadius: '8px',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '10px 18px',
+                borderRadius: '10px',
                 border: 'none',
                 background: themeColor,
                 color: '#ffffff',
-                fontSize: '12px',
-                fontWeight: '700',
+                fontSize: '13px',
+                fontWeight: '800',
                 cursor: 'pointer',
-                boxShadow: isDilepas ? '0 2px 6px rgba(22, 163, 74, 0.3)' : '0 2px 6px rgba(37, 99, 235, 0.3)'
+                boxShadow: isDilepas ? '0 3px 8px rgba(22, 163, 74, 0.3)' : '0 3px 8px rgba(37, 99, 235, 0.3)'
               }}
             >
-              <Printer size={14} />
+              <Printer size={16} />
               <span>{isLoading ? 'Memuat...' : 'Cetak Rekap'}</span>
             </button>
           </div>
