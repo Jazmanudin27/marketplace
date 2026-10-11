@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   QrCode, History, Search, Package, CheckCircle2, AlertCircle, 
   RefreshCw, Check, Clock, Calendar, Sparkles, Volume2, VolumeX, 
-  User, ArrowUpRight, Zap
+  User, ArrowUpRight, Zap, Camera, CameraOff, SwitchCamera
 } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { processScanSpk, fetchScanSpkHistory } from '../api/metricsApi';
 
 // Beep audio synthesizer using Web Audio API for hardware scanner feel
@@ -17,7 +18,7 @@ function playBeep(success = true) {
 
     if (success) {
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.12);
       gain.gain.setValueAtTime(0.25, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
@@ -56,10 +57,20 @@ export default function ScanSpkPage() {
     }
   });
 
+  // Phone Camera Scanner State
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState('environment'); // 'environment' (back) | 'user' (front)
+  const qrCodeScannerRef = useRef(null);
+  const lastScanTimestampRef = useRef(0);
+  const lastScannedTextRef = useRef('');
+
+  // Sound feedback toggle
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
   // Recent Session Scans (In-memory stack)
   const [lastScanResult, setLastScanResult] = useState(null);
   const [sessionScans, setSessionScans] = useState([]);
-  const [soundEnabled, setSoundEnabled] = useState(true);
 
   // History Tab State
   const [historyList, setHistoryList] = useState([]);
@@ -68,29 +79,37 @@ export default function ScanSpkPage() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   const [toast, setToast] = useState(null);
-  const inputRef = useRef(null);
+  const manualInputRef = useRef(null);
 
   const showToast = (text, type = 'success') => {
     setToast({ text, type });
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Re-focus input whenever scanner tab is active
+  // Re-focus manual input if camera not active
   useEffect(() => {
-    if (activeTab === 'scanner') {
+    if (activeTab === 'scanner' && !isCameraActive) {
       const t = setTimeout(() => {
-        if (inputRef.current) inputRef.current.focus();
+        if (manualInputRef.current) manualInputRef.current.focus();
       }, 100);
       return () => clearTimeout(t);
     }
-  }, [activeTab]);
+  }, [activeTab, isCameraActive]);
 
   // Load history when tab is clicked
   useEffect(() => {
     if (activeTab === 'history') {
+      stopCamera();
       loadHistory();
     }
   }, [activeTab]);
+
+  // Cleanup camera on component unmount
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
 
   const loadHistory = async (search = historySearch) => {
     setIsLoadingHistory(true);
@@ -102,9 +121,90 @@ export default function ScanSpkPage() {
     }
   };
 
-  const handleScanSubmit = async (e) => {
-    if (e) e.preventDefault();
-    const code = barcodeInput.trim();
+  // ── CAMERA CONTROLS (HTML5-QRCode) ──
+  const startCamera = async (facing = cameraFacing) => {
+    setCameraLoading(true);
+    try {
+      await stopCamera();
+
+      // Ensure element exists in DOM
+      const readerElem = document.getElementById('spk-camera-reader');
+      if (!readerElem) {
+        setCameraLoading(false);
+        return;
+      }
+
+      const html5QrCode = new Html5Qrcode('spk-camera-reader');
+      qrCodeScannerRef.current = html5QrCode;
+
+      const config = {
+        fps: 15,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const boxSize = Math.floor(minEdge * 0.75);
+          return { width: boxSize, height: boxSize };
+        },
+        aspectRatio: 1.0,
+      };
+
+      await html5QrCode.start(
+        { facingMode: facing },
+        config,
+        (decodedText) => {
+          const now = Date.now();
+          // Debounce same text within 2.5s
+          if (decodedText === lastScannedTextRef.current && (now - lastScanTimestampRef.current) < 2500) {
+            return;
+          }
+          // Debounce any scan within 1s
+          if ((now - lastScanTimestampRef.current) < 1000) {
+            return;
+          }
+          lastScannedTextRef.current = decodedText;
+          lastScanTimestampRef.current = now;
+
+          // Process scanned text
+          executeScan(decodedText);
+        },
+        () => {
+          // Frame error ignore
+        }
+      );
+
+      setIsCameraActive(true);
+    } catch (err) {
+      console.warn('Camera activation failed:', err);
+      setIsCameraActive(false);
+      showToast('Gagal membuka kamera HP. Pastikan izin kamera telah diizinkan di browser.', 'error');
+    } finally {
+      setCameraLoading(false);
+    }
+  };
+
+  const stopCamera = async () => {
+    if (qrCodeScannerRef.current) {
+      try {
+        if (qrCodeScannerRef.current.isScanning) {
+          await qrCodeScannerRef.current.stop();
+        }
+        await qrCodeScannerRef.current.clear();
+      } catch (_) {}
+      qrCodeScannerRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const toggleCameraFacing = async () => {
+    const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    setCameraFacing(nextFacing);
+    if (isCameraActive) {
+      await startCamera(nextFacing);
+    }
+  };
+
+  // ── SCAN EXECUTION (CAMERA OR INPUT) ──
+  const executeScan = async (codeToExecute) => {
+    const code = String(codeToExecute || '').trim();
     if (!code || isProcessing) return;
 
     setIsProcessing(true);
@@ -112,7 +212,7 @@ export default function ScanSpkPage() {
       code,
       qty: scanQty,
       nama_pengambil: receiverName,
-      catatan: 'Scan Barcode Karung SPK Mobile'
+      catatan: 'Scan Kamera HP SPK'
     });
 
     setIsProcessing(false);
@@ -132,22 +232,22 @@ export default function ScanSpkPage() {
       setLastScanResult({
         success: false,
         code,
-        message: res?.message || 'Kode barcode SPK tidak dikenali / kuota sudah penuh.'
+        message: res?.message || 'Barcode / QR SPK tidak dikenali atau kuota sudah lengkap.'
       });
       showToast(res?.message || 'Gagal scan SPK.', 'error');
     }
+  };
 
-    // Keep focus ready for next scan gun trigger immediately
-    setTimeout(() => {
-      if (inputRef.current) inputRef.current.focus();
-    }, 50);
+  const handleManualSubmit = (e) => {
+    e.preventDefault();
+    executeScan(barcodeInput);
   };
 
   const sessionTotalPcs = sessionScans.reduce((acc, cur) => acc + (cur.qtyTaken || 0), 0);
 
   return (
     <div className="mobile-body-content" style={{ paddingTop: '14px', paddingBottom: '90px' }}>
-      {/* Toast */}
+      {/* Toast Alert */}
       {toast && (
         <div style={{
           position: 'fixed', top: '16px', left: '16px', right: '16px', zIndex: 99999,
@@ -178,7 +278,7 @@ export default function ScanSpkPage() {
             boxShadow: activeTab === 'scanner' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
           }}
         >
-          <QrCode size={16} /> SCANNER
+          <Camera size={16} /> SCANNER KAMERA
         </button>
 
         <button
@@ -193,7 +293,7 @@ export default function ScanSpkPage() {
             boxShadow: activeTab === 'history' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
           }}
         >
-          <History size={16} /> HISTORI
+          <History size={16} /> HISTORI SCAN
           {historyKpi.todayPcs > 0 && (
             <span style={{
               fontSize: '10px', background: '#ede9fe', color: '#6d28d9',
@@ -208,108 +308,229 @@ export default function ScanSpkPage() {
       {/* ════════════════════ TAB 1: SCANNER ════════════════════ */}
       {activeTab === 'scanner' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* Main Continuous Scanner Card */}
+          {/* Card Kamera Scanner HP */}
           <div style={{
             background: '#fff', border: '1px solid #e2e8f0', borderRadius: '18px',
-            padding: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+            padding: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
           }}>
-            {/* Viewfinder simulation */}
-            <div style={{
-              border: '2px dashed #cbd5e1', borderRadius: '14px', padding: '16px 12px',
-              background: 'linear-gradient(180deg, #faf5ff, #f3e8ff)', textAlign: 'center',
-              marginBottom: '14px', position: 'relative'
-            }}>
-              {/* Sound Toggle */}
-              <button
-                type="button"
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                title={soundEnabled ? 'Suara Beep Aktif' : 'Suara Beep Mati'}
-                style={{
-                  position: 'absolute', top: '10px', right: '10px',
-                  background: soundEnabled ? '#ede9fe' : '#f1f5f9',
-                  border: 'none', color: soundEnabled ? '#7c3aed' : '#94a3b8',
-                  width: '30px', height: '30px', borderRadius: '999px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
-                }}
-              >
-                {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-              </button>
-
-              <div style={{
-                width: '46px', height: '46px', borderRadius: '12px', background: '#ede9fe',
-                color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 8px'
-              }}>
-                <Zap size={24} />
+            {/* Header Kamera & Kontrol */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{
+                  width: '8px', height: '8px', borderRadius: '999px',
+                  background: isCameraActive ? '#10b981' : '#94a3b8',
+                  boxShadow: isCameraActive ? '0 0 8px #10b981' : 'none'
+                }} />
+                <span style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a' }}>
+                  {isCameraActive ? 'Kamera HP Aktif' : 'Kamera HP Siap Digunakan'}
+                </span>
               </div>
 
-              <div style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>
-                Siap Tembak Barcode / QR SPK
-              </div>
-              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                Otomatis membaca SPK & item, barang langsung masuk stok gudang
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {isCameraActive && (
+                  <button
+                    type="button"
+                    onClick={toggleCameraFacing}
+                    title="Ganti Kamera Depan/Belakang"
+                    style={{
+                      padding: '5px 8px', borderRadius: '8px', border: '1px solid #cbd5e1',
+                      background: '#f8fafc', color: '#475569', fontSize: '11px', fontWeight: '700',
+                      display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer'
+                    }}
+                  >
+                    <SwitchCamera size={14} /> Ganti
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setSoundEnabled(!soundEnabled)}
+                  title={soundEnabled ? 'Suara Beep Aktif' : 'Suara Beep Mati'}
+                  style={{
+                    padding: '5px 8px', borderRadius: '8px', border: '1px solid #cbd5e1',
+                    background: soundEnabled ? '#ede9fe' : '#f8fafc',
+                    color: soundEnabled ? '#7c3aed' : '#94a3b8',
+                    display: 'flex', alignItems: 'center', cursor: 'pointer'
+                  }}
+                >
+                  {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+                </button>
               </div>
             </div>
 
-            {/* Input Form with Autofocus for Laser Gun */}
-            <form onSubmit={handleScanSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                background: '#f8fafc', border: '2px solid #7c3aed', borderRadius: '14px',
-                padding: '10px 14px', boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.1)'
-              }}>
-                <QrCode size={18} color="#7c3aed" />
+            {/* Area Viewfinder Kamera Video Feed */}
+            <div style={{
+              background: '#0f172a', borderRadius: '16px', overflow: 'hidden',
+              position: 'relative', minHeight: isCameraActive ? '280px' : '200px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              {/* HTML5-QRCode Reader Element */}
+              <div 
+                id="spk-camera-reader" 
+                style={{ 
+                  width: '100%', 
+                  display: isCameraActive ? 'block' : 'none'
+                }} 
+              />
+
+              {/* Viewfinder Placeholder saat Kamera Mati */}
+              {!isCameraActive && (
+                <div style={{ textAlign: 'center', padding: '24px 16px', color: '#94a3b8' }}>
+                  <div style={{
+                    width: '54px', height: '54px', borderRadius: '16px', background: 'rgba(255,255,255,0.1)',
+                    color: '#c4b5fd', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 12px'
+                  }}>
+                    <Camera size={28} />
+                  </div>
+                  <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff' }}>
+                    Scan Langsung Pakai Kamera HP
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px', marginBottom: '14px' }}>
+                    Arahkan kamera ke stiker barcode/QR karung SPK
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => startCamera()}
+                    disabled={cameraLoading}
+                    style={{
+                      padding: '10px 20px', borderRadius: '12px', border: 'none',
+                      background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                      color: '#fff', fontSize: '13px', fontWeight: '800', cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      boxShadow: '0 4px 14px rgba(139, 92, 246, 0.4)'
+                    }}
+                  >
+                    {cameraLoading ? (
+                      <>
+                        <RefreshCw size={15} className="spin-animate" /> Membuka Kamera...
+                      </>
+                    ) : (
+                      <>
+                        <Camera size={16} /> Buka Kamera HP Sekarang
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Visual Scanner Overlay when camera is active */}
+              {isCameraActive && (
+                <div style={{
+                  position: 'absolute', inset: 0, pointerEvents: 'none',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '14px'
+                }}>
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)',
+                    color: '#fff', padding: '4px 12px', borderRadius: '999px', fontSize: '11px',
+                    fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px'
+                  }}>
+                    <Zap size={12} color="#fbbf24" /> Arahkan ke Barcode / QR SPK
+                  </div>
+
+                  {/* Corner Targets */}
+                  <div style={{
+                    width: '210px', height: '210px', border: '2px solid rgba(167, 139, 250, 0.6)',
+                    borderRadius: '16px', position: 'relative', boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.3)'
+                  }}>
+                    {/* Laser line animation */}
+                    <div style={{
+                      position: 'absolute', left: 0, right: 0, top: '50%', height: '2px',
+                      background: 'linear-gradient(90deg, transparent, #ec4899, #8b5cf6, transparent)',
+                      boxShadow: '0 0 8px #ec4899', animation: 'pulse 1.5s infinite'
+                    }} />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={stopCamera}
+                    style={{
+                      pointerEvents: 'auto', background: 'rgba(239, 68, 68, 0.9)',
+                      color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '999px',
+                      fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px',
+                      cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                    }}
+                  >
+                    <CameraOff size={13} /> Tutup Kamera
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Settings: Qty per Scan & Penerima */}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #f1f5f9'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Qty Terima:</span>
+                {[1, 5, 10, 20].map(n => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setScanQty(n)}
+                    style={{
+                      padding: '4px 8px', borderRadius: '6px',
+                      border: scanQty === n ? 'none' : '1px solid #cbd5e1',
+                      background: scanQty === n ? '#7c3aed' : '#f8fafc',
+                      color: scanQty === n ? '#fff' : '#475569',
+                      fontSize: '11px', fontWeight: '800', cursor: 'pointer'
+                    }}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748b' }}>
+                <User size={13} />
                 <input
-                  ref={inputRef}
                   type="text"
-                  placeholder="Fokus kursor di sini & tembak barcode..."
+                  value={receiverName}
+                  onChange={(e) => setReceiverName(e.target.value)}
+                  placeholder="Nama Penerima..."
+                  style={{
+                    width: '105px', border: '1px solid #cbd5e1', borderRadius: '6px',
+                    padding: '3px 6px', fontSize: '10.5px', background: '#fff'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Manual Barcode Input Fallback */}
+            <form onSubmit={handleManualSubmit} style={{ marginTop: '10px', display: 'flex', gap: '6px' }}>
+              <div style={{
+                flex: 1, display: 'flex', alignItems: 'center', gap: '6px',
+                background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '10px',
+                padding: '6px 10px'
+              }}>
+                <Search size={14} color="#94a3b8" />
+                <input
+                  ref={manualInputRef}
+                  type="text"
+                  placeholder="Ketik manual atau scan alat barcode..."
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   disabled={isProcessing}
-                  autoComplete="off"
-                  autoFocus
                   style={{
                     border: 'none', outline: 'none', background: 'transparent',
-                    width: '100%', fontSize: '14px', fontWeight: '700', color: '#0f172a'
+                    width: '100%', fontSize: '11.5px', color: '#0f172a'
                   }}
                 />
-                {isProcessing && <RefreshCw size={16} className="spin-animate" color="#7c3aed" />}
               </div>
-
-              {/* Quantity Preset Bar & Receiver */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <div style={{ flex: 1, display: 'flex', gap: '4px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Qty:</span>
-                  {[1, 5, 10, 20].map(n => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => { setScanQty(n); if (inputRef.current) inputRef.current.focus(); }}
-                      style={{
-                        padding: '4px 8px', borderRadius: '6px', border: scanQty === n ? 'none' : '1px solid #e2e8f0',
-                        background: scanQty === n ? '#7c3aed' : '#fff', color: scanQty === n ? '#fff' : '#64748b',
-                        fontSize: '11px', fontWeight: '800', cursor: 'pointer'
-                      }}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748b' }}>
-                  <User size={13} />
-                  <input
-                    type="text"
-                    value={receiverName}
-                    onChange={(e) => setReceiverName(e.target.value)}
-                    placeholder="Penerima..."
-                    style={{
-                      width: '100px', border: '1px solid #e2e8f0', borderRadius: '6px',
-                      padding: '3px 6px', fontSize: '10.5px', background: '#fff'
-                    }}
-                  />
-                </div>
-              </div>
+              <button
+                type="submit"
+                disabled={isProcessing}
+                style={{
+                  padding: '0 12px', borderRadius: '10px', border: 'none',
+                  background: '#7c3aed', color: '#fff', fontSize: '11.5px',
+                  fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                }}
+              >
+                {isProcessing ? <RefreshCw size={13} className="spin-animate" /> : 'Kirim'}
+              </button>
             </form>
           </div>
 
@@ -326,7 +547,7 @@ export default function ScanSpkPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <CheckCircle2 size={18} color="#059669" />
                       <span style={{ fontSize: '13px', fontWeight: '800', color: '#065f46' }}>
-                        Scan Berhasil Diterima!
+                        Berhasil Diterima ke Gudang!
                       </span>
                     </div>
                     <span style={{ fontSize: '10px', color: '#059669', fontWeight: '700' }}>
@@ -387,7 +608,7 @@ export default function ScanSpkPage() {
 
             {sessionScans.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 10px', color: '#94a3b8', fontSize: '12px' }}>
-                Belum ada barang yang discan pada sesi ini.
+                Belum ada barang yang discan pada sesi ini. Buka kamera untuk mulai memindai.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
