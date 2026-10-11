@@ -320,3 +320,86 @@ export async function deleteMutation(type, id) {
   }
 }
 
+export async function fetchSaldoMarketplace() {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/saldo-marketplace`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
+    console.warn('[MetricsApi] fetchSaldoMarketplace error:', error.message);
+  }
+  return { success: false, data: { totalWalletBalance: 0, totalPendingBalance: 0, totalPendingCount: 0, totalEstimated: 0, stores: [] } };
+}
+
+export async function fetchSaldoMarketplaceMutasi(storeId, { dateFrom = '', dateTo = '', search = '' } = {}) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const params = new URLSearchParams();
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    if (search) params.append('search', search);
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/saldo-marketplace/${storeId}/mutasi?${params.toString()}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
+    console.warn('[MetricsApi] fetchSaldoMarketplaceMutasi error:', error.message);
+  }
+  return { success: false, data: [] };
+}
+
+export async function fetchLaporanPenjualan({ dateFrom = '', dateTo = '', storeId = '' } = {}) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const params = new URLSearchParams();
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    if (storeId) params.append('store_id', storeId);
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/laporan-penjualan?${params.toString()}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
+    console.warn('[MetricsApi] fetchLaporanPenjualan error:', error.message);
+  }
+  return { success: false, summary: {}, byStore: [], byChannel: [], byDate: [], transactions: [] };
+}
+
+

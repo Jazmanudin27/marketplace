@@ -32,6 +32,7 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
       items: [
         { id: 'orders', title: 'Pesanan Masuk', desc: 'Daftar transaksi marketplace & POS', icon: ShoppingBag, color: '#2563eb' },
         { id: 'returns', title: 'Pesanan Retur', desc: 'Komplain pembeli & retur barang', icon: RotateCcw, color: '#ef4444' },
+        { id: 'laporan_penjualan', title: 'Laporan Penjualan', desc: 'Rekap omset, HPP, fee & margin', icon: FileText, color: '#4f46e5' },
         { id: 'offline_sales', title: 'Penjualan Offline', desc: 'Kasir fisik toko / order manual', icon: Receipt, color: '#10b981' },
         { id: 'target', title: 'Target Marketing', desc: 'Realisasi omset & komisi tim', icon: Target, color: '#0ea5e9' },
         { id: 'spks', title: 'SPK Produksi', desc: 'Surat perintah kerja konveksi', icon: FileText, color: '#8b5cf6' },
@@ -59,7 +60,7 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
       items: [
         { id: 'margin', title: 'Laba Rugi Aktual', desc: 'Margin bersih per pesanan & total', icon: LineChart, color: '#059669' },
         { id: 'cashflow', title: 'Mutasi Kas & Bank', desc: 'Pencatatan kas masuk & keluar', icon: CreditCard, color: '#0d9488' },
-        { id: 'marketplace_wallets', title: 'Saldo Marketplace', desc: 'Shopee & TikTok escrow balance', icon: Store, color: '#0284c7' },
+        { id: 'saldo_marketplace', title: 'Saldo Marketplace', desc: 'Shopee & TikTok escrow balance', icon: Store, color: '#0284c7' },
       ]
     },
     {

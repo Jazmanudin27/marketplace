@@ -34,6 +34,30 @@ function formatDate(d) {
   return `${year}-${month}-${day}`;
 }
 
+function extractDateStr(val) {
+  if (!val) return '';
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return String(val).slice(0, 10);
+}
+
+const INDO_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+function formatIndoDate(dateVal) {
+  const s = extractDateStr(dateVal);
+  if (!s) return '';
+  const parts = s.split('-');
+  if (parts.length !== 3) return s;
+  const day = parseInt(parts[2], 10);
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  const year = parts[0];
+  return `${day} ${INDO_MONTHS[monthIdx] || ''} ${year}`;
+}
+const formatDateIndo = formatIndoDate;
+
 // Helper akurat untuk mendeteksi nominal refund/retur (persis Order.php accessor ERP)
 function calculateOrderRefund(order, returnMap = {}) {
   // 1. Cek relasi return_orders jika ada
@@ -795,12 +819,44 @@ app.get('/api/v2/owner/orders', async (req, res) => {
       params
     );
 
+    // Cache master_products & return_orders & marketing_teams for financial calculation
+    let mpById = new Map();
+    let mpBySku = new Map();
+    try {
+      const mpRows = await query('SELECT id, sku, cost_price, name FROM master_products WHERE tenant_id = ?', [tenantId]);
+      for (const p of mpRows) {
+        mpById.set(p.id, p);
+        if (p.sku) mpBySku.set(String(p.sku).trim().toLowerCase(), p);
+      }
+    } catch (_) {}
+
+    let returnMap = {};
+    try {
+      const returnRows = await query('SELECT order_id, refund_amount FROM return_orders WHERE tenant_id = ?', [tenantId]);
+      for (const rr of returnRows) {
+        returnMap[rr.order_id] = parseFloat(rr.refund_amount || 0);
+      }
+    } catch (_) {}
+
+    let commissionByStore = new Map();
+    try {
+      const teamStoreRows = await query(`
+        SELECT mts.store_id, mt.commission_type, mt.commission_rate, mt.reward_per_qty
+        FROM marketing_team_stores mts
+        JOIN marketing_teams mt ON mt.id = mts.marketing_team_id
+        WHERE mt.tenant_id = ? AND mt.is_active = 1
+      `, [tenantId]);
+      for (const ts of teamStoreRows) {
+        commissionByStore.set(ts.store_id, ts);
+      }
+    } catch (_) {}
+
     // Attach items for each order
     const orderIds = orders.map(o => o.id);
     let itemsByOrderId = {};
     if (orderIds.length > 0) {
       const items = await query(
-        `SELECT oi.*, mp.sku as master_sku 
+        `SELECT oi.*, mp.sku as master_sku, mp.cost_price as master_cost_price, mp.name as master_name 
          FROM order_items oi 
          LEFT JOIN master_products mp ON mp.id = oi.master_product_id 
          WHERE oi.order_id IN (?)`,
@@ -815,32 +871,104 @@ app.get('/api/v2/owner/orders', async (req, res) => {
 
         itemsByOrderId[item.order_id].push({
           id: item.id,
-          name: item.product_name,
+          name: item.product_name || item.master_name || 'Produk',
           sku: item.master_sku || item.sku || '-',
           qty,
           price,
           totalPrice: totP > 0 ? totP : (price * qty),
+          costPrice: parseFloat(item.cost_price || item.master_cost_price || 0),
+          hppSubtotal: parseFloat(item.hpp_subtotal || 0),
+          masterProductId: item.master_product_id,
         });
       }
     }
 
-    const formattedOrders = orders.map(ord => ({
-      id: ord.id,
-      orderNumber: ord.order_marketplace_id || `ORD-${ord.id}`,
-      storeName: ord.store_name || 'Marketplace Store',
-      channel: ord.channel_name || 'Shopee',
-      orderDate: ord.order_date,
-      status: ord.order_status,
-      isProcessed: ['READY_TO_SHIP', 'IN_PROCESS', 'PROCESSED', 'SIAP_KIRIM'].includes((ord.order_status || '').toUpperCase()),
-      totalAmount: parseFloat(ord.total_amount || 0),
-      netAmount: parseFloat(ord.net_amount || 0),
-      marketplaceFee: calculateOrderFee(ord),
-      buyerName: ord.buyer_name || 'Pembeli',
-      resi: ord.tracking_number || '-',
-      courier: ord.courier || 'Reguler',
-      itemsCount: (itemsByOrderId[ord.id] || []).reduce((acc, it) => acc + (it.qty || 1), 0),
-      items: itemsByOrderId[ord.id] || [],
-    }));
+    const formattedOrders = orders.map(ord => {
+      const oItems = itemsByOrderId[ord.id] || [];
+      let totalQty = 0;
+      for (const it of oItems) {
+        totalQty += (it.qty || 1);
+      }
+      if (totalQty <= 0) totalQty = 1;
+
+      const omset = parseFloat(ord.total_amount || 0);
+      const absFee = calculateOrderFee(ord);
+      const refund = calculateOrderRefund(ord, returnMap);
+      const isFullRefundOrReturn = ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL', 'IN_CANCEL'].includes(String(ord.order_status || '').toUpperCase())
+        || (omset > 0 && refund >= omset);
+
+      let hpp = 0;
+      if (!isFullRefundOrReturn) {
+        for (const it of oItems) {
+          const sub = it.hppSubtotal;
+          const q = it.qty || 1;
+          if (sub > 0) {
+            hpp += sub;
+          } else if (it.costPrice > 0) {
+            hpp += (it.costPrice * q);
+          } else {
+            let mProd = (it.masterProductId ? mpById.get(it.masterProductId) : null);
+            if ((!mProd || parseFloat(mProd.cost_price || 0) <= 0) && it.sku) {
+              const bySku = mpBySku.get(String(it.sku).trim().toLowerCase());
+              if (bySku && parseFloat(bySku.cost_price || 0) > 0) mProd = bySku;
+            }
+            const cost = parseFloat(mProd?.cost_price || 0);
+            hpp += (cost * q);
+          }
+        }
+      }
+
+      const netAmount = parseFloat(ord.net_amount || 0);
+      const releasedVal = netAmount > 0 ? netAmount : Math.max(0, omset - absFee);
+      const margin = releasedVal - hpp;
+      const marginPct = releasedVal > 0 ? Math.round((margin / releasedVal) * 10000) / 100 : 0;
+
+      let commission = 0;
+      const team = commissionByStore.get(ord.store_id);
+      if (team) {
+        if (team.commission_type === 'fixed_per_qty') {
+          commission = totalQty * parseFloat(team.reward_per_qty || 0);
+        } else {
+          commission = Math.max(0, margin * (parseFloat(team.commission_rate || 0) / 100));
+        }
+      }
+
+      const inv = ord.invoice_number || ord.order_marketplace_id || `ORD-${ord.id}`;
+      const cDate = ord.completed_at ? formatDateIndo(ord.completed_at) : (ord.order_date ? formatDateIndo(ord.order_date) : '');
+
+      return {
+        id: ord.id,
+        orderNumber: ord.order_marketplace_id || ord.order_number || inv,
+        invoiceNumber: inv,
+        storeName: ord.store_name || 'Marketplace Store',
+        channel: ord.channel_name || 'Shopee',
+        orderDate: ord.order_date,
+        completedAt: cDate,
+        status: ord.order_status,
+        isProcessed: ['READY_TO_SHIP', 'IN_PROCESS', 'PROCESSED', 'SIAP_KIRIM'].includes((ord.order_status || '').toUpperCase()),
+        totalAmount: omset,
+        omset,
+        netAmount: releasedVal,
+        netReleased: releasedVal,
+        releasedValue: releasedVal,
+        marketplaceFee: absFee,
+        totalFee: absFee,
+        refund,
+        hpp,
+        hppModal: hpp,
+        margin,
+        marginRp: margin,
+        marginPct,
+        commission: Math.round(commission),
+        buyerName: ord.buyer_name || 'Pembeli',
+        resi: ord.tracking_number || '-',
+        trackingNumber: ord.tracking_number || '',
+        courier: ord.courier || ord.shipping_provider || 'Reguler',
+        quantity: totalQty,
+        itemsCount: totalQty,
+        items: oItems,
+      };
+    });
 
     return res.json({
       success: true,
@@ -880,39 +1008,106 @@ app.get('/api/v2/owner/orders/:id', async (req, res) => {
 
     const ord = orders[0];
     const items = await query(
-      `SELECT oi.*, mp.sku as master_sku, mp.name as master_name 
+      `SELECT oi.*, mp.sku as master_sku, mp.cost_price as master_cost_price, mp.name as master_name 
        FROM order_items oi 
        LEFT JOIN master_products mp ON mp.id = oi.master_product_id 
        WHERE oi.order_id = ?`,
       [ord.id]
     );
 
+    let totalQty = 0;
+    let hpp = 0;
+    const formattedItems = items.map(it => {
+      const q = parseInt(it.quantity || 1, 10);
+      totalQty += q;
+      const unitP = parseFloat(it.unit_price || 0);
+      const totP = parseFloat(it.total_price || 0);
+      const sub = parseFloat(it.hpp_subtotal || 0);
+      const cost = parseFloat(it.cost_price || it.master_cost_price || 0);
+      if (sub > 0) hpp += sub;
+      else hpp += (cost * q);
+
+      return {
+        id: it.id,
+        name: it.product_name || it.master_name || 'Produk',
+        sku: it.master_sku || it.sku || '-',
+        qty: q,
+        price: unitP > 0 ? unitP : (q > 0 && totP > 0 ? totP / q : totP),
+        totalPrice: totP > 0 ? totP : (unitP * q),
+        costPrice: cost,
+      };
+    });
+    if (totalQty <= 0) totalQty = 1;
+
+    let returnMap = {};
+    try {
+      const [retRow] = await query('SELECT refund_amount FROM return_orders WHERE order_id = ? AND tenant_id = ? LIMIT 1', [ord.id, tenantId]);
+      if (retRow) returnMap[ord.id] = parseFloat(retRow.refund_amount || 0);
+    } catch (_) {}
+
+    const omset = parseFloat(ord.total_amount || 0);
+    const absFee = calculateOrderFee(ord);
+    const refund = calculateOrderRefund(ord, returnMap);
+    const netAmount = parseFloat(ord.net_amount || 0);
+    const releasedVal = netAmount > 0 ? netAmount : Math.max(0, omset - absFee);
+    const margin = releasedVal - hpp;
+    const marginPct = releasedVal > 0 ? Math.round((margin / releasedVal) * 10000) / 100 : 0;
+
+    let commission = 0;
+    try {
+      const [team] = await query(`
+        SELECT mt.commission_type, mt.commission_rate, mt.reward_per_qty
+        FROM marketing_team_stores mts
+        JOIN marketing_teams mt ON mt.id = mts.marketing_team_id
+        WHERE mts.store_id = ? AND mt.tenant_id = ? AND mt.is_active = 1
+        LIMIT 1
+      `, [ord.store_id, tenantId]);
+      if (team) {
+        if (team.commission_type === 'fixed_per_qty') {
+          commission = totalQty * parseFloat(team.reward_per_qty || 0);
+        } else {
+          commission = Math.max(0, margin * (parseFloat(team.commission_rate || 0) / 100));
+        }
+      }
+    } catch (_) {}
+
+    const inv = ord.invoice_number || ord.order_marketplace_id || `ORD-${ord.id}`;
+    const cDate = ord.completed_at ? formatDateIndo(ord.completed_at) : (ord.order_date ? formatDateIndo(ord.order_date) : '');
+
     return res.json({
       success: true,
       data: {
         id: ord.id,
-        orderNumber: ord.order_marketplace_id || `ORD-${ord.id}`,
+        orderNumber: ord.order_marketplace_id || ord.order_number || inv,
+        invoiceNumber: inv,
         storeName: ord.store_name,
         channel: ord.channel_name,
         status: ord.order_status,
         orderDate: ord.order_date,
-        completedAt: ord.completed_at,
-        buyerName: ord.buyer_name,
-        buyerPhone: ord.buyer_phone,
-        shippingAddress: ord.shipping_address,
-        courier: ord.courier,
-        resi: ord.tracking_number,
-        totalAmount: parseFloat(ord.total_amount || 0),
-        netAmount: parseFloat(ord.net_amount || 0),
-        marketplaceFee: calculateOrderFee(ord),
-        items: items.map(it => ({
-          id: it.id,
-          name: it.product_name || it.master_name,
-          sku: it.master_sku || it.sku,
-          qty: it.quantity,
-          unitPrice: parseFloat(it.unit_price || 0),
-          totalPrice: parseFloat(it.total_price || 0),
-        }))
+        completedAt: cDate,
+        buyerName: ord.buyer_name || 'Pelanggan MP',
+        buyerPhone: ord.buyer_phone || '',
+        shippingAddress: ord.shipping_address || '',
+        courier: ord.courier || ord.shipping_provider || 'Reguler',
+        resi: ord.tracking_number || '',
+        trackingNumber: ord.tracking_number || '',
+        quantity: totalQty,
+        itemsCount: totalQty,
+        totalAmount: omset,
+        omset,
+        netAmount: releasedVal,
+        netReleased: releasedVal,
+        releasedValue: releasedVal,
+        marketplaceFee: absFee,
+        totalFee: absFee,
+        refund,
+        hpp,
+        hppModal: hpp,
+        margin,
+        marginRp: margin,
+        marginPct,
+        commission: Math.round(commission),
+        items: formattedItems
       }
     });
   } catch (err) {
@@ -2131,6 +2326,302 @@ app.delete('/api/v2/owner/mutasi-keuangan/:type/:id', async (req, res) => {
     return res.json({ success: true, message: 'Transaksi mutasi berhasil dihapus!' });
   } catch (err) {
     console.error('[Node-API] Delete mutation error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── 8. SALDO MARKETPLACE V2 ────────────────────────────────────────────────
+app.get('/api/v2/owner/saldo-marketplace', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+
+    const stores = await query(
+      `SELECT s.id, s.store_name, s.status, s.marketplace_balance, s.last_sync_at,
+              c.name as channel_name, c.code as channel_code
+       FROM stores s
+       LEFT JOIN channels c ON c.id = s.channel_id
+       WHERE s.tenant_id = ?
+       ORDER BY s.store_name ASC`,
+      [tenantId]
+    );
+
+    let totalWalletBalance = 0;
+    let totalPendingBalance = 0;
+    let totalPendingCount = 0;
+
+    const activeStatuses = [
+      'READY_TO_SHIP', 'PROCESSED', 'SHIPPED', 'IN_TRANSIT',
+      'DELIVERED', 'UNPAID', 'ON_HOLD', '111', '112', '114',
+      'PERLU_DIKIRIM', 'DIKIRIM', 'MENUNGGU_DIKIRIM'
+    ];
+    const statusPlaceholders = activeStatuses.map(() => '?').join(',');
+
+    const storeCards = [];
+
+    for (const store of stores) {
+      let currentBalance = 0;
+      let lastTxDate = null;
+      try {
+        const [latestTx] = await query(
+          `SELECT current_balance, transaction_date 
+           FROM marketplace_wallet_transactions 
+           WHERE store_id = ? AND current_balance IS NOT NULL 
+           ORDER BY transaction_date DESC, id DESC LIMIT 1`,
+          [store.id]
+        );
+        if (latestTx && latestTx.current_balance !== null) {
+          currentBalance = parseFloat(latestTx.current_balance || 0);
+          lastTxDate = latestTx.transaction_date;
+        } else if (store.marketplace_balance) {
+          currentBalance = parseFloat(store.marketplace_balance || 0);
+        }
+      } catch (_) {
+        currentBalance = parseFloat(store.marketplace_balance || 0);
+      }
+
+      let storePendingBalance = 0;
+      let storePendingCount = 0;
+      try {
+        const pendingOrders = await query(
+          `SELECT total_amount, net_amount, marketplace_fee, financial_breakdown 
+           FROM orders 
+           WHERE store_id = ? AND UPPER(order_status) IN (${statusPlaceholders})`,
+          [store.id, ...activeStatuses]
+        );
+
+        storePendingCount = pendingOrders.length;
+        for (const ord of pendingOrders) {
+          let escrow = 0;
+          if (ord.financial_breakdown) {
+            let fb = ord.financial_breakdown;
+            if (typeof fb === 'string') {
+              try { fb = JSON.parse(fb); } catch (_) {}
+            }
+            if (fb && typeof fb === 'object') {
+              escrow = parseFloat(fb.escrow_amount_after_adjustment || fb.escrow_amount || fb.settlement_amount || 0);
+            }
+          }
+          if (escrow <= 0 && parseFloat(ord.net_amount || 0) > 0) {
+            escrow = parseFloat(ord.net_amount);
+          }
+          if (escrow <= 0) {
+            const gross = parseFloat(ord.total_amount || 0);
+            const fee = parseFloat(ord.marketplace_fee || 0);
+            escrow = Math.max(0, gross - fee);
+          }
+          storePendingBalance += escrow;
+        }
+      } catch (_) {}
+
+      totalWalletBalance += currentBalance;
+      totalPendingBalance += storePendingBalance;
+      totalPendingCount += storePendingCount;
+
+      storeCards.push({
+        id: store.id,
+        name: store.store_name,
+        channelName: store.channel_name || 'Marketplace',
+        channelCode: (store.channel_code || '').toLowerCase(),
+        status: store.status || 'connected',
+        currentBalance,
+        pendingBalance: storePendingBalance,
+        pendingCount: storePendingCount,
+        totalEstimated: currentBalance + storePendingBalance,
+        lastSyncedAt: lastTxDate ? formatDateIndo(lastTxDate) : (store.last_sync_at ? formatDateIndo(store.last_sync_at) : 'Belum sync'),
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        totalWalletBalance,
+        totalPendingBalance,
+        totalPendingCount,
+        totalEstimated: totalWalletBalance + totalPendingBalance,
+        stores: storeCards,
+      }
+    });
+  } catch (err) {
+    console.error('[Node-API] Saldo marketplace error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Mutasi Dompet per Toko
+app.get('/api/v2/owner/saldo-marketplace/:storeId/mutasi', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const storeId = req.params.storeId;
+    const dateFrom = req.query.date_from;
+    const dateTo = req.query.date_to;
+    const search = req.query.search;
+
+    const [store] = await query(
+      `SELECT s.id, s.store_name, s.status, s.marketplace_balance, c.name as channel_name, c.code as channel_code 
+       FROM stores s 
+       LEFT JOIN channels c ON c.id = s.channel_id 
+       WHERE s.id = ? AND s.tenant_id = ?`,
+      [storeId, tenantId]
+    );
+
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Toko tidak ditemukan.' });
+    }
+
+    let whereSql = `WHERE store_id = ?`;
+    const params = [storeId];
+
+    if (dateFrom) {
+      whereSql += ` AND transaction_date >= ?`;
+      params.push(dateFrom + ' 00:00:00');
+    }
+    if (dateTo) {
+      whereSql += ` AND transaction_date <= ?`;
+      params.push(dateTo + ' 23:59:59');
+    }
+    if (search) {
+      whereSql += ` AND (transaction_id LIKE ? OR description LIKE ?)`;
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    const rows = await query(
+      `SELECT * FROM marketplace_wallet_transactions 
+       ${whereSql} 
+       ORDER BY transaction_date DESC, id DESC 
+       LIMIT 100`,
+      params
+    );
+
+    const formatted = rows.map(r => ({
+      id: r.id,
+      transactionId: r.transaction_id || `TX-${r.id}`,
+      transactionDate: r.transaction_date,
+      dateFormatted: formatDateIndo(r.transaction_date),
+      type: r.type || 'SETTLEMENT',
+      description: r.description || 'Pelepasan Saldo Dompet',
+      amount: parseFloat(r.amount || 0),
+      direction: r.direction || 'in',
+      currentBalance: r.current_balance !== null ? parseFloat(r.current_balance || 0) : null,
+    }));
+
+    return res.json({
+      success: true,
+      store: {
+        id: store.id,
+        name: store.store_name,
+        channelName: store.channel_name,
+        channelCode: (store.channel_code || '').toLowerCase(),
+      },
+      data: formatted,
+    });
+  } catch (err) {
+    console.error('[Node-API] Mutasi dompet error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── 9. LAPORAN PENJUALAN V2 ────────────────────────────────────────────────
+app.get('/api/v2/owner/laporan-penjualan', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const now = new Date();
+    const dateFrom = req.query.date_from || (`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`);
+    const dateTo = req.query.date_to || formatDate(now);
+    const storeId = req.query.store_id || null;
+
+    const rep = await getReleasedSalesDetailData(tenantId, dateFrom, dateTo, storeId);
+
+    const storeMap = {};
+    const channelMap = {};
+    const dateMap = {};
+
+    for (const t of rep.transactions) {
+      const sName = t.storeName || 'Toko Lain';
+      if (!storeMap[sName]) {
+        storeMap[sName] = {
+          storeName: sName,
+          channelName: t.channelName || 'Marketplace',
+          omset: 0,
+          refund: 0,
+          fee: 0,
+          netReleased: 0,
+          hpp: 0,
+          margin: 0,
+          count: 0,
+          quantity: 0
+        };
+      }
+      storeMap[sName].omset += t.omset;
+      storeMap[sName].refund += t.refund;
+      storeMap[sName].fee += t.marketplaceFee;
+      storeMap[sName].netReleased += t.releasedValue;
+      storeMap[sName].hpp += t.hppModal;
+      storeMap[sName].margin += t.margin;
+      storeMap[sName].count += 1;
+      storeMap[sName].quantity += t.quantity;
+
+      const cName = t.channelName || 'Shopee';
+      if (!channelMap[cName]) {
+        channelMap[cName] = { channelName: cName, omset: 0, margin: 0, count: 0, quantity: 0 };
+      }
+      channelMap[cName].omset += t.omset;
+      channelMap[cName].margin += t.margin;
+      channelMap[cName].count += 1;
+      channelMap[cName].quantity += t.quantity;
+
+      const dKey = extractDateStr(t.completedAt || t.orderDate);
+      if (dKey) {
+        if (!dateMap[dKey]) {
+          dateMap[dKey] = { date: dKey, omset: 0, margin: 0, count: 0 };
+        }
+        dateMap[dKey].omset += t.omset;
+        dateMap[dKey].margin += t.margin;
+        dateMap[dKey].count += 1;
+      }
+    }
+
+    const byStore = Object.values(storeMap).sort((a, b) => b.omset - a.omset);
+    const byChannel = Object.values(channelMap).sort((a, b) => b.omset - a.omset);
+    const byDate = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
+
+    let storeOptions = [];
+    try {
+      storeOptions = await query(
+        `SELECT s.id, s.store_name, c.name as channel_name 
+         FROM stores s 
+         LEFT JOIN channels c ON c.id = s.channel_id 
+         WHERE s.tenant_id = ? 
+         ORDER BY s.store_name ASC`,
+        [tenantId]
+      );
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      filters: {
+        dateFrom,
+        dateTo,
+        storeId,
+        stores: storeOptions.map(s => ({ id: s.id, name: s.store_name, channel: s.channel_name })),
+      },
+      summary: {
+        omset: rep.grandTotalOmset,
+        refund: rep.grandTotalRefund,
+        totalFee: rep.grandTotalTotalFee,
+        netReleased: rep.grandTotalNetReleased,
+        hpp: rep.grandTotalHpp,
+        margin: rep.grandTotalMarginRp,
+        marginPct: rep.grandTotalNetReleased > 0 ? Math.round((rep.grandTotalMarginRp / rep.grandTotalNetReleased) * 10000) / 100 : 0,
+        totalOrders: rep.totalCount,
+        totalQty: rep.grandTotalQty,
+      },
+      byStore,
+      byChannel,
+      byDate,
+      transactions: rep.transactions.slice(0, 50),
+    });
+  } catch (err) {
+    console.error('[Node-API] Laporan penjualan error:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 });

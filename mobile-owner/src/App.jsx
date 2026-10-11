@@ -9,6 +9,8 @@ import FinancePage from './pages/FinancePage';
 import TargetKomisiPage from './pages/TargetKomisiPage';
 import LabaRugiPage from './pages/LabaRugiPage';
 import MutasiKeuanganPage from './pages/MutasiKeuanganPage';
+import SaldoMarketplacePage from './pages/SaldoMarketplacePage';
+import LaporanPenjualanPage from './pages/LaporanPenjualanPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import OrderDetailModal from './components/orders/OrderDetailModal';
@@ -248,6 +250,18 @@ export default function App() {
             subtitle="Buku mutasi kas masuk, keluar & transfer dana"
             onBack={() => handleTabChange('home')} 
           />
+        ) : activeTab === 'saldo_marketplace' ? (
+          <SubPageHeader 
+            title="Saldo Marketplace" 
+            subtitle="Saldo dompet, tertahan (escrow) & mutasi dompet toko"
+            onBack={() => handleTabChange('home')} 
+          />
+        ) : activeTab === 'laporan_penjualan' ? (
+          <SubPageHeader 
+            title="Laporan Penjualan" 
+            subtitle="Rekap omset, HPP, fee marketplace & margin bersih"
+            onBack={() => handleTabChange('home')} 
+          />
         ) : activeTab === 'profile' ? (
           <SubPageHeader 
             title="Profil & Toko" 
@@ -276,7 +290,8 @@ export default function App() {
               else if (menuId === 'target' || menuId === 'target_komisi') handleTabChange('target_komisi');
               else if (menuId === 'margin' || menuId === 'laba_rugi') handleTabChange('laba_rugi');
               else if (menuId === 'mutasi' || menuId === 'mutasi_keuangan' || menuId === 'cashflow') handleTabChange('mutasi_keuangan');
-              else if (menuId === 'reports') handleOpenFinance();
+              else if (menuId === 'saldo_marketplace' || menuId === 'marketplace_wallets') handleTabChange('saldo_marketplace');
+              else if (menuId === 'laporan_penjualan' || menuId === 'reports') handleTabChange('laporan_penjualan');
               else if (menuId === 'settings' || menuId === 'stores' || menuId === 'company' || menuId === 'users') handleTabChange('profile');
               else if (menuId === 'scanner') handleScanClick();
               else if (menuId === 'all_modules') setIsAllModulesOpen(true);
@@ -319,6 +334,16 @@ export default function App() {
 
         {activeTab === 'mutasi_keuangan' && (
           <MutasiKeuanganPage />
+        )}
+
+        {activeTab === 'saldo_marketplace' && (
+          <SaldoMarketplacePage />
+        )}
+
+        {activeTab === 'laporan_penjualan' && (
+          <LaporanPenjualanPage 
+            onSelectOrder={(order) => setSelectedOrder(order)}
+          />
         )}
 
         {activeTab === 'laba_rugi' && (

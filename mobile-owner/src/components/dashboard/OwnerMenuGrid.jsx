@@ -88,6 +88,20 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
       gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)'
     },
     {
+      id: 'saldo_marketplace',
+      title: 'Saldo MP',
+      category: 'Keuangan',
+      icon: Store,
+      gradient: 'linear-gradient(135deg, #0284c7, #0369a1)'
+    },
+    {
+      id: 'laporan_penjualan',
+      title: 'Lap Penjualan',
+      category: 'Transaksi',
+      icon: FileText,
+      gradient: 'linear-gradient(135deg, #4f46e5, #4338ca)'
+    },
+    {
       id: 'cashflow',
       title: 'Mutasi Kas',
       category: 'Keuangan',
@@ -100,13 +114,6 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
       category: 'Keuangan',
       icon: LineChart,
       gradient: 'linear-gradient(135deg, #10b981, #047857)'
-    },
-    {
-      id: 'master_products',
-      title: 'Katalog',
-      category: 'Master',
-      icon: Layers,
-      gradient: 'linear-gradient(135deg, #a855f7, #9333ea)'
     },
     {
       id: 'all_modules',
