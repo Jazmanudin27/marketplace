@@ -530,43 +530,63 @@ class OwnerApiController extends Controller
             $periodLabel = $now->translatedFormat('F Y');
         }
 
-        // 1. Online revenue, HPP, & fee
+        // 1. Online revenue, HPP, & fee (diselaraskan dengan ERP V2 Laba Rugi)
         $onlineOrders = Order::where('tenant_id', $tenantId)
+            ->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR'])
             ->where(function ($q) use ($dateFrom, $dateTo) {
                 $q->whereBetween('completed_at', [$dateFrom, $dateTo])
                   ->orWhere(function ($sub) use ($dateFrom, $dateTo) {
                       $sub->whereNull('completed_at')->whereBetween('order_date', [$dateFrom, $dateTo]);
                   });
             })
-            ->whereNotIn(DB::raw('UPPER(order_status)'), ['CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL', 'RETURNED', 'REFUNDED'])
             ->with(['items.masterProduct'])
             ->get();
 
-        $onlineRevenue = (float) $onlineOrders->sum('total_amount');
-        $onlineFee     = (float) $onlineOrders->sum('marketplace_fee');
-        $onlineHpp     = 0.0;
+        $onlineGrossSales = (float) $onlineOrders->sum('total_amount');
+        $onlineRevenue = (float) $onlineOrders->sum('net_amount');
+        if ($onlineRevenue <= 0 && $onlineGrossSales > 0) {
+            $onlineRevenue = $onlineGrossSales;
+        }
+
+        $onlineFee = 0.0;
+        $onlineHpp = 0.0;
         foreach ($onlineOrders as $ord) {
-            foreach ($ord->items as $item) {
-                $cost = (float) ($item->cost_price ?: ($item->masterProduct ? $item->masterProduct->cost_price : 0));
-                $onlineHpp += ($cost * $item->quantity);
+            if ($ord->recon_status === 'RECONCILED') {
+                $onlineFee += abs((float) $ord->getRawOriginal('marketplace_fee'));
+            } else {
+                $absFee = (float) $ord->marketplace_fee;
+                if ($absFee <= 0 && !empty($ord->fee_breakdown_details['total_fee'])) {
+                    $absFee = abs((float) $ord->fee_breakdown_details['total_fee']);
+                }
+                $onlineFee += $absFee;
             }
+            $onlineHpp += (float) ($ord->hpp_total ?: 0);
         }
 
         // 2. Offline / POS Sales jika ada tabel
         $offlineRevenue = 0.0;
         $offlineHpp = 0.0;
         if (\Illuminate\Support\Facades\Schema::hasTable('offline_sales')) {
-            $offlineOrders = DB::table('offline_sales')
+            $offlineSales = \App\Models\OfflineSale::with('items.masterProduct')
                 ->where('tenant_id', $tenantId)
-                ->whereBetween('sale_date', [$dateFrom, $dateTo])
+                ->where('status', defined('\App\Models\OfflineSale::STATUS_COMPLETED') ? \App\Models\OfflineSale::STATUS_COMPLETED : 'completed')
+                ->where(function ($q) use ($dateFrom, $dateTo) {
+                    $q->whereBetween('sold_at', [$dateFrom, $dateTo])
+                      ->orWhere(function ($sub) use ($dateFrom, $dateTo) {
+                          $sub->whereNull('sold_at')->whereBetween('created_at', [$dateFrom, $dateTo]);
+                      });
+                })
                 ->get();
-            $offlineRevenue = (float) $offlineOrders->sum('total_amount');
-            $offlineHpp     = (float) $offlineOrders->sum('hpp_total');
+
+            $offlineRevenue = (float) $offlineSales->sum('grand_total');
+            foreach ($offlineSales as $sale) {
+                $offlineHpp += (float) ($sale->hpp_total ?: 0);
+            }
         }
 
         $totalOmset = $onlineRevenue + $offlineRevenue;
         $totalHpp   = $onlineHpp + $offlineHpp;
-        $labaKotor  = max(0.0, $totalOmset - $totalHpp - $onlineFee);
+        $labaKotor  = $totalOmset - $totalHpp;
         $grossMarginPct = $totalOmset > 0 ? round(($labaKotor / $totalOmset) * 100, 1) : 0.0;
 
         // 3. Beban Operasional / Expenses
@@ -575,14 +595,29 @@ class OwnerApiController extends Controller
         if (\Illuminate\Support\Facades\Schema::hasTable('expenses')) {
             $expenses = DB::table('expenses')
                 ->where('tenant_id', $tenantId)
-                ->whereBetween('expense_date', [$dateFrom, $dateTo])
+                ->whereBetween('expense_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
                 ->get();
 
-            $totalOperasional = (float) $expenses->sum('amount');
-            $grouped = $expenses->groupBy('category');
+            // Abaikan beban terkait modal pembelian / produksi barang agar tidak double counting
+            $excludedCodes = ['pembelian_supplier', 'bahan_baku', 'biaya_produksi', 'supplier_payable'];
+            $operatingExpenses = $expenses->filter(function ($exp) use ($excludedCodes) {
+                return !in_array(strtolower($exp->category), $excludedCodes);
+            });
+
+            $totalOperasional = (float) $operatingExpenses->sum('amount');
+            $grouped = $operatingExpenses->groupBy('category');
+
+            $defaultLabels = [
+                'salary'    => 'Gaji Karyawan',
+                'rent'      => 'Sewa Tempat',
+                'utilities' => 'Utilitas & Operasional',
+                'other'     => 'Lain-lain',
+            ];
+
             foreach ($grouped as $catName => $items) {
+                $label = $defaultLabels[strtolower($catName)] ?? ucwords(str_replace('_', ' ', $catName));
                 $expenseCategories[] = [
-                    'name'   => ucwords(str_replace('_', ' ', $catName)),
+                    'name'   => $label,
                     'amount' => round((float) $items->sum('amount'), 0),
                 ];
             }
