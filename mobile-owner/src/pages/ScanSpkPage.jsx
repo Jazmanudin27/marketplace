@@ -104,10 +104,22 @@ export default function ScanSpkPage() {
     }
   }, [activeTab]);
 
-  // Cleanup camera on component unmount
+  // Cleanup camera on component unmount & background/tab hide
   useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopCamera();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', stopCamera);
+    window.addEventListener('beforeunload', stopCamera);
+
     return () => {
       stopCamera();
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pagehide', stopCamera);
+      window.removeEventListener('beforeunload', stopCamera);
     };
   }, []);
 
@@ -199,6 +211,21 @@ export default function ScanSpkPage() {
       } catch (_) {}
       qrCodeScannerRef.current = null;
     }
+
+    // Forcefully stop any running hardware camera tracks to save battery
+    try {
+      const videoElem = document.querySelector('#spk-camera-reader video');
+      if (videoElem && videoElem.srcObject) {
+        const stream = videoElem.srcObject;
+        if (typeof stream.getTracks === 'function') {
+          stream.getTracks().forEach(track => {
+            try { track.stop(); } catch (_) {}
+          });
+        }
+        videoElem.srcObject = null;
+      }
+    } catch (_) {}
+
     setIsCameraActive(false);
   };
 
@@ -286,7 +313,7 @@ export default function ScanSpkPage() {
             boxShadow: activeTab === 'scanner' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
           }}
         >
-          <Camera size={16} /> SCANNER KAMERA
+          <Camera size={16} /> SCANNER
         </button>
 
         <button
@@ -301,7 +328,7 @@ export default function ScanSpkPage() {
             boxShadow: activeTab === 'history' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
           }}
         >
-          <History size={16} /> HISTORI SCAN
+          <History size={16} /> HISTORI
           {historyKpi.todayPcs > 0 && (
             <span style={{
               fontSize: '10px', background: '#ede9fe', color: '#6d28d9',
@@ -483,43 +510,26 @@ export default function ScanSpkPage() {
               )}
             </div>
 
-            {/* Quick Settings: Qty per Scan & Penerima */}
+            {/* Quick Settings: Penerima */}
             <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
               marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #f1f5f9'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Qty Terima:</span>
-                {[1, 5, 10, 20].map(n => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setScanQty(n)}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#64748b' }}>
+                <span style={{ fontWeight: '700' }}>Petugas Penerima:</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <User size={13} color="#7c3aed" />
+                  <input
+                    type="text"
+                    value={receiverName}
+                    onChange={(e) => setReceiverName(e.target.value)}
+                    placeholder="Nama Penerima..."
                     style={{
-                      padding: '4px 8px', borderRadius: '6px',
-                      border: scanQty === n ? 'none' : '1px solid #cbd5e1',
-                      background: scanQty === n ? '#7c3aed' : '#f8fafc',
-                      color: scanQty === n ? '#fff' : '#475569',
-                      fontSize: '11px', fontWeight: '800', cursor: 'pointer'
+                      width: '120px', border: '1px solid #cbd5e1', borderRadius: '6px',
+                      padding: '4px 8px', fontSize: '11px', background: '#fff', color: '#0f172a'
                     }}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748b' }}>
-                <User size={13} />
-                <input
-                  type="text"
-                  value={receiverName}
-                  onChange={(e) => setReceiverName(e.target.value)}
-                  placeholder="Nama Penerima..."
-                  style={{
-                    width: '105px', border: '1px solid #cbd5e1', borderRadius: '6px',
-                    padding: '3px 6px', fontSize: '10.5px', background: '#fff'
-                  }}
-                />
+                  />
+                </div>
               </div>
             </div>
 
