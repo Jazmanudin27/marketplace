@@ -27,7 +27,6 @@ import {
 } from '../../api/supplierConsignmentApi';
 import { showToast, showAlert } from '../../utils/alerts';
 import OwnerTitipanDetailModal from './OwnerTitipanDetailModal';
-import OwnerBarcodeModal from './OwnerBarcodeModal';
 import OwnerTitipanFormModal from './OwnerTitipanFormModal';
 
 export default function OwnerTitipanBarangPage({ 
@@ -60,7 +59,6 @@ export default function OwnerTitipanBarangPage({
 
   // Modals
   const [selectedConsignment, setSelectedConsignment] = useState(null);
-  const [barcodeModalConsignment, setBarcodeModalConsignment] = useState(null);
   const [formModalData, setFormModalData] = useState(null); // null: closed, {}: create, {id, ...}: edit
 
   // Load suppliers list for filter
@@ -912,52 +910,31 @@ export default function OwnerTitipanBarangPage({
                   )}
                 </div>
 
-                {/* Action Buttons Toolbar: Barcode & Detail */}
+                {/* Action Buttons Toolbar: Detail */}
                 <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
                   paddingTop: '8px',
                   borderTop: '1px solid #f1f5f9'
                 }}>
                   <button
-                    onClick={() => setBarcodeModalConsignment(c)}
-                    style={{
-                      background: '#ecfdf5',
-                      border: '1px solid #a7f3d0',
-                      color: '#059669',
-                      borderRadius: '10px',
-                      padding: '7px 12px',
-                      fontSize: '11.5px',
-                      fontWeight: '700',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <Barcode size={14} />
-                    <span>Cetak Barcode</span>
-                  </button>
-
-                  <button
                     onClick={() => setSelectedConsignment(c)}
                     style={{
+                      width: '100%',
                       background: 'linear-gradient(135deg, #1e293b, #0f172a)',
                       color: '#ffffff',
                       border: 'none',
-                      borderRadius: '10px',
-                      padding: '8px 14px',
-                      fontSize: '12px',
+                      borderRadius: '12px',
+                      padding: '9px 14px',
+                      fontSize: '12.5px',
                       fontWeight: '700',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '5px',
+                      justifyContent: 'center',
+                      gap: '6px',
                       cursor: 'pointer'
                     }}
                   >
-                    <Eye size={14} />
-                    <span>Lihat Detail</span>
+                    <Eye size={15} />
+                    <span>Lihat Detail Konsinyasi</span>
                   </button>
                 </div>
               </div>
@@ -971,15 +948,6 @@ export default function OwnerTitipanBarangPage({
         <OwnerTitipanDetailModal
           consignment={selectedConsignment}
           onClose={() => setSelectedConsignment(null)}
-          onOpenBarcode={(cons) => setBarcodeModalConsignment(cons)}
-        />
-      )}
-
-      {/* Barcode Print Modal */}
-      {barcodeModalConsignment && (
-        <OwnerBarcodeModal
-          consignment={barcodeModalConsignment}
-          onClose={() => setBarcodeModalConsignment(null)}
         />
       )}
 

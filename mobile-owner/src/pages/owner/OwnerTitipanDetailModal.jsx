@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Calendar, User, FileText, CheckCircle2, Clock, Barcode, Package, AlertCircle, CreditCard, ArrowDownRight, DollarSign } from 'lucide-react';
+import { X, Calendar, User, FileText, CheckCircle2, Clock, Package, AlertCircle, CreditCard, ArrowDownRight, DollarSign } from 'lucide-react';
 import { fetchSupplierConsignmentDetail } from '../../api/supplierConsignmentApi';
 
 export default function OwnerTitipanDetailModal({
   consignment,
-  onClose,
-  onOpenBarcode
+  onClose
 }) {
   const [activeTab, setActiveTab] = useState('items'); // 'items' | 'deductions' | 'payments'
   const [liveData, setLiveData] = useState(consignment);
@@ -533,41 +532,19 @@ export default function OwnerTitipanDetailModal({
           padding: '14px 18px calc(16px + env(safe-area-inset-bottom, 12px))',
           background: '#ffffff',
           borderTop: '1px solid #e2e8f0',
-          display: 'flex',
-          gap: '8px'
+          display: 'flex'
         }}>
-          <button
-            onClick={() => onOpenBarcode(activeConsignment)}
-            style={{
-              flex: 1,
-              padding: '11px 14px',
-              borderRadius: '14px',
-              border: '1px solid #f59e0b',
-              background: '#fffbeb',
-              color: '#d97706',
-              fontWeight: '700',
-              fontSize: '12.5px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            <Barcode size={16} />
-            <span>Label Barcode Produk</span>
-          </button>
-
           <button
             onClick={onClose}
             style={{
-              padding: '11px 20px',
+              width: '100%',
+              padding: '12px 20px',
               borderRadius: '14px',
-              border: '1px solid #cbd5e1',
-              background: '#f8fafc',
-              color: '#475569',
+              border: 'none',
+              background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+              color: '#ffffff',
               fontWeight: '700',
-              fontSize: '12.5px',
+              fontSize: '13px',
               cursor: 'pointer'
             }}
           >

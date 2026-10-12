@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, Barcode, Eye, Box, Package, RefreshCw, CheckCircle2, Clock, ChevronRight, Sparkles, CreditCard, AlertCircle } from 'lucide-react';
+import { Search, Filter, Calendar, Eye, Box, Package, RefreshCw, CheckCircle2, Clock, ChevronRight, Sparkles, CreditCard, AlertCircle } from 'lucide-react';
 import { fetchSupplierConsignments } from '../../api/supplierConsignmentApi';
 import SupplierTitipanDetailModal from './SupplierTitipanDetailModal';
-import SupplierBarcodeModal from './SupplierBarcodeModal';
 
 export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
   const [consignments, setConsignments] = useState([]);
@@ -27,7 +26,6 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
 
   // Modals
   const [selectedConsignment, setSelectedConsignment] = useState(null);
-  const [barcodeModalConsignment, setBarcodeModalConsignment] = useState(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -713,52 +711,31 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
                   )}
                 </div>
 
-                {/* Action Buttons Toolbar: Barcode & Detail */}
+                {/* Action Buttons Toolbar: Detail */}
                 <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
                   paddingTop: '8px',
                   borderTop: '1px solid #f1f5f9'
                 }}>
                   <button
-                    onClick={() => setBarcodeModalConsignment(c)}
-                    style={{
-                      background: '#ecfdf5',
-                      border: '1px solid #a7f3d0',
-                      color: '#059669',
-                      borderRadius: '10px',
-                      padding: '7px 12px',
-                      fontSize: '11.5px',
-                      fontWeight: '700',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <Barcode size={14} />
-                    <span>Cetak Barcode</span>
-                  </button>
-
-                  <button
                     onClick={() => setSelectedConsignment(c)}
                     style={{
+                      width: '100%',
                       background: 'linear-gradient(135deg, #1e293b, #0f172a)',
                       color: '#ffffff',
                       border: 'none',
-                      borderRadius: '10px',
-                      padding: '8px 14px',
-                      fontSize: '12px',
+                      borderRadius: '12px',
+                      padding: '9px 14px',
+                      fontSize: '12.5px',
                       fontWeight: '700',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '5px',
+                      justifyContent: 'center',
+                      gap: '6px',
                       cursor: 'pointer'
                     }}
                   >
-                    <Eye size={14} />
-                    <span>Lihat Detail</span>
+                    <Eye size={15} />
+                    <span>Lihat Detail Konsinyasi</span>
                   </button>
                 </div>
               </div>
@@ -772,15 +749,6 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
         <SupplierTitipanDetailModal
           consignment={selectedConsignment}
           onClose={() => setSelectedConsignment(null)}
-          onOpenBarcode={(cons) => setBarcodeModalConsignment(cons)}
-        />
-      )}
-
-      {/* Barcode Print Modal */}
-      {barcodeModalConsignment && (
-        <SupplierBarcodeModal
-          consignment={barcodeModalConsignment}
-          onClose={() => setBarcodeModalConsignment(null)}
         />
       )}
 
