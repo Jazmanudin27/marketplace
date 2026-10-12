@@ -128,19 +128,6 @@ export default function LoginPage({ onLoginSuccess }) {
                 WebkitTextFillColor: 'transparent'
               }}>MARKET</span>
             </span>
-
-            <span style={{
-              background: 'linear-gradient(135deg, #4f46e5, #06b6d4)',
-              fontSize: '9.5px',
-              fontWeight: '800',
-              padding: '3px 8px',
-              borderRadius: '7px',
-              letterSpacing: '0.6px',
-              color: '#ffffff',
-              boxShadow: '0 2px 8px rgba(79, 70, 229, 0.4)'
-            }}>
-              OWNER PRO
-            </span>
           </div>
         </div>
 

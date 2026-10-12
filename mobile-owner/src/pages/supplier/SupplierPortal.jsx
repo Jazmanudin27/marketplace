@@ -6,14 +6,8 @@ import SupplierStockCardPage from './SupplierStockCardPage';
 import SupplierProfilePage from './SupplierProfilePage';
 
 export default function SupplierPortal({ currentUser, onLogout }) {
-  const [activeTab, setActiveTab] = useState(() => {
-    try {
-      const saved = localStorage.getItem('supplier_active_tab');
-      return saved || 'titipan';
-    } catch {
-      return 'titipan';
-    }
-  });
+  // Selalu default ke 'titipan' (Titipan Barang) saat membuka portal supplier
+  const [activeTab, setActiveTab] = useState('titipan');
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);

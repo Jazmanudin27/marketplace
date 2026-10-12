@@ -31,18 +31,14 @@ import { initialOwnerProfile, initialOwnerMetrics, initialOrders } from './api/m
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => getCurrentOwnerUser());
-  const [activeTab, setActiveTab] = useState(() => {
-    try {
-      const savedTab = localStorage.getItem('owner_active_tab');
-      return savedTab || 'home';
-    } catch {
-      return 'home';
-    }
-  });
+  // Selalu default ke 'home' (Beranda) saat membuka portal owner
+  const [activeTab, setActiveTab] = useState('home');
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    localStorage.setItem('owner_active_tab', tab);
+    try {
+      localStorage.setItem('owner_active_tab', tab);
+    } catch (_) {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const [profile, setProfile] = useState(() => {
@@ -183,6 +179,9 @@ export default function App() {
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
     setActiveTab('home');
+    try {
+      localStorage.setItem('owner_active_tab', 'home');
+    } catch (_) {}
   };
 
   const handleOpenOrders = (filter = 'ALL') => {
@@ -215,7 +214,10 @@ export default function App() {
     if (confirm('Apakah Anda yakin ingin keluar dari Portal Owner?')) {
       logoutOwner();
       setCurrentUser(null);
-      handleTabChange('home');
+      setActiveTab('home');
+      try {
+        localStorage.removeItem('owner_active_tab');
+      } catch (_) {}
     }
   };
 
