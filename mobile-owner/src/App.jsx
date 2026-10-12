@@ -311,115 +311,117 @@ export default function App() {
           />
         ) : null}
 
-        {/* Tab Content */}
-        {activeTab === 'home' && (
-          <DashboardPage 
-            metrics={metrics}
-            orders={orders}
-            isLoading={isDataLoading}
-            onSelectOrder={(order) => setSelectedOrder(order)}
-            onViewAllOrders={handleOpenOrders}
-            onOpenFinance={handleOpenFinance}
-            onOpenTarget={() => handleTabChange('target_komisi')}
-            onSelectFinanceMetric={(type) => setSelectedFinanceMetric(type)}
-            onOpenAnalytics={() => handleTabChange('analytics')}
-            onOpenAllModules={() => setIsAllModulesOpen(true)}
-            onSelectMenu={(menuId) => {
-              if (menuId === 'orders') handleOpenOrders('ALL');
-              else if (menuId === 'returns' || menuId === 'retur_masuk') handleTabChange('retur_masuk');
-              else if (menuId === 'analytics') handleTabChange('analytics');
-              else if (menuId === 'target' || menuId === 'target_komisi') handleTabChange('target_komisi');
-              else if (menuId === 'margin' || menuId === 'laba_rugi') handleTabChange('laba_rugi');
-              else if (menuId === 'mutasi' || menuId === 'mutasi_keuangan' || menuId === 'cashflow') handleTabChange('mutasi_keuangan');
-              else if (menuId === 'saldo_marketplace' || menuId === 'marketplace_wallets') handleTabChange('saldo_marketplace');
-              else if (menuId === 'laporan_penjualan' || menuId === 'reports') handleTabChange('laporan_penjualan');
-              else if (menuId === 'scan_kemasan' || menuId === 'scanner') handleTabChange('scan_kemasan');
-              else if (menuId === 'scan_spk' || menuId === 'spks') handleTabChange('scan_spk');
-              else if (menuId === 'settings' || menuId === 'stores' || menuId === 'company' || menuId === 'users') handleTabChange('profile');
-              else if (menuId === 'all_modules') setIsAllModulesOpen(true);
-              else {
-                alert(`📌 Modul "${menuId}" aktif. Membuka data sinkronisasi ERP.`);
-              }
-            }}
-          />
-        )}
+        {/* Tab Content with Fluid Transition */}
+        <div key={activeTab} className="animated-tab-container">
+          {activeTab === 'home' && (
+            <DashboardPage 
+              metrics={metrics}
+              orders={orders}
+              isLoading={isDataLoading}
+              onSelectOrder={(order) => setSelectedOrder(order)}
+              onViewAllOrders={handleOpenOrders}
+              onOpenFinance={handleOpenFinance}
+              onOpenTarget={() => handleTabChange('target_komisi')}
+              onSelectFinanceMetric={(type) => setSelectedFinanceMetric(type)}
+              onOpenAnalytics={() => handleTabChange('analytics')}
+              onOpenAllModules={() => setIsAllModulesOpen(true)}
+              onSelectMenu={(menuId) => {
+                if (menuId === 'orders') handleOpenOrders('ALL');
+                else if (menuId === 'returns' || menuId === 'retur_masuk') handleTabChange('retur_masuk');
+                else if (menuId === 'analytics') handleTabChange('analytics');
+                else if (menuId === 'target' || menuId === 'target_komisi') handleTabChange('target_komisi');
+                else if (menuId === 'margin' || menuId === 'laba_rugi') handleTabChange('laba_rugi');
+                else if (menuId === 'mutasi' || menuId === 'mutasi_keuangan' || menuId === 'cashflow') handleTabChange('mutasi_keuangan');
+                else if (menuId === 'saldo_marketplace' || menuId === 'marketplace_wallets') handleTabChange('saldo_marketplace');
+                else if (menuId === 'laporan_penjualan' || menuId === 'reports') handleTabChange('laporan_penjualan');
+                else if (menuId === 'scan_kemasan' || menuId === 'scanner') handleTabChange('scan_kemasan');
+                else if (menuId === 'scan_spk' || menuId === 'spks') handleTabChange('scan_spk');
+                else if (menuId === 'settings' || menuId === 'stores' || menuId === 'company' || menuId === 'users') handleTabChange('profile');
+                else if (menuId === 'all_modules') setIsAllModulesOpen(true);
+                else {
+                  alert(`📌 Modul "${menuId}" aktif. Membuka data sinkronisasi ERP.`);
+                }
+              }}
+            />
+          )}
 
-        {activeTab === 'orders' && (
-          <OrdersPage 
-            orders={orders}
-            orderCounts={orderCounts}
-            isLoading={isDataLoading}
-            initialFilter={ordersFilter}
-            onSelectOrder={(order) => setSelectedOrder(order)}
-          />
-        )}
+          {activeTab === 'orders' && (
+            <OrdersPage 
+              orders={orders}
+              orderCounts={orderCounts}
+              isLoading={isDataLoading}
+              initialFilter={ordersFilter}
+              onSelectOrder={(order) => setSelectedOrder(order)}
+            />
+          )}
 
-        {activeTab === 'analytics' && (
-          <AnalyticsPage 
-            metrics={metrics}
-            orders={orders}
-          />
-        )}
+          {activeTab === 'analytics' && (
+            <AnalyticsPage 
+              metrics={metrics}
+              orders={orders}
+            />
+          )}
 
-        {activeTab === 'finance' && (
-          <FinancePage 
-            metrics={metrics}
-            onOpenTargetKomisi={() => handleTabChange('target_komisi')}
-          />
-        )}
+          {activeTab === 'finance' && (
+            <FinancePage 
+              metrics={metrics}
+              onOpenTargetKomisi={() => handleTabChange('target_komisi')}
+            />
+          )}
 
-        {activeTab === 'target_komisi' && (
-          <TargetKomisiPage 
-            initialMetrics={metrics}
-          />
-        )}
+          {activeTab === 'target_komisi' && (
+            <TargetKomisiPage 
+              initialMetrics={metrics}
+            />
+          )}
 
-        {activeTab === 'mutasi_keuangan' && (
-          <MutasiKeuanganPage />
-        )}
+          {activeTab === 'mutasi_keuangan' && (
+            <MutasiKeuanganPage />
+          )}
 
-        {activeTab === 'saldo_marketplace' && (
-          <SaldoMarketplacePage />
-        )}
+          {activeTab === 'saldo_marketplace' && (
+            <SaldoMarketplacePage />
+          )}
 
-        {activeTab === 'laporan_penjualan' && (
-          <LaporanPenjualanPage 
-            onSelectOrder={(order) => setSelectedOrder(order)}
-          />
-        )}
+          {activeTab === 'laporan_penjualan' && (
+            <LaporanPenjualanPage 
+              onSelectOrder={(order) => setSelectedOrder(order)}
+            />
+          )}
 
-        {activeTab === 'retur_masuk' && (
-          <ReturMasukPage />
-        )}
+          {activeTab === 'retur_masuk' && (
+            <ReturMasukPage />
+          )}
 
-        {activeTab === 'scan_kemasan' && (
-          <ScanKemasanPage />
-        )}
+          {activeTab === 'scan_kemasan' && (
+            <ScanKemasanPage />
+          )}
 
-        {activeTab === 'scan_spk' && (
-          <ScanSpkPage />
-        )}
+          {activeTab === 'scan_spk' && (
+            <ScanSpkPage />
+          )}
 
-        {activeTab === 'laba_rugi' && (
-          <LabaRugiPage />
-        )}
+          {activeTab === 'laba_rugi' && (
+            <LabaRugiPage />
+          )}
 
-        {activeTab === 'profile' && (
-          <ProfilePage 
-            profile={profile}
-            onLogout={handleLogout}
-            onProfileUpdate={(updatedUser) => {
-              if (updatedUser?.name) {
-                setProfile(prev => ({
-                  ...prev,
-                  name: updatedUser.name,
-                  email: updatedUser.email || prev.email,
-                  avatarInitials: updatedUser.name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase()
-                }));
-              }
-            }}
-          />
-        )}
+          {activeTab === 'profile' && (
+            <ProfilePage 
+              profile={profile}
+              onLogout={handleLogout}
+              onProfileUpdate={(updatedUser) => {
+                if (updatedUser?.name) {
+                  setProfile(prev => ({
+                    ...prev,
+                    name: updatedUser.name,
+                    email: updatedUser.email || prev.email,
+                    avatarInitials: updatedUser.name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                  }));
+                }
+              }}
+            />
+          )}
+        </div>
 
         {/* Floating Bottom Navigation Bar */}
         <BottomNav 
