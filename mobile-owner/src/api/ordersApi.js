@@ -3,13 +3,14 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 /**
  * Fetch Order list with lightweight pagination & filtering
  */
-export async function fetchOrders({ status = 'ALL', search = '', page = 1, limit = 20, todayOnly = false, tab = '' } = {}) {
+export async function fetchOrders({ status = 'ALL', sub_status = '', search = '', page = 1, limit = 100, todayOnly = false, tab = '' } = {}) {
   try {
     const params = new URLSearchParams({ 
       status, 
       search, 
       page: String(page), 
       limit: String(limit),
+      ...(sub_status ? { sub_status } : {}),
       ...(todayOnly ? { today_only: '1', todayOnly: 'true' } : {}),
       ...(tab ? { tab } : {})
     });

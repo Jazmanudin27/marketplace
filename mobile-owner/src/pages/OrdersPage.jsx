@@ -1,71 +1,99 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import OrderCard from '../components/orders/OrderCard';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, Loader2 } from 'lucide-react';
 import { formatRupiah } from '../utils/formatters';
+import { fetchOrders } from '../api/ordersApi';
 
 export default function OrdersPage({ orders, orderCounts, isLoading = false, onSelectOrder, initialFilter = 'ALL' }) {
   const [activeFilter, setActiveFilter] = useState(initialFilter);
   const [activeProcess, setActiveProcess] = useState('ALL'); // ALL, to_process, processed
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Hitung jumlah count riil dari orders lokal jika data API belum masuk
-  const counts = orderCounts?.tabCounts || {};
-  const procCounts = orderCounts?.processCounts || {};
+  const [currentOrders, setCurrentOrders] = useState(orders || []);
+  const [counts, setCounts] = useState(orderCounts?.tabCounts || {});
+  const [procCounts, setProcCounts] = useState(orderCounts?.processCounts || {});
+  const [isFetchingTab, setIsFetchingTab] = useState(false);
+
+  // Sync state if props change
+  useEffect(() => {
+    if (orders && orders.length > 0) {
+      setCurrentOrders(orders);
+    }
+  }, [orders]);
+
+  useEffect(() => {
+    if (orderCounts?.tabCounts) setCounts(orderCounts.tabCounts);
+    if (orderCounts?.processCounts) setProcCounts(orderCounts.processCounts);
+  }, [orderCounts]);
+
+  // Fetch full data from server when switching tab or process status
+  useEffect(() => {
+    let isMounted = true;
+    async function loadTabData() {
+      setIsFetchingTab(true);
+      try {
+        const res = await fetchOrders({
+          status: activeFilter,
+          sub_status: activeProcess !== 'ALL' ? activeProcess : '',
+          limit: 300
+        });
+        if (isMounted && res) {
+          if (Array.isArray(res.data)) {
+            setCurrentOrders(res.data);
+          }
+          if (res.tabCounts) {
+            setCounts(res.tabCounts);
+          }
+          if (res.processCounts) {
+            setProcCounts(res.processCounts);
+          }
+        }
+      } catch (err) {
+        console.warn('Load tab orders failed:', err);
+      } finally {
+        if (isMounted) setIsFetchingTab(false);
+      }
+    }
+
+    loadTabData();
+    return () => { isMounted = false; };
+  }, [activeFilter, activeProcess]);
 
   // Status mapping matching ERP (Semua, Perlu Dikirim, Dikirim, Selesai, Retur, Batal)
   const filterTabs = [
     { id: 'ALL', label: 'Semua', count: counts.ALL ?? (orders || []).length },
-    { id: 'READY_TO_SHIP', label: 'Perlu Dikirim', count: counts.READY_TO_SHIP ?? (orders || []).filter(o => ['READY_TO_SHIP', 'IN_PROCESS', 'PROCESSED', 'SIAP_KIRIM'].includes(o.status)).length, isUrgent: true },
-    { id: 'SHIPPED', label: 'Dikirim', count: counts.SHIPPED ?? (orders || []).filter(o => ['SHIPPED', 'DIKIRIM'].includes(o.status)).length },
+    { id: 'READY_TO_SHIP', label: 'Perlu Dikirim', count: counts.READY_TO_SHIP ?? 0, isUrgent: true },
+    { id: 'SHIPPED', label: 'Dikirim', count: counts.SHIPPED ?? 0 },
     { id: 'COMPLETED', label: 'Selesai', count: counts.COMPLETED ?? 0 },
     { id: 'TO_RETURN', label: 'Retur', count: counts.TO_RETURN ?? 0 },
     { id: 'CANCELLED', label: 'Batal', count: counts.CANCELLED ?? 0 }
   ];
 
   // Process sub-tabs (Khusus tab Perlu Dikirim / ALL)
-  const readyOrders = (orders || []).filter(o => ['READY_TO_SHIP', 'IN_PROCESS', 'PROCESSED', 'SIAP_KIRIM'].includes(o.status));
-  const localToProcess = readyOrders.filter(o => !o.isPrinted && (!o.trackingNumber || o.trackingNumber === '')).length;
-  const localProcessed = readyOrders.filter(o => o.isPrinted || (o.trackingNumber && o.trackingNumber !== '')).length;
-
   const currentTabTotal = (filterTabs.find(t => t.id === activeFilter)?.count) || 0;
-  const toProcessBadge = procCounts.to_process ?? localToProcess;
+  const toProcessBadge = procCounts.to_process ?? 0;
   const processedBadge = (activeFilter === 'READY_TO_SHIP' && currentTabTotal >= toProcessBadge)
     ? (currentTabTotal - toProcessBadge)
-    : (procCounts.processed ?? localProcessed);
+    : (procCounts.processed ?? 0);
 
   const processSubTabs = [
-    { id: 'ALL', label: 'Semua Status', count: (filterTabs.find(t => t.id === activeFilter)?.count) || 0 },
+    { id: 'ALL', label: 'Semua Status', count: currentTabTotal },
     { id: 'to_process', label: 'Belum diproses', count: toProcessBadge, isHighlight: true },
     { id: 'processed', label: 'Telah diproses', count: processedBadge }
   ];
 
-  const filteredOrders = (orders || []).filter((order) => {
-    // 1. Filter status utama
-    if (activeFilter !== 'ALL') {
-      if (activeFilter === 'READY_TO_SHIP' && !['READY_TO_SHIP', 'IN_PROCESS', 'PROCESSED', 'SIAP_KIRIM'].includes(order.status)) return false;
-      if (activeFilter === 'SHIPPED' && !['SHIPPED', 'DIKIRIM'].includes(order.status)) return false;
-      if (activeFilter === 'COMPLETED' && !['COMPLETED', 'RELEASED', 'SELESAI', 'DELIVERED', 'FINISHED'].includes(order.status)) return false;
-      if (activeFilter === 'RETURNED' && !['RETURNED', 'REFUNDED', 'RETUR'].includes(order.status)) return false;
-      if (activeFilter === 'CANCELLED' && !['CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL'].includes(order.status)) return false;
-    }
-
-    // 2. Filter status proses (Belum diproses vs Telah diproses)
-    if (activeProcess !== 'ALL') {
-      const isDone = Boolean(order.isPrinted || (order.trackingNumber && order.trackingNumber !== ''));
-      if (activeProcess === 'to_process' && isDone) return false;
-      if (activeProcess === 'processed' && !isDone) return false;
-    }
-
-    // 3. Filter search
+  // Data sudah difilter server berdasarkan status & sub_status, di client hanya filter search
+  const filteredOrders = (currentOrders || []).filter((order) => {
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
       return (
-        order.invoiceNumber.toLowerCase().includes(q) ||
-        order.storeName.toLowerCase().includes(q) ||
-        order.buyerName.toLowerCase().includes(q)
+        (order.invoiceNumber || '').toLowerCase().includes(q) ||
+        (order.storeName || '').toLowerCase().includes(q) ||
+        (order.buyerName || '').toLowerCase().includes(q) ||
+        (order.orderNumber || '').toLowerCase().includes(q) ||
+        (order.trackingNumber || '').toLowerCase().includes(q)
       );
     }
-
     return true;
   });
 
@@ -208,7 +236,7 @@ export default function OrdersPage({ orders, orderCounts, isLoading = false, onS
 
       {/* Order Cards with Skeleton Support */}
       <div className="order-cards-list">
-        {isLoading ? (
+        {isLoading || isFetchingTab ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {[1, 2, 3, 4].map((i) => (
               <div 
