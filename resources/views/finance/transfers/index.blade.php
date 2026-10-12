@@ -183,8 +183,8 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Nominal Transfer (Rp)</label>
-                            <input type="number" name="amount" min="0.01" step="any"
-                                class="form-control form-control-sm" required placeholder="0">
+                            <input type="text" name="amount" inputmode="numeric"
+                                class="form-control form-control-sm text-end font-monospace number-separator" required placeholder="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Tanggal Transfer</label>
@@ -245,8 +245,8 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Nominal Transfer (Rp)</label>
-                            <input type="number" name="amount" id="edit_amount" min="0.01" step="any"
-                                class="form-control form-control-sm" required>
+                            <input type="text" name="amount" id="edit_amount" inputmode="numeric"
+                                class="form-control form-control-sm text-end font-monospace number-separator" required placeholder="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Tanggal Transfer</label>
@@ -271,6 +271,23 @@
 
     @push('scripts')
         <script>
+            function formatRupiahVal(val) {
+                if (!val) return '';
+                var clean = val.toString().replace(/[^0-9]/g, '');
+                return clean ? new Intl.NumberFormat('id-ID').format(clean) : '';
+            }
+
+            $(document).on('input', '.number-separator', function() {
+                var raw = this.value.replace(/[^0-9]/g, '');
+                this.value = raw ? formatRupiahVal(raw) : '';
+            });
+
+            $(document).on('submit', 'form', function() {
+                $(this).find('.number-separator').each(function() {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+            });
+
             $(document).ready(function() {
                 $('.edit-btn').on('click', function() {
                     const id = $(this).data('id');
@@ -283,7 +300,7 @@
                     $('#editTransferForm').attr('action', `/finance/transfers/${id}`);
                     $('#edit_source').val(source).trigger('change');
                     $('#edit_destination').val(destination).trigger('change');
-                    $('#edit_amount').val(amount);
+                    $('#edit_amount').val(formatRupiahVal(amount));
                     $('#edit_transfer_date').val(transferDate);
                     $('#edit_description').val(description);
                 });

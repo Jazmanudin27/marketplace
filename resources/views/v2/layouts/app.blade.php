@@ -213,8 +213,47 @@
             });
         };
 
+        // Global Number Input Formatter (Rata Kanan & Pemisah Ribuan Titik)
+        window.formatRupiahNumber = function(val) {
+            if (val === null || val === undefined || val === '') return '';
+            var clean = val.toString().replace(/[^0-9]/g, '');
+            if (!clean) return '';
+            return new Intl.NumberFormat('id-ID').format(clean);
+        };
+
+        window.initV2NumberInputs = function(context) {
+            var $inputs = context ? 
+                $(context).find('input.number-separator, input.format-ribuan, input[data-type="currency"]') : 
+                $('input.number-separator, input.format-ribuan, input[data-type="currency"]');
+
+            $inputs.each(function() {
+                var $inp = $(this);
+                $inp.addClass('text-end');
+                if ($inp.val()) {
+                    $inp.val(window.formatRupiahNumber($inp.val()));
+                }
+            });
+        };
+
+        $(document).on('input', 'input.number-separator, input.format-ribuan, input[data-type="currency"]', function() {
+            var raw = this.value.replace(/[^0-9]/g, '');
+            this.value = raw ? window.formatRupiahNumber(raw) : '';
+        });
+
+        // Bersihkan titik sebelum form dikirim agar backend menerima angka murni
+        $(document).on('submit', 'form', function() {
+            $(this).find('input.number-separator, input.format-ribuan, input[data-type="currency"]').each(function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+        });
+
+        $(document).on('shown.bs.modal', '.modal', function() {
+            window.initV2NumberInputs(this);
+        });
+
         $(document).ready(function() {
             window.initV2Select2();
+            window.initV2NumberInputs();
         });
     </script>
 

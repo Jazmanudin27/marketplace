@@ -343,7 +343,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Nominal (Rp) <span class="text-danger">*</span></label>
-                            <input type="number" name="amount" min="0" step="any" class="form-control form-control-sm font-monospace" required placeholder="0">
+                            <input type="text" name="amount" inputmode="numeric" class="form-control form-control-sm font-monospace text-end number-separator" required placeholder="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Tanggal <span class="text-danger">*</span></label>
@@ -418,7 +418,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Nominal (Rp) <span class="text-danger">*</span></label>
-                            <input type="number" name="amount" id="edit_income_amount" min="0" step="any" class="form-control form-control-sm font-monospace" required>
+                            <input type="text" name="amount" id="edit_income_amount" inputmode="numeric" class="form-control form-control-sm font-monospace text-end number-separator" required placeholder="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Tanggal <span class="text-danger">*</span></label>
@@ -493,7 +493,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Nominal (Rp) <span class="text-danger">*</span></label>
-                            <input type="number" name="amount" min="0" step="any" class="form-control form-control-sm font-monospace" required placeholder="0">
+                            <input type="text" name="amount" inputmode="numeric" class="form-control form-control-sm font-monospace text-end number-separator" required placeholder="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Tanggal <span class="text-danger">*</span></label>
@@ -580,7 +580,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Nominal (Rp) <span class="text-danger">*</span></label>
-                            <input type="number" name="amount" id="edit_expense_amount" min="0" step="any" class="form-control form-control-sm font-monospace" required>
+                            <input type="text" name="amount" id="edit_expense_amount" inputmode="numeric" class="form-control form-control-sm font-monospace text-end number-separator" required placeholder="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Tanggal <span class="text-danger">*</span></label>
@@ -661,7 +661,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Nominal Transfer (Rp) <span class="text-danger">*</span></label>
-                            <input type="number" name="amount" min="0.01" step="any" class="form-control form-control-sm font-monospace" required placeholder="0">
+                            <input type="text" name="amount" inputmode="numeric" class="form-control form-control-sm font-monospace text-end number-separator" required placeholder="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Tanggal Transfer <span class="text-danger">*</span></label>
@@ -732,7 +732,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Nominal Transfer (Rp) <span class="text-danger">*</span></label>
-                            <input type="number" name="amount" id="edit_transfer_amount" min="0.01" step="any" class="form-control form-control-sm font-monospace" required>
+                            <input type="text" name="amount" id="edit_transfer_amount" inputmode="numeric" class="form-control form-control-sm font-monospace text-end number-separator" required placeholder="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Tanggal Transfer <span class="text-danger">*</span></label>
@@ -757,6 +757,27 @@
 
 @push('scripts')
 <script>
+    function formatRupiahVal(val) {
+        if (!val) return '';
+        var clean = val.toString().replace(/[^0-9]/g, '');
+        return clean ? new Intl.NumberFormat('id-ID').format(clean) : '';
+    }
+
+    document.querySelectorAll('.number-separator').forEach(function(inp) {
+        inp.addEventListener('input', function() {
+            var raw = this.value.replace(/[^0-9]/g, '');
+            this.value = raw ? formatRupiahVal(raw) : '';
+        });
+    });
+
+    document.querySelectorAll('form').forEach(function(f) {
+        f.addEventListener('submit', function() {
+            f.querySelectorAll('.number-separator').forEach(function(inp) {
+                inp.value = inp.value.replace(/[^0-9]/g, '');
+            });
+        });
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
         // Edit Income
         document.querySelectorAll('.edit-income-btn').forEach(function(btn) {
@@ -767,7 +788,8 @@
                 document.getElementById('edit_income_title').value = this.getAttribute('data-title') || '';
                 document.getElementById('edit_income_category').value = this.getAttribute('data-category') || '';
                 document.getElementById('edit_income_payment_destination').value = this.getAttribute('data-payment_destination') || '';
-                document.getElementById('edit_income_amount').value = this.getAttribute('data-amount') || '';
+                var amt = this.getAttribute('data-amount') || '';
+                document.getElementById('edit_income_amount').value = formatRupiahVal(amt);
                 document.getElementById('edit_income_date').value = this.getAttribute('data-income_date') || '';
                 document.getElementById('edit_income_description').value = this.getAttribute('data-description') || '';
             });
@@ -782,7 +804,8 @@
                 document.getElementById('edit_expense_title').value = this.getAttribute('data-title') || '';
                 document.getElementById('edit_expense_category').value = this.getAttribute('data-category') || '';
                 document.getElementById('edit_expense_payment_source').value = this.getAttribute('data-payment_source') || '';
-                document.getElementById('edit_expense_amount').value = this.getAttribute('data-amount') || '';
+                var amt = this.getAttribute('data-amount') || '';
+                document.getElementById('edit_expense_amount').value = formatRupiahVal(amt);
                 document.getElementById('edit_expense_date').value = this.getAttribute('data-expense_date') || '';
                 document.getElementById('edit_expense_employee_id').value = this.getAttribute('data-employee_id') || '';
                 document.getElementById('edit_expense_description').value = this.getAttribute('data-description') || '';
@@ -797,7 +820,8 @@
                 form.action = "{{ url('finance/transfers') }}/" + id;
                 document.getElementById('edit_transfer_source').value = this.getAttribute('data-source') || '';
                 document.getElementById('edit_transfer_destination').value = this.getAttribute('data-destination') || '';
-                document.getElementById('edit_transfer_amount').value = this.getAttribute('data-amount') || '';
+                var amt = this.getAttribute('data-amount') || '';
+                document.getElementById('edit_transfer_amount').value = formatRupiahVal(amt);
                 document.getElementById('edit_transfer_date').value = this.getAttribute('data-transfer_date') || '';
                 document.getElementById('edit_transfer_description').value = this.getAttribute('data-description') || '';
             });

@@ -234,7 +234,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Nominal (Rp)</label>
-                            <input type="number" name="amount" min="0" step="any" class="form-control form-control-sm" required placeholder="0">
+                            <input type="text" name="amount" inputmode="numeric" class="form-control form-control-sm text-end font-monospace number-separator" required placeholder="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Tanggal</label>
@@ -314,7 +314,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Nominal (Rp)</label>
-                            <input type="number" name="amount" id="edit_amount" min="0" step="any" class="form-control form-control-sm" required>
+                            <input type="text" name="amount" id="edit_amount" inputmode="numeric" class="form-control form-control-sm text-end font-monospace number-separator" required placeholder="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Tanggal</label>
@@ -345,6 +345,23 @@
 
     @push('scripts')
         <script>
+            function formatRupiahVal(val) {
+                if (!val) return '';
+                var clean = val.toString().replace(/[^0-9]/g, '');
+                return clean ? new Intl.NumberFormat('id-ID').format(clean) : '';
+            }
+
+            $(document).on('input', '.number-separator', function() {
+                var raw = this.value.replace(/[^0-9]/g, '');
+                this.value = raw ? formatRupiahVal(raw) : '';
+            });
+
+            $(document).on('submit', 'form', function() {
+                $(this).find('.number-separator').each(function() {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+            });
+
             $(document).ready(function() {
                 $('.edit-btn').on('click', function() {
                     const id = $(this).data('id');
@@ -352,7 +369,7 @@
                     $('#edit_title').val($(this).data('title'));
                     $('#edit_category').val($(this).data('category')).trigger('change');
                     $('#edit_payment_source').val($(this).data('payment_source')).trigger('change');
-                    $('#edit_amount').val($(this).data('amount'));
+                    $('#edit_amount').val(formatRupiahVal($(this).data('amount')));
                     $('#edit_expense_date').val($(this).data('expense_date'));
                     $('#edit_employee_id').val($(this).data('employee_id') || '').trigger('change');
                     $('#edit_description').val($(this).data('description'));

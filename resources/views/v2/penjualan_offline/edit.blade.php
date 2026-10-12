@@ -86,7 +86,7 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label small fw-semibold text-secondary mb-1">Qty</label>
-                            <input type="number" id="input_qty" value="1" min="1" class="form-control form-control-sm text-center font-monospace fw-bold">
+                            <input type="text" id="input_qty" value="1" inputmode="numeric" class="form-control form-control-sm text-end font-monospace fw-bold number-separator">
                         </div>
                         <div class="col-md-2">
                             <label class="form-label small fw-semibold text-secondary mb-1">Harga Satuan</label>
@@ -311,6 +311,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    inputQty.addEventListener('input', function() {
+        this.value = formatRupiah(parseRupiah(this.value));
+    });
+
     inputPrice.addEventListener('input', function() {
         this.value = formatRupiah(parseRupiah(this.value));
     });
@@ -405,8 +409,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <input type="hidden" name="items[${index}][master_product_id]" value="${item.id}">
                     </td>
                     <td class="text-center">
-                        <input type="number" name="items[${index}][quantity]" value="${item.qty}" min="1"
-                               class="form-control form-control-sm text-center font-monospace fw-bold cart-qty-input" data-index="${index}" style="width: 70px; margin: 0 auto;">
+                        <input type="text" name="items[${index}][quantity]" value="${formatRupiah(item.qty)}" inputmode="numeric"
+                               class="form-control form-control-sm text-end font-monospace fw-bold cart-qty-input number-separator" data-index="${index}" style="width: 75px; margin: 0 auto;">
                     </td>
                     <td class="text-end">
                         <div class="input-group input-group-sm" style="width: 140px; margin-left: auto;">
@@ -432,10 +436,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Event listener ubah Qty di tabel
         document.querySelectorAll('.cart-qty-input').forEach(inp => {
-            inp.addEventListener('change', function() {
+            inp.addEventListener('input', function() {
                 const idx = parseInt(this.dataset.index);
-                const val = parseInt(this.value) || 1;
-                cart[idx].qty = val;
+                const val = parseRupiah(this.value);
+                this.value = formatRupiah(val);
+                cart[idx].qty = val > 0 ? val : 1;
+                calculateTotals();
+            });
+            inp.addEventListener('blur', function() {
                 renderCart();
             });
         });
@@ -499,6 +507,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Keranjang kasir masih kosong!');
                 return false;
             }
+            document.querySelectorAll('.cart-qty-input').forEach(inp => {
+                inp.value = parseRupiah(inp.value);
+            });
             document.querySelectorAll('.cart-price-input').forEach(inp => {
                 inp.value = parseRupiah(inp.value);
             });

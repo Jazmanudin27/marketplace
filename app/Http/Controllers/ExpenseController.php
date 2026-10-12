@@ -61,6 +61,10 @@ class ExpenseController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
+        if ($request->has('amount')) {
+            $request->merge(['amount' => (float) preg_replace('/[^0-9.]/', '', str_replace('.', '', (string) $request->amount))]);
+        }
+
         $validated = $request->validate([
             'title'          => 'required|string|max:255',
             'category'       => 'required|string|max:100',
@@ -105,6 +109,10 @@ class ExpenseController extends Controller
         $tenantId = Auth::user()->tenant_id;
         if ($expense->tenant_id !== $tenantId) {
             abort(403);
+        }
+
+        if ($request->has('amount')) {
+            $request->merge(['amount' => (float) preg_replace('/[^0-9.]/', '', str_replace('.', '', (string) $request->amount))]);
         }
 
         $validated = $request->validate([

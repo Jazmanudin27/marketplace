@@ -36,6 +36,10 @@ class FundTransferController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
+        if ($request->has('amount')) {
+            $request->merge(['amount' => (float) preg_replace('/[^0-9.]/', '', str_replace('.', '', (string) $request->amount))]);
+        }
+
         $validated = $request->validate([
             'source'        => 'required|string|max:100',
             'destination'   => 'required|string|max:100|different:source',
@@ -82,6 +86,10 @@ class FundTransferController extends Controller
         $tenantId = Auth::user()->tenant_id;
         if ($transfer->tenant_id !== $tenantId) {
             abort(403);
+        }
+
+        if ($request->has('amount')) {
+            $request->merge(['amount' => (float) preg_replace('/[^0-9.]/', '', str_replace('.', '', (string) $request->amount))]);
         }
 
         $validated = $request->validate([
