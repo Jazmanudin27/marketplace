@@ -17,6 +17,18 @@
             <i class="bi bi-printer me-1"></i> Cetak Laporan
         </a>
 
+        <form action="{{ route('v2.marketplace_produk.auto_link') }}" method="POST" class="d-inline m-0"
+            data-swal-title="Tautkan Otomatis (Masal)?"
+            data-swal-text="Sistem akan mencocokkan produk marketplace ke Master Product berdasarkan kesamaan SKU."
+            data-swal-icon="info"
+            data-swal-btn="Ya, Tautkan Otomatis!"
+            data-swal-color="#0284c7">
+            @csrf
+            <button type="submit" class="btn btn-sm btn-outline-primary py-1.5 px-3 shadow-xs">
+                <i class="bi bi-magic me-1"></i> Tautkan Otomatis
+            </button>
+        </form>
+
         <form action="{{ route('v2.marketplace_produk.bulk_promote') }}" method="POST" class="d-inline m-0"
             data-swal-title="Jadikan Master (Masal)?"
             data-swal-text="Semua produk yang belum ditautkan akan dijadikan Master Product baru. SKU kosong akan dibuatkan otomatis."
@@ -307,6 +319,12 @@
                         <td class="text-center">
                             @if (!$product->masterProduct)
                                 <div class="d-flex align-items-center justify-content-center gap-1.5">
+                                    <button type="button" class="btn-action-icon btn-action-detail rounded-2"
+                                        title="Tautkan ke Master Product"
+                                        onclick="openLinkModal('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ addslashes($product->marketplace_sku ?? '') }}')">
+                                        <i class="bi bi-link-45deg text-white"></i>
+                                    </button>
+
                                     <form action="{{ route('v2.marketplace_produk.promote', $product->id) }}" method="POST" class="d-inline m-0"
                                         data-swal-title="Jadikan Master Product?"
                                         data-swal-text="Produk ini akan dijadikan Master Product baru di sistem ERP."
@@ -382,6 +400,51 @@
     </div>
 </div>
 
+<!-- Modal Tautkan ke Master Product -->
+<div class="modal fade" id="linkMasterModal" tabindex="-1" aria-labelledby="linkMasterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="linkMasterForm" action="" method="POST" class="modal-content border-0 shadow">
+            @csrf
+            <div class="modal-header py-2.5 px-3 bg-primary text-white">
+                <h6 class="modal-title fw-bold" id="linkMasterModalLabel" style="font-size: 0.88rem;">
+                    <i class="bi bi-link-45deg me-1"></i> Tautkan ke Master Product
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="mb-2 p-2 rounded bg-light border">
+                    <small class="text-muted d-block" style="font-size: 0.7rem;">Produk Marketplace:</small>
+                    <div class="fw-bold text-dark text-truncate" id="linkModalProdName" style="font-size: 0.82rem;">-</div>
+                    <small class="text-muted" style="font-size: 0.72rem;">SKU: <code id="linkModalProdSku" class="text-primary">-</code></small>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold text-secondary mb-1">
+                        Pilih Master Product Tujuan <span class="text-danger">*</span>
+                    </label>
+                    <select name="master_product_id" id="modal_master_product_id" class="form-select form-select-sm" required style="width: 100%;">
+                        <option value="">-- Cari / Pilih Master Product --</option>
+                        @foreach($masterProducts as $master)
+                            <option value="{{ $master->id }}">
+                                {{ $master->name }} (SKU: {{ $master->sku ?: 'Tanpa SKU' }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="form-text text-muted" style="font-size: 0.68rem;">
+                        <i class="bi bi-info-circle me-1"></i>Produk tanpa SKU marketplace tetap dapat ditautkan ke Master Product yang Anda pilih di sini.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2 px-3 bg-light">
+                <button type="button" class="btn btn-sm btn-secondary px-3" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-sm btn-primary px-3 fw-semibold">
+                    <i class="bi bi-check-circle me-1"></i> Simpan Tautan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Modal Zoom Image -->
 <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -403,6 +466,29 @@ function showImageModal(src, title) {
     document.getElementById('imagePreviewTitle').innerText = title;
     const myModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
     myModal.show();
+}
+
+function openLinkModal(productId, productName, productSku) {
+    const form = document.getElementById('linkMasterForm');
+    form.action = `/v2/marketplace-produk/${productId}/link`;
+    document.getElementById('linkModalProdName').innerText = productName;
+    document.getElementById('linkModalProdSku').innerText = productSku ? productSku : '(Tanpa SKU)';
+
+    const modalEl = document.getElementById('linkMasterModal');
+    const modalObj = new bootstrap.Modal(modalEl);
+    modalObj.show();
+
+    // Inisialisasi select2 jika ada di layout
+    setTimeout(function() {
+        if (typeof $ !== 'undefined' && $.fn.select2) {
+            $('#modal_master_product_id').select2({
+                dropdownParent: $('#linkMasterModal'),
+                theme: 'bootstrap-5',
+                placeholder: '-- Cari / Pilih Master Product --',
+                width: '100%'
+            });
+        }
+    }, 200);
 }
 </script>
 @endsection

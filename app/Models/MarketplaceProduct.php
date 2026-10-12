@@ -83,7 +83,7 @@ class MarketplaceProduct extends Model
                 $product->description = static::cleanHtmlDescription($product->description);
             }
 
-            // Otomatis sinkronkan master_product_id berdasarkan marketplace_sku terbaru
+            // Otomatis sinkronkan master_product_id jika ada marketplace_sku yang cocok
             if (!empty($product->marketplace_sku)) {
                 $store = $product->store;
                 if ($store) {
@@ -94,17 +94,14 @@ class MarketplaceProduct extends Model
                     if ($master) {
                         $product->master_product_id = $master->id;
                         $product->sync_stock = true; // Otomatis aktifkan sinkronisasi stok
-                    } else {
-                        // Jika SKU di marketplace berubah dan tidak cocok dengan Master Product manapun, hilangkan tautan lama
-                        if ($product->isDirty('marketplace_sku')) {
-                            $product->master_product_id = null;
-                        }
+                    } elseif ($product->isDirty('marketplace_sku') && !empty($product->getOriginal('marketplace_sku')) && !$product->isDirty('master_product_id')) {
+                        // Hanya batalkan jika SKU marketplace diubah dan tidak ada yang cocok
+                        $product->master_product_id = null;
                     }
                 }
-            } else {
-                if ($product->isDirty('marketplace_sku')) {
-                    $product->master_product_id = null;
-                }
+            } elseif ($product->isDirty('marketplace_sku') && !empty($product->getOriginal('marketplace_sku')) && !$product->isDirty('master_product_id')) {
+                // Hanya batalkan jika sebelumnya memiliki SKU lalu dihapus dari marketplace
+                $product->master_product_id = null;
             }
 
             // Jika produk sudah ditautkan ke Master Product, dan Master Product belum memiliki deskripsi

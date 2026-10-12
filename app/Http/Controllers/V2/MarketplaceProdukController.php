@@ -209,9 +209,16 @@ class MarketplaceProdukController extends Controller
         $master = MasterProduct::findOrFail($request->master_product_id);
         abort_unless($master->tenant_id === Auth::user()->tenant_id, 403);
 
+        // Jika produk marketplace tidak punya SKU, dan master product punya SKU, samakan SKU-nya
+        $skuToSet = $product->marketplace_sku;
+        if (empty($skuToSet) && !empty($master->sku)) {
+            $skuToSet = $master->sku;
+        }
+
         $product->update([
-            'marketplace_sku' => $master->sku,
+            'marketplace_sku'   => $skuToSet,
             'master_product_id' => $master->id,
+            'sync_stock'        => true,
         ]);
 
         if (empty($master->image_url) && !empty($product->image_url)) {
@@ -305,6 +312,7 @@ class MarketplaceProdukController extends Controller
                         $linkedCount++;
                     }
                 } else {
+                    // Jika SKU berubah dan tidak cocok dengan master manapun
                     if ($product->master_product_id !== null) {
                         $product->update([
                             'master_product_id' => null,
@@ -312,17 +320,11 @@ class MarketplaceProdukController extends Controller
                         $unlinkedCount++;
                     }
                 }
-            } else {
-                if ($product->master_product_id !== null) {
-                    $product->update([
-                        'master_product_id' => null,
-                    ]);
-                    $unlinkedCount++;
-                }
             }
+            // Catatan: Jika produk tidak memiliki SKU marketplace, jangan hapus tautan manual yang sudah dibuat
         }
 
-        return back()->with('success', "Pembaruan Tautan Selesai. {$linkedCount} produk ditautkan ke Master Produk sesuai SKU terbaru, dan {$unlinkedCount} tautan lama yang SKU-nya sudah berubah/tidak ada dibersihkan.");
+        return back()->with('success', "Pembaruan Tautan Selesai. {$linkedCount} produk ditautkan ke Master Produk sesuai kesamaan SKU.");
     }
 
     public function bulkPromote()
