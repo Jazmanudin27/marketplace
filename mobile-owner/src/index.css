@@ -679,10 +679,17 @@ body {
 /* Modal Bottom-Sheet */
 .modal-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.6);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(4px);
-  z-index: 2000;
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 9999;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -697,9 +704,10 @@ body {
   border-top-left-radius: 28px;
   border-top-right-radius: 28px;
   overflow-y: auto;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35);
   animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   padding: 16px 20px 32px;
+  margin-bottom: 0;
 }
 
 .sheet-handle {
@@ -1107,20 +1115,17 @@ body {
 /* =========================================================
    FLUID MOBILE ANIMATIONS & MICRO-INTERACTIONS
    ========================================================= */
-@keyframes tabEnterSlideUp {
+@keyframes tabEnterFadeIn {
   0% {
     opacity: 0;
-    transform: translateY(12px) scale(0.99);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 
 .animated-tab-container {
-  animation: tabEnterSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: transform, opacity;
+  animation: tabEnterFadeIn 0.22s ease-out forwards;
 }
 
 /* Staggered card entry feel */
