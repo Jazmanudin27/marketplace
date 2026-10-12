@@ -27,8 +27,11 @@ export default function OrdersPage({ orders, orderCounts, isLoading = false, onS
   const localToProcess = readyOrders.filter(o => !o.isPrinted && (!o.trackingNumber || o.trackingNumber === '')).length;
   const localProcessed = readyOrders.filter(o => o.isPrinted || (o.trackingNumber && o.trackingNumber !== '')).length;
 
+  const currentTabTotal = (filterTabs.find(t => t.id === activeFilter)?.count) || 0;
   const toProcessBadge = procCounts.to_process ?? localToProcess;
-  const processedBadge = procCounts.processed ?? localProcessed;
+  const processedBadge = (activeFilter === 'READY_TO_SHIP' && currentTabTotal >= toProcessBadge)
+    ? (currentTabTotal - toProcessBadge)
+    : (procCounts.processed ?? localProcessed);
 
   const processSubTabs = [
     { id: 'ALL', label: 'Semua Status', count: (filterTabs.find(t => t.id === activeFilter)?.count) || 0 },

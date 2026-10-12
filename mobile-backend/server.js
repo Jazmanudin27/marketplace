@@ -915,26 +915,29 @@ app.get('/api/v2/owner/orders', async (req, res) => {
     const [cCancelled] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND UPPER(o.order_status) IN (${cancelledStatusesList})`, [tenantId]);
     const [cUnpaid] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND UPPER(o.order_status) IN (${unpaidStatusesList})`, [tenantId]);
 
-    // Sub-tab Belum diproses & Telah diproses persis ERP
+    // Sub-tab Belum diproses & Telah diproses (khusus pesanan Perlu Dikirim)
     const [cToProcess] = await query(
       `SELECT COUNT(*) as cnt FROM orders o 
        WHERE o.tenant_id = ? 
+         AND UPPER(o.order_status) IN (${perluDikirimStatusesList})
          AND (o.is_printed = 0 OR o.is_printed IS NULL) 
-         AND (o.tracking_number IS NULL OR o.tracking_number = '') 
-         AND UPPER(o.order_status) IN (${unprocessedStatusesList})`,
+         AND (o.tracking_number IS NULL OR o.tracking_number = '')`,
       [tenantId]
     );
 
     const [cProcessed] = await query(
       `SELECT COUNT(*) as cnt FROM orders o 
        WHERE o.tenant_id = ? 
+         AND UPPER(o.order_status) IN (${perluDikirimStatusesList})
          AND (
            o.is_printed = 1 
-           OR UPPER(o.order_status) IN (${processedStatusesList}) 
            OR (o.tracking_number IS NOT NULL AND o.tracking_number != '')
          )`,
       [tenantId]
     );
+
+    const toProcessVal = cToProcess?.cnt || 0;
+    const processedVal = cProcessed?.cnt ?? Math.max(0, (cPerlu?.cnt || 0) - toProcessVal);
 
     const tabCounts = {
       ALL: cAllActive?.cnt || 0,
@@ -948,8 +951,8 @@ app.get('/api/v2/owner/orders', async (req, res) => {
     };
 
     const processCounts = {
-      to_process: cToProcess?.cnt || 0,
-      processed: cProcessed?.cnt || 0,
+      to_process: toProcessVal,
+      processed: processedVal,
     };
 
     // Build filter query
