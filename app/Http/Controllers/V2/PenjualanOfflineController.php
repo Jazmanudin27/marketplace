@@ -35,7 +35,7 @@ class PenjualanOfflineController extends Controller
             $orphanedSale->update(['status' => $reverted]);
         }
 
-        $query = OfflineSale::with(['user', 'items', 'spks'])
+        $query = OfflineSale::with(['user', 'items', 'spks', 'store'])
             ->where('tenant_id', $tenantId)
             ->orderByDesc('created_at');
 
@@ -228,7 +228,11 @@ class PenjualanOfflineController extends Controller
             ->orderBy('bank_name')
             ->get();
 
-        return view('v2.penjualan_offline.create', compact('products', 'customers', 'bankAccounts'));
+        $stores = \App\Models\Store::where('tenant_id', $tenantId)
+            ->orderBy('store_name')
+            ->get();
+
+        return view('v2.penjualan_offline.create', compact('products', 'customers', 'bankAccounts', 'stores'));
     }
 
     /**
@@ -264,7 +268,7 @@ class PenjualanOfflineController extends Controller
     public function show($id)
     {
         $tenantId = Auth::user()->tenant_id;
-        $sale = OfflineSale::with(['user', 'items.masterProduct', 'payments', 'spks'])
+        $sale = OfflineSale::with(['user', 'items.masterProduct', 'payments', 'spks', 'store'])
             ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
@@ -302,6 +306,10 @@ class PenjualanOfflineController extends Controller
             ->orderBy('bank_name')
             ->get();
 
+        $stores = \App\Models\Store::where('tenant_id', $tenantId)
+            ->orderBy('store_name')
+            ->get();
+
         $initialCartItems = $offlineSale->items->map(function ($i) {
             return [
                 'id'    => $i->master_product_id,
@@ -312,7 +320,7 @@ class PenjualanOfflineController extends Controller
             ];
         })->values();
 
-        return view('v2.penjualan_offline.edit', compact('offlineSale', 'products', 'customers', 'bankAccounts', 'initialCartItems'));
+        return view('v2.penjualan_offline.edit', compact('offlineSale', 'products', 'customers', 'bankAccounts', 'stores', 'initialCartItems'));
     }
 
     /**

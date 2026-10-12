@@ -515,6 +515,11 @@
                         <td>
                             <div class="buyer-name">{{ $sale->buyer_name ?: 'Umum (Pelanggan Walk-in)' }}</div>
                             <div class="d-flex align-items-center gap-1.5 flex-wrap mt-0.5">
+                                @if($sale->store)
+                                    <span class="badge bg-light text-dark border" style="font-size: 0.68rem; padding: 2px 5px;">
+                                        <i class="bi bi-shop text-primary me-0.5"></i>{{ $sale->store->store_name }}
+                                    </span>
+                                @endif
                                 @if($sale->institution_name)
                                     <span class="buyer-instansi">
                                         <i class="bi bi-building"></i>{{ $sale->institution_name }}

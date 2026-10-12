@@ -535,17 +535,20 @@
         });
 
         // Store or Tenant branding
-        $tenantName = $tenant->name ?? 'Ruang Seragam';
+        $selectedStore = $offlineSale->store ?? null;
+        $tenantName = $selectedStore ? $selectedStore->store_name : ($tenant->name ?? 'Ruang Seragam');
         $parts = explode(' ', trim($tenantName), 2);
         $brandLine1 = strtoupper($parts[0] ?? $tenantName);
         $brandLine2 = strtoupper($parts[1] ?? '');
 
-        // Check if there is an active store logo for this tenant
-        $storeWithLogo = null;
-        if (isset($tenant->stores)) {
+        // Check if there is an active store logo
+        $brandLogoUrl = null;
+        if ($selectedStore && !empty($selectedStore->logo_path)) {
+            $brandLogoUrl = $selectedStore->logo_url;
+        } elseif (isset($tenant->stores)) {
             $storeWithLogo = $tenant->stores->first(fn($s) => !empty($s->logo_path));
+            $brandLogoUrl = $storeWithLogo ? $storeWithLogo->logo_url : null;
         }
-        $brandLogoUrl = $storeWithLogo ? $storeWithLogo->logo_url : null;
     @endphp
 
     @if (($format ?? 'invoice') !== 'thermal')

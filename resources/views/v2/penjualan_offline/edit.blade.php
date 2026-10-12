@@ -156,6 +156,20 @@
                 </div>
                 <div class="card-body p-3">
                     <div class="mb-2.5">
+                        <label class="form-label small fw-semibold text-secondary mb-1">
+                            <i class="bi bi-shop me-1 text-primary"></i> Toko / Cabang Asal
+                        </label>
+                        <select name="store_id" id="store_id" class="form-select form-select-sm">
+                            <option value="">-- Pilih Toko (Default / Toko Utama) --</option>
+                            @foreach($stores as $st)
+                                <option value="{{ $st->id }}" {{ $offlineSale->store_id == $st->id ? 'selected' : '' }}>
+                                    {{ $st->store_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-2.5">
                         <label class="form-label small fw-semibold text-secondary mb-1">Pelanggan Terdaftar (Opsional)</label>
                         <select name="customer_id" id="customer_id" class="form-select form-select-sm">
                             <option value="">-- Pelanggan Walk-in (Umum) --</option>

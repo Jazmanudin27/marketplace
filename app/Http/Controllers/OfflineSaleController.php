@@ -134,6 +134,7 @@ class OfflineSaleController extends Controller
     {
         $rules = [
             'customer_id'               => 'nullable|exists:customers,id',
+            'store_id'                  => 'nullable|exists:stores,id',
             'items'                     => 'required|array|min:1',
             'items.*.master_product_id' => 'required|exists:master_products,id',
             'items.*.quantity'          => 'required|integer|min:1',
@@ -291,6 +292,7 @@ class OfflineSaleController extends Controller
                 'tenant_id'       => $tenantId,
                 'user_id'         => Auth::id(),
                 'customer_id'     => $customerId,
+                'store_id'        => $request->store_id,
                 'sale_number'     => OfflineSale::generateSaleNumber(),
                 'status'          => $initialStatus,
                 'buyer_name'      => $request->buyer_name,
@@ -414,6 +416,7 @@ class OfflineSaleController extends Controller
 
         $rules = [
             'customer_id'               => 'nullable|exists:customers,id',
+            'store_id'                  => 'nullable|exists:stores,id',
             'items'                     => 'required|array|min:1',
             'items.*.master_product_id' => 'required|exists:master_products,id',
             'items.*.quantity'          => 'required|integer|min:1',
@@ -621,6 +624,7 @@ class OfflineSaleController extends Controller
 
             $updateFields = [
                 'customer_id'       => $customerId,
+                'store_id'          => $request->store_id,
                 'buyer_name'        => $request->buyer_name,
                 'buyer_phone'       => $request->buyer_phone,
                 'institution_name'  => $request->institution_name,

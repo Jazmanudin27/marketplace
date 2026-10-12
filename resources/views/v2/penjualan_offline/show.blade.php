@@ -146,6 +146,12 @@
             </div>
             <div class="card-body p-3" style="font-size: 0.85rem;">
                 <div class="mb-2">
+                    <small class="text-muted d-block">Toko / Cabang Asal:</small>
+                    <span class="badge bg-light text-dark border px-2 py-1">
+                        <i class="bi bi-shop text-primary me-1"></i>{{ $sale->store->store_name ?? 'Toko Utama' }}
+                    </span>
+                </div>
+                <div class="mb-2">
                     <small class="text-muted d-block">Nama Pembeli:</small>
                     <span class="fw-bold text-dark fs-6">{{ $sale->buyer_name ?: 'Pelanggan Walk-in (Umum)' }}</span>
                 </div>

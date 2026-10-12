@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class OfflineSale extends Model
 {
     protected $fillable = [
-        'tenant_id', 'user_id', 'customer_id', 'sale_number', 'status',
+        'tenant_id', 'store_id', 'user_id', 'customer_id', 'sale_number', 'status',
         'buyer_name', 'buyer_phone', 'institution_name', 'payment_method', 'payment_destination',
         'total_amount', 'discount_amount', 'discount_type', 'discount_value', 'grand_total',
         'paid_amount', 'change_amount', 'notes', 'sold_at',
@@ -49,6 +49,11 @@ class OfflineSale extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
     }
 
     public function user(): BelongsTo
