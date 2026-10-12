@@ -94,14 +94,6 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
       category: 'Keuangan',
       icon: LineChart,
       gradient: 'linear-gradient(135deg, #10b981, #047857)'
-    },
-    {
-      id: 'all_modules',
-      title: 'Lainnya',
-      category: 'ERP Lengkap',
-      icon: Grid,
-      gradient: 'linear-gradient(135deg, #475569, #334155)',
-      isAction: true
     }
   ];
 

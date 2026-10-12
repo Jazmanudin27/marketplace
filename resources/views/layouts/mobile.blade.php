@@ -246,73 +246,169 @@
             border-top: 1px solid var(--border-card);
         }
 
-        /* Floating premium bottom nav */
+        /* Floating colorful premium bottom nav */
         .bottom-nav {
             position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            height: 68px;
-            background: @if(request()->routeIs('mobile.owner*')) rgba(255, 255, 255, 0.9) @else rgba(18, 24, 41, 0.85) @endif;
+            bottom: 16px;
+            left: 14px;
+            right: 14px;
+            height: 70px;
+            background: @if(request()->routeIs('mobile.owner*')) rgba(255, 255, 255, 0.94) @else rgba(15, 23, 42, 0.92) @endif;
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--border-card);
-            border-radius: 20px;
+            border: 1px solid @if(request()->routeIs('mobile.owner*')) rgba(226, 232, 240, 0.9) @else rgba(255, 255, 255, 0.1) @endif;
+            border-radius: 22px;
             display: flex;
             justify-content: space-around;
             align-items: center;
             z-index: 1000;
-            box-shadow: @if(request()->routeIs('mobile.owner*')) 0 10px 30px rgba(0, 0, 0, 0.08) @else 0 10px 30px rgba(0, 0, 0, 0.5) @endif;
-            padding: 0 10px;
+            box-shadow: @if(request()->routeIs('mobile.owner*')) 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 18px rgba(79, 70, 229, 0.07) @else 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 25px rgba(99, 102, 241, 0.18) @endif;
+            padding: 0 6px;
         }
 
         .nav-item-custom {
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             text-decoration: none;
             color: var(--text-muted);
             font-size: 0.65rem;
-            font-weight: 600;
+            font-weight: 500;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
-            padding: 8px 0;
+            padding: 4px 0 2px;
             flex: 1;
             height: 100%;
+        }
+
+        .nav-icon-box {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
             justify-content: center;
-        }
-
-        .nav-item-custom i {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             margin-bottom: 2px;
+            transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: var(--nav-bg-idle);
+            color: var(--nav-color);
+        }
+
+        .nav-item-custom span {
+            font-size: 0.62rem;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            color: @if(request()->routeIs('mobile.owner*')) #64748b @else #94a3b8 @endif;
             transition: all 0.25s ease;
+            white-space: nowrap;
         }
 
-        .nav-item-custom.active {
-            color: @if(request()->routeIs('mobile.owner*')) #4f46e5 @else #818cf8 @endif;
+        .nav-item-custom:active .nav-icon-box {
+            transform: scale(0.9);
         }
 
-        .nav-item-custom.active i {
-            transform: translateY(-4px);
-            color: @if(request()->routeIs('mobile.owner*')) #4f46e5 @else #818cf8 @endif;
-            @if(!request()->routeIs('mobile.owner*'))
-            text-shadow: 0 0 12px rgba(129, 140, 248, 0.8);
-            @endif
+        /* Active item status */
+        .nav-item-custom.active .nav-icon-box {
+            background: var(--nav-gradient);
+            color: #ffffff !important;
+            transform: translateY(-4px) scale(1.06);
+            box-shadow: 0 6px 16px var(--nav-glow);
         }
 
-        /* Floating active bar/indicator dot */
+        .nav-item-custom.active span {
+            color: var(--nav-color) !important;
+            font-weight: 700;
+            transform: translateY(-1px);
+        }
+
+        /* Micro active indicator dot */
         .nav-item-custom.active::after {
             content: '';
             position: absolute;
-            bottom: 6px;
-            width: 4px;
-            height: 4px;
+            bottom: 3px;
+            width: 5px;
+            height: 5px;
             border-radius: 50%;
-            background-color: @if(request()->routeIs('mobile.owner*')) #4f46e5 @else #818cf8 @endif;
-            @if(!request()->routeIs('mobile.owner*'))
-            box-shadow: 0 0 8px #818cf8;
-            @endif
+            background: var(--nav-color);
+            box-shadow: 0 0 8px var(--nav-color);
+            animation: navPulse 2s infinite ease-in-out;
         }
+
+        @keyframes navPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.35); opacity: 0.6; }
+        }
+
+        /* Theme colors per menu item */
+        /* Home: Royal Indigo */
+        .nav-item-custom.nav-home {
+            --nav-color: #4f46e5;
+            --nav-bg-idle: rgba(79, 70, 229, 0.1);
+            --nav-gradient: linear-gradient(135deg, #6366f1, #4338ca);
+            --nav-glow: rgba(79, 70, 229, 0.45);
+        }
+
+        /* Sales: Emerald Green */
+        .nav-item-custom.nav-sales {
+            --nav-color: #059669;
+            --nav-bg-idle: rgba(16, 185, 129, 0.12);
+            --nav-gradient: linear-gradient(135deg, #10b981, #047857);
+            --nav-glow: rgba(16, 185, 129, 0.45);
+        }
+
+        /* Stok Produk: Amber Gold */
+        .nav-item-custom.nav-stok-produk {
+            --nav-color: #d97706;
+            --nav-bg-idle: rgba(245, 158, 11, 0.12);
+            --nav-gradient: linear-gradient(135deg, #f59e0b, #b45309);
+            --nav-glow: rgba(245, 158, 11, 0.45);
+        }
+
+        /* Stok Barang: Purple Violet */
+        .nav-item-custom.nav-stok-barang {
+            --nav-color: #8b5cf6;
+            --nav-bg-idle: rgba(139, 92, 246, 0.12);
+            --nav-gradient: linear-gradient(135deg, #a78bfa, #6d28d9);
+            --nav-glow: rgba(139, 92, 246, 0.45);
+        }
+
+        /* Gudang: Cyan / Sky */
+        .nav-item-custom.nav-gudang {
+            --nav-color: #0284c7;
+            --nav-bg-idle: rgba(2, 132, 199, 0.12);
+            --nav-gradient: linear-gradient(135deg, #38bdf8, #0369a1);
+            --nav-glow: rgba(2, 132, 199, 0.45);
+        }
+
+        /* Scan: Rose / Crimson */
+        .nav-item-custom.nav-scan {
+            --nav-color: #e11d48;
+            --nav-bg-idle: rgba(225, 29, 72, 0.12);
+            --nav-gradient: linear-gradient(135deg, #fb7185, #be123c);
+            --nav-glow: rgba(225, 29, 72, 0.45);
+        }
+
+        /* Produksi: Vibrant Coral */
+        .nav-item-custom.nav-produksi {
+            --nav-color: #ea580c;
+            --nav-bg-idle: rgba(234, 88, 12, 0.12);
+            --nav-gradient: linear-gradient(135deg, #fb923c, #c2410c);
+            --nav-glow: rgba(234, 88, 12, 0.45);
+        }
+
+        /* High contrast adjustments for dark mode */
+        @if(!request()->routeIs('mobile.owner*'))
+        .nav-item-custom.nav-home { --nav-color: #818cf8; --nav-bg-idle: rgba(129, 140, 248, 0.15); }
+        .nav-item-custom.nav-sales { --nav-color: #34d399; --nav-bg-idle: rgba(52, 211, 153, 0.15); }
+        .nav-item-custom.nav-stok-produk { --nav-color: #fbbf24; --nav-bg-idle: rgba(251, 191, 36, 0.15); }
+        .nav-item-custom.nav-stok-barang { --nav-color: #c084fc; --nav-bg-idle: rgba(192, 132, 252, 0.15); }
+        .nav-item-custom.nav-gudang { --nav-color: #38bdf8; --nav-bg-idle: rgba(56, 189, 248, 0.15); }
+        .nav-item-custom.nav-scan { --nav-color: #fb7185; --nav-bg-idle: rgba(251, 113, 133, 0.15); }
+        .nav-item-custom.nav-produksi { --nav-color: #fb923c; --nav-bg-idle: rgba(251, 146, 60, 0.15); }
+        @endif
+
 
         /* Custom badge */
         .status-badge {
@@ -422,10 +518,10 @@
 <body>
     @php
         $role = Auth::user()->role;
-        $isOwnerActive = request()->routeIs('mobile.owner') && !request()->routeIs('mobile.owner.sales') && !request()->routeIs('mobile.owner.stok_produk') && !request()->routeIs('mobile.owner.stok_barang');
-        $isSalesActive = request()->routeIs('mobile.owner.sales');
-        $isStokProdukActive = request()->routeIs('mobile.owner.stok_produk');
-        $isStokBarangActive = request()->routeIs('mobile.owner.stok_barang');
+        $isOwnerActive = request()->routeIs('mobile.owner') && !request()->routeIs('mobile.owner.sales*') && !request()->routeIs('mobile.owner.stok_produk*') && !request()->routeIs('mobile.owner.stok_barang*');
+        $isSalesActive = request()->routeIs('mobile.owner.sales*');
+        $isStokProdukActive = request()->routeIs('mobile.owner.stok_produk*');
+        $isStokBarangActive = request()->routeIs('mobile.owner.stok_barang*');
         
         $isGudangActive = request()->routeIs('mobile.gudang') || request()->routeIs('mobile.gudang.adjust_stock') || request()->routeIs('mobile.gudang.request_production');
         $isScanActive = request()->routeIs('mobile.gudang.scan*');
@@ -475,40 +571,40 @@
         <nav class="bottom-nav">
             <!-- Tab Owner -->
             @if(in_array($role, ['admin', 'owner', 'finance']))
-                <a href="{{ route('mobile.owner') }}" class="nav-item-custom {{ $isOwnerActive ? 'active' : '' }}">
-                    <i class="fas fa-home"></i>
+                <a href="{{ route('mobile.owner') }}" class="nav-item-custom nav-home {{ $isOwnerActive ? 'active' : '' }}">
+                    <div class="nav-icon-box"><i class="fas fa-home"></i></div>
                     <span>Home</span>
                 </a>
-                <a href="{{ route('mobile.owner.sales') }}" class="nav-item-custom {{ $isSalesActive ? 'active' : '' }}">
-                    <i class="fas fa-shopping-cart"></i>
+                <a href="{{ route('mobile.owner.sales') }}" class="nav-item-custom nav-sales {{ $isSalesActive ? 'active' : '' }}">
+                    <div class="nav-icon-box"><i class="fas fa-shopping-cart"></i></div>
                     <span>Penjualan</span>
                 </a>
-                <a href="{{ route('mobile.owner.stok_produk') }}" class="nav-item-custom {{ $isStokProdukActive ? 'active' : '' }}">
-                    <i class="fas fa-box-open"></i>
+                <a href="{{ route('mobile.owner.stok_produk') }}" class="nav-item-custom nav-stok-produk {{ $isStokProdukActive ? 'active' : '' }}">
+                    <div class="nav-icon-box"><i class="fas fa-box-open"></i></div>
                     <span>Stok Produk</span>
                 </a>
-                <a href="{{ route('mobile.owner.stok_barang') }}" class="nav-item-custom {{ $isStokBarangActive ? 'active' : '' }}">
-                    <i class="fas fa-scroll"></i>
+                <a href="{{ route('mobile.owner.stok_barang') }}" class="nav-item-custom nav-stok-barang {{ $isStokBarangActive ? 'active' : '' }}">
+                    <div class="nav-icon-box"><i class="fas fa-scroll"></i></div>
                     <span>Stok Barang</span>
                 </a>
             @endif
 
             <!-- Tab Gudang (For non-owner roles) -->
             @if(!in_array($role, ['owner']) && in_array($role, ['admin', 'warehouse', 'gudang']))
-                <a href="{{ route('mobile.gudang') }}" class="nav-item-custom {{ $isGudangActive ? 'active' : '' }}">
-                    <i class="fas fa-warehouse"></i>
+                <a href="{{ route('mobile.gudang') }}" class="nav-item-custom nav-gudang {{ $isGudangActive ? 'active' : '' }}">
+                    <div class="nav-icon-box"><i class="fas fa-warehouse"></i></div>
                     <span>Gudang</span>
                 </a>
-                <a href="{{ route('mobile.gudang.scan') }}" class="nav-item-custom {{ $isScanActive ? 'active' : '' }}">
-                    <i class="fas fa-barcode"></i>
+                <a href="{{ route('mobile.gudang.scan') }}" class="nav-item-custom nav-scan {{ $isScanActive ? 'active' : '' }}">
+                    <div class="nav-icon-box"><i class="fas fa-barcode"></i></div>
                     <span>Scan SKU</span>
                 </a>
             @endif
 
             <!-- Tab Produksi (For non-owner roles) -->
             @if(!in_array($role, ['owner']) && in_array($role, ['admin', 'production', 'produksi', 'admin_produksi']))
-                <a href="{{ route('mobile.produksi') }}" class="nav-item-custom {{ $isProduksiActive ? 'active' : '' }}">
-                    <i class="fas fa-tools"></i>
+                <a href="{{ route('mobile.produksi') }}" class="nav-item-custom nav-produksi {{ $isProduksiActive ? 'active' : '' }}">
+                    <div class="nav-icon-box"><i class="fas fa-tools"></i></div>
                     <span>Produksi</span>
                 </a>
             @endif

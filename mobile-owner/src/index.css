@@ -615,20 +615,40 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  color: #64748b;
+  gap: 2px;
+  color: var(--tab-color, #64748b);
   font-size: 11px;
   font-weight: 600;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 3px 6px;
   border-radius: 12px;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 
-.dock-item.active {
-  color: var(--primary);
+.dock-icon-box {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tab-idle-bg, transparent);
+  color: var(--tab-color, #64748b);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dock-item.active .dock-icon-box {
+  background: var(--tab-gradient, var(--primary));
+  color: #ffffff;
+  transform: translateY(-3px) scale(1.08);
+  box-shadow: 0 6px 14px var(--tab-glow, rgba(79, 70, 229, 0.4));
+}
+
+.dock-item.active span {
+  color: var(--tab-color, var(--primary));
   font-weight: 800;
 }
 
