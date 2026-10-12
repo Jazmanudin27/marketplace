@@ -45,10 +45,6 @@ class FinanceCategory extends Model
      */
     public static function seedDefaultsForTenant(int $tenantId): void
     {
-        if (self::where('tenant_id', $tenantId)->exists()) {
-            return;
-        }
-
         $defaultExpenses = [
             ['name' => 'Gaji Karyawan', 'code' => 'salary', 'description' => 'Biaya upah / gaji bulanan atau harian karyawan'],
             ['name' => 'Sewa Tempat', 'code' => 'rent', 'description' => 'Biaya sewa ruko, gudang, atau kantor operasional'],
@@ -58,17 +54,18 @@ class FinanceCategory extends Model
         ];
 
         foreach ($defaultExpenses as $item) {
-            self::create([
-                'tenant_id'   => $tenantId,
-                'name'        => $item['name'],
-                'code'        => $item['code'],
-                'type'        => 'expense',
-                'description' => $item['description'],
-                'is_active'   => true,
-            ]);
+            self::firstOrCreate(
+                ['tenant_id' => $tenantId, 'code' => $item['code'], 'type' => 'expense'],
+                [
+                    'name'        => $item['name'],
+                    'description' => $item['description'],
+                    'is_active'   => true,
+                ]
+            );
         }
 
         $defaultIncomes = [
+            ['name' => 'Pembayaran Piutang Pelanggan', 'code' => 'piutang_pelanggan', 'description' => 'Penerimaan kas atau transfer atas pembayaran / pelunasan piutang pelanggan'],
             ['name' => 'Investasi / Modal', 'code' => 'investment', 'description' => 'Setoran modal pemilik atau suntikan investor'],
             ['name' => 'Refund / Pengembalian', 'code' => 'refund', 'description' => 'Pengembalian dana dari vendor atau pihak ketiga'],
             ['name' => 'Jasa / Layanan', 'code' => 'services', 'description' => 'Pendapatan jasa pengerjaan, servis, atau konsultasi'],
@@ -76,14 +73,14 @@ class FinanceCategory extends Model
         ];
 
         foreach ($defaultIncomes as $item) {
-            self::create([
-                'tenant_id'   => $tenantId,
-                'name'        => $item['name'],
-                'code'        => $item['code'],
-                'type'        => 'income',
-                'description' => $item['description'],
-                'is_active'   => true,
-            ]);
+            self::firstOrCreate(
+                ['tenant_id' => $tenantId, 'code' => $item['code'], 'type' => 'income'],
+                [
+                    'name'        => $item['name'],
+                    'description' => $item['description'],
+                    'is_active'   => true,
+                ]
+            );
         }
     }
 }

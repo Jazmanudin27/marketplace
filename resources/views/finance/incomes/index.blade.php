@@ -222,6 +222,7 @@
                                         <option value="{{ $cat->code }}">{{ $cat->name }}</option>
                                     @endforeach
                                 @else
+                                    <option value="piutang_pelanggan">Pembayaran Piutang Pelanggan</option>
                                     <option value="investment">Investasi / Modal</option>
                                     <option value="refund">Refund / Pengembalian</option>
                                     <option value="services">Jasa / Layanan</option>

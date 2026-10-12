@@ -44,10 +44,11 @@ class Income extends Model
         }
 
         $defaults = [
-            'investment' => 'Investasi / Modal',
-            'refund'     => 'Refund / Pengembalian',
-            'services'   => 'Jasa / Layanan',
-            'other'      => 'Lain-lain',
+            'piutang_pelanggan' => 'Pembayaran Piutang Pelanggan',
+            'investment'        => 'Investasi / Modal',
+            'refund'            => 'Refund / Pengembalian',
+            'services'          => 'Jasa / Layanan',
+            'other'             => 'Lain-lain',
         ];
 
         return static::$categoryCache[$cacheKey] = $defaults[$this->category] ?? ucwords(str_replace('_', ' ', $this->category));
