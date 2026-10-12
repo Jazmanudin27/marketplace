@@ -302,7 +302,17 @@ class PenjualanOfflineController extends Controller
             ->orderBy('bank_name')
             ->get();
 
-        return view('v2.penjualan_offline.edit', compact('offlineSale', 'products', 'customers', 'bankAccounts'));
+        $initialCartItems = $offlineSale->items->map(function ($i) {
+            return [
+                'id'    => $i->master_product_id,
+                'name'  => $i->product_name ?? ($i->masterProduct->name ?? 'Produk POS'),
+                'sku'   => $i->sku ?? ($i->masterProduct->sku ?? ''),
+                'qty'   => (int) $i->quantity,
+                'price' => (float) $i->unit_price,
+            ];
+        })->values();
+
+        return view('v2.penjualan_offline.edit', compact('offlineSale', 'products', 'customers', 'bankAccounts', 'initialCartItems'));
     }
 
     /**
@@ -334,5 +344,17 @@ class PenjualanOfflineController extends Controller
 
         return redirect()->route('v2.penjualan_offline.show', $offlineSale->id)
             ->with('success', "Transaksi #{$offlineSale->sale_number} berhasil diperbarui.");
+    }
+
+    /**
+     * Cancel an offline sale (V2) with reason and stock restitution.
+     */
+    public function cancel(Request $request, $id)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $offlineSale = OfflineSale::where('tenant_id', $tenantId)->findOrFail($id);
+
+        $controller = new \App\Http\Controllers\OfflineSaleController();
+        return $controller->cancel($request, $offlineSale);
     }
 }

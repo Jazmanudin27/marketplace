@@ -262,15 +262,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Inisialisasi awal cart dengan item transaksi yang sudah ada
-    const initialItems = @json($offlineSale->items->map(function($i) {
-        return [
-            'id' => $i->master_product_id,
-            'name' => $i->product_name ?? ($i->masterProduct->name ?? 'Produk POS'),
-            'sku' => $i->sku ?? ($i->masterProduct->sku ?? ''),
-            'qty' => (int) $i->quantity,
-            'price' => (float) $i->unit_price,
-        ];
-    }));
+    const initialItems = @json($initialCartItems ?? []);
 
     let cart = initialItems || [];
 

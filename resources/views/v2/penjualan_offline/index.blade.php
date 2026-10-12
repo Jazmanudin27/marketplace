@@ -178,6 +178,45 @@
     font-size: 0.78rem;
     font-family: 'Courier New', monospace;
 }
+
+.btn-action-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.88rem;
+    transition: all 0.15s ease-in-out;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.btn-action-icon:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+.btn-action-detail {
+    background: #2563eb;
+    color: #ffffff !important;
+}
+.btn-action-detail:hover {
+    background: #1d4ed8;
+}
+.btn-action-edit {
+    background: #f59e0b;
+    color: #ffffff !important;
+}
+.btn-action-edit:hover {
+    background: #d97706;
+}
+.btn-action-cancel {
+    background: #ef4444;
+    color: #ffffff !important;
+}
+.btn-action-cancel:hover {
+    background: #dc2626;
+}
 </style>
 @endpush
 
@@ -401,7 +440,7 @@
                     <th class="text-end py-2.5">Terbayar</th>
                     <th class="text-end py-2.5">Sisa Piutang</th>
                     <th class="text-center py-2.5">Status</th>
-                    <th class="text-center pe-3 py-2.5" style="width: 100px;">Aksi</th>
+                    <th class="text-center pe-3 py-2.5" style="width: 130px;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -470,14 +509,21 @@
                             @endif
                         </td>
                         <td class="text-center pe-3">
-                            <div class="d-flex justify-content-center gap-1">
-                                <a href="{{ route('v2.penjualan_offline.show', $sale->id) }}" class="btn btn-sm btn-outline-primary py-0.5 px-2 rounded-pill" style="font-size: 0.75rem;" title="Lihat Detail Nota">
-                                    <i class="bi bi-eye"></i> Detail
+                            <div class="d-flex justify-content-center align-items-center gap-1.5">
+                                <a href="{{ route('v2.penjualan_offline.show', $sale->id) }}" class="btn-action-icon btn-action-detail" title="Lihat Detail Nota">
+                                    <i class="bi bi-eye"></i>
                                 </a>
                                 @if($sale->status !== 'cancelled')
-                                    <a href="{{ route('v2.penjualan_offline.edit', $sale->id) }}" class="btn btn-sm btn-outline-warning text-dark py-0.5 px-2 rounded-pill" style="font-size: 0.75rem;" title="Edit Nota POS">
-                                        <i class="bi bi-pencil"></i> Edit
+                                    <a href="{{ route('v2.penjualan_offline.edit', $sale->id) }}" class="btn-action-icon btn-action-edit" title="Edit Nota POS">
+                                        <i class="bi bi-pencil"></i>
                                     </a>
+                                    <button type="button" class="btn-action-icon btn-action-cancel btn-trigger-cancel" 
+                                            data-id="{{ $sale->id }}" 
+                                            data-no="{{ $sale->sale_number }}"
+                                            data-buyer="{{ $sale->buyer_name ?: 'Umum (Walk-in)' }}"
+                                            title="Batalkan Transaksi">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
                                 @endif
                             </div>
                         </td>
@@ -500,5 +546,96 @@
         </div>
     @endif
 </div>
+
+{{-- ── Modal Batalkan Transaksi ── --}}
+<div class="modal fade" id="modalCancelSale" tabindex="-1" aria-labelledby="modalCancelSaleLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white py-2.5">
+                <h6 class="modal-title fw-bold" id="modalCancelSaleLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-1.5"></i> Batalkan Transaksi Penjualan
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formCancelSale" method="POST" action="">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-info-circle-fill fs-5 text-warning"></i>
+                        <div>
+                            Pembatalan transaksi akan mengubah status menjadi <strong>Batal</strong> dan otomatis mengembalikan stok barang yang telah terpotong.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold text-uppercase mb-1">No. Nota & Pembeli</label>
+                        <div class="p-2.5 bg-light rounded border">
+                            <div class="fw-bold text-primary font-monospace" id="cancelModalSaleNo">-</div>
+                            <div class="small text-muted" id="cancelModalBuyer">-</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="cancellation_reason" class="form-label small fw-bold text-dark">
+                            Alasan Pembatalan <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="cancellation_reason" name="cancellation_reason" rows="3" 
+                                  placeholder="Tuliskan alasan pembatalan (misal: Pelanggan salah pilih ukuran / Batal beli)..." required minlength="5"></textarea>
+                        <div class="form-text small text-muted">Minimal 5 karakter. Wajib diisi sebagai catatan audit.</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-sm btn-danger px-3 fw-bold shadow-sm">
+                        <i class="bi bi-check-circle me-1"></i> Ya, Batalkan Transaksi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cancelModalEl = document.getElementById('modalCancelSale');
+    const cancelForm = document.getElementById('formCancelSale');
+    const cancelSaleNo = document.getElementById('cancelModalSaleNo');
+    const cancelBuyer = document.getElementById('cancelModalBuyer');
+    const reasonInput = document.getElementById('cancellation_reason');
+
+    let cancelModalInstance = null;
+    if (cancelModalEl && typeof bootstrap !== 'undefined') {
+        cancelModalInstance = new bootstrap.Modal(cancelModalEl);
+    }
+
+    document.querySelectorAll('.btn-trigger-cancel').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const saleId = this.dataset.id;
+            const saleNo = this.dataset.no;
+            const buyer = this.dataset.buyer;
+
+            cancelForm.action = `/v2/penjualan-offline/${saleId}/cancel`;
+            cancelSaleNo.textContent = saleNo;
+            cancelBuyer.textContent = buyer;
+            reasonInput.value = '';
+
+            if (cancelModalInstance) {
+                cancelModalInstance.show();
+            } else {
+                // Fallback prompt jika bootstrap belum ter-init
+                const reason = prompt(`Masukkan alasan pembatalan untuk nota ${saleNo}:`);
+                if (reason && reason.trim().length >= 5) {
+                    reasonInput.value = reason.trim();
+                    cancelForm.submit();
+                } else if (reason !== null) {
+                    alert('Alasan pembatalan minimal 5 karakter!');
+                }
+            }
+        });
+    });
+});
+</script>
+@endpush
 
 @endsection

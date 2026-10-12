@@ -19,6 +19,9 @@
             <a href="{{ route('v2.penjualan_offline.edit', $sale->id) }}" class="btn btn-sm btn-warning text-dark px-3 fw-semibold">
                 <i class="bi bi-pencil-square me-1"></i> Edit Transaksi
             </a>
+            <button type="button" class="btn btn-sm btn-danger px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalCancelSaleDetail">
+                <i class="bi bi-x-circle me-1"></i> Batalkan Transaksi
+            </button>
         @endif
         <a href="{{ route('offline_sales.print', $sale->id) }}?format=invoice" target="_blank" class="btn btn-sm btn-dark px-3">
             <i class="bi bi-printer me-1"></i> Cetak Invoice
@@ -189,5 +192,47 @@
         </div>
     </div>
 </div>
+
+@if($sale->status !== 'cancelled')
+{{-- Modal Batalkan Transaksi --}}
+<div class="modal fade" id="modalCancelSaleDetail" tabindex="-1" aria-labelledby="modalCancelSaleDetailLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white py-2.5">
+                <h6 class="modal-title fw-bold" id="modalCancelSaleDetailLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-1.5"></i> Batalkan Transaksi Penjualan #{{ $sale->sale_number }}
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ route('v2.penjualan_offline.cancel', $sale->id) }}">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-info-circle-fill fs-5 text-warning"></i>
+                        <div>
+                            Pembatalan transaksi akan mengubah status nota menjadi <strong>Batal</strong> dan otomatis mengembalikan stok barang yang terpotong ke inventory.
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="cancellation_reason_detail" class="form-label small fw-bold text-dark">
+                            Alasan Pembatalan <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="cancellation_reason_detail" name="cancellation_reason" rows="3" 
+                                  placeholder="Tuliskan alasan pembatalan transaksi ini..." required minlength="5"></textarea>
+                        <div class="form-text small text-muted">Minimal 5 karakter. Wajib diisi sebagai catatan audit.</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-sm btn-danger px-3 fw-bold shadow-sm">
+                        <i class="bi bi-check-circle me-1"></i> Ya, Batalkan Transaksi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 
 @endsection
