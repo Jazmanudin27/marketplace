@@ -47,9 +47,17 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
       ]
     },
     {
-      group: 'Pembelian & Bahan',
+      group: 'Konsinyasi & Titipan Supplier',
       items: [
         { id: 'titipan_barang', title: 'Titipan Barang (Konsinyasi)', desc: 'Barang titipan supplier, stok & HPP', icon: Boxes, color: '#f59e0b' },
+        { id: 'kartu_stok', title: 'Kartu Stok Konsinyasi', desc: 'Rekap sisa stok & nilai modal persediaan', icon: Layers, color: '#10b981' },
+        { id: 'pembayaran_titipan', title: 'Histori Pembayaran Titipan', desc: 'Rekap pelunasan transfer hasil penjualan', icon: HandCoins, color: '#059669' },
+        { id: 'penjualan_titipan', title: 'Histori Penjualan Titipan', desc: 'Barang titipan laku terjual via pesanan', icon: ShoppingBag, color: '#2563eb' },
+      ]
+    },
+    {
+      group: 'Pembelian & Bahan',
+      items: [
         { id: 'pembelian_masuk', title: 'Pemasukan Barang', desc: 'Penerimaan barang dari supplier', icon: PackagePlus, color: '#f59e0b' },
         { id: 'pembelian_keluar', title: 'Pengeluaran Bahan', desc: 'Bahan keluar untuk produksi', icon: PackageMinus, color: '#ea580c' },
         { id: 'hutang_supplier', title: 'Hutang Supplier', desc: 'Tagihan tempo pembelian barang', icon: CreditCard, color: '#e11d48' },

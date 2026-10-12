@@ -17,8 +17,10 @@ import ScanSpkPage from './pages/ScanSpkPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import SupplierPortal from './pages/supplier/SupplierPortal';
-import SupplierTitipanBarangPage from './pages/supplier/SupplierTitipanBarangPage';
-import SupplierStockCardPage from './pages/supplier/SupplierStockCardPage';
+import OwnerTitipanBarangPage from './pages/owner/OwnerTitipanBarangPage';
+import OwnerStockCardPage from './pages/owner/OwnerStockCardPage';
+import OwnerPaymentHistoryPage from './pages/owner/OwnerPaymentHistoryPage';
+import OwnerSalesHistoryPage from './pages/owner/OwnerSalesHistoryPage';
 import OrderDetailModal from './components/orders/OrderDetailModal';
 import AllModulesModal from './components/dashboard/AllModulesModal';
 import FinanceMetricDetailModal from './components/dashboard/FinanceMetricDetailModal';
@@ -334,6 +336,18 @@ export default function App() {
             subtitle="Rekapitulasi sisa stok & nilai barang titipan supplier"
             onBack={() => handleTabChange('titipan_barang')} 
           />
+        ) : activeTab === 'pembayaran_titipan' ? (
+          <SubPageHeader 
+            title="Histori Pembayaran Titipan" 
+            subtitle="Rekapitulasi transfer & pelunasan hasil penjualan titipan"
+            onBack={() => handleTabChange('titipan_barang')} 
+          />
+        ) : activeTab === 'penjualan_titipan' ? (
+          <SubPageHeader 
+            title="Histori Penjualan Titipan" 
+            subtitle="Rincian pesanan marketplace dari barang titipan konsinyasi"
+            onBack={() => handleTabChange('titipan_barang')} 
+          />
         ) : activeTab === 'profile' ? (
           <SubPageHeader 
             title="Profile" 
@@ -368,6 +382,9 @@ export default function App() {
                 else if (menuId === 'scan_kemasan' || menuId === 'scanner') handleTabChange('scan_kemasan');
                 else if (menuId === 'scan_spk' || menuId === 'spks') handleTabChange('scan_spk');
                 else if (menuId === 'titipan_barang' || menuId === 'supplier_consignments' || menuId === 'consignments') handleTabChange('titipan_barang');
+                else if (menuId === 'kartu_stok' || menuId === 'stock_card') handleTabChange('kartu_stok');
+                else if (menuId === 'pembayaran_titipan' || menuId === 'settlements') handleTabChange('pembayaran_titipan');
+                else if (menuId === 'penjualan_titipan' || menuId === 'sales_history') handleTabChange('penjualan_titipan');
                 else if (menuId === 'settings' || menuId === 'stores' || menuId === 'company' || menuId === 'users') handleTabChange('profile');
                 else if (menuId === 'all_modules') setIsAllModulesOpen(true);
                 else {
@@ -442,15 +459,41 @@ export default function App() {
           )}
 
           {activeTab === 'titipan_barang' && (
-            <SupplierTitipanBarangPage 
-              currentSupplierUser={currentUser}
+            <OwnerTitipanBarangPage 
+              currentOwnerUser={currentUser}
               onOpenStockCard={() => handleTabChange('kartu_stok')}
+              onOpenPayments={() => handleTabChange('pembayaran_titipan')}
+              onOpenSales={() => handleTabChange('penjualan_titipan')}
             />
           )}
 
           {activeTab === 'kartu_stok' && (
-            <SupplierStockCardPage 
-              currentSupplierUser={currentUser}
+            <OwnerStockCardPage 
+              currentOwnerUser={currentUser}
+              onOpenTitipan={() => handleTabChange('titipan_barang')}
+              onOpenStockCard={() => handleTabChange('kartu_stok')}
+              onOpenPayments={() => handleTabChange('pembayaran_titipan')}
+              onOpenSales={() => handleTabChange('penjualan_titipan')}
+            />
+          )}
+
+          {activeTab === 'pembayaran_titipan' && (
+            <OwnerPaymentHistoryPage 
+              currentOwnerUser={currentUser}
+              onOpenTitipan={() => handleTabChange('titipan_barang')}
+              onOpenStockCard={() => handleTabChange('kartu_stok')}
+              onOpenPayments={() => handleTabChange('pembayaran_titipan')}
+              onOpenSales={() => handleTabChange('penjualan_titipan')}
+            />
+          )}
+
+          {activeTab === 'penjualan_titipan' && (
+            <OwnerSalesHistoryPage 
+              currentOwnerUser={currentUser}
+              onOpenTitipan={() => handleTabChange('titipan_barang')}
+              onOpenStockCard={() => handleTabChange('kartu_stok')}
+              onOpenPayments={() => handleTabChange('pembayaran_titipan')}
+              onOpenSales={() => handleTabChange('penjualan_titipan')}
             />
           )}
 
@@ -522,6 +565,9 @@ export default function App() {
             else if (actionId === 'scan_kemasan' || actionId === 'scanner') handleTabChange('scan_kemasan');
             else if (actionId === 'scan_spk' || actionId === 'spks') handleTabChange('scan_spk');
             else if (actionId === 'titipan_barang' || actionId === 'supplier_consignments') handleTabChange('titipan_barang');
+            else if (actionId === 'kartu_stok' || actionId === 'stock_card') handleTabChange('kartu_stok');
+            else if (actionId === 'pembayaran_titipan' || actionId === 'settlements') handleTabChange('pembayaran_titipan');
+            else if (actionId === 'penjualan_titipan' || actionId === 'sales_history') handleTabChange('penjualan_titipan');
             else if (actionId === 'stores' || actionId === 'users' || actionId === 'company') handleTabChange('profile');
             else {
               showAlert({

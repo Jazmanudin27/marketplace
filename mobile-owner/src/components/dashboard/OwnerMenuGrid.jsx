@@ -94,6 +94,20 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
       category: 'Keuangan',
       icon: LineChart,
       gradient: 'linear-gradient(135deg, #10b981, #047857)'
+    },
+    {
+      id: 'titipan_barang',
+      title: 'Titipan Brg',
+      category: 'Konsinyasi',
+      icon: Boxes,
+      gradient: 'linear-gradient(135deg, #f59e0b, #d97706)'
+    },
+    {
+      id: 'kartu_stok',
+      title: 'Kartu Stok',
+      category: 'Konsinyasi',
+      icon: Layers,
+      gradient: 'linear-gradient(135deg, #10b981, #059669)'
     }
   ];
 
