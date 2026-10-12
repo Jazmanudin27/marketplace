@@ -3,10 +3,12 @@ import SupplierHeader from './SupplierHeader';
 import SupplierBottomNav from './SupplierBottomNav';
 import SupplierTitipanBarangPage from './SupplierTitipanBarangPage';
 import SupplierStockCardPage from './SupplierStockCardPage';
+import SupplierPaymentHistoryPage from './SupplierPaymentHistoryPage';
+import SupplierSalesHistoryPage from './SupplierSalesHistoryPage';
 import SupplierProfilePage from './SupplierProfilePage';
 
 export default function SupplierPortal({ currentUser, onLogout }) {
-  // Selalu default ke 'titipan' (Titipan Barang) saat membuka portal supplier
+  // Default ke 'titipan' (Titipan Barang) saat membuka portal supplier
   const [activeTab, setActiveTab] = useState('titipan');
 
   const handleTabChange = (tab) => {
@@ -41,6 +43,18 @@ export default function SupplierPortal({ currentUser, onLogout }) {
             />
           )}
 
+          {activeTab === 'pembayaran' && (
+            <SupplierPaymentHistoryPage
+              currentSupplierUser={currentUser}
+            />
+          )}
+
+          {activeTab === 'penjualan' && (
+            <SupplierSalesHistoryPage
+              currentSupplierUser={currentUser}
+            />
+          )}
+
           {activeTab === 'profile' && (
             <SupplierProfilePage
               currentUser={currentUser}
@@ -49,7 +63,7 @@ export default function SupplierPortal({ currentUser, onLogout }) {
           )}
         </div>
 
-        {/* Bottom Nav Khusus Supplier (Hanya Titipan Barang, Kartu Stok & Akun) */}
+        {/* Bottom Nav Khusus Supplier (Titipan, Stok, Pembayaran, Penjualan, Akun) */}
         <SupplierBottomNav
           activeTab={activeTab}
           onTabChange={handleTabChange}

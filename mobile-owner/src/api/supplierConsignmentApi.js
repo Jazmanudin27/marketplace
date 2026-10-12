@@ -200,3 +200,72 @@ export async function fetchSupplierStockCard(params = {}) {
     data: []
   };
 }
+
+/**
+ * 8. Ambil Riwayat Setoran Pembayaran dari database (Settlements)
+ */
+export async function fetchSupplierSettlements(params = {}) {
+  try {
+    const q = new URLSearchParams();
+    if (params.supplier_id) q.append('supplier_id', params.supplier_id);
+    if (params.search) q.append('search', params.search);
+    if (params.date_from) q.append('date_from', params.date_from);
+    if (params.date_to) q.append('date_to', params.date_to);
+    if (params.payment_method) q.append('payment_method', params.payment_method);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+
+    const res = await fetch(`${API_BASE_URL}/api/v2/owner/supplier-consignments/settlements${qs}`, {
+      headers: getAuthHeaders()
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success) return json;
+    }
+  } catch (err) {
+    console.error('[SupplierApi] Settlements fetch error:', err);
+  }
+
+  return {
+    success: false,
+    kpi: {
+      totalTransaksi: 0,
+      totalQtySettled: 0,
+      totalAmountPaid: 0
+    },
+    data: []
+  };
+}
+
+/**
+ * 9. Ambil Riwayat Penjualan Barang Konsinyasi dari database (Sales History)
+ */
+export async function fetchSupplierSalesHistory(params = {}) {
+  try {
+    const q = new URLSearchParams();
+    if (params.supplier_id) q.append('supplier_id', params.supplier_id);
+    if (params.search) q.append('search', params.search);
+    if (params.date_from) q.append('date_from', params.date_from);
+    if (params.date_to) q.append('date_to', params.date_to);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+
+    const res = await fetch(`${API_BASE_URL}/api/v2/owner/supplier-consignments/sales-history${qs}`, {
+      headers: getAuthHeaders()
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success) return json;
+    }
+  } catch (err) {
+    console.error('[SupplierApi] Sales history fetch error:', err);
+  }
+
+  return {
+    success: false,
+    kpi: {
+      totalTransaksi: 0,
+      totalQtySold: 0,
+      totalCostValue: 0
+    },
+    data: []
+  };
+}

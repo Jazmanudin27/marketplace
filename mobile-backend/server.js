@@ -4702,6 +4702,216 @@ app.get(['/api/v2/owner/supplier-consignments/reports/stock-card', '/api/v2/supp
   }
 });
 
+// 15. RIWAYAT SETORAN PEMBAYARAN SUPPLIER (SETTLEMENTS)
+app.get(['/api/v2/owner/supplier-consignments/settlements', '/api/v2/supplier-consignments/settlements'], async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const supplierId = req.query.supplier_id ? parseInt(req.query.supplier_id, 10) : null;
+    const search = (req.query.search || '').trim();
+    const dateFrom = req.query.date_from;
+    const dateTo = req.query.date_to;
+    const paymentMethod = (req.query.payment_method || '').trim();
+
+    let whereSql = `WHERE scs.tenant_id = ?`;
+    const params = [tenantId];
+
+    if (supplierId) {
+      whereSql += ` AND scs.supplier_id = ?`;
+      params.push(supplierId);
+    }
+    if (search) {
+      whereSql += ` AND (scs.settlement_number LIKE ? OR scs.reference_number LIKE ? OR scs.notes LIKE ? OR s.name LIKE ?)`;
+      const s = `%${search}%`;
+      params.push(s, s, s, s);
+    }
+    if (dateFrom) {
+      whereSql += ` AND DATE(scs.settlement_date) >= ?`;
+      params.push(dateFrom);
+    }
+    if (dateTo) {
+      whereSql += ` AND DATE(scs.settlement_date) <= ?`;
+      params.push(dateTo);
+    }
+    if (paymentMethod) {
+      whereSql += ` AND scs.payment_method = ?`;
+      params.push(paymentMethod);
+    }
+
+    const settlements = await query(
+      `SELECT scs.*, s.name as supplier_name, s.phone as supplier_phone,
+              ba.account_name, ba.account_number, ba.bank_name,
+              u.name as creator_name
+       FROM supplier_consignment_settlements scs
+       LEFT JOIN suppliers s ON s.id = scs.supplier_id
+       LEFT JOIN bank_accounts ba ON ba.id = scs.bank_account_id
+       LEFT JOIN users u ON u.id = scs.created_by
+       ${whereSql}
+       ORDER BY scs.settlement_date DESC, scs.id DESC
+       LIMIT 100`,
+      params
+    );
+
+    const settlementIds = settlements.map(s => s.id);
+    let itemsBySettlement = {};
+    if (settlementIds.length > 0) {
+      const allItems = await query(
+        `SELECT scsi.*, mp.sku, mp.name as product_name
+         FROM supplier_consignment_settlement_items scsi
+         LEFT JOIN master_products mp ON mp.id = scsi.master_product_id
+         WHERE scsi.settlement_id IN (?)`,
+        [settlementIds]
+      );
+      for (const item of allItems) {
+        if (!itemsBySettlement[item.settlement_id]) itemsBySettlement[item.settlement_id] = [];
+        itemsBySettlement[item.settlement_id].push({
+          id: item.id,
+          masterProductId: item.master_product_id,
+          productName: item.product_name || 'Produk',
+          sku: item.sku || 'BRG',
+          qtySettled: parseInt(item.qty_settled || 0, 10),
+          unitCostPrice: parseFloat(item.unit_cost_price || 0),
+          subtotal: parseFloat(item.subtotal || 0)
+        });
+      }
+    }
+
+    // Aggregate KPI
+    const [agg] = await query(
+      `SELECT COUNT(DISTINCT scs.id) as total_transaksi,
+              COALESCE(SUM(scs.total_qty_settled), 0) as total_qty,
+              COALESCE(SUM(scs.total_amount_paid), 0) as total_amount
+       FROM supplier_consignment_settlements scs
+       LEFT JOIN suppliers s ON s.id = scs.supplier_id
+       ${whereSql}`,
+      params
+    );
+
+    return res.json({
+      success: true,
+      kpi: {
+        totalTransaksi: parseInt(agg?.total_transaksi || 0, 10),
+        totalQtySettled: parseInt(agg?.total_qty || 0, 10),
+        totalAmountPaid: parseFloat(agg?.total_amount || 0)
+      },
+      data: settlements.map(s => ({
+        id: s.id,
+        settlementNumber: s.settlement_number,
+        settlementDate: extractDateStr(s.settlement_date),
+        settlementDateFormatted: formatIndoDate(s.settlement_date),
+        supplierId: s.supplier_id,
+        supplierName: s.supplier_name || 'Supplier',
+        supplierPhone: s.supplier_phone || '',
+        totalQtySettled: parseInt(s.total_qty_settled || 0, 10),
+        totalAmountPaid: parseFloat(s.total_amount_paid || 0),
+        paymentMethod: s.payment_method || 'transfer',
+        bankAccount: s.bank_name ? `${s.bank_name} - ${s.account_number} (${s.account_name})` : null,
+        referenceNumber: s.reference_number || '-',
+        status: s.status || 'approved',
+        notes: s.notes || '',
+        creatorName: s.creator_name || 'Admin',
+        items: itemsBySettlement[s.id] || []
+      }))
+    });
+  } catch (err) {
+    console.error('[Node-API] Supplier settlements list error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 16. RIWAYAT PENJUALAN KONSINYASI (SALES HISTORY / OUTFLOW)
+app.get(['/api/v2/owner/supplier-consignments/sales-history', '/api/v2/supplier-consignments/sales-history'], async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const supplierId = req.query.supplier_id ? parseInt(req.query.supplier_id, 10) : null;
+    const search = (req.query.search || '').trim();
+    const dateFrom = req.query.date_from;
+    const dateTo = req.query.date_to;
+
+    let whereSql = `WHERE scd.tenant_id = ?`;
+    const params = [tenantId];
+
+    if (supplierId) {
+      whereSql += ` AND sc.supplier_id = ?`;
+      params.push(supplierId);
+    }
+    if (search) {
+      whereSql += ` AND (o.invoice_number LIKE ? OR o.order_marketplace_id LIKE ? OR mp.name LIKE ? OR mp.sku LIKE ? OR s.name LIKE ?)`;
+      const s = `%${search}%`;
+      params.push(s, s, s, s, s);
+    }
+    if (dateFrom) {
+      whereSql += ` AND DATE(scd.created_at) >= ?`;
+      params.push(dateFrom);
+    }
+    if (dateTo) {
+      whereSql += ` AND DATE(scd.created_at) <= ?`;
+      params.push(dateTo);
+    }
+
+    const rows = await query(
+      `SELECT scd.id, scd.quantity as qty, scd.created_at,
+              o.id as order_id, o.invoice_number, o.order_marketplace_id, o.order_status,
+              sci.unit_cost_price, sci.unit_selling_price,
+              mp.id as master_product_id, mp.name as product_name, mp.sku, mp.unit,
+              sc.reference_number as consignment_ref,
+              s.id as supplier_id, s.name as supplier_name
+       FROM supplier_consignment_deductions scd
+       JOIN supplier_consignment_items sci ON sci.id = scd.supplier_consignment_item_id
+       JOIN supplier_consignments sc ON sc.id = sci.supplier_consignment_id
+       LEFT JOIN suppliers s ON s.id = sc.supplier_id
+       LEFT JOIN master_products mp ON mp.id = sci.master_product_id
+       LEFT JOIN orders o ON o.id = scd.order_id
+       ${whereSql}
+       ORDER BY scd.created_at DESC
+       LIMIT 100`,
+      params
+    );
+
+    // KPI Sales
+    const [salesKpi] = await query(
+      `SELECT COUNT(DISTINCT scd.id) as total_trx,
+              COALESCE(SUM(scd.quantity), 0) as total_qty,
+              COALESCE(SUM(scd.quantity * sci.unit_cost_price), 0) as total_cost_value
+       FROM supplier_consignment_deductions scd
+       JOIN supplier_consignment_items sci ON sci.id = scd.supplier_consignment_item_id
+       JOIN supplier_consignments sc ON sc.id = sci.supplier_consignment_id
+       LEFT JOIN suppliers s ON s.id = sc.supplier_id
+       LEFT JOIN master_products mp ON mp.id = sci.master_product_id
+       LEFT JOIN orders o ON o.id = scd.order_id
+       ${whereSql}`,
+      params
+    );
+
+    return res.json({
+      success: true,
+      kpi: {
+        totalTransaksi: parseInt(salesKpi?.total_trx || 0, 10),
+        totalQtySold: parseInt(salesKpi?.total_qty || 0, 10),
+        totalCostValue: parseFloat(salesKpi?.total_cost_value || 0)
+      },
+      data: rows.map(r => ({
+        id: r.id,
+        orderId: r.order_id,
+        invoiceNumber: r.invoice_number || r.order_marketplace_id || '-',
+        orderStatus: r.order_status || 'completed',
+        createdAt: r.created_at,
+        dateFormatted: formatIndoDate(r.created_at),
+        productName: r.product_name || 'Produk',
+        sku: r.sku || 'BRG',
+        unit: r.unit || 'PCS',
+        qty: parseInt(r.qty || 1, 10),
+        unitCostPrice: parseFloat(r.unit_cost_price || 0),
+        subtotalCost: parseInt(r.qty || 1, 10) * parseFloat(r.unit_cost_price || 0),
+        consignmentRef: r.consignment_ref,
+        supplierName: r.supplier_name
+      }))
+    });
+  } catch (err) {
+    console.error('[Node-API] Supplier sales history error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'mobile-owner-backend', time: new Date() });
