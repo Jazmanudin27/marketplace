@@ -27,7 +27,7 @@ function getAuthHeaders() {
 export async function fetchConsignmentResources(search = '') {
   try {
     const qs = search ? `?search=${encodeURIComponent(search)}` : '';
-    const res = await fetch(`${API_BASE_URL}/api/v2/supplier-consignments/meta/resources${qs}`, {
+    const res = await fetch(`${API_BASE_URL}/api/v2/owner/supplier-consignments/meta/resources${qs}`, {
       headers: getAuthHeaders()
     });
     if (res.ok) {
@@ -60,7 +60,7 @@ export async function fetchSupplierConsignments(params = {}) {
     if (params.date_to) q.append('date_to', params.date_to);
 
     const qs = q.toString() ? `?${q.toString()}` : '';
-    const res = await fetch(`${API_BASE_URL}/api/v2/supplier-consignments${qs}`, {
+    const res = await fetch(`${API_BASE_URL}/api/v2/owner/supplier-consignments${qs}`, {
       headers: getAuthHeaders()
     });
 
@@ -92,7 +92,7 @@ export async function fetchSupplierConsignments(params = {}) {
  */
 export async function fetchSupplierConsignmentDetail(id) {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v2/supplier-consignments/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/v2/owner/supplier-consignments/${id}`, {
       headers: getAuthHeaders()
     });
     if (res.ok) {
@@ -111,7 +111,7 @@ export async function fetchSupplierConsignmentDetail(id) {
  */
 export async function createSupplierConsignment(payload) {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v2/supplier-consignments`, {
+    const res = await fetch(`${API_BASE_URL}/api/v2/owner/supplier-consignments`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload)
@@ -132,7 +132,7 @@ export async function createSupplierConsignment(payload) {
  */
 export async function updateSupplierConsignment(id, payload) {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v2/supplier-consignments/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/v2/owner/supplier-consignments/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload)
@@ -153,7 +153,7 @@ export async function updateSupplierConsignment(id, payload) {
  */
 export async function deleteSupplierConsignment(id) {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v2/supplier-consignments/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/v2/owner/supplier-consignments/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
@@ -178,7 +178,7 @@ export async function fetchSupplierStockCard(params = {}) {
     if (params.search) q.append('search', params.search);
     const qs = q.toString() ? `?${q.toString()}` : '';
 
-    const res = await fetch(`${API_BASE_URL}/api/v2/supplier-consignments/reports/stock-card${qs}`, {
+    const res = await fetch(`${API_BASE_URL}/api/v2/owner/supplier-consignments/reports/stock-card${qs}`, {
       headers: getAuthHeaders()
     });
     if (res.ok) {

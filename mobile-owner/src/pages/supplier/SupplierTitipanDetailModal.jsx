@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { X, Calendar, User, FileText, CheckCircle2, Clock, Trash2, Edit3, Barcode, Package, AlertCircle } from 'lucide-react';
+import { X, Calendar, User, FileText, CheckCircle2, Clock, Barcode, Package, AlertCircle } from 'lucide-react';
 
 export default function SupplierTitipanDetailModal({
   consignment,
   onClose,
-  onEdit,
-  onDelete,
   onOpenBarcode
 }) {
   const [activeTab, setActiveTab] = useState('items'); // 'items' | 'deductions'
@@ -349,7 +347,7 @@ export default function SupplierTitipanDetailModal({
           </div>
         </div>
 
-        {/* Footer Actions */}
+        {/* Footer Actions (Read-Only) */}
         <div style={{
           padding: '14px 18px',
           background: '#ffffff',
@@ -360,6 +358,7 @@ export default function SupplierTitipanDetailModal({
           <button
             onClick={() => onOpenBarcode(consignment)}
             style={{
+              flex: 1,
               padding: '11px 14px',
               borderRadius: '14px',
               border: '1px solid #f59e0b',
@@ -369,53 +368,29 @@ export default function SupplierTitipanDetailModal({
               fontSize: '12.5px',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            <Barcode size={16} />
-            <span>Label Barcode</span>
-          </button>
-
-          <button
-            onClick={() => onEdit(consignment)}
-            style={{
-              flex: 1,
-              padding: '11px',
-              borderRadius: '14px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-              color: '#ffffff',
-              fontWeight: '700',
-              fontSize: '12.5px',
-              display: 'flex',
-              alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
               cursor: 'pointer'
             }}
           >
-            <Edit3 size={15} />
-            <span>Edit Data</span>
+            <Barcode size={16} />
+            <span>Label Barcode Produk</span>
           </button>
 
           <button
-            onClick={() => onDelete(consignment)}
+            onClick={onClose}
             style={{
-              padding: '11px 14px',
+              padding: '11px 20px',
               borderRadius: '14px',
-              border: '1px solid #fee2e2',
-              background: '#fef2f2',
-              color: '#ef4444',
+              border: '1px solid #cbd5e1',
+              background: '#f8fafc',
+              color: '#475569',
               fontWeight: '700',
               fontSize: '12.5px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
               cursor: 'pointer'
             }}
           >
-            <Trash2 size={16} />
+            Tutup
           </button>
         </div>
       </div>

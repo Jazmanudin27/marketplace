@@ -4038,7 +4038,7 @@ app.get('/api/v2/owner/scan-spk/history', async (req, res) => {
 // ─── 14. TITIPAN BARANG (SUPPLIER CONSIGNMENTS) API ──────────────────────────
 
 // Meta: Master Products & Suppliers untuk Form Input
-app.get('/api/v2/supplier-consignments/meta/resources', async (req, res) => {
+app.get(['/api/v2/owner/supplier-consignments/meta/resources', '/api/v2/supplier-consignments/meta/resources'], async (req, res) => {
   try {
     const tenantId = getTenantId(req);
     const search = (req.query.search || '').trim();
@@ -4116,7 +4116,7 @@ app.get('/api/v2/supplier-consignments/meta/resources', async (req, res) => {
 });
 
 // List Transaksi Penerimaan Konsinyasi
-app.get('/api/v2/supplier-consignments', async (req, res) => {
+app.get(['/api/v2/owner/supplier-consignments', '/api/v2/supplier-consignments'], async (req, res) => {
   try {
     const tenantId = getTenantId(req);
     const search = (req.query.search || '').trim();
@@ -4250,7 +4250,7 @@ app.get('/api/v2/supplier-consignments', async (req, res) => {
 });
 
 // Detail Transaksi Konsinyasi
-app.get('/api/v2/supplier-consignments/:id', async (req, res) => {
+app.get(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consignments/:id'], async (req, res) => {
   try {
     const tenantId = getTenantId(req);
     const consId = parseInt(req.params.id, 10);
@@ -4343,7 +4343,7 @@ app.get('/api/v2/supplier-consignments/:id', async (req, res) => {
 });
 
 // Tambah Transaksi Konsinyasi Baru (Create)
-app.post('/api/v2/supplier-consignments', async (req, res) => {
+app.post(['/api/v2/owner/supplier-consignments', '/api/v2/supplier-consignments'], async (req, res) => {
   try {
     const tenantId = getTenantId(req);
     const authUser = getAuthUser(req);
@@ -4458,7 +4458,7 @@ app.post('/api/v2/supplier-consignments', async (req, res) => {
 });
 
 // Update Transaksi Konsinyasi (Edit)
-app.put('/api/v2/supplier-consignments/:id', async (req, res) => {
+app.put(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consignments/:id'], async (req, res) => {
   try {
     const tenantId = getTenantId(req);
     const authUser = getAuthUser(req);
@@ -4566,7 +4566,7 @@ app.put('/api/v2/supplier-consignments/:id', async (req, res) => {
 });
 
 // Hapus Transaksi Konsinyasi (Delete)
-app.delete('/api/v2/supplier-consignments/:id', async (req, res) => {
+app.delete(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consignments/:id'], async (req, res) => {
   try {
     const tenantId = getTenantId(req);
     const consId = parseInt(req.params.id, 10);
@@ -4615,7 +4615,7 @@ app.delete('/api/v2/supplier-consignments/:id', async (req, res) => {
 });
 
 // Rekapitulasi Kartu Stok Konsinyasi (Stock Card)
-app.get('/api/v2/supplier-consignments/reports/stock-card', async (req, res) => {
+app.get(['/api/v2/owner/supplier-consignments/reports/stock-card', '/api/v2/supplier-consignments/reports/stock-card'], async (req, res) => {
   try {
     const tenantId = getTenantId(req);
     const supplierId = req.query.supplier_id ? parseInt(req.query.supplier_id, 10) : null;

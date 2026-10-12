@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Calendar, Barcode, Eye, Edit3, Trash2, Box, Package, RefreshCw, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
-import { fetchSupplierConsignments, deleteSupplierConsignment, createSupplierConsignment, updateSupplierConsignment } from '../../api/supplierConsignmentApi';
+import { Search, Filter, Calendar, Barcode, Eye, Box, Package, RefreshCw, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { fetchSupplierConsignments } from '../../api/supplierConsignmentApi';
 import SupplierTitipanDetailModal from './SupplierTitipanDetailModal';
-import SupplierTitipanFormModal from './SupplierTitipanFormModal';
 import SupplierBarcodeModal from './SupplierBarcodeModal';
 import { showAlert, showToast } from '../../utils/alerts';
 
@@ -26,7 +25,6 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser, onOpenS
 
   // Modals
   const [selectedConsignment, setSelectedConsignment] = useState(null);
-  const [formModalState, setFormModalState] = useState({ isOpen: false, data: null });
   const [barcodeModalConsignment, setBarcodeModalConsignment] = useState(null);
 
   const loadData = async () => {
@@ -54,50 +52,9 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser, onOpenS
     loadData();
   }, [search, dateFrom, dateTo, statusFilter]);
 
-  // Handle Save (Create or Update)
-  const handleSaveConsignment = async (payload, editId = null) => {
-    try {
-      let res;
-      if (editId) {
-        res = await updateSupplierConsignment(editId, payload);
-      } else {
-        res = await createSupplierConsignment(payload);
-      }
-
-      if (res && res.success) {
-        showToast(res.message || 'Transaksi berhasil disimpan.', 'success');
-        setFormModalState({ isOpen: false, data: null });
-        loadData();
-      } else {
-        showAlert({ icon: 'error', title: 'Gagal', text: res?.message || 'Gagal menyimpan transaksi.' });
-      }
-    } catch (err) {
-      showAlert({ icon: 'error', title: 'Error', text: err.message });
-    }
-  };
-
-  // Handle Delete
-  const handleDeleteConsignment = async (cons) => {
-    const isConfirm = window.confirm(`Apakah Anda yakin ingin menghapus transaksi "${cons.referenceNumber || cons.reference_number}"? Stok master produk akan dikembalikan.`);
-    if (!isConfirm) return;
-
-    try {
-      const res = await deleteSupplierConsignment(cons.id);
-      if (res && res.success) {
-        showToast(res.message || 'Transaksi berhasil dihapus.', 'success');
-        if (selectedConsignment?.id === cons.id) setSelectedConsignment(null);
-        loadData();
-      } else {
-        showAlert({ icon: 'error', title: 'Gagal Hapus', text: res?.message || 'Gagal menghapus transaksi.' });
-      }
-    } catch (err) {
-      showAlert({ icon: 'error', title: 'Error', text: err.message });
-    }
-  };
-
   return (
     <div style={{ padding: '16px 14px 90px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      {/* Title & Add Button Action */}
+      {/* Title Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: 0 }}>
@@ -109,24 +66,25 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser, onOpenS
         </div>
 
         <button
-          onClick={() => setFormModalState({ isOpen: true, data: null })}
+          onClick={loadData}
+          disabled={isLoading}
           style={{
-            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '13px',
-            padding: '9px 14px',
-            fontSize: '12.5px',
+            background: '#ffffff',
+            color: '#475569',
+            border: '1px solid #cbd5e1',
+            borderRadius: '12px',
+            padding: '8px 12px',
+            fontSize: '12px',
             fontWeight: '700',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
             cursor: 'pointer',
-            boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)'
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
           }}
         >
-          <Plus size={16} />
-          <span>Titip Baru</span>
+          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+          <span>Refresh</span>
         </button>
       </div>
 
@@ -531,44 +489,6 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser, onOpenS
                       <Barcode size={14} />
                       <span>Barcode</span>
                     </button>
-
-                    <button
-                      onClick={() => setFormModalState({ isOpen: true, data: c })}
-                      title="Edit Data"
-                      style={{
-                        background: '#f8fafc',
-                        border: '1px solid #cbd5e1',
-                        color: '#475569',
-                        borderRadius: '10px',
-                        padding: '6px 10px',
-                        fontSize: '11.5px',
-                        fontWeight: '700',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Edit3 size={14} />
-                      <span>Edit</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleDeleteConsignment(c)}
-                      title="Hapus Transaksi"
-                      style={{
-                        background: '#fef2f2',
-                        border: '1px solid #fecaca',
-                        color: '#ef4444',
-                        borderRadius: '10px',
-                        padding: '6px 8px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center'
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
                   </div>
 
                   <button
@@ -602,22 +522,7 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser, onOpenS
         <SupplierTitipanDetailModal
           consignment={selectedConsignment}
           onClose={() => setSelectedConsignment(null)}
-          onEdit={(cons) => {
-            setSelectedConsignment(null);
-            setFormModalState({ isOpen: true, data: cons });
-          }}
-          onDelete={handleDeleteConsignment}
           onOpenBarcode={(cons) => setBarcodeModalConsignment(cons)}
-        />
-      )}
-
-      {/* Form Create/Edit Modal */}
-      {formModalState.isOpen && (
-        <SupplierTitipanFormModal
-          initialData={formModalState.data}
-          currentSupplierUser={currentSupplierUser}
-          onClose={() => setFormModalState({ isOpen: false, data: null })}
-          onSaved={handleSaveConsignment}
         />
       )}
 
