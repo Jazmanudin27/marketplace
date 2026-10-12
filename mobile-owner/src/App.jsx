@@ -239,8 +239,8 @@ export default function App() {
           />
         ) : activeTab === 'orders' ? (
           <SubPageHeader 
-            title="Daftar Order" 
-            subtitle="Semua transaksi marketplace & POS"
+            title="Pesanan Masuk" 
+            subtitle="Monitor & kelola semua pesanan marketplace real-time"
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'analytics' ? (

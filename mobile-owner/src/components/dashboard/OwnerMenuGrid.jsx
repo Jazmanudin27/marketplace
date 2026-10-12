@@ -27,7 +27,7 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
   const mainMenus = [
     {
       id: 'orders',
-      title: 'Order Masuk',
+      title: 'Pesanan Masuk',
       category: 'Transaksi',
       icon: ShoppingBag,
       gradient: 'linear-gradient(135deg, #2563eb, #1d4ed8)'
@@ -101,15 +101,8 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
     <div>
       <div className="section-title-wrap">
         <h3 className="section-title">
-          <span>⚡ Menu Utama Owner</span>
+          <span>Menu</span>
         </h3>
-        <span 
-          className="section-view-all"
-          onClick={() => onOpenAllModules && onOpenAllModules()}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }}
-        >
-          Semua Modul ERP <ChevronRight size={13} />
-        </span>
       </div>
 
       <div className="owner-apps-grid">

@@ -895,38 +895,93 @@ app.get('/api/v2/owner/orders', async (req, res) => {
     const endDate = req.query.end_date;
 
     const notCancelled = "UPPER(o.order_status) NOT IN ('CANCELLED', 'CANCELED', 'BATAL', 'IN_CANCEL')";
-    const perluDikirimStatuses = "('NEW', 'UNPAID', 'PENDING', 'READY_TO_SHIP', 'IN_PROCESS', 'PROCESSED', 'SIAP_KIRIM')";
-    const unprocessedStatuses = "('NEW', 'UNPAID', 'PENDING')";
-    const processedStatuses = "('READY_TO_SHIP', 'IN_PROCESS', 'PROCESSED', 'SIAP_KIRIM')";
-    const dikirimStatuses = "('SHIPPED', 'ON_DELIVERY', 'DIKIRIM')";
+    const perluDikirimStatusesList = "'READY_TO_SHIP', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS'";
+    const shippedStatusesList = "'SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE', 'DELIVERED'";
+    const completedStatusesList = "'COMPLETED', 'FINISHED', 'SELESAI'";
+    const returnStatusesList = "'TO_RETURN', 'RETURN', 'RETURNED', 'REFUNDED', 'RETUR', 'RETURNING'";
+    const cancelledStatusesList = "'CANCELLED', 'CANCELED', 'BATAL', 'IN_CANCEL'";
+    const unpaidStatusesList = "'UNPAID', 'PENDING'";
 
-    // Tab badges counter
-    const [cAll] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND ${notCancelled}`, [tenantId]);
-    const [cPerlu] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND UPPER(o.order_status) IN ${perluDikirimStatuses}`, [tenantId]);
-    const [cUnproc] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND UPPER(o.order_status) IN ${unprocessedStatuses}`, [tenantId]);
-    const [cProc] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND UPPER(o.order_status) IN ${processedStatuses}`, [tenantId]);
-    const [cKirim] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND UPPER(o.order_status) IN ${dikirimStatuses}`, [tenantId]);
+    const unprocessedStatusesList = "'UNPAID', 'PENDING', 'READY_TO_SHIP', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS'";
+    const processedStatusesList = "'SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE', 'COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED'";
+
+    // ── Tab counts & Process counts persis query PesananController ERP ──
+    const [cAllActive] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND ${notCancelled}`, [tenantId]);
+    const [cTotalAll] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ?`, [tenantId]);
+    const [cPerlu] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND UPPER(o.order_status) IN (${perluDikirimStatusesList})`, [tenantId]);
+    const [cShipped] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND UPPER(o.order_status) IN (${shippedStatusesList})`, [tenantId]);
+    const [cCompleted] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND UPPER(o.order_status) IN (${completedStatusesList})`, [tenantId]);
+    const [cReturn] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND UPPER(o.order_status) IN (${returnStatusesList})`, [tenantId]);
+    const [cCancelled] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND UPPER(o.order_status) IN (${cancelledStatusesList})`, [tenantId]);
+    const [cUnpaid] = await query(`SELECT COUNT(*) as cnt FROM orders o WHERE o.tenant_id = ? AND UPPER(o.order_status) IN (${unpaidStatusesList})`, [tenantId]);
+
+    // Sub-tab Belum diproses & Telah diproses persis ERP
+    const [cToProcess] = await query(
+      `SELECT COUNT(*) as cnt FROM orders o 
+       WHERE o.tenant_id = ? 
+         AND (o.is_printed = 0 OR o.is_printed IS NULL) 
+         AND (o.tracking_number IS NULL OR o.tracking_number = '') 
+         AND UPPER(o.order_status) IN (${unprocessedStatusesList})`,
+      [tenantId]
+    );
+
+    const [cProcessed] = await query(
+      `SELECT COUNT(*) as cnt FROM orders o 
+       WHERE o.tenant_id = ? 
+         AND (
+           o.is_printed = 1 
+           OR UPPER(o.order_status) IN (${processedStatusesList}) 
+           OR (o.tracking_number IS NOT NULL AND o.tracking_number != '')
+         )`,
+      [tenantId]
+    );
+
+    const tabCounts = {
+      ALL: cAllActive?.cnt || 0,
+      __all__: cTotalAll?.cnt || 0,
+      READY_TO_SHIP: cPerlu?.cnt || 0,
+      SHIPPED: cShipped?.cnt || 0,
+      COMPLETED: cCompleted?.cnt || 0,
+      TO_RETURN: cReturn?.cnt || 0,
+      CANCELLED: cCancelled?.cnt || 0,
+      UNPAID: cUnpaid?.cnt || 0,
+    };
+
+    const processCounts = {
+      to_process: cToProcess?.cnt || 0,
+      processed: cProcessed?.cnt || 0,
+    };
 
     // Build filter query
-    let whereClause = `o.tenant_id = ? AND ${notCancelled}`;
+    let whereClause = `o.tenant_id = ?`;
     const params = [tenantId];
 
-    if (statusTab === 'perlu_dikirim') {
-      if (subStatus === 'unprocessed') {
-        whereClause += ` AND UPPER(o.order_status) IN ${unprocessedStatuses}`;
-      } else if (subStatus === 'processed') {
-        whereClause += ` AND UPPER(o.order_status) IN ${processedStatuses}`;
-      } else {
-        whereClause += ` AND UPPER(o.order_status) IN ${perluDikirimStatuses}`;
-      }
-    } else if (statusTab === 'dikirim' || statusTab === 'shipped') {
-      whereClause += ` AND UPPER(o.order_status) IN ${dikirimStatuses}`;
+    const normalizedStatus = (statusTab || '').toUpperCase();
+    if (normalizedStatus === 'READY_TO_SHIP' || normalizedStatus === 'PERLU_DIKIRIM') {
+      whereClause += ` AND UPPER(o.order_status) IN (${perluDikirimStatusesList})`;
+    } else if (normalizedStatus === 'SHIPPED' || normalizedStatus === 'DIKIRIM') {
+      whereClause += ` AND UPPER(o.order_status) IN (${shippedStatusesList})`;
+    } else if (normalizedStatus === 'COMPLETED' || normalizedStatus === 'SELESAI') {
+      whereClause += ` AND UPPER(o.order_status) IN (${completedStatusesList})`;
+    } else if (normalizedStatus === 'TO_RETURN' || normalizedStatus === 'RETUR') {
+      whereClause += ` AND UPPER(o.order_status) IN (${returnStatusesList})`;
+    } else if (normalizedStatus === 'CANCELLED' || normalizedStatus === 'BATAL') {
+      whereClause += ` AND UPPER(o.order_status) IN (${cancelledStatusesList})`;
+    } else {
+      // Default: ALL (Semua pesanan aktif, persis seperti halaman Pesanan Masuk ERP)
+      whereClause += ` AND ${notCancelled}`;
+    }
+
+    if (subStatus === 'to_process' || subStatus === 'unprocessed') {
+      whereClause += ` AND (o.is_printed = 0 OR o.is_printed IS NULL) AND (o.tracking_number IS NULL OR o.tracking_number = '') AND UPPER(o.order_status) IN (${unprocessedStatusesList})`;
+    } else if (subStatus === 'processed') {
+      whereClause += ` AND (o.is_printed = 1 OR UPPER(o.order_status) IN (${processedStatusesList}) OR (o.tracking_number IS NOT NULL AND o.tracking_number != ''))`;
     }
 
     if (search) {
-      whereClause += ` AND (o.order_marketplace_id LIKE ? OR o.buyer_name LIKE ? OR o.tracking_number LIKE ?)`;
+      whereClause += ` AND (o.order_marketplace_id LIKE ? OR o.buyer_name LIKE ? OR o.tracking_number LIKE ? OR o.invoice_number LIKE ?)`;
       const s = `%${search}%`;
-      params.push(s, s, s);
+      params.push(s, s, s, s);
     }
 
     if (startDate) {
@@ -938,6 +993,7 @@ app.get('/api/v2/owner/orders', async (req, res) => {
       params.push(endDate + ' 23:59:59');
     }
 
+    const orderLimit = Math.min(parseInt(req.query.limit, 10) || 100, 300);
     const orders = await query(
       `SELECT o.*, s.store_name, c.name as channel_name 
        FROM orders o 
@@ -945,7 +1001,7 @@ app.get('/api/v2/owner/orders', async (req, res) => {
        LEFT JOIN channels c ON c.id = s.channel_id 
        WHERE ${whereClause} 
        ORDER BY o.order_date DESC, o.id DESC 
-       LIMIT 50`,
+       LIMIT ${orderLimit}`,
       params
     );
 
@@ -1108,14 +1164,17 @@ app.get('/api/v2/owner/orders', async (req, res) => {
 
     return res.json({
       success: true,
+      tabCounts,
+      processCounts,
       badges: {
-        all: cAll?.cnt || 0,
-        perlu_dikirim: cPerlu?.cnt || 0,
-        unprocessed: cUnproc?.cnt || 0,
-        processed: cProc?.cnt || 0,
-        dikirim: cKirim?.cnt || 0,
+        all: tabCounts.ALL,
+        perlu_dikirim: tabCounts.READY_TO_SHIP,
+        unprocessed: processCounts.to_process,
+        processed: processCounts.processed,
+        dikirim: tabCounts.SHIPPED,
       },
       data: formattedOrders,
+      total: tabCounts.ALL,
     });
   } catch (err) {
     console.error('[Node-API] Orders error:', err);
