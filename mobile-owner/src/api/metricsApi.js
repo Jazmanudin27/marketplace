@@ -164,14 +164,26 @@ export async function toggleTargetKomisi(id) {
   }
 }
 
-export async function fetchLabaRugi(period = 'month') {
+export async function fetchLabaRugi(param = {}) {
   try {
     const token = localStorage.getItem('owner_token') || '';
     const userStr = localStorage.getItem('owner_user');
     const user = userStr ? JSON.parse(userStr) : null;
     const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
 
-    const response = await fetch(`${API_BASE_URL}/api/v2/owner/laba-rugi?period=${period}`, {
+    const q = new URLSearchParams();
+    if (typeof param === 'string') {
+      q.append('period', param);
+    } else if (param && typeof param === 'object') {
+      if (param.month) q.append('month', param.month);
+      if (param.year) q.append('year', param.year);
+      if (param.dateFrom) q.append('date_from', param.dateFrom);
+      if (param.dateTo) q.append('date_to', param.dateTo);
+      if (param.period && !param.month && !param.year) q.append('period', param.period);
+    }
+
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/laba-rugi${qs}`, {
       headers: {
         'Accept': 'application/json',
         'Authorization': `Bearer ${token}`,

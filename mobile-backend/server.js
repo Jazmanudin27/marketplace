@@ -1720,7 +1720,19 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
     const now = new Date();
     let dateFrom, dateTo, periodLabel;
 
-    if (period === 'today') {
+    const monthParam = parseInt(req.query.month, 10);
+    const yearParam = parseInt(req.query.year, 10);
+
+    if (!isNaN(monthParam) && !isNaN(yearParam)) {
+      dateFrom = new Date(yearParam, monthParam - 1, 1, 0, 0, 0);
+      dateTo = new Date(yearParam, monthParam, 0, 23, 59, 59);
+      const monthsIndo = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      periodLabel = `${monthsIndo[monthParam] || monthParam} ${yearParam}`;
+    } else if (req.query.date_from && req.query.date_to) {
+      dateFrom = new Date(req.query.date_from + 'T00:00:00');
+      dateTo = new Date(req.query.date_to + 'T23:59:59');
+      periodLabel = `${req.query.date_from} s/d ${req.query.date_to}`;
+    } else if (period === 'today') {
       dateFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
       dateTo = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
       periodLabel = formatDate(now);
@@ -1832,7 +1844,8 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
         salary: 'Gaji Karyawan',
         rent: 'Sewa Tempat',
         utilities: 'Utilitas & Operasional',
-        other: 'Lain-lain',
+        other: 'Lain Lain',
+        others: 'Lain Lain',
       };
 
       const expGrouped = new Map();
@@ -1841,7 +1854,7 @@ app.get('/api/v2/owner/laba-rugi', async (req, res) => {
         if (!expGrouped.has(catKey)) {
           expGrouped.set(catKey, {
             code: catKey,
-            name: labelMap[catKey] || (exp.category ? exp.category.replace(/_/g, ' ') : 'Lain-lain'),
+            name: labelMap[catKey] || (exp.category ? exp.category.replace(/_/g, ' ') : 'Lain Lain'),
             amount: 0,
             items: [],
           });

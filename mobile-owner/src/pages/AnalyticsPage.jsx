@@ -1,39 +1,139 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BarChart3, 
   TrendingUp, 
   PieChart as PieIcon, 
-  ShoppingBag
+  ShoppingBag,
+  Calendar,
+  RefreshCw,
+  SlidersHorizontal
 } from 'lucide-react';
 import { formatRupiah } from '../utils/formatters';
+import { fetchLaporanPenjualan } from '../api/metricsApi';
 
 export default function AnalyticsPage({ metrics, orders }) {
-  const [activeRange, setActiveRange] = useState('7d'); // 'today', '7d', '30d'
+  // Helper Date Defaults
+  const pad = (n) => String(n).padStart(2, '0');
+  const getTodayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  const getDaysAgoStr = (days) => {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  const getStartOfMonthStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
+  };
 
-  // Hitung data tren hari dari array orders real database
-  const analyticsData = useMemo(() => {
+  const [dateFrom, setDateFrom] = useState(getDaysAgoStr(6));
+  const [dateTo, setDateTo] = useState(getTodayStr());
+  const [reportData, setReportData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load live data based on date range
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const res = await fetchLaporanPenjualan({ dateFrom, dateTo });
+        if (isMounted && res && res.success) {
+          setReportData(res);
+        }
+      } catch (err) {
+        console.warn('Analytics report fetch failed:', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    loadData();
+    return () => { isMounted = false; };
+  }, [dateFrom, dateTo]);
+
+  // Aggregate Data for Graphs & Cards
+  const analytics = useMemo(() => {
+    // 1. If reportData is available from API, prioritize it
+    if (reportData?.success) {
+      const summary = reportData.summary || {};
+      const byDate = reportData.byDate || [];
+      const byChannel = reportData.byChannel || [];
+
+      const totalOmset = summary.omset || summary.netReleased || 0;
+      const totalMargin = summary.margin || 0;
+      const totalOrders = summary.totalOrders || 0;
+
+      // Format Channel/Store Breakdown
+      const channelColors = ['#f97316', '#2563eb', '#10b981', '#8b5cf6', '#0ea5e9', '#ec4899'];
+      const channelBreakdown = byChannel.map((ch, i) => {
+        const amt = Number(ch.netReleased || ch.omset || 0);
+        const share = totalOmset > 0 ? Math.round((amt / totalOmset) * 100) : 0;
+        return {
+          name: ch.channel || ch.channelName || 'Marketplace',
+          share,
+          omset: amt,
+          color: channelColors[i % channelColors.length]
+        };
+      });
+
+      // Generate Daily Trend Bars
+      const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+      const dailyData = byDate.map(d => {
+        const dt = new Date(d.date + 'T00:00:00');
+        const dayName = isNaN(dt.getDay()) ? '' : days[dt.getDay()];
+        return {
+          day: dayName,
+          date: d.date,
+          omset: Number(d.netReleased || d.omset || 0),
+          margin: Number(d.margin || 0),
+          orders: Number(d.totalOrders || 0),
+          isToday: d.date === getTodayStr()
+        };
+      });
+
+      const maxOmset = Math.max(...dailyData.map(d => d.omset), 1);
+
+      return {
+        totalOmset,
+        totalMargin,
+        totalOrders,
+        dailyData,
+        maxOmset,
+        channelBreakdown
+      };
+    }
+
+    // 2. Fallback: compute from prop orders
     const list = Array.isArray(orders) ? orders : [];
-    
-    // Kelompokkan omset & margin per channel real dari database
-    const channelMap = {};
-    let totalAllOmset = 0;
+    const filteredOrders = list.filter(o => {
+      const oDate = (o.completedAt || o.createdAt || '').slice(0, 10);
+      return (!dateFrom || oDate >= dateFrom) && (!dateTo || oDate <= dateTo);
+    });
 
-    list.forEach(order => {
-      const chName = order.storeName || order.channel || 'Marketplace';
-      const orderAmount = Number(order.releasedValue || order.totalAmount || 0);
-      totalAllOmset += orderAmount;
+    const channelMap = {};
+    let totalOmset = 0;
+    let totalMargin = 0;
+
+    filteredOrders.forEach(o => {
+      const chName = o.storeName || o.channel || 'Marketplace';
+      const amt = Number(o.releasedValue || o.totalAmount || 0);
+      const mgn = Number(o.margin || 0);
+      totalOmset += amt;
+      totalMargin += mgn;
 
       if (!channelMap[chName]) {
         channelMap[chName] = { omset: 0, count: 0 };
       }
-      channelMap[chName].omset += orderAmount;
+      channelMap[chName].omset += amt;
       channelMap[chName].count += 1;
     });
 
-    const channelColors = ['#f97316', '#0f172a', '#10b981', '#2563eb', '#8b5cf6'];
+    const channelColors = ['#f97316', '#2563eb', '#10b981', '#8b5cf6', '#0ea5e9'];
     const channelBreakdown = Object.keys(channelMap).map((name, i) => {
       const ch = channelMap[name];
-      const share = totalAllOmset > 0 ? Math.round((ch.omset / totalAllOmset) * 100) : 0;
+      const share = totalOmset > 0 ? Math.round((ch.omset / totalOmset) * 100) : 0;
       return {
         name,
         share,
@@ -42,169 +142,250 @@ export default function AnalyticsPage({ metrics, orders }) {
       };
     });
 
-    // 7 hari terakhir (hari ini + 6 hari sebelumnya)
+    // Daily breakdown from filtered orders
+    const dateGroups = {};
+    filteredOrders.forEach(o => {
+      const d = (o.completedAt || o.createdAt || '').slice(0, 10);
+      if (!d) return;
+      if (!dateGroups[d]) dateGroups[d] = { omset: 0, margin: 0, count: 0 };
+      dateGroups[d].omset += Number(o.releasedValue || o.totalAmount || 0);
+      dateGroups[d].margin += Number(o.margin || 0);
+      dateGroups[d].count += 1;
+    });
+
     const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-    const now = new Date();
-    const last7Days = [];
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(now.getDate() - i);
-      const dayName = days[d.getDay()];
-      const dateStr = d.toISOString().slice(0, 10);
-      const isToday = i === 0;
-
-      // Filter orders di tanggal ini
-      const dayOrders = list.filter(o => {
-        const oDate = (o.completedAt || o.createdAt || '').slice(0, 10);
-        return oDate === dateStr;
-      });
-
-      const dayOmset = isToday 
-        ? (metrics?.todayOmset || dayOrders.reduce((sum, o) => sum + Number(o.releasedValue || o.totalAmount || 0), 0))
-        : dayOrders.reduce((sum, o) => sum + Number(o.releasedValue || o.totalAmount || 0), 0);
-
-      const dayMargin = isToday 
-        ? (metrics?.todayMargin || dayOrders.reduce((sum, o) => sum + Number(o.margin || 0), 0))
-        : dayOrders.reduce((sum, o) => sum + Number(o.margin || 0), 0);
-
-      last7Days.push({
+    const sortedDates = Object.keys(dateGroups).sort();
+    const dailyData = sortedDates.map(dStr => {
+      const dt = new Date(dStr + 'T00:00:00');
+      const dayName = isNaN(dt.getDay()) ? '' : days[dt.getDay()];
+      return {
         day: dayName,
-        date: dateStr,
-        omset: dayOmset,
-        margin: dayMargin,
-        orders: dayOrders.length,
-        isToday
-      });
-    }
+        date: dStr,
+        omset: dateGroups[dStr].omset,
+        margin: dateGroups[dStr].margin,
+        orders: dateGroups[dStr].count,
+        isToday: dStr === getTodayStr()
+      };
+    });
 
-    const maxOmset = Math.max(...last7Days.map(d => d.omset), 1);
-    const totalWeeklyOmset = last7Days.reduce((acc, d) => acc + d.omset, 0);
-    const totalWeeklyMargin = last7Days.reduce((acc, d) => acc + d.margin, 0);
-    const totalWeeklyOrders = last7Days.reduce((acc, d) => acc + d.orders, 0);
+    const maxOmset = Math.max(...dailyData.map(d => d.omset), 1);
 
     return {
-      dailyData: last7Days,
+      totalOmset,
+      totalMargin,
+      totalOrders: filteredOrders.length,
+      dailyData,
       maxOmset,
-      totalWeeklyOmset,
-      totalWeeklyMargin,
-      totalWeeklyOrders,
       channelBreakdown
     };
-  }, [orders, metrics]);
+  }, [reportData, orders, dateFrom, dateTo]);
 
-  const {
-    dailyData,
-    maxOmset,
-    totalWeeklyOmset,
-    totalWeeklyMargin,
-    totalWeeklyOrders,
-    channelBreakdown
-  } = analyticsData;
-
-  const currentOmset = activeRange === 'today' ? (metrics?.todayOmset || 0) : totalWeeklyOmset;
-  const currentMargin = activeRange === 'today' ? (metrics?.todayMargin || 0) : totalWeeklyMargin;
-  const currentOrders = activeRange === 'today' ? (metrics?.ordersCompletedToday || 0) : totalWeeklyOrders;
+  // Quick Preset Actions
+  const applyPreset = (preset) => {
+    if (preset === 'today') {
+      const t = getTodayStr();
+      setDateFrom(t);
+      setDateTo(t);
+    } else if (preset === '7d') {
+      setDateFrom(getDaysAgoStr(6));
+      setDateTo(getTodayStr());
+    } else if (preset === '30d') {
+      setDateFrom(getDaysAgoStr(29));
+      setDateTo(getTodayStr());
+    } else if (preset === 'this_month') {
+      setDateFrom(getStartOfMonthStr());
+      setDateTo(getTodayStr());
+    }
+  };
 
   return (
-    <div className="mobile-body-content" style={{ paddingTop: '16px' }}>
-      {/* Filter Waktu Range */}
-      <div className="analytics-range-pills">
-        <button 
-          type="button" 
-          className={`range-pill ${activeRange === 'today' ? 'active' : ''}`}
-          onClick={() => setActiveRange('today')}
-        >
-          Hari Ini
-        </button>
-        <button 
-          type="button" 
-          className={`range-pill ${activeRange === '7d' ? 'active' : ''}`}
-          onClick={() => setActiveRange('7d')}
-        >
-          7 Hari
-        </button>
-        <button 
-          type="button" 
-          className={`range-pill ${activeRange === '30d' ? 'active' : ''}`}
-          onClick={() => setActiveRange('30d')}
-        >
-          Bulan Ini
-        </button>
+    <div className="mobile-body-content" style={{ paddingTop: '16px', paddingBottom: '32px' }}>
+      
+      {/* ── CARD FILTER TANGGAL: DARI - SAMPAI ── */}
+      <div style={{
+        background: '#ffffff',
+        borderRadius: '18px',
+        padding: '14px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+        marginBottom: '14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Calendar size={15} color="#2563eb" />
+            <span style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a' }}>
+              Filter Tanggal Analisa
+            </span>
+          </div>
+
+          {isLoading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#2563eb' }}>
+              <RefreshCw size={12} className="spin-animate" />
+              <span>Memuat...</span>
+            </div>
+          )}
+        </div>
+
+        {/* Input Tanggal: Dari & Sampai */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div>
+            <label style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', display: 'block', marginBottom: '3px' }}>
+              Dari Tanggal
+            </label>
+            <input 
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '7px 8px',
+                borderRadius: '10px',
+                border: '1px solid #cbd5e1',
+                fontSize: '11px',
+                fontWeight: '600',
+                outline: 'none',
+                background: '#f8fafc',
+                color: '#0f172a'
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', display: 'block', marginBottom: '3px' }}>
+              Sampai Tanggal
+            </label>
+            <input 
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '7px 8px',
+                borderRadius: '10px',
+                border: '1px solid #cbd5e1',
+                fontSize: '11px',
+                fontWeight: '600',
+                outline: 'none',
+                background: '#f8fafc',
+                color: '#0f172a'
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Quick Range Presets */}
+        <div style={{ display: 'flex', gap: '6px', paddingTop: '4px', borderTop: '1px dashed #f1f5f9' }}>
+          {[
+            { id: 'today', label: 'Hari Ini' },
+            { id: '7d', label: '7 Hari' },
+            { id: 'this_month', label: 'Bulan Ini' },
+            { id: '30d', label: '30 Hari' },
+          ].map((pill) => (
+            <button
+              key={pill.id}
+              type="button"
+              onClick={() => applyPreset(pill.id)}
+              style={{
+                flex: 1,
+                padding: '5px 0',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                background: '#f8fafc',
+                color: '#475569',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer'
+              }}
+            >
+              {pill.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Hero Stats Card */}
-      <div className="analytics-hero-card">
+      <div className="analytics-hero-card" style={{ marginBottom: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '12px', color: '#93c5fd', fontWeight: '600' }}>
-            Total Omset ({activeRange === 'today' ? 'Hari Ini' : activeRange === '7d' ? '7 Hari' : 'Bulan Ini'})
+            Total Omset ({dateFrom} s/d {dateTo})
           </span>
           <span className="analytics-badge-tag">
-            Live Database
+            {isLoading ? 'Mengupdate...' : 'Data Aktual'}
           </span>
         </div>
 
         <div style={{ fontSize: '26px', fontWeight: '800', letterSpacing: '-0.5px', marginTop: '4px' }}>
-          {formatRupiah(currentOmset)}
+          {formatRupiah(analytics.totalOmset)}
         </div>
 
         <div className="analytics-hero-subgrid">
           <div>
             <span style={{ fontSize: '10.5px', color: '#cbd5e1' }}>Margin Bersih:</span>
             <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#38bdf8' }}>
-              {formatRupiah(currentMargin)}
+              {formatRupiah(analytics.totalMargin)}
             </div>
           </div>
           <div>
             <span style={{ fontSize: '10.5px', color: '#cbd5e1' }}>Total Order:</span>
             <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#4ade80' }}>
-              {currentOrders} Order
+              {analytics.totalOrders} Order
             </div>
           </div>
         </div>
       </div>
 
-      {/* Card 1: Grafik Batang Tren Omset 7 Hari */}
-      <div className="analytics-card">
+      {/* Card 1: Grafik Batang Tren Omset Harian */}
+      <div className="analytics-card" style={{ marginBottom: '14px' }}>
         <div className="analytics-card-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <BarChart3 size={18} color="#2563eb" />
-            <h3 style={{ fontSize: '14.5px', fontWeight: '800', color: '#0f172a' }}>
+            <h3 style={{ fontSize: '14.5px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
               Tren Omset Harian
             </h3>
           </div>
-          <span style={{ fontSize: '11px', color: '#64748b' }}>Data Asli Database</span>
+          <span style={{ fontSize: '11px', color: '#64748b' }}>
+            {analytics.dailyData.length} Hari Terdata
+          </span>
         </div>
 
         {/* SVG/HTML Pure CSS Bar Chart */}
-        <div className="bar-chart-container">
-          <div className="bar-chart-bars">
-            {dailyData.map((item, idx) => {
-              const heightPct = maxOmset > 0 ? Math.round((item.omset / maxOmset) * 100) : 0;
-              return (
-                <div key={idx} className="bar-col">
-                  <div className="bar-val-bubble">
-                    {item.omset > 0 ? `${(item.omset / 1000000).toFixed(1)}jt` : '0'}
-                  </div>
-                  <div className="bar-track">
-                    <div 
-                      className={`bar-fill ${item.isToday ? 'today' : ''}`}
-                      style={{ height: `${Math.max(4, heightPct)}%` }}
-                    />
-                  </div>
-                  <span className={`bar-label ${item.isToday ? 'today-text' : ''}`}>
-                    {item.day}
-                  </span>
-                </div>
-              );
-            })}
+        {analytics.dailyData.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '30px 10px', color: '#94a3b8', fontSize: '12px' }}>
+            Tidak ada transaksi pada rentang tanggal ini.
           </div>
-        </div>
+        ) : (
+          <div className="bar-chart-container" style={{ overflowX: 'auto', paddingBottom: '6px' }}>
+            <div className="bar-chart-bars" style={{ minWidth: analytics.dailyData.length > 7 ? `${analytics.dailyData.length * 48}px` : '100%' }}>
+              {analytics.dailyData.map((item, idx) => {
+                const heightPct = analytics.maxOmset > 0 ? Math.round((item.omset / analytics.maxOmset) * 100) : 0;
+                return (
+                  <div key={idx} className="bar-col">
+                    <div className="bar-val-bubble">
+                      {item.omset > 0 ? `${(item.omset / 1000000).toFixed(1)}jt` : '0'}
+                    </div>
+                    <div className="bar-track">
+                      <div 
+                        className={`bar-fill ${item.isToday ? 'today' : ''}`}
+                        style={{ height: `${Math.max(4, heightPct)}%` }}
+                      />
+                    </div>
+                    <span className={`bar-label ${item.isToday ? 'today-text' : ''}`} style={{ fontSize: '9.5px' }}>
+                      {item.day ? `${item.day} ` : ''}{item.date.slice(8)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="chart-legend-row">
           <div className="legend-item">
             <span className="legend-dot" style={{ background: '#2563eb' }}></span>
-            <span>7 Hari Terakhir</span>
+            <span>Rentang Terpilih</span>
           </div>
           <div className="legend-item">
             <span className="legend-dot" style={{ background: '#10b981' }}></span>
@@ -214,19 +395,19 @@ export default function AnalyticsPage({ metrics, orders }) {
       </div>
 
       {/* Card 2: Kontribusi Channel / Toko */}
-      {channelBreakdown.length > 0 && (
+      {analytics.channelBreakdown.length > 0 && (
         <div className="analytics-card">
           <div className="analytics-card-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <PieIcon size={18} color="#f97316" />
-              <h3 style={{ fontSize: '14.5px', fontWeight: '800', color: '#0f172a' }}>
+              <h3 style={{ fontSize: '14.5px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
                 Kontribusi Toko & Channel
               </h3>
             </div>
           </div>
 
           <div className="stacked-progress-bar">
-            {channelBreakdown.map((ch, idx) => (
+            {analytics.channelBreakdown.map((ch, idx) => (
               <div 
                 key={idx} 
                 style={{ 
@@ -240,7 +421,7 @@ export default function AnalyticsPage({ metrics, orders }) {
           </div>
 
           <div className="channel-list">
-            {channelBreakdown.map((ch, idx) => (
+            {analytics.channelBreakdown.map((ch, idx) => (
               <div key={idx} className="channel-row">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="channel-bullet" style={{ background: ch.color }} />

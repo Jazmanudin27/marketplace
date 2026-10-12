@@ -8,7 +8,9 @@ import { formatRupiah } from '../utils/formatters';
 import { fetchLabaRugi } from '../api/metricsApi';
 
 export default function LabaRugiPage() {
-  const [period, setPeriod] = useState('month'); // 'today', 'month', 'year'
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1); // 1 - 12
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear()); // 2024, 2025, 2026, 2027
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -20,14 +22,14 @@ export default function LabaRugiPage() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const res = await fetchLabaRugi(period);
+      const res = await fetchLabaRugi({ month: selectedMonth, year: selectedYear });
       if (res && res.success) {
         setData(res.data);
       }
       setLoading(false);
     }
     load();
-  }, [period]);
+  }, [selectedMonth, selectedYear]);
 
   const lr = data || {
     totalOmset: 0,
@@ -51,43 +53,66 @@ export default function LabaRugiPage() {
   return (
     <div className="mobile-body-content" style={{ paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '32px' }}>
       
-      {/* Period Filter Pills */}
+      {/* Filter Berdasarkan Bulan dan Tahun */}
       <div style={{
         display: 'flex',
-        background: '#e2e8f0',
-        borderRadius: '999px',
-        padding: '3px',
-        gap: '4px'
+        alignItems: 'center',
+        gap: '8px',
+        background: '#ffffff',
+        borderRadius: '16px',
+        padding: '10px 14px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
       }}>
-        {[
-          { id: 'today', label: 'Hari Ini' },
-          { id: 'month', label: 'Bulan Ini' },
-          { id: 'year', label: 'Tahun Ini' },
-        ].map((tab) => {
-          const isActive = period === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setPeriod(tab.id)}
-              style={{
-                flex: 1,
-                border: 'none',
-                background: isActive ? '#ffffff' : 'transparent',
-                color: isActive ? '#0f172a' : '#64748b',
-                fontWeight: '700',
-                fontSize: '12px',
-                padding: '7px 0',
-                borderRadius: '999px',
-                cursor: 'pointer',
-                boxShadow: isActive ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
+        <div style={{ flex: 1.4, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Calendar size={15} color="#7c3aed" />
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            style={{
+              width: '100%',
+              border: 'none',
+              outline: 'none',
+              background: 'transparent',
+              fontSize: '12.5px',
+              fontWeight: '700',
+              color: '#0f172a',
+              cursor: 'pointer'
+            }}
+          >
+            {[
+              { v: 1, l: 'Januari' }, { v: 2, l: 'Februari' }, { v: 3, l: 'Maret' },
+              { v: 4, l: 'April' }, { v: 5, l: 'Mei' }, { v: 6, l: 'Juni' },
+              { v: 7, l: 'Juli' }, { v: 8, l: 'Agustus' }, { v: 9, l: 'September' },
+              { v: 10, l: 'Oktober' }, { v: 11, l: 'November' }, { v: 12, l: 'Desember' }
+            ].map(m => (
+              <option key={m.v} value={m.v}>{m.l}</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ width: '1px', height: '18px', background: '#cbd5e1' }} />
+
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            style={{
+              width: '100%',
+              border: 'none',
+              outline: 'none',
+              background: 'transparent',
+              fontSize: '12.5px',
+              fontWeight: '700',
+              color: '#0f172a',
+              cursor: 'pointer'
+            }}
+          >
+            {[2024, 2025, 2026, 2027].map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Main Net Profit (Laba Bersih) Banner */}
@@ -188,19 +213,8 @@ export default function LabaRugiPage() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ color: '#334155', fontWeight: '700' }}>1. Pendapatan / Omset</span>
-              <span style={{ 
-                fontSize: '10px', 
-                background: '#eff6ff', 
-                color: '#2563eb', 
-                padding: '1px 6px', 
-                borderRadius: '6px',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px'
-              }}>
-                {storeBreakdown.length} Toko
-                {showSalesDetail ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              <span style={{ color: '#64748b', display: 'flex', alignItems: 'center' }}>
+                {showSalesDetail ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
               </span>
             </div>
             <strong style={{ color: '#0f172a' }}>{formatRupiah(lr.totalOmset)}</strong>
@@ -286,19 +300,8 @@ export default function LabaRugiPage() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ color: '#334155', fontWeight: '700' }}>2. HPP Modal Pokok Produk</span>
-              <span style={{ 
-                fontSize: '10px', 
-                background: '#fee2e2', 
-                color: '#dc2626', 
-                padding: '1px 6px', 
-                borderRadius: '6px',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px'
-              }}>
-                Rincian HPP
-                {showHppDetail ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              <span style={{ color: '#64748b', display: 'flex', alignItems: 'center' }}>
+                {showHppDetail ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
               </span>
             </div>
             <strong style={{ color: '#4f46e5' }}>- {formatRupiah(lr.totalHpp)}</strong>
@@ -406,18 +409,8 @@ export default function LabaRugiPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontWeight: isExpanded ? '700' : '500' }}>• {exp.name}</span>
                       {hasItems && (
-                        <span style={{ 
-                          fontSize: '9.5px', 
-                          background: '#f1f5f9', 
-                          color: '#475569', 
-                          padding: '1px 5px', 
-                          borderRadius: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '2px'
-                        }}>
-                          {exp.items.length} item
-                          {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                        <span style={{ color: '#64748b', display: 'flex', alignItems: 'center' }}>
+                          {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                         </span>
                       )}
                     </div>
