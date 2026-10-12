@@ -20,6 +20,7 @@ import OrderDetailModal from './components/orders/OrderDetailModal';
 import AllModulesModal from './components/dashboard/AllModulesModal';
 import FinanceMetricDetailModal from './components/dashboard/FinanceMetricDetailModal';
 import NotificationModal from './components/dashboard/NotificationModal';
+import { showAlert, showToast } from './utils/alerts';
 import { fetchOrders } from './api/ordersApi';
 import { fetchOwnerMetrics } from './api/metricsApi';
 import { getCurrentOwnerUser, logoutOwner } from './api/authApi';
@@ -339,7 +340,11 @@ export default function App() {
                 else if (menuId === 'settings' || menuId === 'stores' || menuId === 'company' || menuId === 'users') handleTabChange('profile');
                 else if (menuId === 'all_modules') setIsAllModulesOpen(true);
                 else {
-                  alert(`📌 Modul "${menuId}" aktif. Membuka data sinkronisasi ERP.`);
+                  showAlert({
+                    icon: 'info',
+                    title: `Modul ERP`,
+                    text: `Modul "${menuId}" aktif. Membuka data sinkronisasi ERP.`
+                  });
                 }
               }}
             />
@@ -474,7 +479,11 @@ export default function App() {
             else if (actionId === 'scan_spk' || actionId === 'spks') handleTabChange('scan_spk');
             else if (actionId === 'stores' || actionId === 'users' || actionId === 'company') handleTabChange('profile');
             else {
-              alert(`🚀 Modul "${actionId}" terpilih. Sedang sinkronisasi data ERP.`);
+              showAlert({
+                icon: 'info',
+                title: 'Modul ERP',
+                text: `Modul "${actionId}" terpilih. Sedang sinkronisasi data ERP.`
+              });
             }
           }}
         />

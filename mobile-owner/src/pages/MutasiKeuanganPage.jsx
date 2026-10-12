@@ -22,6 +22,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { formatRupiah } from '../utils/formatters';
+import { showAlert, showToast as swalToast } from '../utils/alerts';
 import { 
   fetchMutasiKeuangan, 
   createMutationIncome, 
@@ -157,7 +158,7 @@ export default function MutasiKeuanganPage() {
   const handleSubmitIncome = async (e) => {
     e.preventDefault();
     if (!incomeForm.title || !incomeForm.amount || parseFloat(incomeForm.amount) <= 0) {
-      alert('Judul dan nominal wajib diisi.');
+      showAlert({ icon: 'warning', title: 'Data Kurang', text: 'Judul dan nominal wajib diisi.' });
       return;
     }
     setSubmitting(true);
@@ -176,7 +177,7 @@ export default function MutasiKeuanganPage() {
       showToast('Pemasukan berhasil dicatat!');
       loadData();
     } else {
-      alert(res?.message || 'Gagal menyimpan pemasukan.');
+      showAlert({ icon: 'error', title: 'Gagal', text: res?.message || 'Gagal menyimpan pemasukan.' });
     }
   };
 
@@ -184,7 +185,7 @@ export default function MutasiKeuanganPage() {
   const handleSubmitExpense = async (e) => {
     e.preventDefault();
     if (!expenseForm.title || !expenseForm.amount || parseFloat(expenseForm.amount) <= 0) {
-      alert('Judul dan nominal wajib diisi.');
+      showAlert({ icon: 'warning', title: 'Data Kurang', text: 'Judul dan nominal wajib diisi.' });
       return;
     }
     setSubmitting(true);
@@ -204,7 +205,7 @@ export default function MutasiKeuanganPage() {
       showToast('Pengeluaran berhasil dicatat!');
       loadData();
     } else {
-      alert(res?.message || 'Gagal menyimpan pengeluaran.');
+      showAlert({ icon: 'error', title: 'Gagal', text: res?.message || 'Gagal menyimpan pengeluaran.' });
     }
   };
 
@@ -212,11 +213,11 @@ export default function MutasiKeuanganPage() {
   const handleSubmitTransfer = async (e) => {
     e.preventDefault();
     if (!transferForm.amount || parseFloat(transferForm.amount) <= 0) {
-      alert('Nominal transfer wajib diisi.');
+      showAlert({ icon: 'warning', title: 'Data Kurang', text: 'Nominal transfer wajib diisi.' });
       return;
     }
     if (transferForm.source === transferForm.destination) {
-      alert('Akun asal dan akun tujuan tidak boleh sama.');
+      showAlert({ icon: 'warning', title: 'Akun Sama', text: 'Akun asal dan akun tujuan tidak boleh sama.' });
       return;
     }
     setSubmitting(true);
@@ -234,19 +235,20 @@ export default function MutasiKeuanganPage() {
       showToast('Transfer dana berhasil dicatat!');
       loadData();
     } else {
-      alert(res?.message || 'Gagal mencatat transfer dana.');
+      showAlert({ icon: 'error', title: 'Gagal', text: res?.message || 'Gagal mencatat transfer dana.' });
     }
   };
 
   // Handle Delete Mutation
   const handleDeleteItem = async (item) => {
-    if (!window.confirm(`Hapus transaksi ${item.reference} (${item.title || item.description})?`)) return;
+    const isConfirmed = window.confirm(`Hapus transaksi ${item.reference} (${item.title || item.description})?`);
+    if (!isConfirmed) return;
     const res = await deleteMutation(item.model_type, item.id);
     if (res && res.success) {
       showToast('Transaksi berhasil dihapus!');
       loadData();
     } else {
-      alert(res?.message || 'Gagal menghapus transaksi.');
+      showAlert({ icon: 'error', title: 'Gagal', text: res?.message || 'Gagal menghapus transaksi.' });
     }
   };
 

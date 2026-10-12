@@ -1193,12 +1193,101 @@ body {
   transform: translateY(0) scale(0.92);
 }
 
-/* Smooth clickable pills and buttons */
-button, a, .brand-pill-owner, .header-icon-btn {
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease;
+/* =========================================================
+   SQUIRCLE SHIMMER & SHEEN ANIMATION (BERKILAU BERGERAK)
+   ========================================================= */
+@keyframes iconShimmerSweep {
+  0% {
+    transform: translateX(-120%) rotate(25deg);
+  }
+  30%, 100% {
+    transform: translateX(220%) rotate(25deg);
+  }
 }
 
-button:active, .header-icon-btn:active {
-  transform: scale(0.92);
+@keyframes iconGlowFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.app-icon-squircle {
+  position: relative;
+  overflow: hidden;
+  animation: iconGlowFloat 4s ease-in-out infinite;
+}
+
+/* Garis kilau cahaya yang bergerak melintasi tombol */
+.app-icon-squircle::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -60%;
+  width: 50%;
+  height: 220%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-120%) rotate(25deg);
+  animation: iconShimmerSweep 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+/* Stagger delay animasi berkilau per item menu */
+.owner-apps-grid .app-grid-item:nth-child(1) .app-icon-squircle::after { animation-delay: 0.1s; }
+.owner-apps-grid .app-grid-item:nth-child(2) .app-icon-squircle::after { animation-delay: 0.4s; }
+.owner-apps-grid .app-grid-item:nth-child(3) .app-icon-squircle::after { animation-delay: 0.7s; }
+.owner-apps-grid .app-grid-item:nth-child(4) .app-icon-squircle::after { animation-delay: 1.0s; }
+.owner-apps-grid .app-grid-item:nth-child(5) .app-icon-squircle::after { animation-delay: 1.3s; }
+.owner-apps-grid .app-grid-item:nth-child(6) .app-icon-squircle::after { animation-delay: 1.6s; }
+.owner-apps-grid .app-grid-item:nth-child(7) .app-icon-squircle::after { animation-delay: 1.9s; }
+.owner-apps-grid .app-grid-item:nth-child(8) .app-icon-squircle::after { animation-delay: 2.2s; }
+.owner-apps-grid .app-grid-item:nth-child(9) .app-icon-squircle::after { animation-delay: 2.5s; }
+.owner-apps-grid .app-grid-item:nth-child(10) .app-icon-squircle::after { animation-delay: 2.8s; }
+
+/* =========================================================
+   SWEETALERT2 MOBILE STYLING
+   ========================================================= */
+.swal2-mobile-popup {
+  border-radius: 24px !important;
+  padding: 20px !important;
+  max-width: 90vw !important;
+  width: 380px !important;
+  box-shadow: 0 20px 45px -5px rgba(15, 23, 42, 0.3) !important;
+  font-family: var(--font-family) !important;
+}
+
+.swal2-mobile-title {
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin-top: 10px !important;
+}
+
+.swal2-mobile-btn {
+  border-radius: 12px !important;
+  padding: 10px 22px !important;
+  font-weight: 700 !important;
+  font-size: 13.5px !important;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important;
+}
+
+.swal2-mobile-cancel-btn {
+  border-radius: 12px !important;
+  padding: 10px 22px !important;
+  font-weight: 700 !important;
+  font-size: 13.5px !important;
+}
+
+.swal2-mobile-toast {
+  border-radius: 16px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25) !important;
+  font-size: 13px !important;
 }
 
