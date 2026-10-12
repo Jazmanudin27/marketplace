@@ -30,6 +30,39 @@ import {
   deleteMutation 
 } from '../api/metricsApi';
 
+// Helper to translate english/system categories to Indonesian
+function formatCategoryLabel(raw) {
+  if (!raw) return 'Lain Lain';
+  const clean = String(raw).trim().toLowerCase();
+  const map = {
+    'other': 'Lain Lain',
+    'others': 'Lain Lain',
+    'lain-lain': 'Lain Lain',
+    'lain_lain': 'Lain Lain',
+    'utilities': 'Utilitas & Operasional',
+    'utility': 'Utilitas & Operasional',
+    'salary': 'Gaji Karyawan',
+    'salaries': 'Gaji Karyawan',
+    'rent': 'Sewa Tempat',
+    'ad': 'Iklan & Marketing',
+    'ads': 'Iklan & Marketing',
+    'advertising': 'Iklan & Marketing',
+    'marketing': 'Iklan & Marketing',
+    'operational': 'Operasional',
+    'supplies': 'Packing & Perlengkapan',
+    'packing': 'Packing & Perlengkapan',
+    'maintenance': 'Pemeliharaan',
+    'tax': 'Pajak',
+    'pemasukan lain': 'Pemasukan Lain',
+    'pemasukan_lain': 'Pemasukan Lain',
+    'transfer internal': 'Transfer Internal',
+    'transfer masuk': 'Transfer Masuk',
+    'transfer keluar': 'Transfer Keluar',
+  };
+  if (map[clean]) return map[clean];
+  return String(raw).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
 export default function MutasiKeuanganPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -731,24 +764,34 @@ export default function MutasiKeuanganPage() {
                     <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
                       {m.description}
                     </h4>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
-                      <span style={{
-                        fontSize: '10px',
-                        background: '#eff6ff',
-                        color: '#1d4ed8',
-                        padding: '2px 7px',
-                        borderRadius: '6px',
-                        fontWeight: '600'
-                      }}>
-                        🏦 {m.account_label}
-                      </span>
-                      <span style={{
-                        fontSize: '10px',
-                        color: '#64748b',
-                        fontWeight: '600'
-                      }}>
-                        🏷️ {m.category_label}
-                      </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{
+                          fontSize: '10px',
+                          background: '#eff6ff',
+                          color: '#1d4ed8',
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          fontWeight: '600',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          🏦 {m.account_label}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{
+                          fontSize: '10px',
+                          color: '#64748b',
+                          fontWeight: '600',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          🏷️ {formatCategoryLabel(m.category_label)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -1082,8 +1125,9 @@ export default function MutasiKeuanganPage() {
                     <option value="Iklan / Ads">Iklan / Ads</option>
                     <option value="Sewa Tempat">Sewa Tempat</option>
                     <option value="Listrik / Air / Internet">Listrik / Air / Internet</option>
+                    <option value="Lain Lain">Lain Lain</option>
                     {expenseCategories.map(c => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
+                      <option key={c.id} value={c.name}>{formatCategoryLabel(c.name)}</option>
                     ))}
                   </select>
                 </div>

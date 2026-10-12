@@ -1917,6 +1917,35 @@ app.get('/api/v2/owner/mutasi-keuangan', async (req, res) => {
     const sourceType = req.query.source_type || 'all';
     const search = (req.query.search || '').trim().toLowerCase();
 
+    const formatMutationCategory = (raw) => {
+      if (!raw) return 'Lain Lain';
+      const clean = String(raw).trim().toLowerCase();
+      const map = {
+        'other': 'Lain Lain',
+        'others': 'Lain Lain',
+        'lain-lain': 'Lain Lain',
+        'lain_lain': 'Lain Lain',
+        'utilities': 'Utilitas & Operasional',
+        'utility': 'Utilitas & Operasional',
+        'salary': 'Gaji Karyawan',
+        'salaries': 'Gaji Karyawan',
+        'rent': 'Sewa Tempat',
+        'ad': 'Iklan & Marketing',
+        'ads': 'Iklan & Marketing',
+        'advertising': 'Iklan & Marketing',
+        'marketing': 'Iklan & Marketing',
+        'operational': 'Operasional',
+        'supplies': 'Packing & Perlengkapan',
+        'packing': 'Packing & Perlengkapan',
+        'maintenance': 'Pemeliharaan',
+        'tax': 'Pajak',
+        'pemasukan lain': 'Pemasukan Lain',
+        'pemasukan_lain': 'Pemasukan Lain',
+      };
+      if (map[clean]) return map[clean];
+      return String(raw).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    };
+
     // 1. Bank Accounts
     const bankAccounts = await query(
       'SELECT id, bank_name, account_number, account_name FROM bank_accounts WHERE tenant_id = ? AND is_active = 1 ORDER BY bank_name ASC',
@@ -2030,7 +2059,7 @@ app.get('/api/v2/owner/mutasi-keuangan', async (req, res) => {
           type: 'income',
           type_label: 'Pemasukan',
           type_badge: 'bg-success',
-          category_label: inc.category || 'Pemasukan Lain',
+          category_label: formatMutationCategory(inc.category || 'Pemasukan Lain'),
           account_label: resolveAccountLabel(inc.payment_destination),
           description: fullDesc,
           inflow: amt,
@@ -2080,7 +2109,7 @@ app.get('/api/v2/owner/mutasi-keuangan', async (req, res) => {
           type: 'expense',
           type_label: 'Pengeluaran',
           type_badge: 'bg-danger',
-          category_label: exp.category || 'Pengeluaran',
+          category_label: formatMutationCategory(exp.category || 'Pengeluaran'),
           account_label: resolveAccountLabel(exp.payment_source),
           description: desc,
           inflow: 0,
