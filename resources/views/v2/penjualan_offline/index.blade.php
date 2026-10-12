@@ -171,12 +171,52 @@
 
 .sale-no {
     font-weight: 700;
-    color: #2563eb;
-    background: #eff6ff;
+    color: #1e40af;
+    background: #dbeafe;
     padding: 3px 8px;
     border-radius: 6px;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-family: 'Courier New', monospace;
+    display: inline-block;
+}
+
+.sale-date {
+    font-size: 0.72rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 3px;
+}
+
+.buyer-name {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 0.85rem;
+    line-height: 1.3;
+}
+
+.buyer-instansi {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: #f1f5f9;
+    color: #3b82f6;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.payment-method-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 2px 7px;
+    border-radius: 5px;
+    text-transform: uppercase;
 }
 
 .btn-action-icon {
@@ -428,19 +468,16 @@
 
     {{-- Sales Table --}}
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.83rem;">
             <thead class="table-light text-uppercase fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.03em;">
                 <tr>
-                    <th class="ps-3 py-2.5" style="width: 50px;">No</th>
-                    <th class="py-2.5">No. Nota</th>
-                    <th class="py-2.5">Tanggal</th>
-                    <th class="py-2.5">Pembeli</th>
-                    <th class="py-2.5">Metode Bayar</th>
-                    <th class="text-end py-2.5">Grand Total</th>
-                    <th class="text-end py-2.5">Terbayar</th>
-                    <th class="text-end py-2.5">Sisa Piutang</th>
-                    <th class="text-center py-2.5">Status</th>
-                    <th class="text-center pe-3 py-2.5" style="width: 130px;">Aksi</th>
+                    <th class="ps-3 py-3 text-center" style="width: 45px;">No</th>
+                    <th class="py-3" style="min-width: 170px;">No. Nota & Tanggal</th>
+                    <th class="py-3" style="min-width: 220px;">Pelanggan / Instansi</th>
+                    <th class="py-3" style="min-width: 200px;">Metode & Total Tagihan</th>
+                    <th class="text-end py-3" style="min-width: 150px;">Status Pembayaran</th>
+                    <th class="text-center py-3" style="min-width: 130px;">Status Transaksi</th>
+                    <th class="text-center pe-3 py-3" style="width: 120px;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -450,64 +487,102 @@
                         $isLunas = (float)$sale->paid_amount >= (float)$sale->grand_total;
                     @endphp
                     <tr>
-                        <td class="ps-3 text-muted">{{ $sales->firstItem() + $index }}</td>
+                        {{-- 1. No --}}
+                        <td class="ps-3 text-center text-muted fw-semibold">{{ $sales->firstItem() + $index }}</td>
+
+                        {{-- 2. No. Nota & Tanggal (Disatukan) --}}
                         <td>
-                            <span class="sale-no">{{ $sale->sale_number }}</span>
-                            @if($sale->is_po)
-                                <span class="badge bg-purple text-white ms-1" style="font-size: 0.65rem; background:#8b5cf6;">PO</span>
-                            @endif
+                            <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                <span class="sale-no">{{ $sale->sale_number }}</span>
+                                @if($sale->is_po)
+                                    <span class="badge bg-purple text-white" style="font-size: 0.65rem; background:#8b5cf6;">PO</span>
+                                @endif
+                            </div>
+                            <div class="sale-date">
+                                <i class="bi bi-calendar3"></i>
+                                <span>{{ \Carbon\Carbon::parse($sale->sold_at)->format('d M Y, H:i') }}</span>
+                            </div>
                         </td>
-                        <td>{{ \Carbon\Carbon::parse($sale->sold_at)->format('d/m/Y H:i') }}</td>
+
+                        {{-- 3. Pelanggan / Instansi --}}
                         <td>
-                            <div class="fw-semibold text-dark">{{ $sale->buyer_name ?: 'Umum (Pelanggan Walk-in)' }}</div>
-                            @if($sale->institution_name)
+                            <div class="buyer-name">{{ $sale->buyer_name ?: 'Umum (Pelanggan Walk-in)' }}</div>
+                            <div class="d-flex align-items-center gap-1.5 flex-wrap mt-0.5">
+                                @if($sale->institution_name)
+                                    <span class="buyer-instansi">
+                                        <i class="bi bi-building"></i>{{ $sale->institution_name }}
+                                    </span>
+                                @endif
+                                @if($sale->buyer_phone)
+                                    <small class="text-muted" style="font-size: 0.72rem;">
+                                        <i class="bi bi-telephone text-secondary me-0.5"></i>{{ $sale->buyer_phone }}
+                                    </small>
+                                @endif
+                            </div>
+                        </td>
+
+                        {{-- 4. Metode Bayar & Total Tagihan (Disatukan) --}}
+                        <td>
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <span class="payment-method-badge bg-light text-dark border">
+                                    <i class="bi bi-credit-card me-1 text-secondary"></i>{{ strtoupper($sale->payment_method ?: 'TUNAI') }}
+                                </span>
+                            </div>
+                            <div class="font-monospace fw-bold text-dark fs-6">
+                                Rp {{ number_format($sale->grand_total, 0, ',', '.') }}
+                            </div>
+                        </td>
+
+                        {{-- 5. Status Pembayaran (Terbayar & Piutang) --}}
+                        <td class="text-end">
+                            <div class="small text-muted mb-0.5">
+                                Terbayar: <strong class="text-success font-monospace">Rp {{ number_format($sale->paid_amount, 0, ',', '.') }}</strong>
+                            </div>
+                            @if($sisa > 0)
                                 <div>
-                                    <span class="badge bg-light text-primary border" style="font-size: 0.68rem; font-weight: 500;">
-                                        <i class="bi bi-building me-1"></i>{{ $sale->institution_name }}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-0.5 font-monospace" style="font-size: 0.72rem;">
+                                        Sisa: Rp {{ number_format($sisa, 0, ',', '.') }}
+                                    </span>
+                                </div>
+                            @else
+                                <div>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-0.5" style="font-size: 0.72rem;">
+                                        <i class="bi bi-check2 me-1"></i>Lunas
                                     </span>
                                 </div>
                             @endif
-                            @if($sale->buyer_phone)
-                                <small class="text-muted"><i class="bi bi-telephone me-1"></i>{{ $sale->buyer_phone }}</small>
-                            @endif
                         </td>
-                        <td>
-                            <span class="badge bg-light text-dark border">
-                                {{ strtoupper($sale->payment_method ?: 'TUNAI') }}
-                            </span>
-                        </td>
-                        <td class="text-end font-monospace fw-bold">Rp {{ number_format($sale->grand_total, 0, ',', '.') }}</td>
-                        <td class="text-end font-monospace text-success fw-semibold">Rp {{ number_format($sale->paid_amount, 0, ',', '.') }}</td>
-                        <td class="text-end font-monospace {{ $sisa > 0 ? 'text-danger fw-bold' : 'text-muted' }}">
-                            {{ $sisa > 0 ? 'Rp '.number_format($sisa, 0, ',', '.') : '-' }}
-                        </td>
+
+                        {{-- 6. Status Transaksi --}}
                         <td class="text-center">
                             @if($sale->status === 'completed')
-                                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2.5 py-1.5" style="font-size: 0.74rem; font-weight: 600;">
                                     <i class="bi bi-check-circle me-1"></i>Selesai
                                 </span>
                             @elseif($sale->status === 'cancelled')
-                                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2.5 py-1.5" style="font-size: 0.74rem; font-weight: 600;">
                                     <i class="bi bi-x-circle me-1"></i>Batal
                                 </span>
                             @elseif($sale->status === 'waiting_dp')
-                                <span class="badge bg-warning bg-opacity-15 text-dark rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                                <span class="badge bg-warning bg-opacity-15 text-dark rounded-pill px-2.5 py-1.5" style="font-size: 0.74rem; font-weight: 600;">
                                     <i class="bi bi-hourglass-split me-1"></i>Menunggu DP
                                 </span>
                             @elseif($sale->status === 'pending_spk' || $sale->status === 'belum_spk')
-                                <span class="badge bg-info bg-opacity-15 text-primary rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                                <span class="badge bg-info bg-opacity-15 text-primary rounded-pill px-2.5 py-1.5" style="font-size: 0.74rem; font-weight: 600;">
                                     <i class="bi bi-clock-history me-1"></i>Pending SPK
                                 </span>
                             @elseif($sale->status === 'spk_diproses')
-                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1.5" style="font-size: 0.74rem; font-weight: 600;">
                                     <i class="bi bi-gear-wide-connected me-1"></i>SPK Diproses
                                 </span>
                             @else
-                                <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-2.5 py-1" style="font-size: 0.72rem; font-weight: 600;">
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-2.5 py-1.5" style="font-size: 0.74rem; font-weight: 600;">
                                     {{ strtoupper(str_replace('_', ' ', $sale->status)) }}
                                 </span>
                             @endif
                         </td>
+
+                        {{-- 7. Aksi (Icon-Only Berwarna Solid) --}}
                         <td class="text-center pe-3">
                             <div class="d-flex justify-content-center align-items-center gap-1.5">
                                 <a href="{{ route('v2.penjualan_offline.show', $sale->id) }}" class="btn-action-icon btn-action-detail" title="Lihat Detail Nota">
@@ -530,7 +605,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="text-center py-5 text-muted">
+                        <td colspan="7" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary opacity-50"></i>
                             Belum ada data penjualan offline yang sesuai dengan filter.
                         </td>
