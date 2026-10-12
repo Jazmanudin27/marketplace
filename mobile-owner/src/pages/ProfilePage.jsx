@@ -3,7 +3,6 @@ import {
   User, 
   Lock, 
   KeyRound, 
-  Store, 
   ShieldCheck, 
   CheckCircle2, 
   Eye, 
@@ -144,19 +143,7 @@ export default function ProfilePage({ profile, onLogout, onProfileUpdate }) {
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-              <span style={{
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                color: '#ffffff',
-                fontSize: '9.5px',
-                fontWeight: '800',
-                padding: '2px 7px',
-                borderRadius: '6px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                {profile?.role || 'Owner'}
-              </span>
-              <span style={{ fontSize: '11px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span style={{ fontSize: '11px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
                 Aktif
               </span>
@@ -476,71 +463,7 @@ export default function ProfilePage({ profile, onLogout, onProfileUpdate }) {
         </form>
       </div>
 
-      {/* ─── 3. TOKO TERHUBUNG CARD ─── */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '22px',
-        padding: '18px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
-        marginBottom: '16px'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '12px'
-        }}>
-          <h4 style={{
-            fontSize: '13.5px',
-            fontWeight: '800',
-            color: '#0f172a',
-            margin: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            <Store size={16} color="#4f46e5" />
-            <span>Toko Terhubung ({profile?.storesCount || 4} Channel)</span>
-          </h4>
-          <span style={{
-            background: '#ecfdf5',
-            color: '#059669',
-            fontSize: '10.5px',
-            fontWeight: '700',
-            padding: '2px 8px',
-            borderRadius: '999px'
-          }}>
-            Sinkronisasi Otomatis
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {(profile?.connectedMarketplaces || ['Shopee', 'TikTok Shop', 'Tokopedia', 'Kasir POS Offline']).map((channel, i) => (
-            <div key={i} style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '10px 12px',
-              background: '#f8fafc',
-              borderRadius: '12px',
-              fontSize: '12px',
-              fontWeight: '600',
-              color: '#334155'
-            }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
-                {channel}
-              </span>
-              <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: '700' }}>
-                Terhubung
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── 4. LOGOUT BUTTON ("Keluar") ─── */}
+      {/* ─── 3. LOGOUT BUTTON ("Keluar") ─── */}
       <button
         type="button"
         onClick={onLogout}
