@@ -723,9 +723,6 @@
                         <i class="fas fa-file-export"></i> Export CSV
                     </a>
                 @endcan
-                <button type="submit" form="mass-print-form" class="btn-shopee-ghost">
-                    <i class="fas fa-print"></i> Cetak Massal
-                </button>
             </div>
         </div>
 

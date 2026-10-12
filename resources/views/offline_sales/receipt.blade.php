@@ -533,6 +533,19 @@
         $printableBankAccounts = collect($bankAccounts ?? [])->filter(function($b) {
             return stripos($b->bank_name, 'kas') === false && !empty(trim($b->account_number ?? ''));
         });
+
+        // Store or Tenant branding
+        $tenantName = $tenant->name ?? 'Ruang Seragam';
+        $parts = explode(' ', trim($tenantName), 2);
+        $brandLine1 = strtoupper($parts[0] ?? $tenantName);
+        $brandLine2 = strtoupper($parts[1] ?? '');
+
+        // Check if there is an active store logo for this tenant
+        $storeWithLogo = null;
+        if (isset($tenant->stores)) {
+            $storeWithLogo = $tenant->stores->first(fn($s) => !empty($s->logo_path));
+        }
+        $brandLogoUrl = $storeWithLogo ? $storeWithLogo->logo_url : null;
     @endphp
 
     @if (($format ?? 'invoice') !== 'thermal')
@@ -546,20 +559,28 @@
             {{-- LEFT COLUMN --}}
             <div class="header-left">
                 <div class="brand-block">
-                    {{-- Needle & Thread Monogram Logo SVG in exact teal color --}}
-                    <svg class="brand-logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Needle -->
-                        <line x1="48" y1="10" x2="48" y2="92" stroke="#23829d" stroke-width="2.6" stroke-linecap="round"/>
-                        <rect x="46.7" y="16" width="2.6" height="12" rx="1.3" fill="#ffffff" stroke="#23829d" stroke-width="1.8"/>
-                        <!-- Thread forming R loop on the left -->
-                        <path d="M 48 25 C 22 25, 20 54, 48 54" stroke="#23829d" stroke-width="3" fill="none" stroke-linecap="round"/>
-                        <!-- Lower curve loop S style -->
-                        <path d="M 48 54 C 28 54, 28 82, 54 82 C 64 82, 68 76, 68 68" stroke="#23829d" stroke-width="3" fill="none" stroke-linecap="round"/>
-                    </svg>
+                    @if($brandLogoUrl)
+                        <img src="{{ $brandLogoUrl }}" alt="{{ $tenantName }}" style="max-height: 52px; max-width: 120px; object-fit: contain; margin-right: 4px;" class="brand-logo-img">
+                    @else
+                        {{-- Needle & Thread Monogram Logo SVG in exact teal color --}}
+                        <svg class="brand-logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Needle -->
+                            <line x1="48" y1="10" x2="48" y2="92" stroke="#23829d" stroke-width="2.6" stroke-linecap="round"/>
+                            <rect x="46.7" y="16" width="2.6" height="12" rx="1.3" fill="#ffffff" stroke="#23829d" stroke-width="1.8"/>
+                            <!-- Thread forming R loop on the left -->
+                            <path d="M 48 25 C 22 25, 20 54, 48 54" stroke="#23829d" stroke-width="3" fill="none" stroke-linecap="round"/>
+                            <!-- Lower curve loop S style -->
+                            <path d="M 48 54 C 28 54, 28 82, 54 82 C 64 82, 68 76, 68 68" stroke="#23829d" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        </svg>
+                    @endif
 
                     <div class="brand-name-wrap">
-                        <span class="line-1">RUANG</span>
-                        <span class="line-2">SERAGAM</span>
+                        @if(!empty($brandLine2))
+                            <span class="line-1">{{ $brandLine1 }}</span>
+                            <span class="line-2">{{ $brandLine2 }}</span>
+                        @else
+                            <span class="line-1" style="font-size: 20px;">{{ $brandLine1 }}</span>
+                        @endif
                     </div>
                 </div>
 
@@ -717,7 +738,7 @@
     {{-- ========================================================================= --}}
     <div class="thermal-wrapper" style="display: block;">
         <div style="text-align: center; font-weight: bold; font-size: 15px; margin-bottom: 2px;">
-            {{ $tenant->name ?? 'RUANG SERAGAM' }}
+            {{ strtoupper($tenantName) }}
         </div>
         <div style="text-align: center; font-size: 10px; color: #555; margin-bottom: 8px;">
             Kp Ciherang Kec Cibeureum, Kota Tasikmalaya
@@ -773,7 +794,7 @@
         <div style="border-top: 1px dashed #777; margin: 10px 0;"></div>
         <div style="text-align: center; font-size: 10px; color: #555; line-height: 1.4;">
             Terima kasih atas kerja samanya!<br>
-            Ruang Seragam Tasikmalaya
+            {{ $tenantName }}
         </div>
     </div>
     @endif

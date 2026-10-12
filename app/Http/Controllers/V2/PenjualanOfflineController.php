@@ -270,4 +270,69 @@ class PenjualanOfflineController extends Controller
 
         return view('v2.penjualan_offline.show', compact('sale'));
     }
+
+    /**
+     * Show form to edit offline POS sale (V2).
+     */
+    public function edit($id)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $offlineSale = OfflineSale::with(['items.masterProduct', 'customer', 'spks'])
+            ->where('tenant_id', $tenantId)
+            ->findOrFail($id);
+
+        if ($offlineSale->status === OfflineSale::STATUS_CANCELLED) {
+            return redirect()->route('v2.penjualan_offline.show', $offlineSale->id)
+                ->with('error', 'Transaksi yang telah dibatalkan tidak dapat diedit.');
+        }
+
+        $products = MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->nonBundle()
+            ->orderBy('name')
+            ->get();
+
+        $customers = \App\Models\Customer::where('tenant_id', $tenantId)
+            ->offline()
+            ->orderBy('name')
+            ->get();
+
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('bank_name')
+            ->get();
+
+        return view('v2.penjualan_offline.edit', compact('offlineSale', 'products', 'customers', 'bankAccounts'));
+    }
+
+    /**
+     * Update existing offline POS sale (V2).
+     */
+    public function update(Request $request, $id)
+    {
+        $input = $request->all();
+        if (isset($input['discount_amount'])) {
+            $input['discount_amount'] = (float) preg_replace('/[^0-9]/', '', (string) $input['discount_amount']);
+        }
+        if (isset($input['paid_amount'])) {
+            $input['paid_amount'] = (float) preg_replace('/[^0-9]/', '', (string) $input['paid_amount']);
+        }
+        if (isset($input['items']) && is_array($input['items'])) {
+            foreach ($input['items'] as $k => $item) {
+                if (isset($item['unit_price'])) {
+                    $input['items'][$k]['unit_price'] = (float) preg_replace('/[^0-9]/', '', (string) $item['unit_price']);
+                }
+            }
+        }
+        $request->merge($input);
+
+        $tenantId = Auth::user()->tenant_id;
+        $offlineSale = OfflineSale::where('tenant_id', $tenantId)->findOrFail($id);
+
+        $controller = new \App\Http\Controllers\OfflineSaleController();
+        $controller->update($request, $offlineSale);
+
+        return redirect()->route('v2.penjualan_offline.show', $offlineSale->id)
+            ->with('success', "Transaksi #{$offlineSale->sale_number} berhasil diperbarui.");
+    }
 }

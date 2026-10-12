@@ -240,9 +240,6 @@
         <a href="{{ url('/v2/pesanan') }}" class="btn btn-sm btn-v2-secondary py-1 px-2" title="Refresh">
             <i class="bi bi-arrow-clockwise"></i>
         </a>
-        <button type="submit" form="mass-print-form" class="btn btn-sm btn-v2-primary py-1 px-3 shadow-sm">
-            <i class="bi bi-printer me-1"></i> Cetak Massal
-        </button>
     </div>
 </div>
 

@@ -15,8 +15,16 @@
         <a href="{{ route('v2.penjualan_offline.index') }}" class="btn btn-sm btn-outline-secondary px-3">
             <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
-        <a href="{{ url('/offline-sales/' . $sale->id . '/print-receipt') }}" target="_blank" class="btn btn-sm btn-dark px-3">
-            <i class="bi bi-printer me-1"></i> Cetak Struk Nota
+        @if($sale->status !== 'cancelled')
+            <a href="{{ route('v2.penjualan_offline.edit', $sale->id) }}" class="btn btn-sm btn-warning text-dark px-3 fw-semibold">
+                <i class="bi bi-pencil-square me-1"></i> Edit Transaksi
+            </a>
+        @endif
+        <a href="{{ route('offline_sales.print', $sale->id) }}?format=invoice" target="_blank" class="btn btn-sm btn-dark px-3">
+            <i class="bi bi-printer me-1"></i> Cetak Invoice
+        </a>
+        <a href="{{ route('offline_sales.print', $sale->id) }}?format=thermal" target="_blank" class="btn btn-sm btn-outline-dark px-3">
+            <i class="bi bi-receipt me-1"></i> Struk Thermal
         </a>
     </div>
 </div>
@@ -129,6 +137,12 @@
                     <small class="text-muted d-block">Nama Pembeli:</small>
                     <span class="fw-bold text-dark fs-6">{{ $sale->buyer_name ?: 'Pelanggan Walk-in (Umum)' }}</span>
                 </div>
+                @if($sale->institution_name)
+                    <div class="mb-2">
+                        <small class="text-muted d-block">Instansi / Toko Pembeli:</small>
+                        <span class="fw-bold text-primary"><i class="bi bi-building me-1"></i>{{ $sale->institution_name }}</span>
+                    </div>
+                @endif
                 <div class="mb-2">
                     <small class="text-muted d-block">No. Telepon / WA:</small>
                     <span>{{ $sale->buyer_phone ?: '-' }}</span>

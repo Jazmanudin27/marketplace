@@ -421,6 +421,13 @@
                         <td>{{ \Carbon\Carbon::parse($sale->sold_at)->format('d/m/Y H:i') }}</td>
                         <td>
                             <div class="fw-semibold text-dark">{{ $sale->buyer_name ?: 'Umum (Pelanggan Walk-in)' }}</div>
+                            @if($sale->institution_name)
+                                <div>
+                                    <span class="badge bg-light text-primary border" style="font-size: 0.68rem; font-weight: 500;">
+                                        <i class="bi bi-building me-1"></i>{{ $sale->institution_name }}
+                                    </span>
+                                </div>
+                            @endif
                             @if($sale->buyer_phone)
                                 <small class="text-muted"><i class="bi bi-telephone me-1"></i>{{ $sale->buyer_phone }}</small>
                             @endif
@@ -463,9 +470,16 @@
                             @endif
                         </td>
                         <td class="text-center pe-3">
-                            <a href="{{ route('v2.penjualan_offline.show', $sale->id) }}" class="btn btn-sm btn-outline-primary py-0.5 px-2 rounded-pill" style="font-size: 0.75rem;" title="Lihat Detail Nota">
-                                <i class="bi bi-eye me-1"></i> Detail
-                            </a>
+                            <div class="d-flex justify-content-center gap-1">
+                                <a href="{{ route('v2.penjualan_offline.show', $sale->id) }}" class="btn btn-sm btn-outline-primary py-0.5 px-2 rounded-pill" style="font-size: 0.75rem;" title="Lihat Detail Nota">
+                                    <i class="bi bi-eye"></i> Detail
+                                </a>
+                                @if($sale->status !== 'cancelled')
+                                    <a href="{{ route('v2.penjualan_offline.edit', $sale->id) }}" class="btn btn-sm btn-outline-warning text-dark py-0.5 px-2 rounded-pill" style="font-size: 0.75rem;" title="Edit Nota POS">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty

@@ -1170,6 +1170,9 @@ class OfflineSaleController extends Controller
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
         $offlineSale->load(['items.masterProduct', 'user', 'customer', 'payments']);
         $tenant = $offlineSale->tenant;
+        if ($tenant) {
+            $tenant->loadMissing('stores');
+        }
         $bankAccounts = \App\Models\BankAccount::where('tenant_id', $offlineSale->tenant_id)
             ->where('is_active', true)
             ->whereRaw('LOWER(bank_name) NOT LIKE ?', ['%kas%'])

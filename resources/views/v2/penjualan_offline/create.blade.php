@@ -167,6 +167,11 @@
                         <input type="text" name="buyer_phone" id="buyer_phone" class="form-control form-control-sm" placeholder="08xxxxxxxxxx">
                     </div>
 
+                    <div class="mb-2.5">
+                        <label class="form-label small fw-semibold text-secondary mb-1">Instansi / Toko Pembeli</label>
+                        <input type="text" name="institution_name" id="institution_name" class="form-control form-control-sm" placeholder="Contoh: PT Sinar Harapan / Toko Barokah / Sekolah ABC">
+                    </div>
+
                     <div class="mb-0">
                         <label class="form-label small fw-semibold text-secondary mb-1">Catatan Nota POS</label>
                         <textarea name="notes" rows="2" class="form-control form-control-sm" placeholder="Catatan transaksi..."></textarea>

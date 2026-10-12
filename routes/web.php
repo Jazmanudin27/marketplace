@@ -260,6 +260,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/penjualan-offline/create', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'create'])->name('penjualan_offline.create');
         Route::post('/penjualan-offline', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'store'])->name('penjualan_offline.store');
         Route::get('/penjualan-offline/{id}', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'show'])->name('penjualan_offline.show');
+        Route::get('/penjualan-offline/{id}/edit', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'edit'])->name('penjualan_offline.edit');
+        Route::put('/penjualan-offline/{id}', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'update'])->name('penjualan_offline.update');
 
         // Pesanan Retur V2
         Route::get('/retur', [\App\Http\Controllers\V2\ReturController::class, 'index'])->name('retur.index');
