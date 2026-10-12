@@ -219,6 +219,13 @@
     text-transform: uppercase;
 }
 
+.btn-action-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px; /* Spasi pas: tidak terlalu mepet, tidak terlalu jauh */
+}
+
 .btn-action-icon {
     width: 32px;
     height: 32px;
@@ -230,11 +237,11 @@
     border: none;
     font-size: 0.88rem;
     transition: all 0.15s ease-in-out;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 .btn-action-icon:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.18);
 }
 .btn-action-detail {
     background: #2563eb;
@@ -584,7 +591,7 @@
 
                         {{-- 7. Aksi (Icon-Only Berwarna Solid) --}}
                         <td class="text-center pe-3">
-                            <div class="d-flex justify-content-center align-items-center gap-1.5">
+                            <div class="btn-action-group">
                                 <a href="{{ route('v2.penjualan_offline.show', $sale->id) }}" class="btn-action-icon btn-action-detail" title="Lihat Detail Nota">
                                     <i class="bi bi-eye"></i>
                                 </a>
