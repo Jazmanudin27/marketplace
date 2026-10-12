@@ -64,6 +64,14 @@ function formatCategoryLabel(raw) {
   return String(raw).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
+// Format pemisah ribuan (1000000 -> 1.000.000)
+function formatThousand(val) {
+  if (val === null || val === undefined || val === '') return '';
+  const clean = String(val).replace(/[^0-9]/g, '');
+  if (!clean) return '';
+  return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
 export default function MutasiKeuanganPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -908,13 +916,26 @@ export default function MutasiKeuanganPage() {
                   Nominal Pemasukan (Rp) *
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   required
-                  min="1"
                   placeholder="0"
-                  value={incomeForm.amount}
-                  onChange={(e) => setIncomeForm({ ...incomeForm, amount: e.target.value })}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '700', color: '#16a34a' }}
+                  value={formatThousand(incomeForm.amount)}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    setIncomeForm({ ...incomeForm, amount: raw });
+                  }}
+                  style={{ 
+                    width: '100%', 
+                    padding: '9px 12px', 
+                    borderRadius: '10px', 
+                    border: '1px solid #cbd5e1', 
+                    fontSize: '14px', 
+                    fontWeight: '700', 
+                    color: '#16a34a',
+                    textAlign: 'right',
+                    fontFamily: 'monospace'
+                  }}
                 />
               </div>
 
@@ -1071,13 +1092,26 @@ export default function MutasiKeuanganPage() {
                   Nominal Pengeluaran (Rp) *
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   required
-                  min="1"
                   placeholder="0"
-                  value={expenseForm.amount}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '700', color: '#dc2626' }}
+                  value={formatThousand(expenseForm.amount)}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    setExpenseForm({ ...expenseForm, amount: raw });
+                  }}
+                  style={{ 
+                    width: '100%', 
+                    padding: '9px 12px', 
+                    borderRadius: '10px', 
+                    border: '1px solid #cbd5e1', 
+                    fontSize: '14px', 
+                    fontWeight: '700', 
+                    color: '#dc2626',
+                    textAlign: 'right',
+                    fontFamily: 'monospace'
+                  }}
                 />
               </div>
 
@@ -1241,13 +1275,26 @@ export default function MutasiKeuanganPage() {
                   Nominal Transfer (Rp) *
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   required
-                  min="1"
                   placeholder="0"
-                  value={transferForm.amount}
-                  onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '700', color: '#d97706' }}
+                  value={formatThousand(transferForm.amount)}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    setTransferForm({ ...transferForm, amount: raw });
+                  }}
+                  style={{ 
+                    width: '100%', 
+                    padding: '9px 12px', 
+                    borderRadius: '10px', 
+                    border: '1px solid #cbd5e1', 
+                    fontSize: '14px', 
+                    fontWeight: '700', 
+                    color: '#d97706',
+                    textAlign: 'right',
+                    fontFamily: 'monospace'
+                  }}
                 />
               </div>
 
