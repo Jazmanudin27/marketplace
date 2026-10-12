@@ -3897,6 +3897,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'mobile-owner-backend', time: new Date() });
 });
 
+app.get('/api/v2/owner/health', (req, res) => {
+  res.json({ status: 'ok', service: 'mobile-owner-backend', time: new Date() });
+});
+
 app.listen(PORT, () => {
   console.log(`[Node-API] Mobile Owner Backend listening on http://localhost:${PORT}`);
 });
