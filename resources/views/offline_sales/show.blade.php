@@ -39,8 +39,8 @@
                         </button>
                     @endif
                     @php
-                        $showCreateSpkShowBtn = $offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK
-                            || ($offlineSale->is_po && $offlineSale->spks->isEmpty() && (float) $offlineSale->paid_amount > 0 && $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED);
+                        $showCreateSpkShowBtn = $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED 
+                            && $offlineSale->spks->isEmpty();
                     @endphp
                     @if ($showCreateSpkShowBtn)
                         <button type="button" class="btn btn-warning btn-sm px-3 text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalCreateSpkShow">
@@ -692,7 +692,7 @@
 @endif
 
 {{-- Modal Terbitkan SPK Produksi (Full Screen) --}}
-@if($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK || ($offlineSale->is_po && $offlineSale->spks->isEmpty() && (float) $offlineSale->paid_amount > 0 && $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED))
+@if($offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && $offlineSale->spks->isEmpty())
 <div class="modal fade" id="modalCreateSpkShow" tabindex="-1" aria-labelledby="modalCreateSpkShowLabel" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
         <form action="{{ route('offline_sales.create_spk', $offlineSale->id) }}" method="POST" class="modal-content border-0" style="display: flex; flex-direction: column; height: 100%; max-height: 100vh; overflow: hidden;">

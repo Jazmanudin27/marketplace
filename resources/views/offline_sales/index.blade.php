@@ -249,8 +249,8 @@
                                         @endif
 
                                         @php
-                                            $showCreateSpkBtn = $sale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK
-                                                || ($sale->is_po && $sale->spks->isEmpty() && (float) $sale->paid_amount > 0 && $sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED);
+                                            $showCreateSpkBtn = $sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED 
+                                                && $sale->spks->isEmpty();
                                         @endphp
                                         @if ($showCreateSpkBtn)
                                             <button type="button" class="btn btn-sm btn-warning text-dark py-1 px-2 fw-bold"
