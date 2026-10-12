@@ -4639,7 +4639,8 @@ app.get(['/api/v2/owner/supplier-consignments/reports/stock-card', '/api/v2/supp
               SUM(sci.qty_sold) as total_sold,
               SUM(sci.qty_received - sci.qty_sold) as sisa_stok,
               AVG(sci.unit_cost_price) as avg_cost_price,
-              SUM((sci.qty_received - sci.qty_sold) * sci.unit_cost_price) as total_value_remaining
+              SUM((sci.qty_received - sci.qty_sold) * sci.unit_cost_price) as total_value_remaining,
+              SUM(sci.qty_sold * sci.unit_cost_price) as total_value_sold
        FROM supplier_consignment_items sci
        JOIN supplier_consignments sc ON sc.id = sci.supplier_consignment_id
        LEFT JOIN suppliers s ON s.id = sc.supplier_id
@@ -4653,15 +4654,19 @@ app.get(['/api/v2/owner/supplier-consignments/reports/stock-card', '/api/v2/supp
     let totalRemainingQty = 0;
     let totalSoldQty = 0;
     let totalRemainingValue = 0;
+    let totalSoldValue = 0;
 
     const items = rows.map(r => {
       const remaining = Math.max(0, parseInt(r.sisa_stok || 0, 10));
       const sold = parseInt(r.total_sold || 0, 10);
-      const val = parseFloat(r.total_value_remaining || 0);
+      const valRemaining = parseFloat(r.total_value_remaining || 0);
+      const valSold = parseFloat(r.total_value_sold || 0);
+      const costPrice = parseFloat(r.avg_cost_price || 0);
 
       totalRemainingQty += remaining;
       totalSoldQty += sold;
-      totalRemainingValue += val;
+      totalRemainingValue += valRemaining;
+      totalSoldValue += valSold;
 
       return {
         masterProductId: r.master_product_id,
@@ -4673,8 +4678,10 @@ app.get(['/api/v2/owner/supplier-consignments/reports/stock-card', '/api/v2/supp
         totalReceived: parseInt(r.total_received || 0, 10),
         totalSold: sold,
         sisaStok: remaining,
-        avgCostPrice: parseFloat(r.avg_cost_price || 0),
-        totalValueRemaining: val
+        costPrice: costPrice,
+        avgCostPrice: costPrice,
+        totalValueRemaining: valRemaining,
+        totalValueSold: valSold
       };
     });
 
@@ -4684,7 +4691,8 @@ app.get(['/api/v2/owner/supplier-consignments/reports/stock-card', '/api/v2/supp
         totalProducts: items.length,
         totalRemainingQty,
         totalSoldQty,
-        totalRemainingValue
+        totalRemainingValue,
+        totalSoldValue
       },
       data: items
     });
