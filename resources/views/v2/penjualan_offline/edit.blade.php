@@ -159,10 +159,14 @@
                         <label class="form-label small fw-semibold text-secondary mb-1">
                             <i class="bi bi-shop me-1 text-primary"></i> Toko / Cabang Asal
                         </label>
+                        @php
+                            $selectedStoreId = old('store_id', $offlineSale->store_id);
+                            $selectedStoreName = $offlineSale->store->store_name ?? null;
+                        @endphp
                         <select name="store_id" id="store_id" class="form-select form-select-sm">
                             <option value="">-- Pilih Toko (Default / Toko Utama) --</option>
                             @foreach($stores as $st)
-                                <option value="{{ $st->id }}" {{ $offlineSale->store_id == $st->id ? 'selected' : '' }}>
+                                <option value="{{ $st->id }}" {{ ($selectedStoreId == $st->id || ($selectedStoreName && $selectedStoreName === $st->store_name)) ? 'selected' : '' }}>
                                     {{ $st->store_name }}
                                 </option>
                             @endforeach

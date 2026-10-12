@@ -229,8 +229,15 @@ class PenjualanOfflineController extends Controller
             ->get();
 
         $stores = \App\Models\Store::where('tenant_id', $tenantId)
+            ->with('channel')
             ->orderBy('store_name')
-            ->get();
+            ->get()
+            ->groupBy('store_name')
+            ->map(function ($group) {
+                // Prioritaskan record yang memiliki logo_path
+                return $group->sortByDesc(fn($s) => !empty($s->logo_path) ? 1 : 0)->first();
+            })
+            ->values();
 
         return view('v2.penjualan_offline.create', compact('products', 'customers', 'bankAccounts', 'stores'));
     }
@@ -307,8 +314,15 @@ class PenjualanOfflineController extends Controller
             ->get();
 
         $stores = \App\Models\Store::where('tenant_id', $tenantId)
+            ->with('channel')
             ->orderBy('store_name')
-            ->get();
+            ->get()
+            ->groupBy('store_name')
+            ->map(function ($group) {
+                // Prioritaskan record yang memiliki logo_path
+                return $group->sortByDesc(fn($s) => !empty($s->logo_path) ? 1 : 0)->first();
+            })
+            ->values();
 
         $initialCartItems = $offlineSale->items->map(function ($i) {
             return [
