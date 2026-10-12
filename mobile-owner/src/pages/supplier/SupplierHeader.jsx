@@ -1,10 +1,7 @@
 import React from 'react';
-import { LogOut, Box, ShieldCheck, Bell } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 export default function SupplierHeader({ user, onLogout }) {
-  const name = user?.name || 'Mitra Supplier';
-  const tenantName = user?.tenantName || user?.tenant_name || 'Ruang Market Pro';
-  const initials = user?.avatar_initials || (name ? name.slice(0, 2).toUpperCase() : 'SP');
 
   return (
     <div style={{
@@ -30,43 +27,31 @@ export default function SupplierHeader({ user, onLogout }) {
         pointerEvents: 'none'
       }} />
 
-      {/* Brand & Badge Header */}
+      {/* Brand Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '13px',
-            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            width: '40px',
+            height: '40px',
+            borderRadius: '12px',
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)'
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+            padding: '5px'
           }}>
-            <Box size={22} color="#ffffff" />
+            <img
+              src="/ruang-market.png"
+              alt="Ruang Market"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '15px', fontWeight: '800', letterSpacing: '0.3px', color: '#ffffff' }}>
-                PORTAL SUPPLIER
-              </span>
-              <span style={{
-                background: 'rgba(245, 158, 11, 0.2)',
-                border: '1px solid rgba(245, 158, 11, 0.4)',
-                color: '#fbbf24',
-                fontSize: '9.5px',
-                fontWeight: '700',
-                padding: '2px 6px',
-                borderRadius: '6px',
-                textTransform: 'uppercase'
-              }}>
-                Konsinyasi
-              </span>
-            </div>
-            <div style={{ fontSize: '11.5px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-              <ShieldCheck size={12} color="#10b981" />
-              <span>Ruang Market Pro</span>
-            </div>
+            <span style={{ fontSize: '17px', fontWeight: '800', letterSpacing: '0.2px', color: '#ffffff' }}>
+              Ruang Market
+            </span>
           </div>
         </div>
 
