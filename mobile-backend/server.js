@@ -21,7 +21,20 @@ app.use(express.json());
 // Helper Tenant ID resolver
 function getTenantId(req) {
   const header = req.headers['x-tenant-id'] || req.query.tenant_id;
-  if (header) return parseInt(header, 10);
+  if (header) {
+    const val = parseInt(header, 10);
+    if (!isNaN(val) && val > 0) return val;
+  }
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.decode(token);
+      if (decoded && decoded.tenant_id) {
+        const val = parseInt(decoded.tenant_id, 10);
+        if (!isNaN(val) && val > 0) return val;
+      }
+    } catch (_) {}
+  }
   return 1;
 }
 
@@ -573,7 +586,7 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
       let teamMargin = 0;
       if (storeIds.length > 0) {
         let dateCondition = '';
-        const params = [storeIds];
+        const params = [tenantId, storeIds];
 
         if (team.date_from && team.date_to) {
           dateCondition = 'AND COALESCE(o.completed_at, o.updated_at, o.order_date) BETWEEN ? AND ?';
@@ -592,7 +605,7 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
            FROM orders o
            LEFT JOIN order_items oi ON oi.order_id = o.id
            LEFT JOIN master_products mp ON mp.id = oi.master_product_id
-           WHERE o.store_id IN (?)
+           WHERE o.tenant_id = ? AND o.store_id IN (?)
              AND UPPER(o.order_status) IN ('COMPLETED', 'RELEASED', 'COMPLETED_ESCROW', 'SELESAI', 'DELIVERED', 'FINISHED')
              AND UPPER(o.order_status) NOT IN ('CANCELLED', 'CANCELED', 'BATAL', 'RETURNED', 'REFUNDED')
              ${dateCondition}`,
@@ -2292,7 +2305,7 @@ app.get('/api/v2/owner/mutasi-keuangan', async (req, res) => {
 // Create Income
 app.post('/api/v2/owner/mutasi-keuangan/income', async (req, res) => {
   try {
-    const tenantId = req.headers['x-tenant-id'] || '1';
+    const tenantId = getTenantId(req);
     const { title, category, payment_destination, amount, income_date, description } = req.body;
     if (!title || !amount || parseFloat(amount) <= 0) {
       return res.status(422).json({ success: false, message: 'Judul dan nominal wajib diisi.' });
@@ -2312,7 +2325,7 @@ app.post('/api/v2/owner/mutasi-keuangan/income', async (req, res) => {
 // Create Expense
 app.post('/api/v2/owner/mutasi-keuangan/expense', async (req, res) => {
   try {
-    const tenantId = req.headers['x-tenant-id'] || '1';
+    const tenantId = getTenantId(req);
     const { title, category, payment_source, amount, expense_date, description, employee_id } = req.body;
     if (!title || !amount || parseFloat(amount) <= 0) {
       return res.status(422).json({ success: false, message: 'Judul dan nominal wajib diisi.' });
@@ -2332,7 +2345,7 @@ app.post('/api/v2/owner/mutasi-keuangan/expense', async (req, res) => {
 // Create Fund Transfer
 app.post('/api/v2/owner/mutasi-keuangan/transfer', async (req, res) => {
   try {
-    const tenantId = req.headers['x-tenant-id'] || '1';
+    const tenantId = getTenantId(req);
     const { source, destination, amount, transfer_date, description } = req.body;
     if (!source || !destination || !amount || parseFloat(amount) <= 0) {
       return res.status(422).json({ success: false, message: 'Akun asal, tujuan, dan nominal wajib diisi.' });
@@ -2355,7 +2368,7 @@ app.post('/api/v2/owner/mutasi-keuangan/transfer', async (req, res) => {
 // Delete Mutation
 app.delete('/api/v2/owner/mutasi-keuangan/:type/:id', async (req, res) => {
   try {
-    const tenantId = req.headers['x-tenant-id'] || '1';
+    const tenantId = getTenantId(req);
     const { type, id } = req.params;
     let table = null;
     if (type === 'income') table = 'incomes';
@@ -2422,8 +2435,8 @@ app.get('/api/v2/owner/saldo-marketplace', async (req, res) => {
         const pendingOrders = await query(
           `SELECT total_amount, net_amount, marketplace_fee, financial_breakdown 
            FROM orders 
-           WHERE store_id = ? AND UPPER(order_status) IN (${statusPlaceholders})`,
-          [store.id, ...activeStatuses]
+           WHERE tenant_id = ? AND store_id = ? AND UPPER(order_status) IN (${statusPlaceholders})`,
+          [tenantId, store.id, ...activeStatuses]
         );
 
         storePendingCount = pendingOrders.length;
@@ -3053,9 +3066,11 @@ app.get('/api/v2/owner/scan-kemasan/search', async (req, res) => {
 
     if (!matched) {
       const [mp] = await query(
-        `SELECT master_product_id FROM marketplace_products 
-         WHERE (marketplace_sku = ? OR barcode = ?) AND master_product_id IS NOT NULL LIMIT 1`,
-        [code, code]
+        `SELECT mp.master_product_id 
+         FROM marketplace_products mp
+         JOIN stores s ON s.id = mp.store_id
+         WHERE s.tenant_id = ? AND (mp.marketplace_sku = ? OR mp.barcode = ?) AND mp.master_product_id IS NOT NULL LIMIT 1`,
+        [tenantId, code, code]
       );
       if (mp && mp.master_product_id) {
         const [found] = await query(
@@ -3087,9 +3102,9 @@ app.get('/api/v2/owner/scan-kemasan/search', async (req, res) => {
       try {
         recentMovements = await query(
           `SELECT type, quantity, reference, balance_after, created_at 
-           FROM stock_movements 
-           WHERE tenant_id = ? AND master_product_id = ? 
-           ORDER BY id DESC LIMIT 5`,
+          FROM stock_movements 
+          WHERE tenant_id = ? AND master_product_id = ? 
+          ORDER BY id DESC LIMIT 5`,
           [tenantId, matched.id]
         );
       } catch (_) {}
@@ -3098,10 +3113,10 @@ app.get('/api/v2/owner/scan-kemasan/search', async (req, res) => {
         marketplaceListings = await query(
           `SELECT mp.marketplace_sku, mp.name, mp.stock, s.store_name, c.name as channel_name 
            FROM marketplace_products mp
-           LEFT JOIN stores s ON s.id = mp.store_id
+           JOIN stores s ON s.id = mp.store_id AND s.tenant_id = ?
            LEFT JOIN channels c ON c.id = s.channel_id
            WHERE mp.master_product_id = ? LIMIT 6`,
-          [matched.id]
+          [tenantId, matched.id]
         );
       } catch (_) {}
     }
