@@ -34,40 +34,36 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $login = $request->login;
+        $login = trim($request->login);
         $password = $request->password;
         $remember = $request->boolean('remember');
+        $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
 
-        // Check if the input looks like an email (contains '@')
-        if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
-            $credentials = [
-                'email'    => $login,
-                'password' => $password,
-            ];
-
-            if (Auth::guard('web')->attempt($credentials, $remember)) {
+        // 1. Coba login sebagai User / Owner / Admin (Guard: web -> tabel users)
+        if ($isEmail) {
+            if (Auth::guard('web')->attempt(['email' => $login, 'password' => $password], $remember)) {
                 $request->session()->regenerate();
                 return redirect()->intended(route('v2.dashboard'));
             }
-
-            return back()->withErrors([
-                'login' => 'Email atau password yang Anda masukkan salah.',
-            ])->onlyInput('login');
         } else {
-            $credentials = [
-                'username' => $login,
-                'password' => $password,
-            ];
-
-            if (Auth::guard('employee')->attempt($credentials, $remember)) {
+            // Cek di tabel users via nama atau email
+            if (Auth::guard('web')->attempt(['name' => $login, 'password' => $password], $remember) ||
+                Auth::guard('web')->attempt(['email' => $login, 'password' => $password], $remember)) {
                 $request->session()->regenerate();
-                return redirect()->intended(route('employee.dashboard'));
+                return redirect()->intended(route('v2.dashboard'));
             }
-
-            return back()->withErrors([
-                'login' => 'Username atau password karyawan salah.',
-            ])->onlyInput('login');
         }
+
+        // 2. Coba login sebagai Karyawan (Guard: employee -> tabel employees)
+        $employeeField = $isEmail ? 'email' : 'username';
+        if (Auth::guard('employee')->attempt([$employeeField => $login, 'password' => $password], $remember)) {
+            $request->session()->regenerate();
+            return redirect()->intended(route('employee.dashboard'));
+        }
+
+        return back()->withErrors([
+            'login' => 'Email/Username atau password yang Anda masukkan salah.',
+        ])->onlyInput('login');
     }
 
     public function mobileLogin(Request $request)
@@ -77,39 +73,35 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $login = $request->login;
+        $login = trim($request->login);
         $password = $request->password;
         $remember = $request->boolean('remember');
+        $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
 
-        if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
-            $credentials = [
-                'email'    => $login,
-                'password' => $password,
-            ];
-
-            if (Auth::guard('web')->attempt($credentials, $remember)) {
+        // 1. Coba login sebagai User / Owner / Admin (Guard: web -> tabel users)
+        if ($isEmail) {
+            if (Auth::guard('web')->attempt(['email' => $login, 'password' => $password], $remember)) {
                 $request->session()->regenerate();
                 return redirect()->intended(route('mobile.index'));
             }
-
-            return back()->withErrors([
-                'login' => 'Email atau password yang Anda masukkan salah.',
-            ])->onlyInput('login');
         } else {
-            $credentials = [
-                'username' => $login,
-                'password' => $password,
-            ];
-
-            if (Auth::guard('employee')->attempt($credentials, $remember)) {
+            if (Auth::guard('web')->attempt(['name' => $login, 'password' => $password], $remember) ||
+                Auth::guard('web')->attempt(['email' => $login, 'password' => $password], $remember)) {
                 $request->session()->regenerate();
-                return redirect()->intended(route('employee.dashboard'));
+                return redirect()->intended(route('mobile.index'));
             }
-
-            return back()->withErrors([
-                'login' => 'Username atau password karyawan salah.',
-            ])->onlyInput('login');
         }
+
+        // 2. Coba login sebagai Karyawan (Guard: employee -> tabel employees)
+        $employeeField = $isEmail ? 'email' : 'username';
+        if (Auth::guard('employee')->attempt([$employeeField => $login, 'password' => $password], $remember)) {
+            $request->session()->regenerate();
+            return redirect()->intended(route('employee.dashboard'));
+        }
+
+        return back()->withErrors([
+            'login' => 'Email/Username atau password yang Anda masukkan salah.',
+        ])->onlyInput('login');
     }
 
     public function logout(Request $request)
