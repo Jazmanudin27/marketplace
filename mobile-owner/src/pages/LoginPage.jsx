@@ -372,11 +372,99 @@ export default function LoginPage({ onLoginSuccess }) {
               </>
             ) : (
               <>
-                <span>Masuk ke Dashboard</span>
+                <span>Masuk ke Akun</span>
                 <ArrowRight size={17} />
               </>
             )}
           </button>
+
+          {/* Quick Demo Role Switcher */}
+          <div style={{ marginTop: '22px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '16px' }}>
+            <div style={{
+              fontSize: '11px',
+              fontWeight: '700',
+              color: '#94a3b8',
+              textAlign: 'center',
+              textTransform: 'uppercase',
+              letterSpacing: '0.6px',
+              marginBottom: '10px'
+            }}>
+              Akses Cepat Pengujian Role
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const ownerUser = {
+                    id: 1,
+                    name: 'Owner Ruang Seragam',
+                    email: 'owner@ruangseragam.com',
+                    role: 'owner',
+                    tenant_id: 1,
+                    tenantName: 'Ruang Seragam'
+                  };
+                  localStorage.setItem('owner_user', JSON.stringify(ownerUser));
+                  localStorage.setItem('owner_token', 'demo_owner_token_2026');
+                  onLoginSuccess(ownerUser);
+                }}
+                style={{
+                  background: 'rgba(79, 70, 229, 0.18)',
+                  border: '1px solid rgba(99, 102, 241, 0.35)',
+                  borderRadius: '12px',
+                  padding: '10px 8px',
+                  color: '#c7d2fe',
+                  fontSize: '11.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '2px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span style={{ color: '#ffffff', fontWeight: '800' }}>👑 Portal Owner</span>
+                <span style={{ fontSize: '9.5px', color: '#818cf8' }}>Semua Menu Bisnis</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const supplierUser = {
+                    id: 88,
+                    supplier_id: 1,
+                    name: 'CV. Berkah Tekstil Jaya',
+                    email: 'supplier@berkahtekstil.com',
+                    role: 'supplier',
+                    tenant_id: 1,
+                    tenantName: 'Ruang Seragam'
+                  };
+                  localStorage.setItem('owner_user', JSON.stringify(supplierUser));
+                  localStorage.setItem('owner_token', 'demo_supplier_token_2026');
+                  onLoginSuccess(supplierUser);
+                }}
+                style={{
+                  background: 'rgba(245, 158, 11, 0.18)',
+                  border: '1px solid rgba(245, 158, 11, 0.35)',
+                  borderRadius: '12px',
+                  padding: '10px 8px',
+                  color: '#fef08a',
+                  fontSize: '11.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '2px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span style={{ color: '#fbbf24', fontWeight: '800' }}>📦 Portal Supplier</span>
+                <span style={{ fontSize: '9.5px', color: '#fde68a' }}>Khusus Titipan Barang</span>
+              </button>
+            </div>
+          </div>
         </form>
       </div>
 

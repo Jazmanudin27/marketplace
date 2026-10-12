@@ -49,6 +49,7 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
     {
       group: 'Pembelian & Bahan',
       items: [
+        { id: 'titipan_barang', title: 'Titipan Barang (Konsinyasi)', desc: 'Barang titipan supplier, stok & HPP', icon: Boxes, color: '#f59e0b' },
         { id: 'pembelian_masuk', title: 'Pemasukan Barang', desc: 'Penerimaan barang dari supplier', icon: PackagePlus, color: '#f59e0b' },
         { id: 'pembelian_keluar', title: 'Pengeluaran Bahan', desc: 'Bahan keluar untuk produksi', icon: PackageMinus, color: '#ea580c' },
         { id: 'hutang_supplier', title: 'Hutang Supplier', desc: 'Tagihan tempo pembelian barang', icon: CreditCard, color: '#e11d48' },

@@ -16,6 +16,9 @@ import ScanKemasanPage from './pages/ScanKemasanPage';
 import ScanSpkPage from './pages/ScanSpkPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
+import SupplierPortal from './pages/supplier/SupplierPortal';
+import SupplierTitipanBarangPage from './pages/supplier/SupplierTitipanBarangPage';
+import SupplierStockCardPage from './pages/supplier/SupplierStockCardPage';
 import OrderDetailModal from './components/orders/OrderDetailModal';
 import AllModulesModal from './components/dashboard/AllModulesModal';
 import FinanceMetricDetailModal from './components/dashboard/FinanceMetricDetailModal';
@@ -227,6 +230,19 @@ export default function App() {
     );
   }
 
+  // KHUSUS ROLE SUPPLIER: Render Halaman & Menu Khusus Supplier (File Terpisah)
+  const userRole = String(currentUser?.role || '').toLowerCase();
+  const isSupplierRole = userRole.includes('supplier');
+
+  if (isSupplierRole) {
+    return (
+      <SupplierPortal 
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   return (
     <div className="mobile-app-wrapper">
       <div className="mobile-screen">
@@ -304,6 +320,18 @@ export default function App() {
             subtitle="Pemindai QR SPK & penerimaan hasil jahit gudang"
             onBack={() => handleTabChange('home')} 
           />
+        ) : activeTab === 'titipan_barang' ? (
+          <SubPageHeader 
+            title="Titipan Barang (Konsinyasi)" 
+            subtitle="Penerimaan barang konsinyasi supplier & stok master gudang"
+            onBack={() => handleTabChange('home')} 
+          />
+        ) : activeTab === 'kartu_stok' ? (
+          <SubPageHeader 
+            title="Kartu Stok Konsinyasi" 
+            subtitle="Rekapitulasi sisa stok & nilai barang titipan supplier"
+            onBack={() => handleTabChange('titipan_barang')} 
+          />
         ) : activeTab === 'profile' ? (
           <SubPageHeader 
             title="Profile" 
@@ -337,6 +365,7 @@ export default function App() {
                 else if (menuId === 'laporan_penjualan' || menuId === 'reports') handleTabChange('laporan_penjualan');
                 else if (menuId === 'scan_kemasan' || menuId === 'scanner') handleTabChange('scan_kemasan');
                 else if (menuId === 'scan_spk' || menuId === 'spks') handleTabChange('scan_spk');
+                else if (menuId === 'titipan_barang' || menuId === 'supplier_consignments' || menuId === 'consignments') handleTabChange('titipan_barang');
                 else if (menuId === 'settings' || menuId === 'stores' || menuId === 'company' || menuId === 'users') handleTabChange('profile');
                 else if (menuId === 'all_modules') setIsAllModulesOpen(true);
                 else {
@@ -410,6 +439,19 @@ export default function App() {
             <LabaRugiPage />
           )}
 
+          {activeTab === 'titipan_barang' && (
+            <SupplierTitipanBarangPage 
+              currentSupplierUser={currentUser}
+              onOpenStockCard={() => handleTabChange('kartu_stok')}
+            />
+          )}
+
+          {activeTab === 'kartu_stok' && (
+            <SupplierStockCardPage 
+              currentSupplierUser={currentUser}
+            />
+          )}
+
           {activeTab === 'profile' && (
             <ProfilePage 
               profile={profile}
@@ -477,6 +519,7 @@ export default function App() {
             else if (actionId === 'cashflow' || actionId === 'marketplace_wallets' || actionId === 'hutang_supplier') handleOpenFinance();
             else if (actionId === 'scan_kemasan' || actionId === 'scanner') handleTabChange('scan_kemasan');
             else if (actionId === 'scan_spk' || actionId === 'spks') handleTabChange('scan_spk');
+            else if (actionId === 'titipan_barang' || actionId === 'supplier_consignments') handleTabChange('titipan_barang');
             else if (actionId === 'stores' || actionId === 'users' || actionId === 'company') handleTabChange('profile');
             else {
               showAlert({
