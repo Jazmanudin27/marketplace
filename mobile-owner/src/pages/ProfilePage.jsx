@@ -196,7 +196,7 @@ export default function ProfilePage({ profile, onLogout, onProfileUpdate }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11.5px', color: '#94a3b8' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Building2 size={12} color="#818cf8" />
-                <span style={{ color: '#e2e8f0', fontWeight: '600' }}>{profile?.tenantName || 'Ruang Seragam'}</span>
+                <span style={{ color: '#e2e8f0', fontWeight: '600' }}>{(profile?.tenantName && !profile.tenantName.includes('Ruang Seragam')) ? profile.tenantName : 'Ruang Market Pro'}</span>
               </span>
             </div>
           </div>

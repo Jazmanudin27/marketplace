@@ -3,7 +3,7 @@ import { LogOut, Box, ShieldCheck, Bell } from 'lucide-react';
 
 export default function SupplierHeader({ user, onLogout }) {
   const name = user?.name || 'Mitra Supplier';
-  const tenantName = user?.tenantName || user?.tenant_name || 'Ruang Seragam ERP';
+  const tenantName = user?.tenantName || user?.tenant_name || 'Ruang Market Pro';
   const initials = user?.avatar_initials || (name ? name.slice(0, 2).toUpperCase() : 'SP');
 
   return (
@@ -65,7 +65,7 @@ export default function SupplierHeader({ user, onLogout }) {
             </div>
             <div style={{ fontSize: '11.5px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
               <ShieldCheck size={12} color="#10b981" />
-              <span>{name} • Mitra Resmi {tenantName}</span>
+              <span>Ruang Market Pro</span>
             </div>
           </div>
         </div>

@@ -511,9 +511,9 @@ app.post(['/api/v2/owner/login', '/api/owner/login'], async (req, res) => {
       { expiresIn: '30d' }
     );
 
-    let tenantName = 'Store Owner';
+    let tenantName = 'Ruang Market Pro';
     const tenants = await query('SELECT name FROM tenants WHERE id = ? LIMIT 1', [tenantId]);
-    if (tenants.length > 0) tenantName = tenants[0].name;
+    if (tenants.length > 0 && tenants[0].name && !tenants[0].name.includes('Ruang Seragam')) tenantName = tenants[0].name;
 
     return res.json({
       success: true,
@@ -794,7 +794,8 @@ app.get(['/api/v2/owner/metrics/overview', '/api/owner/metrics/overview'], async
       ownerUser = users[0] || {};
     }
     const tenants = await query('SELECT name FROM tenants WHERE id = ? LIMIT 1', [tenantId]);
-    const tenantName = tenants[0]?.name || '';
+    let tenantName = tenants[0]?.name || 'Ruang Market Pro';
+    if (tenantName.includes('Ruang Seragam')) tenantName = 'Ruang Market Pro';
 
     const resolvedName = ownerUser.name || 'Owner';
     const nameParts = resolvedName.trim().split(' ').filter(Boolean);

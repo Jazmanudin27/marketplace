@@ -11,7 +11,7 @@ export default function SupplierProfilePage({ currentUser, onLogout }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const tenantName = currentUser?.tenantName || currentUser?.tenant_name || 'Ruang Seragam ERP';
+  const tenantName = (currentUser?.tenantName && !currentUser.tenantName.includes('Ruang Seragam')) ? currentUser.tenantName : 'Ruang Market Pro';
   const roleName = currentUser?.role || 'Supplier';
 
   const handleUpdatePassword = async (e) => {
