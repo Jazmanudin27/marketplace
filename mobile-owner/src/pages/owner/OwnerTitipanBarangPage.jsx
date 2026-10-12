@@ -145,26 +145,6 @@ export default function OwnerTitipanBarangPage({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            onClick={() => setFormModalData({})}
-            style={{
-              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '8px 12px',
-              fontSize: '12px',
-              fontWeight: '800',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 10px rgba(245, 158, 11, 0.35)'
-            }}
-          >
-            <Plus size={15} />
-            <span>+ Catat Titipan</span>
-          </button>
 
           <button
             onClick={loadData}
