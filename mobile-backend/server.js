@@ -4115,510 +4115,12 @@ app.get(['/api/v2/owner/supplier-consignments/meta/resources', '/api/v2/supplier
   }
 });
 
-// List Transaksi Penerimaan Konsinyasi
-app.get(['/api/v2/owner/supplier-consignments', '/api/v2/supplier-consignments'], async (req, res) => {
-  try {
-    const tenantId = getTenantId(req);
-    const search = (req.query.search || '').trim();
-    const supplierId = req.query.supplier_id ? parseInt(req.query.supplier_id, 10) : null;
-    const status = (req.query.status || '').trim();
-    const dateFrom = req.query.date_from;
-    const dateTo = req.query.date_to;
-
-    let whereSql = `WHERE sc.tenant_id = ?`;
-    const params = [tenantId];
-
-    if (supplierId) {
-      whereSql += ` AND sc.supplier_id = ?`;
-      params.push(supplierId);
-    }
-    if (status) {
-      whereSql += ` AND sc.status = ?`;
-      params.push(status);
-    }
-    if (search) {
-      whereSql += ` AND (sc.reference_number LIKE ? OR sc.notes LIKE ? OR s.name LIKE ?)`;
-      const s = `%${search}%`;
-      params.push(s, s, s);
-    }
-    if (dateFrom) {
-      whereSql += ` AND DATE(sc.consignment_date) >= ?`;
-      params.push(dateFrom);
-    }
-    if (dateTo) {
-      whereSql += ` AND DATE(sc.consignment_date) <= ?`;
-      params.push(dateTo);
-    }
-
-    const consignments = await query(
-      `SELECT sc.*, s.name as supplier_name, s.phone as supplier_phone,
-              u.name as creator_name,
-              COUNT(sci.id) as total_items_count,
-              COALESCE(SUM(sci.qty_sold), 0) as total_qty_sold
-       FROM supplier_consignments sc
-       LEFT JOIN suppliers s ON s.id = sc.supplier_id
-       LEFT JOIN users u ON u.id = sc.created_by
-       LEFT JOIN supplier_consignment_items sci ON sci.supplier_consignment_id = sc.id
-       ${whereSql}
-       GROUP BY sc.id
-       ORDER BY sc.consignment_date DESC, sc.id DESC
-       LIMIT 100`,
-      params
-    );
-
-    // Ambil item ringkasan untuk setiap konsinyasi
-    const consignmentIds = consignments.map(c => c.id);
-    let itemsByConsId = {};
-    if (consignmentIds.length > 0) {
-      const allItems = await query(
-        `SELECT sci.*, mp.sku, mp.name as product_name, mp.stock as current_product_stock
-         FROM supplier_consignment_items sci
-         LEFT JOIN master_products mp ON mp.id = sci.master_product_id
-         WHERE sci.supplier_consignment_id IN (?)`,
-        [consignmentIds]
-      );
-      for (const it of allItems) {
-        if (!itemsByConsId[it.supplier_consignment_id]) itemsByConsId[it.supplier_consignment_id] = [];
-        itemsByConsId[it.supplier_consignment_id].push({
-          id: it.id,
-          masterProductId: it.master_product_id,
-          sku: it.sku || 'BRG',
-          productName: it.product_name || 'Produk',
-          qtyReceived: parseInt(it.qty_received || 0, 10),
-          qtySold: parseInt(it.qty_sold || 0, 10),
-          sisaStok: Math.max(0, parseInt(it.qty_received || 0, 10) - parseInt(it.qty_sold || 0, 10)),
-          unitCostPrice: parseFloat(it.unit_cost_price || 0),
-          unitSellingPrice: parseFloat(it.unit_selling_price || 0),
-          subtotalHpp: parseFloat(it.qty_received || 0) * parseFloat(it.unit_cost_price || 0),
-          notes: it.notes || ''
-        });
-      }
-    }
-
-    // KPI Counters
-    const [kpi] = await query(
-      `SELECT COUNT(DISTINCT sc.id) as total_transaksi,
-              COALESCE(SUM(sc.total_qty_received), 0) as total_qty_received,
-              COALESCE(SUM(sc.total_amount_hpp), 0) as total_amount_hpp
-       FROM supplier_consignments sc
-       LEFT JOIN suppliers s ON s.id = sc.supplier_id
-       ${whereSql}`,
-      params
-    );
-
-    const [stockKpi] = await query(
-      `SELECT COALESCE(SUM(sci.qty_received - sci.qty_sold), 0) as total_sisa_stok,
-              COALESCE(SUM(sci.qty_sold), 0) as total_qty_sold
-       FROM supplier_consignment_items sci
-       JOIN supplier_consignments sc ON sc.id = sci.supplier_consignment_id
-       ${whereSql}`,
-      params
-    );
-
-    return res.json({
-      success: true,
-      kpi: {
-        totalTransaksi: parseInt(kpi?.total_transaksi || 0, 10),
-        totalQtyReceived: parseInt(kpi?.total_qty_received || 0, 10),
-        totalAmountHpp: parseFloat(kpi?.total_amount_hpp || 0),
-        totalSisaStok: Math.max(0, parseInt(stockKpi?.total_sisa_stok || 0, 10)),
-        totalQtySold: parseInt(stockKpi?.total_qty_sold || 0, 10),
-      },
-      data: consignments.map(c => ({
-        id: c.id,
-        referenceNumber: c.reference_number,
-        consignmentDate: extractDateStr(c.consignment_date),
-        consignmentDateFormatted: formatIndoDate(c.consignment_date),
-        supplierId: c.supplier_id,
-        supplierName: c.supplier_name || 'Supplier Titipan',
-        supplierPhone: c.supplier_phone || '',
-        status: c.status || 'approved',
-        totalQtyReceived: parseInt(c.total_qty_received || 0, 10),
-        totalQtySold: parseInt(c.total_qty_sold || 0, 10),
-        sisaStok: Math.max(0, parseInt(c.total_qty_received || 0, 10) - parseInt(c.total_qty_sold || 0, 10)),
-        totalAmountHpp: parseFloat(c.total_amount_hpp || 0),
-        notes: c.notes || '',
-        creatorName: c.creator_name || 'Admin',
-        createdAt: c.created_at,
-        items: itemsByConsId[c.id] || []
-      }))
-    });
-  } catch (err) {
-    console.error('[Node-API] List consignments error:', err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// Detail Transaksi Konsinyasi
-app.get(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consignments/:id'], async (req, res) => {
-  try {
-    const tenantId = getTenantId(req);
-    const consId = parseInt(req.params.id, 10);
-
-    const [cons] = await query(
-      `SELECT sc.*, s.name as supplier_name, s.phone as supplier_phone, s.address as supplier_address,
-              s.contact_person as supplier_contact,
-              u.name as creator_name
-       FROM supplier_consignments sc
-       LEFT JOIN suppliers s ON s.id = sc.supplier_id
-       LEFT JOIN users u ON u.id = sc.created_by
-       WHERE sc.id = ? AND sc.tenant_id = ? LIMIT 1`,
-      [consId, tenantId]
-    );
-
-    if (!cons) {
-      return res.status(404).json({ success: false, message: 'Transaksi penerimaan konsinyasi tidak ditemukan.' });
-    }
-
-    const items = await query(
-      `SELECT sci.*, mp.sku, mp.name as product_name, mp.stock as current_product_stock, mp.unit
-       FROM supplier_consignment_items sci
-       LEFT JOIN master_products mp ON mp.id = sci.master_product_id
-       WHERE sci.supplier_consignment_id = ?
-       ORDER BY sci.id ASC`,
-      [consId]
-    );
-
-    // Ambil histori pengurangan stok titipan dari order fulfillment jika ada
-    let deductions = [];
-    try {
-      deductions = await query(
-        `SELECT scd.*, o.invoice_number, o.order_marketplace_id, o.order_status
-         FROM supplier_consignment_deductions scd
-         LEFT JOIN orders o ON o.id = scd.order_id
-         WHERE scd.supplier_consignment_item_id IN (SELECT id FROM supplier_consignment_items WHERE supplier_consignment_id = ?)
-         ORDER BY scd.id DESC LIMIT 50`,
-        [consId]
-      );
-    } catch (_) {}
-
-    return res.json({
-      success: true,
-      data: {
-        id: cons.id,
-        referenceNumber: cons.reference_number,
-        consignmentDate: extractDateStr(cons.consignment_date),
-        consignmentDateFormatted: formatIndoDate(cons.consignment_date),
-        supplierId: cons.supplier_id,
-        supplierName: cons.supplier_name || 'Supplier Titipan',
-        supplierPhone: cons.supplier_phone || '',
-        supplierAddress: cons.supplier_address || '',
-        supplierContact: cons.supplier_contact || '',
-        status: cons.status || 'approved',
-        totalQtyReceived: parseInt(cons.total_qty_received || 0, 10),
-        totalAmountHpp: parseFloat(cons.total_amount_hpp || 0),
-        notes: cons.notes || '',
-        creatorName: cons.creator_name || 'Admin',
-        createdAt: cons.created_at,
-        items: items.map(it => ({
-          id: it.id,
-          masterProductId: it.master_product_id,
-          sku: it.sku || 'BRG',
-          productName: it.product_name || 'Produk',
-          unit: it.unit || 'PCS',
-          currentProductStock: parseInt(it.current_product_stock || 0, 10),
-          qtyReceived: parseInt(it.qty_received || 0, 10),
-          qtySold: parseInt(it.qty_sold || 0, 10),
-          sisaStok: Math.max(0, parseInt(it.qty_received || 0, 10) - parseInt(it.qty_sold || 0, 10)),
-          unitCostPrice: parseFloat(it.unit_cost_price || 0),
-          unitSellingPrice: parseFloat(it.unit_selling_price || 0),
-          subtotalHpp: parseFloat(it.qty_received || 0) * parseFloat(it.unit_cost_price || 0),
-          notes: it.notes || ''
-        })),
-        deductions: deductions.map(d => ({
-          id: d.id,
-          orderId: d.order_id,
-          invoiceNumber: d.invoice_number || d.order_marketplace_id || '-',
-          qtyDeducted: parseInt(d.qty_deducted || 0, 10),
-          notes: d.notes || '',
-          createdAt: d.created_at,
-          dateFormatted: formatIndoDate(d.created_at)
-        }))
-      }
-    });
-  } catch (err) {
-    console.error('[Node-API] Consignment detail error:', err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// Tambah Transaksi Konsinyasi Baru (Create)
-app.post(['/api/v2/owner/supplier-consignments', '/api/v2/supplier-consignments'], async (req, res) => {
-  try {
-    const tenantId = getTenantId(req);
-    const authUser = getAuthUser(req);
-    const userId = authUser?.id || 1;
-
-    const { supplier_id, consignment_date, notes, items } = req.body;
-
-    if (!supplier_id) {
-      return res.status(422).json({ success: false, message: 'Supplier penitip barang wajib dipilih.' });
-    }
-    if (!consignment_date) {
-      return res.status(422).json({ success: false, message: 'Tanggal penerimaan wajib diisi.' });
-    }
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(422).json({ success: false, message: 'Minimal harus memasukkan satu item produk titipan.' });
-    }
-
-    // Auto-generate reference number
-    const todayStr = formatDate(new Date()).replace(/-/g, '');
-    const prefix = `KNS-${todayStr}-`;
-    const [lastCons] = await query(
-      `SELECT reference_number FROM supplier_consignments
-       WHERE tenant_id = ? AND reference_number LIKE ?
-       ORDER BY id DESC LIMIT 1`,
-      [tenantId, `${prefix}%`]
-    );
-
-    let nextNum = '0001';
-    if (lastCons && lastCons.reference_number) {
-      const parts = lastCons.reference_number.split('-');
-      const lastSeq = parseInt(parts[parts.length - 1], 10);
-      if (!isNaN(lastSeq)) {
-        nextNum = String(lastSeq + 1).padStart(4, '0');
-      }
-    }
-    const referenceNumber = req.body.reference_number || `${prefix}${nextNum}`;
-
-    let totalQtyReceived = 0;
-    let totalAmountHpp = 0;
-
-    for (const row of items) {
-      const qty = parseInt(row.qty_received || 0, 10);
-      const cost = parseFloat(row.unit_cost_price || 0);
-      totalQtyReceived += qty;
-      totalAmountHpp += (qty * cost);
-    }
-
-    // Insert Header Konsinyasi
-    const insertHeader = await query(
-      `INSERT INTO supplier_consignments
-       (tenant_id, supplier_id, reference_number, consignment_date, status, total_qty_received, total_amount_hpp, notes, created_by, approved_by, approved_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'approved', ?, ?, ?, ?, ?, NOW(), NOW(), NOW())`,
-      [tenantId, supplier_id, referenceNumber, consignment_date, totalQtyReceived, totalAmountHpp, notes || null, userId, userId]
-    );
-
-    const consignmentId = insertHeader.insertId;
-
-    // Insert Items & Update Master Product Stock
-    for (const row of items) {
-      const prodId = parseInt(row.master_product_id, 10);
-      const qty = parseInt(row.qty_received || 0, 10);
-      const costPrice = parseFloat(row.unit_cost_price || 0);
-      const sellingPrice = parseFloat(row.unit_selling_price || 0);
-
-      await query(
-        `INSERT INTO supplier_consignment_items
-         (supplier_consignment_id, master_product_id, qty_received, qty_sold, unit_cost_price, unit_selling_price, notes, created_at, updated_at)
-         VALUES (?, ?, ?, 0, ?, ?, ?, NOW(), NOW())`,
-        [consignmentId, prodId, qty, costPrice, sellingPrice, row.notes || null]
-      );
-
-      // Tambah stok master_product & catat stock movement
-      if (prodId > 0 && qty > 0) {
-        await query(
-          `UPDATE master_products
-           SET stock = stock + ?,
-               cost_price = IF(? > 0, ?, cost_price),
-               price = IF(? > 0, ?, price),
-               updated_at = NOW()
-           WHERE id = ? AND tenant_id = ?`,
-          [qty, costPrice, costPrice, sellingPrice, sellingPrice, prodId, tenantId]
-        );
-
-        const [freshProd] = await query(`SELECT stock FROM master_products WHERE id = ?`, [prodId]);
-        const newBalance = freshProd ? freshProd.stock : 0;
-
-        await query(
-          `INSERT INTO stock_movements
-           (tenant_id, master_product_id, user_id, type, quantity, reference, balance_after, created_at, updated_at)
-           VALUES (?, ?, ?, 'in', ?, ?, ?, NOW(), NOW())`,
-          [tenantId, prodId, userId, qty, `Penerimaan Konsinyasi: ${referenceNumber}`, newBalance]
-        );
-
-        try {
-          await query(
-            `UPDATE marketplace_products SET stock = ?, sync_stock = 1, updated_at = NOW() WHERE master_product_id = ?`,
-            [newBalance, prodId]
-          );
-        } catch (_) {}
-      }
-    }
-
-    return res.json({
-      success: true,
-      message: `Penerimaan titipan barang "${referenceNumber}" berhasil disimpan dan stok gudang langsung bertambah.`,
-      consignmentId
-    });
-  } catch (err) {
-    console.error('[Node-API] Create consignment error:', err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// Update Transaksi Konsinyasi (Edit)
-app.put(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consignments/:id'], async (req, res) => {
-  try {
-    const tenantId = getTenantId(req);
-    const authUser = getAuthUser(req);
-    const userId = authUser?.id || 1;
-    const consId = parseInt(req.params.id, 10);
-
-    const [existing] = await query(
-      `SELECT * FROM supplier_consignments WHERE id = ? AND tenant_id = ? LIMIT 1`,
-      [consId, tenantId]
-    );
-
-    if (!existing) {
-      return res.status(404).json({ success: false, message: 'Transaksi tidak ditemukan.' });
-    }
-
-    const { supplier_id, consignment_date, notes, items } = req.body;
-
-    if (!supplier_id || !consignment_date || !Array.isArray(items) || items.length === 0) {
-      return res.status(422).json({ success: false, message: 'Data form penerimaan tidak lengkap.' });
-    }
-
-    // 1. Revert stok produk master lama
-    const oldItems = await query(
-      `SELECT master_product_id, qty_received FROM supplier_consignment_items WHERE supplier_consignment_id = ?`,
-      [consId]
-    );
-    for (const oldIt of oldItems) {
-      if (oldIt.master_product_id && oldIt.qty_received > 0) {
-        await query(
-          `UPDATE master_products SET stock = GREATEST(0, stock - ?), updated_at = NOW() WHERE id = ? AND tenant_id = ?`,
-          [oldIt.qty_received, oldIt.master_product_id, tenantId]
-        );
-      }
-    }
-
-    // 2. Hapus log stock_movements lama terkait reference_number transaksi ini
-    await query(
-      `DELETE FROM stock_movements WHERE tenant_id = ? AND reference LIKE ?`,
-      [tenantId, `%${existing.reference_number}%`]
-    );
-
-    // 3. Hapus item lama
-    await query(`DELETE FROM supplier_consignment_items WHERE supplier_consignment_id = ?`, [consId]);
-
-    // 4. Masukkan item baru & update stok master produk
-    let totalQtyReceived = 0;
-    let totalAmountHpp = 0;
-
-    for (const row of items) {
-      const prodId = parseInt(row.master_product_id, 10);
-      const qty = parseInt(row.qty_received || 0, 10);
-      const costPrice = parseFloat(row.unit_cost_price || 0);
-      const sellingPrice = parseFloat(row.unit_selling_price || 0);
-
-      totalQtyReceived += qty;
-      totalAmountHpp += (qty * costPrice);
-
-      await query(
-        `INSERT INTO supplier_consignment_items
-         (supplier_consignment_id, master_product_id, qty_received, qty_sold, unit_cost_price, unit_selling_price, notes, created_at, updated_at)
-         VALUES (?, ?, ?, 0, ?, ?, ?, NOW(), NOW())`,
-        [consId, prodId, qty, costPrice, sellingPrice, row.notes || null]
-      );
-
-      if (prodId > 0 && qty > 0) {
-        await query(
-          `UPDATE master_products
-           SET stock = stock + ?,
-               cost_price = IF(? > 0, ?, cost_price),
-               price = IF(? > 0, ?, price),
-               updated_at = NOW()
-           WHERE id = ? AND tenant_id = ?`,
-          [qty, costPrice, costPrice, sellingPrice, sellingPrice, prodId, tenantId]
-        );
-
-        const [freshProd] = await query(`SELECT stock FROM master_products WHERE id = ?`, [prodId]);
-        const newBalance = freshProd ? freshProd.stock : 0;
-
-        await query(
-          `INSERT INTO stock_movements
-           (tenant_id, master_product_id, user_id, type, quantity, reference, balance_after, created_at, updated_at)
-           VALUES (?, ?, ?, 'in', ?, ?, ?, NOW(), NOW())`,
-          [tenantId, prodId, userId, qty, `Penerimaan Konsinyasi: ${existing.reference_number}`, newBalance]
-        );
-      }
-    }
-
-    // 5. Update header
-    await query(
-      `UPDATE supplier_consignments
-       SET supplier_id = ?, consignment_date = ?, notes = ?,
-           total_qty_received = ?, total_amount_hpp = ?, updated_at = NOW()
-       WHERE id = ? AND tenant_id = ?`,
-      [supplier_id, consignment_date, notes || null, totalQtyReceived, totalAmountHpp, consId, tenantId]
-    );
-
-    return res.json({
-      success: true,
-      message: `Penerimaan barang konsinyasi "${existing.reference_number}" berhasil diperbarui.`
-    });
-  } catch (err) {
-    console.error('[Node-API] Update consignment error:', err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// Hapus Transaksi Konsinyasi (Delete)
-app.delete(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consignments/:id'], async (req, res) => {
-  try {
-    const tenantId = getTenantId(req);
-    const consId = parseInt(req.params.id, 10);
-
-    const [existing] = await query(
-      `SELECT * FROM supplier_consignments WHERE id = ? AND tenant_id = ? LIMIT 1`,
-      [consId, tenantId]
-    );
-
-    if (!existing) {
-      return res.status(404).json({ success: false, message: 'Transaksi konsinyasi tidak ditemukan.' });
-    }
-
-    // 1. Kurangi/kembalikan stok produk master yang sebelumnya masuk
-    const oldItems = await query(
-      `SELECT master_product_id, qty_received FROM supplier_consignment_items WHERE supplier_consignment_id = ?`,
-      [consId]
-    );
-    for (const oldIt of oldItems) {
-      if (oldIt.master_product_id && oldIt.qty_received > 0) {
-        await query(
-          `UPDATE master_products SET stock = GREATEST(0, stock - ?), updated_at = NOW() WHERE id = ? AND tenant_id = ?`,
-          [oldIt.qty_received, oldIt.master_product_id, tenantId]
-        );
-      }
-    }
-
-    // 2. Hapus log stock movements terkait
-    await query(
-      `DELETE FROM stock_movements WHERE tenant_id = ? AND reference LIKE ?`,
-      [tenantId, `%${existing.reference_number}%`]
-    );
-
-    // 3. Hapus item & header konsinyasi
-    await query(`DELETE FROM supplier_consignment_items WHERE supplier_consignment_id = ?`, [consId]);
-    await query(`DELETE FROM supplier_consignments WHERE id = ? AND tenant_id = ?`, [consId, tenantId]);
-
-    return res.json({
-      success: true,
-      message: `Transaksi konsinyasi "${existing.reference_number}" berhasil dihapus dan stok gudang telah direvert.`
-    });
-  } catch (err) {
-    console.error('[Node-API] Delete consignment error:', err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-});
-
 // Rekapitulasi Kartu Stok Konsinyasi (Stock Card)
 app.get(['/api/v2/owner/supplier-consignments/reports/stock-card', '/api/v2/supplier-consignments/reports/stock-card'], async (req, res) => {
   try {
     const tenantId = getTenantId(req);
-    const supplierId = req.query.supplier_id ? parseInt(req.query.supplier_id, 10) : null;
+    const rawSupId = parseInt(req.query.supplier_id, 10);
+    const supplierId = (!isNaN(rawSupId) && rawSupId > 0) ? rawSupId : null;
     const search = (req.query.search || '').trim();
 
     let whereSql = `WHERE sc.tenant_id = ?`;
@@ -4706,7 +4208,8 @@ app.get(['/api/v2/owner/supplier-consignments/reports/stock-card', '/api/v2/supp
 app.get(['/api/v2/owner/supplier-consignments/settlements', '/api/v2/supplier-consignments/settlements'], async (req, res) => {
   try {
     const tenantId = getTenantId(req);
-    const supplierId = req.query.supplier_id ? parseInt(req.query.supplier_id, 10) : null;
+    const rawSupId = parseInt(req.query.supplier_id, 10);
+    const supplierId = (!isNaN(rawSupId) && rawSupId > 0) ? rawSupId : null;
     const search = (req.query.search || '').trim();
     const dateFrom = req.query.date_from;
     const dateTo = req.query.date_to;
@@ -4822,7 +4325,8 @@ app.get(['/api/v2/owner/supplier-consignments/settlements', '/api/v2/supplier-co
 app.get(['/api/v2/owner/supplier-consignments/sales-history', '/api/v2/supplier-consignments/sales-history'], async (req, res) => {
   try {
     const tenantId = getTenantId(req);
-    const supplierId = req.query.supplier_id ? parseInt(req.query.supplier_id, 10) : null;
+    const rawSupId = parseInt(req.query.supplier_id, 10);
+    const supplierId = (!isNaN(rawSupId) && rawSupId > 0) ? rawSupId : null;
     const search = (req.query.search || '').trim();
     const dateFrom = req.query.date_from;
     const dateTo = req.query.date_to;
@@ -4911,6 +4415,504 @@ app.get(['/api/v2/owner/supplier-consignments/sales-history', '/api/v2/supplier-
     return res.status(500).json({ success: false, message: err.message });
   }
 });
+
+// List Transaksi Penerimaan Konsinyasi
+app.get(['/api/v2/owner/supplier-consignments', '/api/v2/supplier-consignments'], async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const search = (req.query.search || '').trim();
+    const rawSupId = parseInt(req.query.supplier_id, 10);
+    const supplierId = (!isNaN(rawSupId) && rawSupId > 0) ? rawSupId : null;
+    const status = (req.query.status || '').trim();
+    const dateFrom = req.query.date_from;
+    const dateTo = req.query.date_to;
+
+    let whereSql = `WHERE sc.tenant_id = ?`;
+    const params = [tenantId];
+
+    if (supplierId) {
+      whereSql += ` AND sc.supplier_id = ?`;
+      params.push(supplierId);
+    }
+    if (status) {
+      whereSql += ` AND sc.status = ?`;
+      params.push(status);
+    }
+    if (search) {
+      whereSql += ` AND (sc.reference_number LIKE ? OR sc.notes LIKE ? OR s.name LIKE ?)`;
+      const s = `%${search}%`;
+      params.push(s, s, s);
+    }
+    if (dateFrom) {
+      whereSql += ` AND DATE(sc.consignment_date) >= ?`;
+      params.push(dateFrom);
+    }
+    if (dateTo) {
+      whereSql += ` AND DATE(sc.consignment_date) <= ?`;
+      params.push(dateTo);
+    }
+
+    const consignments = await query(
+      `SELECT sc.*, s.name as supplier_name, s.phone as supplier_phone,
+              u.name as creator_name,
+              COUNT(sci.id) as total_items_count,
+              COALESCE(SUM(sci.qty_sold), 0) as total_qty_sold
+       FROM supplier_consignments sc
+       LEFT JOIN suppliers s ON s.id = sc.supplier_id
+       LEFT JOIN users u ON u.id = sc.created_by
+       LEFT JOIN supplier_consignment_items sci ON sci.supplier_consignment_id = sc.id
+       ${whereSql}
+       GROUP BY sc.id
+       ORDER BY sc.consignment_date DESC, sc.id DESC
+       LIMIT 100`,
+      params
+    );
+
+    // Ambil item ringkasan untuk setiap konsinyasi
+    const consignmentIds = consignments.map(c => c.id);
+    let itemsByConsId = {};
+    if (consignmentIds.length > 0) {
+      const allItems = await query(
+        `SELECT sci.*, mp.sku, mp.name as product_name, mp.stock as current_product_stock
+         FROM supplier_consignment_items sci
+         LEFT JOIN master_products mp ON mp.id = sci.master_product_id
+         WHERE sci.supplier_consignment_id IN (?)`,
+        [consignmentIds]
+      );
+      for (const it of allItems) {
+        if (!itemsByConsId[it.supplier_consignment_id]) itemsByConsId[it.supplier_consignment_id] = [];
+        itemsByConsId[it.supplier_consignment_id].push({
+          id: it.id,
+          masterProductId: it.master_product_id,
+          sku: it.sku || 'BRG',
+          productName: it.product_name || 'Produk',
+          qtyReceived: parseInt(it.qty_received || 0, 10),
+          qtySold: parseInt(it.qty_sold || 0, 10),
+          sisaStok: Math.max(0, parseInt(it.qty_received || 0, 10) - parseInt(it.qty_sold || 0, 10)),
+          unitCostPrice: parseFloat(it.unit_cost_price || 0),
+          unitSellingPrice: parseFloat(it.unit_selling_price || 0),
+          subtotalHpp: parseFloat(it.qty_received || 0) * parseFloat(it.unit_cost_price || 0),
+          notes: it.notes || ''
+        });
+      }
+    }
+
+    // KPI Counters
+    const [kpi] = await query(
+      `SELECT COUNT(DISTINCT sc.id) as total_transaksi,
+              COALESCE(SUM(sc.total_qty_received), 0) as total_qty_received,
+              COALESCE(SUM(sc.total_amount_hpp), 0) as total_amount_hpp
+       FROM supplier_consignments sc
+       LEFT JOIN suppliers s ON s.id = sc.supplier_id
+       ${whereSql}`,
+      params
+    );
+
+    const [stockKpi] = await query(
+      `SELECT COALESCE(SUM(sci.qty_received - sci.qty_sold), 0) as total_sisa_stok,
+              COALESCE(SUM(sci.qty_sold), 0) as total_qty_sold
+       FROM supplier_consignment_items sci
+       JOIN supplier_consignments sc ON sc.id = sci.supplier_consignment_id
+       LEFT JOIN suppliers s ON s.id = sc.supplier_id
+       ${whereSql}`,
+      params
+    );
+
+    return res.json({
+      success: true,
+      kpi: {
+        totalTransaksi: parseInt(kpi?.total_transaksi || 0, 10),
+        totalQtyReceived: parseInt(kpi?.total_qty_received || 0, 10),
+        totalAmountHpp: parseFloat(kpi?.total_amount_hpp || 0),
+        totalSisaStok: Math.max(0, parseInt(stockKpi?.total_sisa_stok || 0, 10)),
+        totalQtySold: parseInt(stockKpi?.total_qty_sold || 0, 10),
+      },
+      data: consignments.map(c => ({
+        id: c.id,
+        referenceNumber: c.reference_number,
+        consignmentDate: extractDateStr(c.consignment_date),
+        consignmentDateFormatted: formatIndoDate(c.consignment_date),
+        supplierId: c.supplier_id,
+        supplierName: c.supplier_name || 'Supplier Titipan',
+        supplierPhone: c.supplier_phone || '',
+        status: c.status || 'approved',
+        totalQtyReceived: parseInt(c.total_qty_received || 0, 10),
+        totalQtySold: parseInt(c.total_qty_sold || 0, 10),
+        sisaStok: Math.max(0, parseInt(c.total_qty_received || 0, 10) - parseInt(c.total_qty_sold || 0, 10)),
+        totalAmountHpp: parseFloat(c.total_amount_hpp || 0),
+        notes: c.notes || '',
+        creatorName: c.creator_name || 'Admin',
+        itemsCount: parseInt(c.total_items_count || 0, 10),
+        items: itemsByConsId[c.id] || []
+      }))
+    });
+  } catch (err) {
+    console.error('[Node-API] Consignment list error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Tambah Transaksi Konsinyasi Baru (Create)
+app.post(['/api/v2/owner/supplier-consignments', '/api/v2/supplier-consignments'], async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const authUser = getAuthUser(req);
+    const userId = authUser?.id || 1;
+
+    const { supplier_id, consignment_date, notes, items } = req.body;
+    const cleanSupplierId = parseInt(supplier_id, 10);
+
+    if (isNaN(cleanSupplierId) || cleanSupplierId <= 0) {
+      return res.status(400).json({ success: false, message: 'Supplier wajib dipilih.' });
+    }
+    if (!consignment_date) {
+      return res.status(400).json({ success: false, message: 'Tanggal titipan wajib diisi.' });
+    }
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Minimal 1 produk barang titipan wajib dimasukkan.' });
+    }
+
+    // Auto reference number
+    const todayStr = formatDate(new Date(consignment_date) || new Date()).replace(/-/g, '');
+    const prefix = `KNS-${todayStr}-`;
+    const [lastCons] = await query(
+      `SELECT reference_number FROM supplier_consignments
+       WHERE tenant_id = ? AND reference_number LIKE ?
+       ORDER BY id DESC LIMIT 1`,
+      [tenantId, `${prefix}%`]
+    );
+    let nextNum = '0001';
+    if (lastCons && lastCons.reference_number) {
+      const parts = lastCons.reference_number.split('-');
+      const lastSeq = parseInt(parts[parts.length - 1], 10);
+      if (!isNaN(lastSeq)) nextNum = String(lastSeq + 1).padStart(4, '0');
+    }
+    const referenceNumber = `${prefix}${nextNum}`;
+
+    let totalQtyReceived = 0;
+    let totalAmountHpp = 0;
+    for (const row of items) {
+      const qty = parseInt(row.qty_received || 0, 10);
+      const cost = parseFloat(row.unit_cost_price || 0);
+      totalQtyReceived += qty;
+      totalAmountHpp += (qty * cost);
+    }
+
+    const insertResult = await query(
+      `INSERT INTO supplier_consignments
+       (tenant_id, supplier_id, reference_number, consignment_date, status, total_qty_received, total_amount_hpp, notes, created_by, approved_by, approved_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'approved', ?, ?, ?, ?, ?, NOW(), NOW(), NOW())`,
+      [tenantId, cleanSupplierId, referenceNumber, consignment_date, totalQtyReceived, totalAmountHpp, notes || null, userId, userId]
+    );
+
+    const consignmentId = insertResult.insertId;
+
+    for (const row of items) {
+      const prodId = parseInt(row.master_product_id, 10);
+      const qty = parseInt(row.qty_received || 0, 10);
+      const costPrice = parseFloat(row.unit_cost_price || 0);
+      const sellingPrice = parseFloat(row.unit_selling_price || 0);
+
+      await query(
+        `INSERT INTO supplier_consignment_items
+         (supplier_consignment_id, master_product_id, qty_received, qty_sold, unit_cost_price, unit_selling_price, notes, created_at, updated_at)
+         VALUES (?, ?, ?, 0, ?, ?, ?, NOW(), NOW())`,
+        [consignmentId, prodId, qty, costPrice, sellingPrice, row.notes || null]
+      );
+
+      // Tambah stok master_products secara otomatis
+      await query(
+        `UPDATE master_products
+         SET stock = stock + ?,
+             cost_price = CASE WHEN cost_price <= 0 THEN ? ELSE cost_price END,
+             price = CASE WHEN price <= 0 THEN ? ELSE price END,
+             updated_at = NOW()
+         WHERE id = ? AND tenant_id = ?`,
+        [qty, costPrice, sellingPrice, prodId, tenantId]
+      );
+
+      // Log mutasi kartu stok master_product_stock_logs jika tabel tersedia
+      try {
+        const [prodRow] = await query('SELECT stock FROM master_products WHERE id = ?', [prodId]);
+        const newBalance = prodRow?.stock || 0;
+        await query(
+          `INSERT INTO master_product_stock_logs
+           (tenant_id, master_product_id, user_id, type, qty, notes, balance_after, created_at, updated_at)
+           VALUES (?, ?, ?, 'in', ?, ?, ?, NOW(), NOW())`,
+          [tenantId, prodId, userId, qty, `Penerimaan Konsinyasi: ${referenceNumber}`, newBalance]
+        );
+      } catch (_) {}
+    }
+
+    return res.json({
+      success: true,
+      message: 'Transaksi titipan barang berhasil dicatat.',
+      data: {
+        id: consignmentId,
+        referenceNumber
+      }
+    });
+  } catch (err) {
+    console.error('[Node-API] Create consignment error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Detail Transaksi Konsinyasi
+app.get(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consignments/:id'], async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const consId = parseInt(req.params.id, 10);
+
+    if (isNaN(consId) || consId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID transaksi titipan barang tidak valid.' });
+    }
+
+    const [cons] = await query(
+      `SELECT sc.*, s.name as supplier_name, s.phone as supplier_phone, s.address as supplier_address,
+              s.contact_person as supplier_contact,
+              u.name as creator_name
+       FROM supplier_consignments sc
+       LEFT JOIN suppliers s ON s.id = sc.supplier_id
+       LEFT JOIN users u ON u.id = sc.created_by
+       WHERE sc.id = ? AND sc.tenant_id = ? LIMIT 1`,
+      [consId, tenantId]
+    );
+
+    if (!cons) {
+      return res.status(404).json({ success: false, message: 'Transaksi penerimaan konsinyasi tidak ditemukan.' });
+    }
+
+    const items = await query(
+      `SELECT sci.*, mp.sku, mp.name as product_name, mp.stock as current_product_stock, mp.unit
+       FROM supplier_consignment_items sci
+       LEFT JOIN master_products mp ON mp.id = sci.master_product_id
+       WHERE sci.supplier_consignment_id = ?
+       ORDER BY sci.id ASC`,
+      [consId]
+    );
+
+    // Ambil histori pengurangan stok titipan dari order fulfillment jika ada
+    let deductions = [];
+    try {
+      deductions = await query(
+        `SELECT scd.*, o.invoice_number, o.order_marketplace_id, o.order_status
+         FROM supplier_consignment_deductions scd
+         LEFT JOIN orders o ON o.id = scd.order_id
+         WHERE scd.supplier_consignment_item_id IN (SELECT id FROM supplier_consignment_items WHERE supplier_consignment_id = ?)
+         ORDER BY scd.id DESC LIMIT 50`,
+        [consId]
+      );
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      data: {
+        id: cons.id,
+        referenceNumber: cons.reference_number,
+        consignmentDate: extractDateStr(cons.consignment_date),
+        consignmentDateFormatted: formatIndoDate(cons.consignment_date),
+        supplierId: cons.supplier_id,
+        supplierName: cons.supplier_name || 'Supplier Titipan',
+        supplierPhone: cons.supplier_phone || '',
+        supplierAddress: cons.supplier_address || '',
+        supplierContact: cons.supplier_contact || '',
+        status: cons.status || 'approved',
+        totalQtyReceived: parseInt(cons.total_qty_received || 0, 10),
+        totalAmountHpp: parseFloat(cons.total_amount_hpp || 0),
+        notes: cons.notes || '',
+        creatorName: cons.creator_name || 'Admin',
+        createdAt: cons.created_at,
+        items: items.map(it => ({
+          id: it.id,
+          masterProductId: it.master_product_id,
+          sku: it.sku || 'BRG',
+          productName: it.product_name || 'Produk',
+          unit: it.unit || 'PCS',
+          currentProductStock: parseInt(it.current_product_stock || 0, 10),
+          qtyReceived: parseInt(it.qty_received || 0, 10),
+          qtySold: parseInt(it.qty_sold || 0, 10),
+          sisaStok: Math.max(0, parseInt(it.qty_received || 0, 10) - parseInt(it.qty_sold || 0, 10)),
+          unitCostPrice: parseFloat(it.unit_cost_price || 0),
+          unitSellingPrice: parseFloat(it.unit_selling_price || 0),
+          subtotalHpp: parseFloat(it.qty_received || 0) * parseFloat(it.unit_cost_price || 0),
+          notes: it.notes || ''
+        })),
+        deductions: deductions.map(d => ({
+          id: d.id,
+          orderId: d.order_id,
+          invoiceNumber: d.invoice_number || d.order_marketplace_id || '-',
+          qtyDeducted: parseInt(d.qty_deducted || 0, 10),
+          notes: d.notes || '',
+          createdAt: d.created_at,
+          dateFormatted: formatIndoDate(d.created_at)
+        }))
+      }
+    });
+  } catch (err) {
+    console.error('[Node-API] Consignment detail error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Update Transaksi Konsinyasi (Edit)
+app.put(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consignments/:id'], async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const authUser = getAuthUser(req);
+    const userId = authUser?.id || 1;
+    const consId = parseInt(req.params.id, 10);
+
+    if (isNaN(consId) || consId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID transaksi tidak valid.' });
+    }
+
+    const [existing] = await query(
+      `SELECT * FROM supplier_consignments WHERE id = ? AND tenant_id = ? LIMIT 1`,
+      [consId, tenantId]
+    );
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Transaksi tidak ditemukan.' });
+    }
+
+    const { supplier_id, consignment_date, notes, items } = req.body;
+    const cleanSupplierId = parseInt(supplier_id, 10);
+
+    if (isNaN(cleanSupplierId) || cleanSupplierId <= 0 || !consignment_date || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Data update tidak lengkap.' });
+    }
+
+    // Revert stok lama terlebih dahulu
+    const oldItems = await query(
+      `SELECT master_product_id, qty_received FROM supplier_consignment_items WHERE supplier_consignment_id = ?`,
+      [consId]
+    );
+    for (const oldIt of oldItems) {
+      await query(
+        `UPDATE master_products SET stock = GREATEST(0, stock - ?) WHERE id = ? AND tenant_id = ?`,
+        [oldIt.qty_received, oldIt.master_product_id, tenantId]
+      );
+      try {
+        await query(
+          `DELETE FROM master_product_stock_logs
+           WHERE tenant_id = ? AND notes LIKE ?`,
+          [tenantId, `%${existing.reference_number}%`]
+        );
+      } catch (_) {}
+    }
+
+    // Hapus detail items lama
+    await query(`DELETE FROM supplier_consignment_items WHERE supplier_consignment_id = ?`, [consId]);
+
+    // Masukkan items baru & hitung ulang akumulasi
+    let totalQtyReceived = 0;
+    let totalAmountHpp = 0;
+    for (const row of items) {
+      const prodId = parseInt(row.master_product_id, 10);
+      const qty = parseInt(row.qty_received || 0, 10);
+      const costPrice = parseFloat(row.unit_cost_price || 0);
+      const sellingPrice = parseFloat(row.unit_selling_price || 0);
+
+      totalQtyReceived += qty;
+      totalAmountHpp += (qty * costPrice);
+
+      await query(
+        `INSERT INTO supplier_consignment_items
+         (supplier_consignment_id, master_product_id, qty_received, qty_sold, unit_cost_price, unit_selling_price, notes, created_at, updated_at)
+         VALUES (?, ?, ?, 0, ?, ?, ?, NOW(), NOW())`,
+        [consId, prodId, qty, costPrice, sellingPrice, row.notes || null]
+      );
+
+      await query(
+        `UPDATE master_products
+         SET stock = stock + ?,
+             cost_price = CASE WHEN cost_price <= 0 THEN ? ELSE cost_price END,
+             price = CASE WHEN price <= 0 THEN ? ELSE price END,
+             updated_at = NOW()
+         WHERE id = ? AND tenant_id = ?`,
+        [qty, costPrice, sellingPrice, prodId, tenantId]
+      );
+
+      try {
+        const [prodRow] = await query('SELECT stock FROM master_products WHERE id = ?', [prodId]);
+        const newBalance = prodRow?.stock || 0;
+        await query(
+          `INSERT INTO master_product_stock_logs
+           (tenant_id, master_product_id, user_id, type, qty, notes, balance_after, created_at, updated_at)
+           VALUES (?, ?, ?, 'in', ?, ?, ?, NOW(), NOW())`,
+          [tenantId, prodId, userId, qty, `Penerimaan Konsinyasi: ${existing.reference_number}`, newBalance]
+        );
+      } catch (_) {}
+    }
+
+    await query(
+      `UPDATE supplier_consignments
+       SET supplier_id = ?, consignment_date = ?, notes = ?,
+           total_qty_received = ?, total_amount_hpp = ?, updated_at = NOW()
+       WHERE id = ? AND tenant_id = ?`,
+      [cleanSupplierId, consignment_date, notes || null, totalQtyReceived, totalAmountHpp, consId, tenantId]
+    );
+
+    return res.json({
+      success: true,
+      message: 'Transaksi titipan barang berhasil diperbarui.'
+    });
+  } catch (err) {
+    console.error('[Node-API] Update consignment error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Hapus Transaksi Konsinyasi (Delete)
+app.delete(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consignments/:id'], async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const consId = parseInt(req.params.id, 10);
+
+    if (isNaN(consId) || consId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID transaksi tidak valid.' });
+    }
+
+    const [existing] = await query(
+      `SELECT * FROM supplier_consignments WHERE id = ? AND tenant_id = ? LIMIT 1`,
+      [consId, tenantId]
+    );
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Transaksi tidak ditemukan.' });
+    }
+
+    // Revert stok dari master_products
+    const items = await query(
+      `SELECT master_product_id, qty_received FROM supplier_consignment_items WHERE supplier_consignment_id = ?`,
+      [consId]
+    );
+    for (const oldIt of items) {
+      await query(
+        `UPDATE master_products SET stock = GREATEST(0, stock - ?) WHERE id = ? AND tenant_id = ?`,
+        [oldIt.qty_received, oldIt.master_product_id, tenantId]
+      );
+      try {
+        await query(
+          `DELETE FROM master_product_stock_logs
+           WHERE tenant_id = ? AND notes LIKE ?`,
+          [tenantId, `%${existing.reference_number}%`]
+        );
+      } catch (_) {}
+    }
+
+    await query(`DELETE FROM supplier_consignment_items WHERE supplier_consignment_id = ?`, [consId]);
+    await query(`DELETE FROM supplier_consignments WHERE id = ? AND tenant_id = ?`, [consId, tenantId]);
+
+    return res.json({
+      success: true,
+      message: 'Transaksi titipan barang berhasil dihapus dan stok telah disesuaikan kembali.'
+    });
+  } catch (err) {
+    console.error('[Node-API] Delete consignment error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 
 // Health check
 app.get('/health', (req, res) => {

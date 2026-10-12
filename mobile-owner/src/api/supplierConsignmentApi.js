@@ -21,6 +21,15 @@ function getAuthHeaders() {
   };
 }
 
+function appendValidSupplierId(q, supplierId) {
+  if (supplierId !== undefined && supplierId !== null && supplierId !== '' && supplierId !== 'undefined' && supplierId !== 'NaN') {
+    const num = Number(supplierId);
+    if (!isNaN(num) && num > 0) {
+      q.append('supplier_id', String(num));
+    }
+  }
+}
+
 /**
  * 1. Ambil resources asli database (Master products & suppliers untuk form input)
  */
@@ -54,7 +63,7 @@ export async function fetchSupplierConsignments(params = {}) {
   try {
     const q = new URLSearchParams();
     if (params.search) q.append('search', params.search);
-    if (params.supplier_id) q.append('supplier_id', params.supplier_id);
+    appendValidSupplierId(q, params.supplier_id);
     if (params.status) q.append('status', params.status);
     if (params.date_from) q.append('date_from', params.date_from);
     if (params.date_to) q.append('date_to', params.date_to);
@@ -174,7 +183,7 @@ export async function deleteSupplierConsignment(id) {
 export async function fetchSupplierStockCard(params = {}) {
   try {
     const q = new URLSearchParams();
-    if (params.supplier_id) q.append('supplier_id', params.supplier_id);
+    appendValidSupplierId(q, params.supplier_id);
     if (params.search) q.append('search', params.search);
     const qs = q.toString() ? `?${q.toString()}` : '';
 
@@ -207,7 +216,7 @@ export async function fetchSupplierStockCard(params = {}) {
 export async function fetchSupplierSettlements(params = {}) {
   try {
     const q = new URLSearchParams();
-    if (params.supplier_id) q.append('supplier_id', params.supplier_id);
+    appendValidSupplierId(q, params.supplier_id);
     if (params.search) q.append('search', params.search);
     if (params.date_from) q.append('date_from', params.date_from);
     if (params.date_to) q.append('date_to', params.date_to);
@@ -242,7 +251,7 @@ export async function fetchSupplierSettlements(params = {}) {
 export async function fetchSupplierSalesHistory(params = {}) {
   try {
     const q = new URLSearchParams();
-    if (params.supplier_id) q.append('supplier_id', params.supplier_id);
+    appendValidSupplierId(q, params.supplier_id);
     if (params.search) q.append('search', params.search);
     if (params.date_from) q.append('date_from', params.date_from);
     if (params.date_to) q.append('date_to', params.date_to);

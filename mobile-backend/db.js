@@ -20,8 +20,18 @@ const pool = mysql.createPool({
   timezone: '+07:00', // Waktu Indonesia Barat
 });
 
+function sanitizeParams(params) {
+  if (!Array.isArray(params)) return params;
+  return params.map(p => {
+    if (typeof p === 'number' && isNaN(p)) return null;
+    if (Array.isArray(p)) return sanitizeParams(p);
+    return p;
+  });
+}
+
 async function query(sql, params = []) {
-  const [rows] = await pool.query(sql, params);
+  const safeParams = sanitizeParams(params);
+  const [rows] = await pool.query(sql, safeParams);
   return rows;
 }
 
