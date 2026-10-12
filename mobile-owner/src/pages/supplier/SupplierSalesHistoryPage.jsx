@@ -104,7 +104,7 @@ export default function SupplierSalesHistoryPage({ currentSupplierUser }) {
         }}>
           <div>
             <div style={{ fontSize: '10.5px', fontWeight: '700', color: '#bfdbfe', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-              Hak Bagi Hasil (Modal)
+              Total
             </div>
             <div style={{ fontSize: '20px', fontWeight: '900', fontFamily: 'monospace', margin: '6px 0 2px' }}>
               Rp {Number(kpi.totalCostValue || 0).toLocaleString('id-ID')}
@@ -395,7 +395,7 @@ export default function SupplierSalesHistoryPage({ currentSupplierUser }) {
                 borderTop: '1px solid #f1f5f9',
                 fontSize: '11.5px'
               }}>
-                <span style={{ color: '#64748b' }}>Nilai Modal Supplier:</span>
+                <span style={{ color: '#64748b' }}>Total:</span>
                 <span style={{ fontWeight: '900', color: '#047857', fontFamily: 'monospace', fontSize: '13px' }}>
                   Rp {Number(item.subtotalCost || (item.qty * item.unitCostPrice)).toLocaleString('id-ID')}
                 </span>

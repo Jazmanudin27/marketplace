@@ -4471,6 +4471,7 @@ app.get(['/api/v2/owner/supplier-consignments', '/api/v2/supplier-consignments']
     // Ambil item ringkasan untuk setiap konsinyasi
     const consignmentIds = consignments.map(c => c.id);
     let itemsByConsId = {};
+    let paidByConsId = {};
     if (consignmentIds.length > 0) {
       const allItems = await query(
         `SELECT sci.*, mp.sku, mp.name as product_name, mp.stock as current_product_stock
@@ -4495,6 +4496,29 @@ app.get(['/api/v2/owner/supplier-consignments', '/api/v2/supplier-consignments']
           notes: it.notes || ''
         });
       }
+
+      // Ambil histori pembayaran (settlements) riil per konsinyasi
+      try {
+        const settlementRows = await query(
+          `SELECT sci.supplier_consignment_id,
+                  COALESCE(SUM(scsi.subtotal), 0) as total_paid,
+                  COALESCE(SUM(scsi.qty_settled), 0) as total_qty_settled
+           FROM supplier_consignment_settlement_items scsi
+           JOIN supplier_consignment_items sci ON sci.id = scsi.supplier_consignment_item_id
+           JOIN supplier_consignment_settlements scs ON scs.id = scsi.settlement_id
+           WHERE scs.status = 'approved' AND sci.supplier_consignment_id IN (?)
+           GROUP BY sci.supplier_consignment_id`,
+          [consignmentIds]
+        );
+        for (const sr of settlementRows) {
+          paidByConsId[sr.supplier_consignment_id] = {
+            totalPaid: parseFloat(sr.total_paid || 0),
+            totalQtySettled: parseInt(sr.total_qty_settled || 0, 10)
+          };
+        }
+      } catch (err) {
+        console.warn('[Node-API] Error querying consignment settlements:', err.message);
+      }
     }
 
     // KPI Counters
@@ -4518,33 +4542,61 @@ app.get(['/api/v2/owner/supplier-consignments', '/api/v2/supplier-consignments']
       params
     );
 
+    let totalPaidAll = 0;
+    Object.values(paidByConsId).forEach(p => { totalPaidAll += p.totalPaid; });
+    const totalAmountHpp = parseFloat(kpi?.total_amount_hpp || 0);
+    const totalSisaPembayaran = Math.max(0, totalAmountHpp - totalPaidAll);
+
     return res.json({
       success: true,
       kpi: {
         totalTransaksi: parseInt(kpi?.total_transaksi || 0, 10),
         totalQtyReceived: parseInt(kpi?.total_qty_received || 0, 10),
-        totalAmountHpp: parseFloat(kpi?.total_amount_hpp || 0),
+        totalAmountHpp: totalAmountHpp,
         totalSisaStok: Math.max(0, parseInt(stockKpi?.total_sisa_stok || 0, 10)),
         totalQtySold: parseInt(stockKpi?.total_qty_sold || 0, 10),
+        totalAmountPaid: totalPaidAll,
+        totalSisaPembayaran: totalSisaPembayaran,
       },
-      data: consignments.map(c => ({
-        id: c.id,
-        referenceNumber: c.reference_number,
-        consignmentDate: extractDateStr(c.consignment_date),
-        consignmentDateFormatted: formatIndoDate(c.consignment_date),
-        supplierId: c.supplier_id,
-        supplierName: c.supplier_name || 'Supplier Titipan',
-        supplierPhone: c.supplier_phone || '',
-        status: c.status || 'approved',
-        totalQtyReceived: parseInt(c.total_qty_received || 0, 10),
-        totalQtySold: parseInt(c.total_qty_sold || 0, 10),
-        sisaStok: Math.max(0, parseInt(c.total_qty_received || 0, 10) - parseInt(c.total_qty_sold || 0, 10)),
-        totalAmountHpp: parseFloat(c.total_amount_hpp || 0),
-        notes: c.notes || '',
-        creatorName: c.creator_name || 'Admin',
-        itemsCount: parseInt(c.total_items_count || 0, 10),
-        items: itemsByConsId[c.id] || []
-      }))
+      data: consignments.map(c => {
+        const paidInfo = paidByConsId[c.id] || { totalPaid: 0, totalQtySettled: 0 };
+        const hpp = parseFloat(c.total_amount_hpp || 0);
+        const paid = paidInfo.totalPaid;
+        const sisa = Math.max(0, hpp - paid);
+        let paymentStatus = 'unpaid';
+        let paymentStatusLabel = 'Belum Lunas';
+        if (paid >= hpp && hpp > 0) {
+          paymentStatus = 'paid';
+          paymentStatusLabel = 'Lunas';
+        } else if (paid > 0) {
+          paymentStatus = 'partial';
+          paymentStatusLabel = 'Sebagian';
+        }
+
+        return {
+          id: c.id,
+          referenceNumber: c.reference_number,
+          consignmentDate: extractDateStr(c.consignment_date),
+          consignmentDateFormatted: formatIndoDate(c.consignment_date),
+          supplierId: c.supplier_id,
+          supplierName: c.supplier_name || 'Supplier Titipan',
+          supplierPhone: c.supplier_phone || '',
+          status: c.status || 'approved',
+          totalQtyReceived: parseInt(c.total_qty_received || 0, 10),
+          totalQtySold: parseInt(c.total_qty_sold || 0, 10),
+          sisaStok: Math.max(0, parseInt(c.total_qty_received || 0, 10) - parseInt(c.total_qty_sold || 0, 10)),
+          totalAmountHpp: hpp,
+          totalAmountPaid: paid,
+          sisaPembayaran: sisa,
+          paymentStatus: paymentStatus,
+          paymentStatusLabel: paymentStatusLabel,
+          totalQtySettled: paidInfo.totalQtySettled,
+          notes: c.notes || '',
+          creatorName: c.creator_name || 'Admin',
+          itemsCount: parseInt(c.total_items_count || 0, 10),
+          items: itemsByConsId[c.id] || []
+        };
+      })
     });
   } catch (err) {
     console.error('[Node-API] Consignment list error:', err);
@@ -4705,6 +4757,40 @@ app.get(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consignmen
       );
     } catch (_) {}
 
+    // Ambil histori setoran pembayaran (settlements) untuk transaksi konsinyasi ini
+    let settlements = [];
+    let totalAmountPaid = 0;
+    try {
+      settlements = await query(
+        `SELECT scs.id as settlement_id, scs.settlement_number, scs.settlement_date,
+                scs.payment_method, scs.reference_number as payment_ref,
+                scsi.qty_settled, scsi.unit_cost_price, scsi.subtotal,
+                mp.name as product_name, mp.sku
+         FROM supplier_consignment_settlement_items scsi
+         JOIN supplier_consignment_items sci ON sci.id = scsi.supplier_consignment_item_id
+         JOIN supplier_consignment_settlements scs ON scs.id = scsi.settlement_id
+         LEFT JOIN master_products mp ON mp.id = scsi.master_product_id
+         WHERE sci.supplier_consignment_id = ? AND scs.status = 'approved'
+         ORDER BY scs.settlement_date DESC, scs.id DESC`,
+        [consId]
+      );
+      for (const st of settlements) {
+        totalAmountPaid += parseFloat(st.subtotal || 0);
+      }
+    } catch (_) {}
+
+    const totalHpp = parseFloat(cons.total_amount_hpp || 0);
+    const sisaPembayaran = Math.max(0, totalHpp - totalAmountPaid);
+    let paymentStatus = 'unpaid';
+    let paymentStatusLabel = 'Belum Lunas';
+    if (totalAmountPaid >= totalHpp && totalHpp > 0) {
+      paymentStatus = 'paid';
+      paymentStatusLabel = 'Lunas';
+    } else if (totalAmountPaid > 0) {
+      paymentStatus = 'partial';
+      paymentStatusLabel = 'Sebagian';
+    }
+
     return res.json({
       success: true,
       data: {
@@ -4719,7 +4805,11 @@ app.get(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consignmen
         supplierContact: cons.supplier_contact || '',
         status: cons.status || 'approved',
         totalQtyReceived: parseInt(cons.total_qty_received || 0, 10),
-        totalAmountHpp: parseFloat(cons.total_amount_hpp || 0),
+        totalAmountHpp: totalHpp,
+        totalAmountPaid: totalAmountPaid,
+        sisaPembayaran: sisaPembayaran,
+        paymentStatus: paymentStatus,
+        paymentStatusLabel: paymentStatusLabel,
         notes: cons.notes || '',
         creatorName: cons.creator_name || 'Admin',
         createdAt: cons.created_at,
@@ -4746,6 +4836,17 @@ app.get(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consignmen
           notes: d.notes || '',
           createdAt: d.created_at,
           dateFormatted: formatIndoDate(d.created_at)
+        })),
+        settlements: settlements.map(st => ({
+          id: st.settlement_id,
+          settlementNumber: st.settlement_number,
+          dateFormatted: formatIndoDate(st.settlement_date),
+          paymentMethod: st.payment_method || 'transfer',
+          paymentRef: st.payment_ref || '-',
+          productName: st.product_name,
+          sku: st.sku,
+          qtySettled: parseInt(st.qty_settled || 0, 10),
+          subtotal: parseFloat(st.subtotal || 0)
         }))
       }
     });

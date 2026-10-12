@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, Barcode, Eye, Box, Package, RefreshCw, CheckCircle2, Clock, ChevronRight, Sparkles } from 'lucide-react';
+import { Search, Filter, Calendar, Barcode, Eye, Box, Package, RefreshCw, CheckCircle2, Clock, ChevronRight, Sparkles, CreditCard, AlertCircle } from 'lucide-react';
 import { fetchSupplierConsignments } from '../../api/supplierConsignmentApi';
 import SupplierTitipanDetailModal from './SupplierTitipanDetailModal';
 import SupplierBarcodeModal from './SupplierBarcodeModal';
@@ -11,7 +11,9 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
     totalQtyReceived: 0,
     totalAmountHpp: 0,
     totalSisaStok: 0,
-    totalQtySold: 0
+    totalQtySold: 0,
+    totalAmountPaid: 0,
+    totalSisaPembayaran: 0
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,6 +22,7 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState(''); // '' | 'paid' | 'partial' | 'unpaid'
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
 
   // Modals
@@ -169,6 +172,110 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
         </div>
       </div>
 
+      {/* Ringkasan Finansial & Status Pembayaran Titipan */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+        borderRadius: '18px',
+        padding: '15px 16px',
+        color: '#ffffff',
+        boxShadow: '0 6px 20px rgba(15, 23, 42, 0.15)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+            <div style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '8px',
+              background: 'rgba(245, 158, 11, 0.2)',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fbbf24'
+            }}>
+              <CreditCard size={15} />
+            </div>
+            <div>
+              <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#f8fafc' }}>
+                Status Pembayaran Titipan
+              </div>
+              <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>
+                Akumulasi seluruh nota konsinyasi
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            fontSize: '11px',
+            fontWeight: '800',
+            padding: '3px 9px',
+            borderRadius: '20px',
+            background: (kpi.totalSisaPembayaran <= 0 && kpi.totalAmountHpp > 0) ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+            color: (kpi.totalSisaPembayaran <= 0 && kpi.totalAmountHpp > 0) ? '#34d399' : '#fbbf24',
+            border: (kpi.totalSisaPembayaran <= 0 && kpi.totalAmountHpp > 0) ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)'
+          }}>
+            {kpi.totalSisaPembayaran <= 0 && kpi.totalAmountHpp > 0
+              ? 'Lunas Penuh'
+              : kpi.totalAmountPaid > 0
+                ? 'Lunas Sebagian'
+                : 'Belum Ada Pembayaran'}
+          </div>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '8px',
+          background: 'rgba(255, 255, 255, 0.05)',
+          borderRadius: '12px',
+          padding: '10px 8px',
+          textAlign: 'center'
+        }}>
+          <div>
+            <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase' }}>Total Nilai</div>
+            <div style={{ fontSize: '13px', fontWeight: '900', color: '#f8fafc', marginTop: '2px', fontFamily: 'monospace' }}>
+              Rp {Number(kpi.totalAmountHpp || 0).toLocaleString('id-ID')}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', color: '#34d399', fontWeight: '700', textTransform: 'uppercase' }}>Terbayar</div>
+            <div style={{ fontSize: '13px', fontWeight: '900', color: '#34d399', marginTop: '2px', fontFamily: 'monospace' }}>
+              Rp {Number(kpi.totalAmountPaid || 0).toLocaleString('id-ID')}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', color: '#fbbf24', fontWeight: '700', textTransform: 'uppercase' }}>Sisa Bayar</div>
+            <div style={{ fontSize: '13px', fontWeight: '900', color: '#fb7185', marginTop: '2px', fontFamily: 'monospace' }}>
+              Rp {Number(kpi.totalSisaPembayaran || 0).toLocaleString('id-ID')}
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Bar Pelunasan */}
+        {kpi.totalAmountHpp > 0 && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#94a3b8', marginBottom: '4px' }}>
+              <span>Tingkat Pelunasan</span>
+              <span style={{ fontWeight: '800', color: '#34d399' }}>
+                {Math.min(100, Math.round(((kpi.totalAmountPaid || 0) / (kpi.totalAmountHpp || 1)) * 100))}%
+              </span>
+            </div>
+            <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${Math.min(100, Math.round(((kpi.totalAmountPaid || 0) / (kpi.totalAmountHpp || 1)) * 100))}%`,
+                background: 'linear-gradient(90deg, #10b981, #34d399)',
+                borderRadius: '3px',
+                transition: 'width 0.4s ease'
+              }} />
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Search & Filter Toolbar */}
       <div style={{ display: 'flex', gap: '8px' }}>
         <div style={{
@@ -227,6 +334,52 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
           <Filter size={15} />
           <span>Filter</span>
         </button>
+      </div>
+
+      {/* Quick Pills Filter Status Pembayaran */}
+      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+        {[
+          { key: '', label: 'Semua Status', count: consignments.length },
+          { key: 'unpaid', label: 'Belum Lunas', count: consignments.filter(c => c.paymentStatus === 'unpaid').length },
+          { key: 'partial', label: 'Sebagian', count: consignments.filter(c => c.paymentStatus === 'partial').length },
+          { key: 'paid', label: 'Lunas', count: consignments.filter(c => c.paymentStatus === 'paid').length },
+        ].map((tab) => {
+          const isActive = paymentFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setPaymentFilter(tab.key)}
+              style={{
+                flexShrink: 0,
+                border: 'none',
+                background: isActive ? '#1e293b' : '#ffffff',
+                color: isActive ? '#ffffff' : '#64748b',
+                padding: '6px 12px',
+                borderRadius: '10px',
+                fontSize: '11.5px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                boxShadow: isActive ? '0 2px 6px rgba(30, 41, 59, 0.2)' : '0 1px 3px rgba(0,0,0,0.03)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <span>{tab.label}</span>
+              <span style={{
+                background: isActive ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
+                color: isActive ? '#ffffff' : '#475569',
+                fontSize: '10px',
+                padding: '1px 6px',
+                borderRadius: '6px',
+                fontWeight: '800'
+              }}>
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Filter Drawer Card */}
@@ -337,8 +490,29 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
               Data tanda terima konsinyasi Anda akan tampil di halaman ini.
             </div>
           </div>
-        ) : (
-          consignments.map((c) => {
+        ) : (() => {
+          const displayedConsignments = consignments.filter(c => {
+            if (!paymentFilter) return true;
+            return c.paymentStatus === paymentFilter;
+          });
+
+          if (displayedConsignments.length === 0) {
+            return (
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                padding: '28px 16px',
+                textAlign: 'center',
+                border: '1px solid #e2e8f0',
+                color: '#64748b',
+                fontSize: '12.5px'
+              }}>
+                Tidak ada nota titipan dengan status pembayaran <strong>{paymentFilter === 'unpaid' ? 'Belum Lunas' : paymentFilter === 'partial' ? 'Sebagian' : 'Lunas'}</strong>.
+              </div>
+            );
+          }
+
+          return displayedConsignments.map((c) => {
             const items = c.items || [];
             const refNum = c.referenceNumber || c.reference_number;
             const supName = c.supplierName || c.supplier_name;
@@ -346,6 +520,9 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
             const totalSold = c.totalQtySold || c.total_qty_sold || 0;
             const sisaStok = c.sisaStok !== undefined ? c.sisaStok : Math.max(0, totalQty - totalSold);
             const totalHpp = c.totalAmountHpp || c.total_amount_hpp || 0;
+            const totalPaid = c.totalAmountPaid !== undefined ? c.totalAmountPaid : 0;
+            const sisaPembayaran = c.sisaPembayaran !== undefined ? c.sisaPembayaran : Math.max(0, totalHpp - totalPaid);
+            const paymentStatus = c.paymentStatus || (totalPaid >= totalHpp && totalHpp > 0 ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid');
             const dateStr = c.consignmentDateFormatted || c.consignmentDate;
             const status = c.status || 'approved';
 
@@ -387,21 +564,40 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
                     </div>
                   </div>
 
-                  <span style={{
-                    background: status === 'approved' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                    color: status === 'approved' ? '#059669' : '#d97706',
-                    border: status === 'approved' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)',
-                    fontSize: '10.5px',
-                    fontWeight: '800',
-                    padding: '3px 8px',
-                    borderRadius: '8px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}>
-                    {status === 'approved' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                    {status === 'approved' ? 'Disetujui' : 'Pending'}
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    <span style={{
+                      background: status === 'approved' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                      color: status === 'approved' ? '#059669' : '#d97706',
+                      border: status === 'approved' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)',
+                      fontSize: '10px',
+                      fontWeight: '800',
+                      padding: '2px 7px',
+                      borderRadius: '6px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}>
+                      {status === 'approved' ? <CheckCircle2 size={11} /> : <Clock size={11} />}
+                      {status === 'approved' ? 'Disetujui' : 'Pending'}
+                    </span>
+
+                    {/* Badge Status Pembayaran */}
+                    <span style={{
+                      background: paymentStatus === 'paid' ? '#ecfdf5' : paymentStatus === 'partial' ? '#fffbeb' : '#fef2f2',
+                      color: paymentStatus === 'paid' ? '#059669' : paymentStatus === 'partial' ? '#b45309' : '#dc2626',
+                      border: paymentStatus === 'paid' ? '1px solid #a7f3d0' : paymentStatus === 'partial' ? '1px solid #fde68a' : '1px solid #fecaca',
+                      fontSize: '10px',
+                      fontWeight: '800',
+                      padding: '2px 7px',
+                      borderRadius: '6px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}>
+                      {paymentStatus === 'paid' ? <CheckCircle2 size={11} /> : paymentStatus === 'partial' ? <Clock size={11} /> : <AlertCircle size={11} />}
+                      {paymentStatus === 'paid' ? 'Lunas' : paymentStatus === 'partial' ? 'Sebagian' : 'Belum Lunas'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Items Summary Snippet */}
@@ -454,11 +650,67 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
                     <div style={{ fontSize: '13px', fontWeight: '900', color: '#d97706', marginTop: '2px' }}>{sisaStok} PCS</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '9.5px', color: '#854d0e', fontWeight: '700', textTransform: 'uppercase' }}>Nilai Modal</div>
+                    <div style={{ fontSize: '9.5px', color: '#854d0e', fontWeight: '700', textTransform: 'uppercase' }}>Total</div>
                     <div style={{ fontSize: '12.5px', fontWeight: '900', color: '#1e293b', fontFamily: 'monospace', marginTop: '2px' }}>
                       Rp {Number(totalHpp).toLocaleString('id-ID')}
                     </div>
                   </div>
+                </div>
+
+                {/* Box Detail Pembayaran & Sisa Pelunasan */}
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: '700', color: '#475569' }}>
+                      <CreditCard size={13} color="#f59e0b" />
+                      <span>Status Pembayaran:</span>
+                    </div>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      color: paymentStatus === 'paid' ? '#059669' : paymentStatus === 'partial' ? '#b45309' : '#dc2626'
+                    }}>
+                      {c.paymentStatusLabel || (paymentStatus === 'paid' ? 'Lunas' : paymentStatus === 'partial' ? 'Sebagian' : 'Belum Lunas')}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', paddingTop: '4px', borderTop: '1px dashed #e2e8f0' }}>
+                    <div>
+                      <div style={{ fontSize: '10px', color: '#64748b' }}>Sudah Terbayar</div>
+                      <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#059669', fontFamily: 'monospace' }}>
+                        Rp {Number(totalPaid).toLocaleString('id-ID')}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '10px', color: '#64748b' }}>Sisa Pembayaran</div>
+                      <div style={{
+                        fontSize: '12.5px',
+                        fontWeight: '800',
+                        color: sisaPembayaran > 0 ? '#dc2626' : '#059669',
+                        fontFamily: 'monospace'
+                      }}>
+                        Rp {Number(sisaPembayaran).toLocaleString('id-ID')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {totalHpp > 0 && (
+                    <div style={{ height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden', marginTop: '2px' }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${Math.min(100, Math.round((totalPaid / totalHpp) * 100))}%`,
+                        background: paymentStatus === 'paid' ? '#10b981' : '#f59e0b',
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Action Buttons Toolbar: Barcode & Detail */}
@@ -511,8 +763,8 @@ export default function SupplierTitipanBarangPage({ currentSupplierUser }) {
                 </div>
               </div>
             );
-          })
-        )}
+          });
+        })()}
       </div>
 
       {/* Detail Modal */}

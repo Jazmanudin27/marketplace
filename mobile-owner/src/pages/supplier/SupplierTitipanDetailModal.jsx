@@ -1,28 +1,53 @@
-import React, { useState } from 'react';
-import { X, Calendar, User, FileText, CheckCircle2, Clock, Barcode, Package, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar, User, FileText, CheckCircle2, Clock, Barcode, Package, AlertCircle, CreditCard, ArrowDownRight, DollarSign } from 'lucide-react';
+import { fetchSupplierConsignmentDetail } from '../../api/supplierConsignmentApi';
 
 export default function SupplierTitipanDetailModal({
   consignment,
   onClose,
   onOpenBarcode
 }) {
-  const [activeTab, setActiveTab] = useState('items'); // 'items' | 'deductions'
+  const [activeTab, setActiveTab] = useState('items'); // 'items' | 'deductions' | 'payments'
+  const [liveData, setLiveData] = useState(consignment);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+
+  useEffect(() => {
+    if (consignment?.id) {
+      setIsLoadingDetail(true);
+      fetchSupplierConsignmentDetail(consignment.id)
+        .then((data) => {
+          if (data) setLiveData(data);
+        })
+        .catch((err) => {
+          console.warn('[SupplierModal] Fetch detail error:', err);
+        })
+        .finally(() => {
+          setIsLoadingDetail(false);
+        });
+    }
+  }, [consignment?.id]);
 
   if (!consignment) return null;
 
-  const items = consignment.items || [];
-  const deductions = consignment.deductions || [];
-  const refNum = consignment.referenceNumber || consignment.reference_number || 'KNS-001';
-  const supName = consignment.supplierName || consignment.supplier_name || 'Supplier Titipan';
-  const supPhone = consignment.supplierPhone || consignment.supplier_phone || '';
-  const dateStr = consignment.consignmentDateFormatted || consignment.consignmentDate || '-';
-  const notes = consignment.notes || '';
-  const status = consignment.status || 'approved';
+  const activeConsignment = liveData || consignment;
+  const items = activeConsignment.items || [];
+  const deductions = activeConsignment.deductions || [];
+  const settlements = activeConsignment.settlements || [];
+  const refNum = activeConsignment.referenceNumber || activeConsignment.reference_number || 'KNS-001';
+  const supName = activeConsignment.supplierName || activeConsignment.supplier_name || 'Supplier Titipan';
+  const supPhone = activeConsignment.supplierPhone || activeConsignment.supplier_phone || '';
+  const dateStr = activeConsignment.consignmentDateFormatted || activeConsignment.consignmentDate || '-';
+  const notes = activeConsignment.notes || '';
+  const status = activeConsignment.status || 'approved';
 
-  const totalQty = consignment.totalQtyReceived || consignment.total_qty_received || 0;
-  const totalSold = consignment.totalQtySold || consignment.total_qty_sold || 0;
-  const sisaStok = consignment.sisaStok !== undefined ? consignment.sisaStok : Math.max(0, totalQty - totalSold);
-  const totalHpp = consignment.totalAmountHpp || consignment.total_amount_hpp || 0;
+  const totalQty = activeConsignment.totalQtyReceived || activeConsignment.total_qty_received || 0;
+  const totalSold = activeConsignment.totalQtySold || activeConsignment.total_qty_sold || 0;
+  const sisaStok = activeConsignment.sisaStok !== undefined ? activeConsignment.sisaStok : Math.max(0, totalQty - totalSold);
+  const totalHpp = activeConsignment.totalAmountHpp || activeConsignment.total_amount_hpp || 0;
+  const totalPaid = activeConsignment.totalAmountPaid !== undefined ? activeConsignment.totalAmountPaid : 0;
+  const sisaPembayaran = activeConsignment.sisaPembayaran !== undefined ? activeConsignment.sisaPembayaran : Math.max(0, totalHpp - totalPaid);
+  const paymentStatus = activeConsignment.paymentStatus || (totalPaid >= totalHpp && totalHpp > 0 ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid');
+  const paymentStatusLabel = activeConsignment.paymentStatusLabel || (paymentStatus === 'paid' ? 'Lunas' : paymentStatus === 'partial' ? 'Sebagian' : 'Belum Lunas');
 
   return (
     <div style={{
@@ -70,7 +95,7 @@ export default function SupplierTitipanDetailModal({
           }} />
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
               <span style={{
                 background: status === 'approved' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
                 color: status === 'approved' ? '#34d399' : '#fbbf24',
@@ -84,7 +109,24 @@ export default function SupplierTitipanDetailModal({
                 gap: '4px'
               }}>
                 {status === 'approved' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                {status === 'approved' ? 'Disetujui / Selesai' : 'Pending'}
+                {status === 'approved' ? 'Disetujui' : 'Pending'}
+              </span>
+
+              {/* Status Pembayaran Badge */}
+              <span style={{
+                background: paymentStatus === 'paid' ? 'rgba(16, 185, 129, 0.25)' : paymentStatus === 'partial' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+                color: paymentStatus === 'paid' ? '#34d399' : paymentStatus === 'partial' ? '#fbbf24' : '#f87171',
+                border: paymentStatus === 'paid' ? '1px solid rgba(16, 185, 129, 0.5)' : paymentStatus === 'partial' ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid rgba(239, 68, 68, 0.5)',
+                fontSize: '10.5px',
+                fontWeight: '800',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                {paymentStatus === 'paid' ? <CheckCircle2 size={12} /> : paymentStatus === 'partial' ? <Clock size={12} /> : <AlertCircle size={12} />}
+                {paymentStatusLabel}
               </span>
 
               <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>
@@ -122,63 +164,115 @@ export default function SupplierTitipanDetailModal({
           </div>
         </div>
 
-        {/* KPI Mini Bar */}
+        {/* Status Finansial & Pembayaran Banner */}
         <div style={{
-          background: '#f8fafc',
-          borderBottom: '1px solid #e2e8f0',
+          background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
           padding: '12px 18px',
+          color: '#ffffff',
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
           gap: '8px',
           textAlign: 'center'
         }}>
-          <div style={{ background: '#ffffff', padding: '8px 4px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Total Titip</div>
-            <div style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>{totalQty} PCS</div>
+          <div>
+            <div style={{ fontSize: '9.5px', color: '#a7f3d0', fontWeight: '700', textTransform: 'uppercase' }}>Total Nilai</div>
+            <div style={{ fontSize: '13px', fontWeight: '900', color: '#ffffff', fontFamily: 'monospace', marginTop: '2px' }}>
+              Rp {Number(totalHpp).toLocaleString('id-ID')}
+            </div>
           </div>
-          <div style={{ background: '#ffffff', padding: '8px 4px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '10px', color: '#10b981', fontWeight: '700', textTransform: 'uppercase' }}>Terjual / Keluar</div>
-            <div style={{ fontSize: '14px', fontWeight: '800', color: '#10b981' }}>{totalSold} PCS</div>
+          <div>
+            <div style={{ fontSize: '9.5px', color: '#6ee7b7', fontWeight: '700', textTransform: 'uppercase' }}>Terbayar</div>
+            <div style={{ fontSize: '13px', fontWeight: '900', color: '#34d399', fontFamily: 'monospace', marginTop: '2px' }}>
+              Rp {Number(totalPaid).toLocaleString('id-ID')}
+            </div>
           </div>
-          <div style={{ background: '#ffffff', padding: '8px 4px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '10px', color: '#f59e0b', fontWeight: '700', textTransform: 'uppercase' }}>Sisa Di Toko</div>
-            <div style={{ fontSize: '14px', fontWeight: '800', color: '#f59e0b' }}>{sisaStok} PCS</div>
+          <div>
+            <div style={{ fontSize: '9.5px', color: '#fde68a', fontWeight: '700', textTransform: 'uppercase' }}>Sisa Pembayaran</div>
+            <div style={{
+              fontSize: '13px',
+              fontWeight: '900',
+              color: sisaPembayaran > 0 ? '#fca5a5' : '#34d399',
+              fontFamily: 'monospace',
+              marginTop: '2px'
+            }}>
+              Rp {Number(sisaPembayaran).toLocaleString('id-ID')}
+            </div>
           </div>
         </div>
 
-        {/* Tab Toggle */}
+        {/* KPI Mini Bar Stok */}
+        <div style={{
+          background: '#f8fafc',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '10px 18px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '8px',
+          textAlign: 'center'
+        }}>
+          <div style={{ background: '#ffffff', padding: '6px 4px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <div style={{ fontSize: '9.5px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Total Titip</div>
+            <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>{totalQty} PCS</div>
+          </div>
+          <div style={{ background: '#ffffff', padding: '6px 4px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <div style={{ fontSize: '9.5px', color: '#10b981', fontWeight: '700', textTransform: 'uppercase' }}>Terjual / Keluar</div>
+            <div style={{ fontSize: '13px', fontWeight: '800', color: '#10b981' }}>{totalSold} PCS</div>
+          </div>
+          <div style={{ background: '#ffffff', padding: '6px 4px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <div style={{ fontSize: '9.5px', color: '#f59e0b', fontWeight: '700', textTransform: 'uppercase' }}>Sisa Di Toko</div>
+            <div style={{ fontSize: '13px', fontWeight: '800', color: '#f59e0b' }}>{sisaStok} PCS</div>
+          </div>
+        </div>
+
+        {/* Tab Toggle (Barang, Terjual, Pembayaran) */}
         <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#ffffff' }}>
           <button
             onClick={() => setActiveTab('items')}
             style={{
               flex: 1,
-              padding: '11px',
+              padding: '11px 4px',
               border: 'none',
               background: 'transparent',
-              fontSize: '12.5px',
+              fontSize: '11.5px',
               fontWeight: activeTab === 'items' ? '800' : '600',
               color: activeTab === 'items' ? '#f59e0b' : '#64748b',
               borderBottom: activeTab === 'items' ? '2.5px solid #f59e0b' : '2.5px solid transparent',
               cursor: 'pointer'
             }}
           >
-            Daftar Barang ({items.length})
+            Barang ({items.length})
           </button>
           <button
             onClick={() => setActiveTab('deductions')}
             style={{
               flex: 1,
-              padding: '11px',
+              padding: '11px 4px',
               border: 'none',
               background: 'transparent',
-              fontSize: '12.5px',
+              fontSize: '11.5px',
               fontWeight: activeTab === 'deductions' ? '800' : '600',
               color: activeTab === 'deductions' ? '#f59e0b' : '#64748b',
               borderBottom: activeTab === 'deductions' ? '2.5px solid #f59e0b' : '2.5px solid transparent',
               cursor: 'pointer'
             }}
           >
-            Riwayat Terjual ({deductions.length})
+            Terjual ({deductions.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('payments')}
+            style={{
+              flex: 1,
+              padding: '11px 4px',
+              border: 'none',
+              background: 'transparent',
+              fontSize: '11.5px',
+              fontWeight: activeTab === 'payments' ? '800' : '600',
+              color: activeTab === 'payments' ? '#059669' : '#64748b',
+              borderBottom: activeTab === 'payments' ? '2.5px solid #059669' : '2.5px solid transparent',
+              cursor: 'pointer'
+            }}
+          >
+            Pembayaran ({settlements.length})
           </button>
         </div>
 
@@ -291,7 +385,7 @@ export default function SupplierTitipanDetailModal({
                 );
               })
             )
-          ) : (
+          ) : activeTab === 'deductions' ? (
             deductions.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '36px 12px', color: '#94a3b8', fontSize: '12.5px' }}>
                 <Package size={28} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
@@ -320,29 +414,115 @@ export default function SupplierTitipanDetailModal({
                 </div>
               ))
             )
+          ) : (
+            /* ActiveTab === 'payments' */
+            settlements.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '36px 12px', color: '#94a3b8', fontSize: '12.5px' }}>
+                <CreditCard size={28} style={{ margin: '0 auto 8px', opacity: 0.4, color: '#f59e0b' }} />
+                <div style={{ fontWeight: '800', color: '#1e293b' }}>Belum Ada Setoran Pembayaran</div>
+                <div style={{ fontSize: '11px', marginTop: '4px', color: '#64748b' }}>
+                  Sisa tagihan titipan untuk nota ini: <strong style={{ color: '#dc2626' }}>Rp {Number(sisaPembayaran).toLocaleString('id-ID')}</strong>.
+                </div>
+                <div style={{ fontSize: '10.5px', marginTop: '6px', color: '#94a3b8' }}>
+                  Pembayaran akan tercatat saat admin/owner memproses setoran bagi hasil konsinyasi.
+                </div>
+              </div>
+            ) : (
+              settlements.map((st, sIdx) => (
+                <div
+                  key={st.id || sIdx}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '14px',
+                    padding: '12px 14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                    boxShadow: '0 2px 6px rgba(16, 185, 129, 0.05)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <span style={{
+                        background: '#ecfdf5',
+                        color: '#059669',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        padding: '2px 6px',
+                        borderRadius: '6px'
+                      }}>
+                        Transfer Sukses
+                      </span>
+                      <span style={{ fontSize: '11px', fontWeight: '800', color: '#1e293b', fontFamily: 'monospace' }}>
+                        {st.settlementNumber || 'SETTLEMENT'}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '13px', fontWeight: '900', color: '#059669', fontFamily: 'monospace' }}>
+                      +Rp {Number(st.subtotal || 0).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '11.5px', color: '#334155', fontWeight: '600' }}>
+                    {st.productName} • <span style={{ color: '#059669', fontWeight: '800' }}>{st.qtySettled} PCS</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10.5px', color: '#64748b', borderTop: '1px dashed #e2e8f0', paddingTop: '5px' }}>
+                    <span>Tgl: {st.dateFormatted || '-'}</span>
+                    <span>Metode: {st.paymentMethod ? st.paymentMethod.toUpperCase() : 'TRANSFER'} {st.paymentRef ? `(${st.paymentRef})` : ''}</span>
+                  </div>
+                </div>
+              ))
+            )
           )}
 
-          {/* Total Modal Box */}
+          {/* Total Modal & Rincian Pembayaran Box */}
           <div style={{
             background: '#ffffff',
             borderRadius: '16px',
-            border: '1px solid #fde68a',
+            border: '1px solid #e2e8f0',
             padding: '12px 16px',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginTop: '4px'
+            flexDirection: 'column',
+            gap: '8px',
+            marginTop: '4px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
           }}>
-            <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>
-                Akumulasi Nilai Modal HPP
+                Total Nilai (Modal HPP)
               </div>
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                {totalQty} PCS Barang Titipan
+              <div style={{ fontSize: '13.5px', fontWeight: '900', color: '#1e293b', fontFamily: 'monospace' }}>
+                Rp {Number(totalHpp).toLocaleString('id-ID')}
               </div>
             </div>
-            <div style={{ fontSize: '16px', fontWeight: '900', color: '#d97706', fontFamily: 'monospace' }}>
-              Rp {Number(totalHpp).toLocaleString('id-ID')}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700' }}>
+                Sudah Dibayar (Lunas)
+              </div>
+              <div style={{ fontSize: '13.5px', fontWeight: '900', color: '#059669', fontFamily: 'monospace' }}>
+                Rp {Number(totalPaid).toLocaleString('id-ID')}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #cbd5e1', paddingTop: '6px' }}>
+              <div>
+                <div style={{ fontSize: '11.5px', color: '#dc2626', fontWeight: '800' }}>
+                  Sisa Pembayaran
+                </div>
+                <div style={{ fontSize: '10px', color: '#64748b' }}>
+                  Status: <strong style={{ color: paymentStatus === 'paid' ? '#059669' : paymentStatus === 'partial' ? '#d97706' : '#dc2626' }}>{paymentStatusLabel}</strong>
+                </div>
+              </div>
+              <div style={{
+                fontSize: '15.5px',
+                fontWeight: '900',
+                color: sisaPembayaran > 0 ? '#dc2626' : '#059669',
+                fontFamily: 'monospace'
+              }}>
+                Rp {Number(sisaPembayaran).toLocaleString('id-ID')}
+              </div>
             </div>
           </div>
         </div>
