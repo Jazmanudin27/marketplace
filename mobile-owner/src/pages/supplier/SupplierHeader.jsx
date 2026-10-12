@@ -30,8 +30,8 @@ export default function SupplierHeader({ user, onLogout }) {
         pointerEvents: 'none'
       }} />
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', position: 'relative', zIndex: 1 }}>
-        {/* Brand & Badge */}
+      {/* Brand & Badge Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
             width: '42px',
@@ -63,9 +63,9 @@ export default function SupplierHeader({ user, onLogout }) {
                 Konsinyasi
               </span>
             </div>
-            <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+            <div style={{ fontSize: '11.5px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
               <ShieldCheck size={12} color="#10b981" />
-              <span>Mitra Resmi {tenantName}</span>
+              <span>{name} • Mitra Resmi {tenantName}</span>
             </div>
           </div>
         </div>
@@ -90,60 +90,6 @@ export default function SupplierHeader({ user, onLogout }) {
         >
           <LogOut size={17} />
         </button>
-      </div>
-
-      {/* User Info Bar */}
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.05)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '16px',
-        padding: '10px 14px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'relative',
-        zIndex: 1
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '34px',
-            height: '34px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-            color: '#ffffff',
-            fontWeight: '700',
-            fontSize: '12.5px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            {initials}
-          </div>
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: '700', color: '#f8fafc' }}>
-              {name}
-            </div>
-            <div style={{ fontSize: '10.5px', color: '#cbd5e1' }}>
-              Akses Khusus: Titipan Barang & Stok
-            </div>
-          </div>
-        </div>
-
-        <div style={{
-          background: 'rgba(16, 185, 129, 0.15)',
-          border: '1px solid rgba(16, 185, 129, 0.3)',
-          color: '#34d399',
-          fontSize: '10px',
-          fontWeight: '700',
-          padding: '4px 8px',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34d399' }} />
-          Online
-        </div>
       </div>
     </div>
   );
