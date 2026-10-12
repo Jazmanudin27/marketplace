@@ -38,6 +38,20 @@ function getTenantId(req) {
   return 1;
 }
 
+// Helper Auth User resolver from JWT Bearer token
+function getAuthUser(req) {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.decode(token);
+      if (decoded && decoded.id) {
+        return decoded;
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
 function formatDate(d) {
   if (!d) return '';
   const dateObj = (d instanceof Date) ? d : new Date(d);
@@ -685,11 +699,27 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
     );
     const receivableEscrow = parseFloat(escrowRow?.total || 0);
 
-    // 6. Owner profile
-    const users = await query('SELECT * FROM users WHERE tenant_id = ? LIMIT 1', [tenantId]);
-    const ownerUser = users[0] || {};
+    // 6. Owner profile (Resolve to logged-in user from JWT token)
+    const authUser = getAuthUser(req);
+    let ownerUser = null;
+    if (authUser && authUser.id) {
+      const usersById = await query('SELECT * FROM users WHERE id = ? LIMIT 1', [authUser.id]);
+      if (usersById && usersById.length > 0) {
+        ownerUser = usersById[0];
+      }
+    }
+    if (!ownerUser) {
+      const users = await query('SELECT * FROM users WHERE tenant_id = ? LIMIT 1', [tenantId]);
+      ownerUser = users[0] || {};
+    }
     const tenants = await query('SELECT name FROM tenants WHERE id = ? LIMIT 1', [tenantId]);
     const tenantName = tenants[0]?.name || '';
+
+    const resolvedName = ownerUser.name || 'Owner';
+    const nameParts = resolvedName.trim().split(' ').filter(Boolean);
+    const initials = nameParts.length >= 2
+      ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+      : resolvedName.substring(0, 2).toUpperCase();
 
     return res.json({
       success: true,
@@ -719,10 +749,10 @@ app.get('/api/v2/owner/metrics/overview', async (req, res) => {
         connectedMarketplaces,
       },
       profile: {
-        name: ownerUser.name || 'Owner',
+        name: resolvedName,
         role: ownerUser.role || 'Business Owner',
         tenantName,
-        avatarInitials: ((ownerUser.name || 'OW').substring(0, 2)).toUpperCase(),
+        avatarInitials: initials,
         email: ownerUser.email || '',
         storesCount: stores.length,
         connectedMarketplaces,

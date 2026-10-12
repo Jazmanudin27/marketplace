@@ -44,7 +44,13 @@ export default function App() {
   const [profile, setProfile] = useState(() => {
     try {
       const cached = localStorage.getItem('owner_profile_cache');
-      return cached ? JSON.parse(cached) : initialOwnerProfile;
+      const parsed = cached ? JSON.parse(cached) : initialOwnerProfile;
+      const cur = getCurrentOwnerUser();
+      if (cur?.name) {
+        parsed.name = cur.name;
+        parsed.avatarInitials = cur.name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      }
+      return parsed;
     } catch {
       return initialOwnerProfile;
     }
@@ -95,13 +101,14 @@ export default function App() {
 
   // Synchronize profile with logged-in user if available
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.name) {
+      const initials = currentUser.name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
       setProfile((prev) => ({
         ...prev,
-        name: currentUser.name || prev.name,
+        name: currentUser.name,
         role: currentUser.role ? `Owner (${currentUser.role})` : prev.role,
-        tenantName: currentUser.tenant_name || prev.tenantName,
-        avatarInitials: currentUser.avatar_initials || prev.avatarInitials,
+        tenantName: currentUser.tenantName || currentUser.tenant_name || prev.tenantName,
+        avatarInitials: initials,
         email: currentUser.email || prev.email,
       }));
     }
@@ -132,8 +139,21 @@ export default function App() {
           localStorage.setItem('owner_metrics_cache', JSON.stringify(metricRes.data));
         }
         if (metricRes?.profile) {
-          setProfile(prev => ({ ...prev, ...metricRes.profile }));
-          localStorage.setItem('owner_profile_cache', JSON.stringify(metricRes.profile));
+          const resolvedName = currentUser?.name || metricRes.profile.name;
+          const initials = (resolvedName || 'AD').split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
+          setProfile(prev => ({ 
+            ...prev, 
+            ...metricRes.profile,
+            name: resolvedName,
+            avatarInitials: initials,
+            role: currentUser?.role ? `Owner (${currentUser.role})` : (metricRes.profile.role || prev.role),
+            email: currentUser?.email || metricRes.profile.email,
+          }));
+          localStorage.setItem('owner_profile_cache', JSON.stringify({
+            ...metricRes.profile,
+            name: resolvedName,
+            avatarInitials: initials,
+          }));
         }
         if (ordersRes?.data) {
           setOrders(ordersRes.data);
