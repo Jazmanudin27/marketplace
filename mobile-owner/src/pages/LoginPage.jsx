@@ -71,30 +71,7 @@ export default function LoginPage({ onLoginSuccess }) {
           }}>OWNER PRO</span>
         </div>
 
-        {/* Title & Subtitle */}
-        <h1 style={{
-          fontSize: '28px',
-          fontWeight: '800',
-          letterSpacing: '-0.5px',
-          marginBottom: '8px',
-          lineHeight: '1.2'
-        }}>
-          Masuk ke <br />
-          <span style={{
-            background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}>Portal Owner</span>
-        </h1>
 
-        <p style={{
-          fontSize: '13px',
-          color: '#94a3b8',
-          lineHeight: '1.5',
-          marginBottom: '28px'
-        }}>
-          Akses ringkasan transaksi, omset, scanner gudang, dan target komisi langsung dari HP Anda.
-        </p>
 
         {/* Error Alert Box */}
         {errorMessage && (
