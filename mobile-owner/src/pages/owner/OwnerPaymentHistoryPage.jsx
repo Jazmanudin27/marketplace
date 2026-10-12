@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Filter, Calendar, CreditCard, ChevronRight, RefreshCw, X, Receipt, CheckCircle2, DollarSign, Building2, Box, Layers, ShoppingBag } from 'lucide-react';
 import { fetchSupplierSettlements, fetchConsignmentResources } from '../../api/supplierConsignmentApi';
 
@@ -582,20 +583,20 @@ export default function OwnerPaymentHistoryPage({
       </div>
 
       {/* Modal Detail Setoran */}
-      {selectedSettlement && (
+      {selectedSettlement && typeof document !== 'undefined' && createPortal(
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
+          background: 'rgba(0, 0, 0, 0.75)',
           backdropFilter: 'blur(6px)',
           WebkitBackdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'center',
-          zIndex: 9999,
+          zIndex: 99999,
           animation: 'fadeIn 0.2s ease-out'
         }}>
           <div style={{
@@ -771,7 +772,7 @@ export default function OwnerPaymentHistoryPage({
 
             {/* Footer Modal */}
             <div style={{
-              padding: '14px 20px',
+              padding: '14px 20px calc(14px + env(safe-area-inset-bottom, 12px))',
               background: '#ffffff',
               borderTop: '1px solid #e2e8f0',
               display: 'flex',
@@ -795,7 +796,8 @@ export default function OwnerPaymentHistoryPage({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <style>{`

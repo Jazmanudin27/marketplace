@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar, User, FileText, CheckCircle2, Clock, Barcode, Package, AlertCircle, CreditCard, ArrowDownRight, DollarSign } from 'lucide-react';
 import { fetchSupplierConsignmentDetail } from '../../api/supplierConsignmentApi';
 
@@ -49,20 +50,20 @@ export default function SupplierTitipanDetailModal({
   const paymentStatus = activeConsignment.paymentStatus || (totalPaid >= totalHpp && totalHpp > 0 ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid');
   const paymentStatusLabel = activeConsignment.paymentStatusLabel || (paymentStatus === 'paid' ? 'Lunas' : paymentStatus === 'partial' ? 'Sebagian' : 'Belum Lunas');
 
-  return (
+  const modalContent = (
     <div style={{
       position: 'fixed',
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      background: 'rgba(0, 0, 0, 0.7)',
+      background: 'rgba(0, 0, 0, 0.75)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
       display: 'flex',
       alignItems: 'flex-end',
       justifyContent: 'center',
-      zIndex: 9998,
+      zIndex: 99999,
       boxSizing: 'border-box'
     }}>
       <div style={{
@@ -529,7 +530,7 @@ export default function SupplierTitipanDetailModal({
 
         {/* Footer Actions (Read-Only) */}
         <div style={{
-          padding: '14px 18px',
+          padding: '14px 18px calc(16px + env(safe-area-inset-bottom, 12px))',
           background: '#ffffff',
           borderTop: '1px solid #e2e8f0',
           display: 'flex',
@@ -583,4 +584,6 @@ export default function SupplierTitipanDetailModal({
       `}</style>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

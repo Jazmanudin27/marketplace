@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, Trash2, Save, Box, Info, AlertTriangle, Loader2 } from 'lucide-react';
 import { fetchConsignmentResources } from '../../api/supplierConsignmentApi';
 import { showToast, showAlert } from '../../utils/alerts';
@@ -204,7 +205,7 @@ export default function SupplierTitipanFormModal({
     }
   };
 
-  return (
+  const modalContent = (
     <div style={{
       position: 'fixed',
       top: 0,
@@ -217,7 +218,7 @@ export default function SupplierTitipanFormModal({
       display: 'flex',
       alignItems: 'flex-end',
       justifyContent: 'center',
-      zIndex: 9999,
+      zIndex: 99999,
       boxSizing: 'border-box'
     }}>
       <div style={{
@@ -650,7 +651,7 @@ export default function SupplierTitipanFormModal({
 
           {/* Footer Submit Buttons */}
           <div style={{
-            padding: '14px 18px',
+            padding: '14px 18px calc(16px + env(safe-area-inset-bottom, 12px))',
             background: '#ffffff',
             borderTop: '1px solid #e2e8f0',
             display: 'flex',
@@ -719,4 +720,6 @@ export default function SupplierTitipanFormModal({
       `}</style>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

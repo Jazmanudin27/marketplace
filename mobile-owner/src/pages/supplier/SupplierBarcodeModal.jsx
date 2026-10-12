@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Printer, Barcode, CheckCircle2, Box } from 'lucide-react';
 
 export default function SupplierBarcodeModal({ consignment, onClose }) {
@@ -12,7 +13,7 @@ export default function SupplierBarcodeModal({ consignment, onClose }) {
     window.print();
   };
 
-  return (
+  const modalContent = (
     <div style={{
       position: 'fixed',
       top: 0,
@@ -25,7 +26,7 @@ export default function SupplierBarcodeModal({ consignment, onClose }) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 9999,
+      zIndex: 99999,
       padding: '16px',
       boxSizing: 'border-box'
     }}>
@@ -255,4 +256,6 @@ export default function SupplierBarcodeModal({ consignment, onClose }) {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }
