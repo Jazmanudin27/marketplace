@@ -1,0 +1,25 @@
+{
+  "name": "Ruang Market - Owner Portal",
+  "short_name": "Ruang Market",
+  "description": "Portal Bisnis Owner ERP & Marketplace Multi-channel",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e1b4b",
+  "orientation": "portrait",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/ruang-market.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/ruang-market.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

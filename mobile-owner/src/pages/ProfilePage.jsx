@@ -14,7 +14,10 @@ import {
   Building2,
   Mail,
   Sparkles,
-  Loader2
+  Loader2,
+  Smartphone,
+  Download,
+  Share2
 } from 'lucide-react';
 import { updateUserCredentials, getCurrentOwnerUser } from '../api/authApi';
 
@@ -32,6 +35,35 @@ export default function ProfilePage({ profile, onLogout, onProfileUpdate }) {
 
   const [isLoading, setIsLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState(null); // { type: 'success' | 'error', text: '' }
+
+  // PWA Install State (Android & iOS)
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
+
+  useEffect(() => {
+    const standaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    setIsStandalone(Boolean(standaloneMode));
+
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      setShowInstallGuide(true);
+    }
+  };
 
   // Sync state if profile prop changes
   useEffect(() => {
@@ -463,7 +495,189 @@ export default function ProfilePage({ profile, onLogout, onProfileUpdate }) {
         </form>
       </div>
 
-      {/* ─── 3. LOGOUT BUTTON ("Keluar") ─── */}
+      {/* ─── 3. PWA INSTALL CARD (Android & iOS) ─── */}
+      <div style={{
+        background: '#ffffff',
+        borderRadius: '22px',
+        padding: '16px 18px',
+        border: '1.5px solid #e0e7ff',
+        boxShadow: '0 4px 20px rgba(79, 70, 229, 0.05)',
+        marginBottom: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '14px',
+            background: 'linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%)',
+            color: '#4f46e5',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <Smartphone size={22} color="#4f46e5" />
+          </div>
+          <div>
+            <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', margin: '0 0 2px 0' }}>
+              {isStandalone ? 'Aplikasi Sudah Terpasang' : 'Pasang ke Layar Utama'}
+            </h4>
+            <p style={{ fontSize: '11px', color: '#64748b', margin: 0, lineHeight: '1.3' }}>
+              {isStandalone 
+                ? 'Mode layar penuh aktif di HP Anda' 
+                : 'Buka seperti aplikasi native (Android & iOS)'}
+            </p>
+          </div>
+        </div>
+
+        {!isStandalone ? (
+          <button
+            type="button"
+            onClick={handleInstallClick}
+            style={{
+              background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '8px 14px',
+              fontSize: '12px',
+              fontWeight: '700',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              boxShadow: '0 3px 10px rgba(79, 70, 229, 0.3)',
+              flexShrink: 0
+            }}
+          >
+            <Download size={14} />
+            <span>Install</span>
+          </button>
+        ) : (
+          <span style={{
+            background: '#ecfdf5',
+            color: '#059669',
+            fontSize: '11px',
+            fontWeight: '700',
+            padding: '4px 10px',
+            borderRadius: '999px',
+            flexShrink: 0
+          }}>
+            Terpasang
+          </span>
+        )}
+      </div>
+
+      {/* ─── MODAL PANDUAN INSTALL PWA (ANDROID & IOS) ─── */}
+      {showInstallGuide && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '0'
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: '430px',
+            background: '#ffffff',
+            borderTopLeftRadius: '28px',
+            borderTopRightRadius: '28px',
+            padding: '24px 20px',
+            boxShadow: '0 -10px 40px rgba(0,0,0,0.2)',
+            animation: 'slideUp 0.25s ease-out'
+          }}>
+            <div style={{
+              width: '40px',
+              height: '4px',
+              background: '#cbd5e1',
+              borderRadius: '999px',
+              margin: '0 auto 16px'
+            }} />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+              <img src="/ruang-market.png" alt="Ruang Market" style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                  Pasang Ruang Market ke HP
+                </h3>
+                <p style={{ fontSize: '11.5px', color: '#64748b', margin: 0 }}>
+                  Akses instan dari Layar Utama tanpa buka browser lagi
+                </p>
+              </div>
+            </div>
+
+            {/* Android Chrome Guide */}
+            <div style={{
+              background: '#f8fafc',
+              borderRadius: '16px',
+              padding: '12px 14px',
+              marginBottom: '10px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#1e293b', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ background: '#3b82f6', color: '#fff', fontSize: '10px', padding: '2px 6px', borderRadius: '4px' }}>Android</span>
+                <span>Google Chrome:</span>
+              </div>
+              <ol style={{ margin: 0, paddingLeft: '18px', fontSize: '11.5px', color: '#475569', lineHeight: '1.6' }}>
+                <li>Ketuk ikon <b>titik tiga (⋮)</b> di sudut kanan atas Chrome.</li>
+                <li>Pilih <b>"Instal aplikasi"</b> atau <b>"Tambahkan ke Layar Utama"</b>.</li>
+                <li>Ketuk <b>"Instal"</b> untuk konfirmasi.</li>
+              </ol>
+            </div>
+
+            {/* iOS Safari & Chrome Guide */}
+            <div style={{
+              background: '#f8fafc',
+              borderRadius: '16px',
+              padding: '12px 14px',
+              marginBottom: '18px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#1e293b', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ background: '#8b5cf6', color: '#fff', fontSize: '10px', padding: '2px 6px', borderRadius: '4px' }}>iPhone / iPad</span>
+                <span>Safari atau Chrome iOS:</span>
+              </div>
+              <ol style={{ margin: 0, paddingLeft: '18px', fontSize: '11.5px', color: '#475569', lineHeight: '1.6' }}>
+                <li>Ketuk tombol <b>Bagikan (Share / ⎋)</b> di bar bawah browser.</li>
+                <li>Gulir ke bawah dan ketuk <b>"Tambah ke Layar Utama"</b> (+ Add to Home Screen).</li>
+                <li>Ketuk <b>"Tambah"</b> di sudut kanan atas.</li>
+              </ol>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowInstallGuide(false)}
+              style={{
+                width: '100%',
+                background: '#0f172a',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '16px',
+                padding: '13px',
+                fontSize: '13.5px',
+                fontWeight: '700',
+                cursor: 'pointer'
+              }}
+            >
+              Saya Mengerti
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 4. LOGOUT BUTTON ("Keluar") ─── */}
       <button
         type="button"
         onClick={onLogout}
