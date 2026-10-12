@@ -38,7 +38,7 @@ export default function BottomNav({ activeTab, onTabChange, onScanClick }) {
     },
     { 
       id: 'profile', 
-      label: 'Profil', 
+      label: 'Profile', 
       icon: User,
       color: '#8b5cf6',
       gradient: 'linear-gradient(135deg, #a78bfa, #6d28d9)',

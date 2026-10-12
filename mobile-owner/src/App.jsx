@@ -305,8 +305,8 @@ export default function App() {
           />
         ) : activeTab === 'profile' ? (
           <SubPageHeader 
-            title="Profil & Toko" 
-            subtitle="Pengaturan akun & integrasi toko"
+            title="Profile" 
+            subtitle="Pengaturan akun & kredensial login"
             onBack={() => handleTabChange('home')} 
           />
         ) : null}
@@ -408,6 +408,16 @@ export default function App() {
           <ProfilePage 
             profile={profile}
             onLogout={handleLogout}
+            onProfileUpdate={(updatedUser) => {
+              if (updatedUser?.name) {
+                setProfile(prev => ({
+                  ...prev,
+                  name: updatedUser.name,
+                  email: updatedUser.email || prev.email,
+                  avatarInitials: updatedUser.name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                }));
+              }
+            }}
           />
         )}
 

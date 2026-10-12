@@ -71,3 +71,42 @@ export function logoutOwner() {
   localStorage.removeItem('owner_token');
   localStorage.removeItem('owner_user');
 }
+
+/**
+ * Update username (name), email & password
+ */
+export async function updateUserCredentials({ username, current_password, new_password, email }) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+    const userHeader = user?.id ? { 'X-User-Id': String(user.id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/profile/update-credentials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+        ...userHeader,
+      },
+      body: JSON.stringify({ username, current_password, new_password, email }),
+    });
+
+    const data = await response.json();
+    if (response.ok && data.success) {
+      if (data.data?.user) {
+        const cur = getCurrentOwnerUser() || {};
+        const updated = { ...cur, ...data.data.user };
+        localStorage.setItem('owner_user', JSON.stringify(updated));
+      }
+      return { success: true, message: data.message, user: data.data?.user };
+    } else {
+      return { success: false, message: data.message || 'Gagal memperbarui profil.' };
+    }
+  } catch (error) {
+    return { success: false, message: 'Gagal menghubungi server: ' + error.message };
+  }
+}

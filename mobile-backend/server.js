@@ -537,6 +537,87 @@ app.post('/api/v2/owner/login', async (req, res) => {
   }
 });
 
+// ─── 1B. AUTH: UPDATE CREDENTIALS (USERNAME & PASSWORD) ─────────────────────
+app.post('/api/v2/owner/profile/update-credentials', async (req, res) => {
+  try {
+    const authUser = getAuthUser(req);
+    const tenantId = getTenantId(req);
+    const { username, current_password, new_password, email } = req.body;
+
+    let targetUserId = authUser?.id;
+    if (!targetUserId) {
+      const headerUserStr = req.headers['x-user-id'];
+      if (headerUserStr) targetUserId = parseInt(headerUserStr, 10);
+    }
+
+    let users;
+    if (targetUserId) {
+      users = await query('SELECT * FROM users WHERE id = ? LIMIT 1', [targetUserId]);
+    } else {
+      users = await query('SELECT * FROM users WHERE tenant_id = ? LIMIT 1', [tenantId]);
+    }
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
+    }
+
+    const user = users[0];
+
+    // Jika ingin ganti password, wajib periksa current_password
+    if (new_password) {
+      if (!current_password) {
+        return res.status(400).json({ success: false, message: 'Kata sandi saat ini wajib diisi untuk mengubah kata sandi baru.' });
+      }
+      const hash = (user.password || '').replace(/^\$2y\$/, '$2a$');
+      const isMatch = bcrypt.compareSync(current_password, hash);
+      if (!isMatch) {
+        return res.status(400).json({ success: false, message: 'Kata sandi saat ini salah.' });
+      }
+      if (new_password.length < 6) {
+        return res.status(400).json({ success: false, message: 'Kata sandi baru minimal 6 karakter.' });
+      }
+      const newHash = bcrypt.hashSync(new_password, 10).replace(/^\$2a\$/, '$2y$');
+      await query('UPDATE users SET password = ? WHERE id = ?', [newHash, user.id]);
+    }
+
+    // Jika ganti username / nama
+    const newName = (username || '').trim();
+    if (newName && newName !== user.name) {
+      await query('UPDATE users SET name = ? WHERE id = ?', [newName, user.id]);
+      user.name = newName;
+    }
+
+    // Jika ganti email
+    const newEmail = (email || '').trim();
+    if (newEmail && newEmail !== user.email) {
+      const existing = await query('SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1', [newEmail, user.id]);
+      if (existing.length > 0) {
+        return res.status(400).json({ success: false, message: 'Email sudah digunakan oleh akun lain.' });
+      }
+      await query('UPDATE users SET email = ? WHERE id = ?', [newEmail, user.id]);
+      user.email = newEmail;
+    }
+
+    const updatedUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      username: user.name,
+      role: user.role || 'Business Owner',
+      tenant_id: user.tenant_id,
+    };
+
+    return res.json({
+      success: true,
+      message: 'Profil & kredensial berhasil diperbarui.',
+      data: { user: updatedUser }
+    });
+  } catch (err) {
+    console.error('[Node-API] Update credentials error:', err);
+    return res.status(500).json({ success: false, message: 'Terjadi kesalahan server: ' + err.message });
+  }
+});
+
 // ─── 2. METRICS OVERVIEW ────────────────────────────────────────────────────
 app.get('/api/v2/owner/metrics/overview', async (req, res) => {
   try {
