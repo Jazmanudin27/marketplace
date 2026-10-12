@@ -55,17 +55,22 @@ export default function SaldoMarketplacePage() {
     setMutasiList([]);
     try {
       const res = await fetchSaldoMarketplaceMutasi(store.id);
-      if (res && res.data) {
+      if (res && Array.isArray(res.data)) {
         setMutasiList(res.data);
+      } else if (res && Array.isArray(res.mutations)) {
+        setMutasiList(res.mutations);
+      } else {
+        setMutasiList([]);
       }
     } catch (err) {
       console.error('Failed to load mutasi:', err);
+      setMutasiList([]);
     } finally {
       setIsMutasiLoading(false);
     }
   };
 
-  const filteredMutasi = mutasiList.filter(item => {
+  const filteredMutasi = (Array.isArray(mutasiList) ? mutasiList : []).filter(item => {
     if (!mutasiSearch) return true;
     const q = mutasiSearch.toLowerCase();
     return (
