@@ -474,7 +474,7 @@ app.post('/api/v2/owner/login', async (req, res) => {
     }
 
     const users = await query(
-      'SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1',
+      'SELECT * FROM users WHERE email = ? OR name = ? LIMIT 1',
       [login, login]
     );
 
@@ -510,7 +510,7 @@ app.post('/api/v2/owner/login', async (req, res) => {
           id: user.id,
           name: user.name,
           email: user.email,
-          username: user.username,
+          username: user.name || (user.email ? user.email.split('@')[0] : ''),
           role: user.role || 'Business Owner',
           tenant_id: tenantId,
           tenantName,
