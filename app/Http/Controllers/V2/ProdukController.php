@@ -373,9 +373,13 @@ class ProdukController extends Controller
                 $headerMap[$clean] = $idx;
             }
 
-            // Helper to check non-empty string
+            // Helper to check non-empty string (abaikan kosong, 0, null, dash)
             $hasValue = function($val) {
-                return $val !== null && trim((string)$val) !== '';
+                if ($val === null) return false;
+                $trimmed = trim((string)$val);
+                if ($trimmed === '' || $trimmed === '-' || $trimmed === '0') return false;
+                $lower = strtolower($trimmed);
+                return !in_array($lower, ['null', 'none', 'nan', '0', '-']);
             };
 
             // Helper to clean and parse numeric values
