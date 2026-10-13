@@ -33,6 +33,20 @@ class ProdukController extends Controller
         }
 
         $tab = $request->query('tab', '');
+        if (!$tab) {
+            if ($request->is_bundle === '0') {
+                $tab = 'single';
+            } elseif ($request->is_bundle === '1') {
+                $tab = 'bundle';
+            } elseif ($request->is_preorder === '0') {
+                $tab = 'ready';
+            } elseif ($request->is_preorder === '1') {
+                $tab = 'po';
+            } elseif ($request->link_status === 'unlinked') {
+                $tab = 'unlinked';
+            }
+        }
+
         if ($tab === 'single') {
             $query->where(function($q) {
                 $q->where('is_bundle', false)->orWhereNull('is_bundle');
@@ -52,26 +66,6 @@ class ProdukController extends Controller
                       $mq->whereRaw('LOWER(TRIM(marketplace_sku)) = LOWER(TRIM(master_products.sku))');
                   });
             });
-        }
-
-        if ($request->filled('is_bundle')) {
-            if ($request->is_bundle === '1') {
-                $query->where('is_bundle', true);
-            } elseif ($request->is_bundle === '0') {
-                $query->where(function($q) {
-                    $q->where('is_bundle', false)->orWhereNull('is_bundle');
-                });
-            }
-        }
-
-        if ($request->filled('is_preorder')) {
-            if ($request->is_preorder === '1') {
-                $query->where('is_preorder', true);
-            } elseif ($request->is_preorder === '0') {
-                $query->where(function($q) {
-                    $q->where('is_preorder', false)->orWhereNull('is_preorder');
-                });
-            }
         }
 
         if ($request->filled('channel_id')) {
@@ -704,6 +698,57 @@ class ProdukController extends Controller
         $product->delete();
 
         return redirect()->route('v2.produk.index')->with('success', "Master produk \"{$productName}\" berhasil dihapus!");
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $ids = $request->input('ids', []);
+
+        if (empty($ids) || !is_array($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada produk yang dipilih untuk dihapus.',
+            ], 422);
+        }
+
+        $count = MasterProduct::where('tenant_id', $tenantId)
+            ->whereIn('id', $ids)
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$count} master produk berhasil dihapus secara masal!",
+            'deleted_count' => $count,
+        ]);
+    }
+
+    public function bulkSetPo(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $ids = $request->input('ids', []);
+        $isPreorder = $request->boolean('is_preorder', true);
+
+        if (empty($ids) || !is_array($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada produk yang dipilih.',
+            ], 422);
+        }
+
+        $count = MasterProduct::where('tenant_id', $tenantId)
+            ->whereIn('id', $ids)
+            ->update([
+                'is_preorder' => $isPreorder,
+            ]);
+
+        $statusText = $isPreorder ? 'Pre-Order (PO)' : 'Ready Stock';
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$count} master produk berhasil diubah menjadi {$statusText}!",
+            'updated_count' => $count,
+        ]);
     }
 
     public function print(Request $request)

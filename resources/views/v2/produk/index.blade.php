@@ -101,9 +101,13 @@
 
 /* Interactive stat widget */
 .v2-stat-link { text-decoration: none !important; display: block; height: 100%; }
-.v2-stat-link .v2-stat-widget { cursor: pointer; transition: transform .15s, box-shadow .15s; height: 100%; }
+.v2-stat-link .v2-stat-widget { cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s; height: 100%; }
 .v2-stat-link .v2-stat-widget:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-.v2-stat-link.active .v2-stat-widget { border: 2px solid #3b82f6 !important; background: #eff6ff !important; }
+.v2-stat-link.active .v2-stat-widget { border: 2px solid #2563eb !important; background: #eff6ff !important; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.18) !important; }
+.v2-stat-link.active .v2-stat-widget.widget-green { border-color: #10b981 !important; background: #f0fdf4 !important; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.18) !important; }
+.v2-stat-link.active .v2-stat-widget.widget-purple { border-color: #8b5cf6 !important; background: #f5f3ff !important; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.18) !important; }
+.v2-stat-link.active .v2-stat-widget.widget-amber { border-color: #f59e0b !important; background: #fffbeb !important; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.18) !important; }
+.v2-stat-link.active .v2-stat-widget.red-theme { border-color: #ef4444 !important; background: #fef2f2 !important; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.18) !important; }
 </style>
 @endpush
 
@@ -132,10 +136,22 @@
     </div>
 </div>
 
+@php
+    $currentTab = request('tab', '');
+    if (!$currentTab) {
+        if (request('is_bundle') === '0') $currentTab = 'single';
+        elseif (request('is_bundle') === '1') $currentTab = 'bundle';
+        elseif (request('is_preorder') === '0') $currentTab = 'ready';
+        elseif (request('is_preorder') === '1') $currentTab = 'po';
+        elseif (request('link_status') === 'unlinked') $currentTab = 'unlinked';
+    }
+    $baseParams = request()->except(['tab', 'page', 'is_bundle', 'is_preorder', 'link_status']);
+@endphp
+
 <!-- Header Summary Widgets (KPI Cards) -->
 <div class="row g-2 mb-3">
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <a href="{{ route('v2.produk.index', request()->except(['tab','page'])) }}" class="v2-stat-link {{ !request('tab') ? 'active' : '' }}">
+        <a href="{{ route('v2.produk.index', $baseParams) }}" class="v2-stat-link {{ $currentTab === '' ? 'active' : '' }}" title="Total Master">
             <div class="v2-stat-widget widget-blue">
                 <div class="v2-stat-icon-wrapper blue">
                     <i class="bi bi-boxes"></i>
@@ -148,7 +164,7 @@
         </a>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <a href="{{ route('v2.produk.index', array_merge(request()->except(['tab','page']), ['tab' => 'single'])) }}" class="v2-stat-link {{ request('tab') === 'single' ? 'active' : '' }}">
+        <a href="{{ route('v2.produk.index', array_merge($baseParams, ['tab' => 'single'])) }}" class="v2-stat-link {{ $currentTab === 'single' ? 'active' : '' }}" title="Single Utama">
             <div class="v2-stat-widget widget-green">
                 <div class="v2-stat-icon-wrapper green">
                     <i class="bi bi-box-seam"></i>
@@ -161,7 +177,7 @@
         </a>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <a href="{{ route('v2.produk.index', array_merge(request()->except(['tab','page']), ['tab' => 'bundle'])) }}" class="v2-stat-link {{ request('tab') === 'bundle' ? 'active' : '' }}">
+        <a href="{{ route('v2.produk.index', array_merge($baseParams, ['tab' => 'bundle'])) }}" class="v2-stat-link {{ $currentTab === 'bundle' ? 'active' : '' }}" title="Paket Bundle">
             <div class="v2-stat-widget widget-purple">
                 <div class="v2-stat-icon-wrapper purple">
                     <i class="bi bi-diagram-3"></i>
@@ -174,7 +190,7 @@
         </a>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <a href="{{ route('v2.produk.index', array_merge(request()->except(['tab','page']), ['tab' => 'ready'])) }}" class="v2-stat-link {{ request('tab') === 'ready' ? 'active' : '' }}">
+        <a href="{{ route('v2.produk.index', array_merge($baseParams, ['tab' => 'ready'])) }}" class="v2-stat-link {{ $currentTab === 'ready' ? 'active' : '' }}" title="Stock Ready">
             <div class="v2-stat-widget widget-blue">
                 <div class="v2-stat-icon-wrapper blue">
                     <i class="bi bi-check-circle"></i>
@@ -187,7 +203,7 @@
         </a>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <a href="{{ route('v2.produk.index', array_merge(request()->except(['tab','page']), ['tab' => 'po'])) }}" class="v2-stat-link {{ request('tab') === 'po' ? 'active' : '' }}">
+        <a href="{{ route('v2.produk.index', array_merge($baseParams, ['tab' => 'po'])) }}" class="v2-stat-link {{ $currentTab === 'po' ? 'active' : '' }}" title="Pre-Order (PO)">
             <div class="v2-stat-widget widget-amber">
                 <div class="v2-stat-icon-wrapper amber">
                     <i class="bi bi-clock-history"></i>
@@ -200,7 +216,7 @@
         </a>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <a href="{{ route('v2.produk.index', array_merge(request()->except(['tab','page']), ['tab' => 'unlinked'])) }}" class="v2-stat-link {{ request('tab') === 'unlinked' ? 'active' : '' }}">
+        <a href="{{ route('v2.produk.index', array_merge($baseParams, ['tab' => 'unlinked'])) }}" class="v2-stat-link {{ $currentTab === 'unlinked' ? 'active' : '' }}" title="Belum Linked">
             <div class="v2-stat-widget red-theme">
                 <div class="v2-stat-icon-wrapper amber" style="background-color: #fee2e2; color: #ef4444;">
                     <i class="bi bi-link-45deg"></i>
@@ -219,7 +235,6 @@
 
     {{-- Status Tabs --}}
     @php
-        $currentTab = request('tab', '');
         $productTabs = [
             ''         => ['label' => 'Semua', 'icon' => 'bi bi-boxes', 'countKey' => 'total'],
             'single'   => ['label' => 'Single (Utama)', 'icon' => 'bi bi-box-seam', 'countKey' => 'single'],
@@ -233,7 +248,7 @@
         @foreach($productTabs as $tabKey => $tabInfo)
             @php
                 $tabUrl = route('v2.produk.index', array_merge(
-                    request()->except(['tab','page']),
+                    $baseParams,
                     $tabKey !== '' ? ['tab' => $tabKey] : []
                 ));
                 $isActive = $currentTab === $tabKey;
@@ -333,10 +348,19 @@
             @endif
         </div>
         <!-- Bulk Action Bar -->
-        <div id="bulkActionBar" class="d-none align-items-center gap-2">
+        <div id="bulkActionBar" class="d-none align-items-center gap-1.5 flex-wrap">
             <span class="badge bg-primary px-2.5 py-1 rounded-pill" id="selectedCountBadge" style="font-size: 0.72rem;">0 Dipilih</span>
-            <button type="button" class="btn btn-sm btn-v2-success py-1 px-3 shadow-sm" id="btnCreateAutoBundle" style="background-color: #7c3aed !important; border-color: #7c3aed !important; color: #ffffff !important;">
-                <i class="bi bi-diagram-3-fill me-1"></i> Buat Set / Bundle Otomatis
+            <button type="button" class="btn btn-sm btn-warning text-dark py-1 px-2.5 shadow-sm fw-semibold" id="btnBulkSetPo" title="Jadikan Pre-Order">
+                <i class="bi bi-clock-history me-1"></i> Jadikan PO Masal
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-success bg-white py-1 px-2.5 shadow-sm fw-semibold" id="btnBulkSetReady" title="Jadikan Ready Stock">
+                <i class="bi bi-check-circle me-1"></i> Jadikan Ready Masal
+            </button>
+            <button type="button" class="btn btn-sm btn-danger py-1 px-2.5 shadow-sm fw-semibold" id="btnBulkDelete" title="Hapus Produk Terpilih">
+                <i class="bi bi-trash3-fill me-1"></i> Hapus Masal
+            </button>
+            <button type="button" class="btn btn-sm text-white py-1 px-2.5 shadow-sm fw-semibold" id="btnCreateAutoBundle" style="background-color: #7c3aed !important; border-color: #7c3aed !important;" title="Buat Paket Bundle">
+                <i class="bi bi-diagram-3-fill me-1"></i> Buat Set / Bundle
             </button>
         </div>
     </div>
@@ -849,6 +873,158 @@
         var checked = $('.product-checkbox:checked').length;
         $('#selectAllProducts').prop('checked', total === checked && total > 0);
         updateBulkActionBar();
+    });
+
+    // Bulk Set PO
+    $('#btnBulkSetPo').on('click', function() {
+        var selected = $('.product-checkbox:checked');
+        if (selected.length < 1) {
+            Swal.fire('Perhatian', 'Pilih minimal 1 produk untuk diubah statusnya!', 'warning');
+            return;
+        }
+
+        var ids = [];
+        selected.each(function() { ids.push($(this).val()); });
+
+        Swal.fire({
+            title: 'Jadikan Pre-Order (PO)?',
+            text: 'Ubah ' + ids.length + ' master produk terpilih menjadi status Pre-Order (PO)?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#f59e0b',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Jadikan PO!',
+            cancelButtonText: 'Batal'
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses...',
+                    text: 'Mengubah status produk...',
+                    allowOutsideClick: false,
+                    didOpen: function() { Swal.showLoading(); }
+                });
+
+                $.ajax({
+                    url: '{{ route("v2.produk.bulk_set_po") }}',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        ids: ids,
+                        is_preorder: 1
+                    },
+                    success: function(res) {
+                        Swal.fire('Berhasil!', res.message || 'Status produk berhasil diubah!', 'success').then(function() {
+                            location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        var err = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Terjadi kesalahan sistem';
+                        Swal.fire('Gagal', err, 'error');
+                    }
+                });
+            }
+        });
+    });
+
+    // Bulk Set Ready
+    $('#btnBulkSetReady').on('click', function() {
+        var selected = $('.product-checkbox:checked');
+        if (selected.length < 1) {
+            Swal.fire('Perhatian', 'Pilih minimal 1 produk untuk diubah statusnya!', 'warning');
+            return;
+        }
+
+        var ids = [];
+        selected.each(function() { ids.push($(this).val()); });
+
+        Swal.fire({
+            title: 'Jadikan Ready Stock?',
+            text: 'Ubah ' + ids.length + ' master produk terpilih menjadi Ready Stock?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Jadikan Ready!',
+            cancelButtonText: 'Batal'
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses...',
+                    text: 'Mengubah status produk...',
+                    allowOutsideClick: false,
+                    didOpen: function() { Swal.showLoading(); }
+                });
+
+                $.ajax({
+                    url: '{{ route("v2.produk.bulk_set_po") }}',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        ids: ids,
+                        is_preorder: 0
+                    },
+                    success: function(res) {
+                        Swal.fire('Berhasil!', res.message || 'Status produk berhasil diubah!', 'success').then(function() {
+                            location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        var err = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Terjadi kesalahan sistem';
+                        Swal.fire('Gagal', err, 'error');
+                    }
+                });
+            }
+        });
+    });
+
+    // Bulk Delete
+    $('#btnBulkDelete').on('click', function() {
+        var selected = $('.product-checkbox:checked');
+        if (selected.length < 1) {
+            Swal.fire('Perhatian', 'Pilih minimal 1 produk untuk dihapus!', 'warning');
+            return;
+        }
+
+        var ids = [];
+        selected.each(function() { ids.push($(this).val()); });
+
+        Swal.fire({
+            title: 'Hapus Masal Produk?',
+            text: 'Apakah Anda yakin ingin menghapus ' + ids.length + ' master produk terpilih? Tindakan ini tidak dapat dibatalkan!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Hapus ' + ids.length + ' Produk!',
+            cancelButtonText: 'Batal'
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Menghapus...',
+                    text: 'Sedang menghapus master produk...',
+                    allowOutsideClick: false,
+                    didOpen: function() { Swal.showLoading(); }
+                });
+
+                $.ajax({
+                    url: '{{ route("v2.produk.bulk_delete") }}',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        ids: ids
+                    },
+                    success: function(res) {
+                        Swal.fire('Berhasil!', res.message || 'Produk berhasil dihapus!', 'success').then(function() {
+                            location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        var err = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Gagal menghapus produk';
+                        Swal.fire('Gagal', err, 'error');
+                    }
+                });
+            }
+        });
     });
 
     // Handle Auto Bundle Modal trigger
