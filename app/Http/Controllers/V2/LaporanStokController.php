@@ -45,10 +45,7 @@ class LaporanStokController extends Controller
         } elseif ($tab === 'po') {
             $query->where('is_preorder', true);
         } elseif ($tab === 'diff') {
-            // Produk PO dikecualikan dari selisih karena PO tidak mengurangi stok fisik
-            $query->where(function($q) {
-                $q->where('is_preorder', false)->orWhereNull('is_preorder');
-            })->whereHas('marketplaceProducts', function ($mq) {
+            $query->whereHas('marketplaceProducts', function ($mq) {
                 $mq->where('sync_stock', true)
                    ->whereColumn('stock', '!=', 'master_products.stock');
             });
@@ -127,10 +124,7 @@ class LaporanStokController extends Controller
         }
 
         if ($request->boolean('only_different') || $request->boolean('only_diff')) {
-            // PO dikecualikan dari filter selisih
-            $query->where(function($q) {
-                $q->where('is_preorder', false)->orWhereNull('is_preorder');
-            })->whereHas('marketplaceProducts', function ($mq) {
+            $query->whereHas('marketplaceProducts', function ($mq) {
                 $mq->where('sync_stock', true)
                    ->whereColumn('stock', '!=', 'master_products.stock');
             });
@@ -173,9 +167,6 @@ class LaporanStokController extends Controller
             })->count(),
             'po'          => MasterProduct::where('tenant_id', $tenantId)->where('is_preorder', true)->count(),
             'diff'        => MasterProduct::where('tenant_id', $tenantId)
-                ->where(function($q) {
-                    $q->where('is_preorder', false)->orWhereNull('is_preorder');
-                })
                 ->whereHas('marketplaceProducts', function ($mq) {
                     $mq->where('sync_stock', true)
                        ->whereColumn('stock', '!=', 'master_products.stock');
@@ -230,17 +221,10 @@ class LaporanStokController extends Controller
         $tenantId = Auth::user()->tenant_id;
         abort_unless($product->tenant_id === $tenantId, 403);
 
-        if ($product->is_preorder) {
-            return response()->json([
-                'success' => false,
-                'is_po'   => true,
-                'message' => "Produk {$product->sku} ({$product->name}) berstatus Pre-Order (PO). Stok PO tidak mengurangi stok gudang dan tidak disinkronkan ke marketplace."
-            ], 422);
-        }
-
         try {
-            // Jalankan push stok secara langsung (synchronous) ke marketplace
-            PushStockToMarketplaces::dispatchSync($product->id, (int)$product->stock);
+            // Jalankan push stok secara langsung (synchronous) ke marketplace.
+            // Khusus menu Laporan Stok V2, forcePushPreOrder = true agar produk PO tetap dapat disinkronkan.
+            PushStockToMarketplaces::dispatchSync($product->id, (int)$product->stock, true);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error("Gagal sync manual stok produk ID {$product->id}: " . $e->getMessage());
             return response()->json([
@@ -285,9 +269,6 @@ class LaporanStokController extends Controller
 
         if (empty($productIds)) {
             $products = MasterProduct::where('tenant_id', $tenantId)
-                ->where(function($q) {
-                    $q->where('is_preorder', false)->orWhereNull('is_preorder');
-                })
                 ->whereHas('marketplaceProducts', function ($mq) {
                     $mq->where('sync_stock', true)
                        ->whereColumn('stock', '!=', 'master_products.stock');
@@ -295,9 +276,6 @@ class LaporanStokController extends Controller
                 ->get();
         } else {
             $products = MasterProduct::where('tenant_id', $tenantId)
-                ->where(function($q) {
-                    $q->where('is_preorder', false)->orWhereNull('is_preorder');
-                })
                 ->whereIn('id', $productIds)
                 ->get();
         }
@@ -306,7 +284,8 @@ class LaporanStokController extends Controller
         $errors = [];
         foreach ($products as $p) {
             try {
-                PushStockToMarketplaces::dispatchSync($p->id, (int)$p->stock);
+                // Khusus menu V2, forcePushPreOrder = true
+                PushStockToMarketplaces::dispatchSync($p->id, (int)$p->stock, true);
                 $count++;
             } catch (\Throwable $e) {
                 $errors[] = $p->sku . ': ' . $e->getMessage();
@@ -317,7 +296,7 @@ class LaporanStokController extends Controller
             'success' => true,
             'count'   => $count,
             'errors'  => $errors,
-            'message' => "Berhasil menyinkronkan {$count} produk non-PO ke marketplace."
+            'message' => "Berhasil menyinkronkan {$count} produk ke marketplace."
         ]);
     }
 }

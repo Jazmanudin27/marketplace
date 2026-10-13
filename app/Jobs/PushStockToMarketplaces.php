@@ -18,14 +18,16 @@ class PushStockToMarketplaces implements ShouldQueue
 
     protected $masterProductId;
     protected $newStock;
+    protected $forcePushPreOrder;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(int $masterProductId, int $newStock)
+    public function __construct(int $masterProductId, int $newStock, bool $forcePushPreOrder = false)
     {
         $this->masterProductId = $masterProductId;
         $this->newStock = $newStock;
+        $this->forcePushPreOrder = $forcePushPreOrder;
     }
 
     /**
@@ -57,7 +59,7 @@ class PushStockToMarketplaces implements ShouldQueue
                     continue;
                 }
 
-                if ($mpProduct->isPreOrder()) {
+                if (!$this->forcePushPreOrder && $mpProduct->isPreOrder()) {
                     Log::info("Skip push stok untuk produk Pre-Order: {$mpProduct->name} (ID: {$mpProduct->marketplace_product_id})");
                     continue;
                 }

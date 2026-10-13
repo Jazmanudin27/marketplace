@@ -443,7 +443,7 @@
                             foreach ($prod->marketplaceProducts as $mp) {
                                 if (!$mp->store) continue;
                                 $mpStock = (int) ($mp->stock ?? 0);
-                                $isDiff = (!$isPO && $mp->sync_stock && $mpStock !== $gudangStock);
+                                $isDiff = ($mp->sync_stock && $mpStock !== $gudangStock);
                                 if ($isDiff) {
                                     $hasDiscrepancy = true;
                                 }
@@ -518,7 +518,7 @@
                                 @if(count($storeItems) > 0)
                                     <div class="d-flex flex-wrap gap-1.5 align-items-center">
                                         @foreach($storeItems as $item)
-                                            @php
+                                             @php
                                                 $pillClass = 'channel-default';
                                                 if (str_contains($item['channel_code'], 'shopee')) $pillClass = 'channel-shopee';
                                                 elseif (str_contains($item['channel_code'], 'tiktok')) $pillClass = 'channel-tiktok';
@@ -542,11 +542,7 @@
                                 @endif
                             </td>
                             <td class="text-center">
-                                @if($isPO)
-                                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;" title="Produk Pre-Order tidak mengurangi stok fisik saat pesanan masuk">
-                                        <i class="bi bi-clock-history"></i> PO (Non-Sync)
-                                    </span>
-                                @elseif(count($storeItems) === 0)
+                                @if(count($storeItems) === 0)
                                     <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 0.68rem;">-</span>
                                 @elseif($hasDiscrepancy)
                                     <span class="badge bg-danger text-white px-2 py-1 shadow-sm d-inline-flex align-items-center gap-1 status-badge-target" style="font-size: 0.68rem;">
@@ -560,21 +556,15 @@
                             </td>
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-1">
-                                    @if($isPO)
-                                        <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 0.65rem;" title="Produk PO tidak perlu sinkronisasi stok">
-                                            <i class="bi bi-dash-circle me-1"></i>Non-Sync
-                                        </span>
-                                    @else
-                                        <button type="button"
-                                                class="btn btn-sm {{ $hasDiscrepancy ? 'btn-danger' : 'btn-outline-primary' }} btn-action-sync py-0.5 px-2"
-                                                style="font-size: 0.7rem; font-weight: 600;"
-                                                data-product-id="{{ $prod->id }}"
-                                                data-sku="{{ $prod->sku }}"
-                                                data-name="{{ $prod->name }}"
-                                                title="Sync Stok Gudang ke Marketplace">
-                                            <i class="bi bi-arrow-repeat me-0.5"></i> Sync
-                                        </button>
-                                    @endif
+                                    <button type="button"
+                                            class="btn btn-sm {{ $hasDiscrepancy ? 'btn-danger' : 'btn-outline-primary' }} btn-action-sync py-0.5 px-2"
+                                            style="font-size: 0.7rem; font-weight: 600;"
+                                            data-product-id="{{ $prod->id }}"
+                                            data-sku="{{ $prod->sku }}"
+                                            data-name="{{ $prod->name }}"
+                                            title="Sync Stok Gudang ke Marketplace">
+                                        <i class="bi bi-arrow-repeat me-0.5"></i> Sync
+                                    </button>
                                 </div>
                             </td>
                         </tr>
