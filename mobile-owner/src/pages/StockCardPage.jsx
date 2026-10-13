@@ -123,7 +123,7 @@ export default function StockCardPage({
             }}
           >
             <Box size={13} color="#f59e0b" />
-            <span>Titipan Barang</span>
+            <span>Titipan</span>
           </button>
         )}
 
@@ -143,7 +143,7 @@ export default function StockCardPage({
           }}
         >
           <Layers size={13} color="#38bdf8" />
-          <span>Kartu Stok</span>
+          <span>Stok</span>
         </button>
 
         {onOpenPayments && (
@@ -165,7 +165,7 @@ export default function StockCardPage({
             }}
           >
             <CreditCard size={13} color="#059669" />
-            <span>Histori Pembayaran</span>
+            <span>Pembayaran</span>
           </button>
         )}
 
@@ -188,7 +188,7 @@ export default function StockCardPage({
             }}
           >
             <ShoppingBag size={13} color="#2563eb" />
-            <span>Histori Penjualan</span>
+            <span>Penjualan</span>
           </button>
         )}
       </div>

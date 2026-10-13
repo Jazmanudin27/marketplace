@@ -128,7 +128,7 @@ export default function SalesHistoryPage({
             }}
           >
             <Box size={13} color="#f59e0b" />
-            <span>Titipan Barang</span>
+            <span>Titipan</span>
           </button>
         )}
 
@@ -151,7 +151,7 @@ export default function SalesHistoryPage({
             }}
           >
             <Layers size={13} color="#0284c7" />
-            <span>Kartu Stok</span>
+            <span>Stok</span>
           </button>
         )}
 
@@ -174,7 +174,7 @@ export default function SalesHistoryPage({
             }}
           >
             <CreditCard size={13} color="#059669" />
-            <span>Histori Pembayaran</span>
+            <span>Pembayaran</span>
           </button>
         )}
 
@@ -194,7 +194,7 @@ export default function SalesHistoryPage({
           }}
         >
           <ShoppingBag size={13} color="#60a5fa" />
-          <span>Histori Penjualan</span>
+          <span>Penjualan</span>
         </button>
       </div>
 

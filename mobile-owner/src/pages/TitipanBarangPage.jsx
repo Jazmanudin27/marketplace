@@ -184,7 +184,7 @@ export default function TitipanBarangPage({
           }}
         >
           <Box size={13} color="#fbbf24" />
-          <span>Titipan Barang</span>
+          <span>Titipan</span>
         </button>
 
         {onOpenStockCard && (
@@ -206,7 +206,7 @@ export default function TitipanBarangPage({
             }}
           >
             <Layers size={13} color="#0284c7" />
-            <span>Kartu Stok</span>
+            <span>Stok</span>
           </button>
         )}
 
@@ -229,7 +229,7 @@ export default function TitipanBarangPage({
             }}
           >
             <CreditCard size={13} color="#059669" />
-            <span>Histori Pembayaran</span>
+            <span>Pembayaran</span>
           </button>
         )}
 
@@ -252,7 +252,7 @@ export default function TitipanBarangPage({
             }}
           >
             <TrendingUp size={13} color="#2563eb" />
-            <span>Histori Penjualan</span>
+            <span>Penjualan</span>
           </button>
         )}
       </div>

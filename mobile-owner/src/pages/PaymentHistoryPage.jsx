@@ -134,7 +134,7 @@ export default function PaymentHistoryPage({
             }}
           >
             <Box size={13} color="#f59e0b" />
-            <span>Titipan Barang</span>
+            <span>Titipan</span>
           </button>
         )}
 
@@ -157,7 +157,7 @@ export default function PaymentHistoryPage({
             }}
           >
             <Layers size={13} color="#0284c7" />
-            <span>Kartu Stok</span>
+            <span>Stok</span>
           </button>
         )}
 
@@ -177,7 +177,7 @@ export default function PaymentHistoryPage({
           }}
         >
           <CreditCard size={13} color="#34d399" />
-          <span>Histori Pembayaran</span>
+          <span>Pembayaran</span>
         </button>
 
         {onOpenSales && (
@@ -199,7 +199,7 @@ export default function PaymentHistoryPage({
             }}
           >
             <ShoppingBag size={13} color="#2563eb" />
-            <span>Histori Penjualan</span>
+            <span>Penjualan</span>
           </button>
         )}
       </div>
