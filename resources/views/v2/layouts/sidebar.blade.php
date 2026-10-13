@@ -171,8 +171,6 @@
                 request()->is('v2/barang-masuk*') ||
                 request()->is('v2/barang-keluar*') ||
                 request()->is('v2/barang*') ||
-                request()->is('v2/reports/stock*') ||
-                request()->is('v2/laporan-stok*') ||
                 request()->is('pembelian*');
         @endphp
         <div class="v2-nav-item v2-nav-dropdown {{ $isPembelianActive ? 'show' : '' }}">
@@ -203,11 +201,6 @@
                         <i class="bi bi-eye text-info me-1.5"></i>
                         <span>Memantau Stok</span>
                     </a>
-                    <a href="{{ route('v2.reports.stock') }}"
-                        class="v2-submenu-link {{ request()->is('v2/reports/stock*') || request()->is('v2/laporan-stok*') ? 'active' : '' }}">
-                        <i class="bi bi-boxes text-primary me-1.5"></i>
-                        <span>Laporan Stok Barang</span>
-                    </a>
                 </div>
             </div>
         </div>
@@ -218,9 +211,12 @@
                 request()->is('v2/gudang-jadi*') ||
                 request()->is('v2/stock-opname*') ||
                 request()->is('v2/scanner-gudang*') ||
+                request()->is('v2/reports/stock*') ||
+                request()->is('v2/laporan-stok*') ||
                 request()->routeIs('v2.gudang_jadi.*') ||
                 request()->routeIs('v2.scanner_gudang.*') ||
-                request()->routeIs('v2.stock_opname.*');
+                request()->routeIs('v2.stock_opname.*') ||
+                request()->routeIs('v2.reports.stock*');
         @endphp
         <div class="v2-nav-item v2-nav-dropdown {{ $isGudangJadiActive ? 'show' : '' }}">
             <a href="javascript:void(0)"
@@ -244,6 +240,11 @@
                         class="v2-submenu-link {{ request()->is('v2/scanner-gudang*') || request()->routeIs('v2.scanner_gudang.*') ? 'active' : '' }}">
                         <i class="bi bi-qr-code-scan text-success me-1.5"></i>
                         <span>Scanner Gudang</span>
+                    </a>
+                    <a href="{{ route('v2.reports.stock') }}"
+                        class="v2-submenu-link {{ request()->is('v2/reports/stock*') || request()->is('v2/laporan-stok*') || request()->routeIs('v2.reports.stock*') ? 'active' : '' }}">
+                        <i class="bi bi-boxes text-info me-1.5"></i>
+                        <span>Laporan Stok Barang</span>
                     </a>
                 </div>
             </div>

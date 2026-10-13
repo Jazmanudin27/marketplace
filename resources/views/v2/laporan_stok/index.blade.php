@@ -4,560 +4,570 @@
 
 @push('styles')
 <style>
-/* ─── Modern V2 Stock Report Styles ─── */
-.stock-kpi-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 14px 16px;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.stock-kpi-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
-}
-.stock-kpi-title {
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #64748b;
-    margin-bottom: 4px;
-}
-.stock-kpi-val {
-    font-size: 1.25rem;
-    font-weight: 800;
-    line-height: 1.2;
-    color: #0f172a;
-}
-.stock-kpi-sub {
-    font-size: 0.72rem;
-    color: #94a3b8;
-    margin-top: 4px;
-}
-.stock-kpi-icon {
-    position: absolute;
-    right: 14px;
-    top: 14px;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+/* ─── Pesanan/Produk-style Tab, Filter & Summary Bar ─── */
+.psr-tab-bar {
     display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    gap: 0;
+}
+.psr-tab-bar::-webkit-scrollbar { display: none; }
+
+.psr-tab {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
+    gap: 6px;
+    padding: 12px 18px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #6b7280;
+    white-space: nowrap;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    position: relative;
+}
+.psr-tab:hover { color: #3b82f6; text-decoration: none; }
+.psr-tab.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+    font-weight: 600;
+    background: #eff6ff;
+}
+.psr-tab .tab-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 1px 6px;
+    background: #3b82f6;
+    color: #fff;
+    min-width: 18px;
+    text-align: center;
+    line-height: 1.5;
+}
+.psr-tab:not(.active) .tab-badge {
+    background: #e5e7eb;
+    color: #6b7280;
+}
+.psr-tab.active .tab-badge { background: #2563eb; }
+.psr-tab .tab-badge.badge-danger-tab {
+    background: #ef4444 !important;
+    color: #fff !important;
 }
 
-/* Filter Card */
-.stock-filter-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+/* Filter Bar */
+.psr-filter-bar {
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
 }
-.stock-filter-header {
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    padding: 12px 18px;
+.psr-filter-bar .form-label { font-size: 0.72rem; font-weight: 600; color: #6b7280; margin-bottom: 3px; }
+.psr-filter-bar .form-control,
+.psr-filter-bar .form-select {
+    font-size: 0.79rem;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    padding: 5px 9px;
+    height: 31px;
+}
+.psr-filter-bar .form-control:focus,
+.psr-filter-bar .form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+}
+
+/* Summary Bar */
+.psr-summary-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding: 8px 14px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.79rem;
+    color: #6b7280;
 }
 
-/* Data Table Styling */
-.stock-table-card {
-    background: #ffffff;
+/* Action Btn */
+.psr-btn {
+    font-size: 0.75rem; font-weight: 600;
+    border-radius: 5px; padding: 4px 10px;
+    display: inline-flex; align-items: center; gap: 4px;
+    text-decoration: none; white-space: nowrap; cursor: pointer; border: none;
+    transition: all .15s;
+}
+.psr-btn-primary { background:#2563eb; color:#fff; }
+.psr-btn-primary:hover { background:#1d4ed8; color:#fff; }
+.psr-btn-ghost { background:#f9fafb; color:#374151; border:1px solid #e5e7eb; }
+.psr-btn-ghost:hover { background:#f3f4f6; border-color:#9ca3af; }
+
+/* Interactive stat widget */
+.v2-stat-link { text-decoration: none !important; display: block; height: 100%; }
+.v2-stat-link .v2-stat-widget { cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s; height: 100%; }
+.v2-stat-link .v2-stat-widget:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+.v2-stat-link.active .v2-stat-widget { border: 2px solid #2563eb !important; background: #eff6ff !important; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.18) !important; }
+.v2-stat-link.active .v2-stat-widget.widget-green { border-color: #10b981 !important; background: #f0fdf4 !important; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.18) !important; }
+.v2-stat-link.active .v2-stat-widget.widget-purple { border-color: #8b5cf6 !important; background: #f5f3ff !important; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.18) !important; }
+.v2-stat-link.active .v2-stat-widget.widget-amber { border-color: #f59e0b !important; background: #fffbeb !important; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.18) !important; }
+.v2-stat-link.active .v2-stat-widget.red-theme { border-color: #ef4444 !important; background: #fef2f2 !important; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.18) !important; }
+
+/* Store chip badges */
+.store-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: #f8fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-}
-.stock-table {
-    margin-bottom: 0;
-    font-size: 0.82rem;
-}
-.stock-table thead th {
-    background: #0f172a;
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    padding: 10px 12px;
-    vertical-align: middle;
-    border-color: #334155;
+    color: #334155;
     white-space: nowrap;
 }
-.stock-table thead th.th-warehouse {
-    background: #047857;
-    color: #ffffff;
+.store-chip.diff-chip {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #dc2626;
+    animation: pulseDiff 2s infinite ease-in-out;
 }
-.stock-table thead th.th-store {
-    background: #0369a1;
-    color: #ffffff;
+@keyframes pulseDiff {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); }
+    50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15); }
 }
-.stock-table tbody td {
-    padding: 10px 12px;
-    vertical-align: middle;
-    border-color: #f1f5f9;
-}
-.stock-table tbody tr:hover {
-    background-color: #f8fafc;
-}
-
-/* Discrepancy Cell */
-.cell-diff {
-    background-color: #fee2e2 !important;
-    color: #b91c1c !important;
-    font-weight: 800 !important;
-    border-left: 2px solid #ef4444;
-}
-.cell-diff-text {
-    color: #dc2626 !important;
-    font-weight: 800;
-}
-.cell-match-text {
-    color: #0369a1;
+.channel-pill {
+    font-size: 0.62rem;
     font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 4px;
+    text-transform: uppercase;
 }
-
-/* Action Button */
-.btn-sync-single {
-    padding: 3px 8px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    border-radius: 6px;
-    border: none;
-    background: #ef4444;
-    color: #ffffff;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-.btn-sync-single:hover {
-    background: #dc2626;
-    transform: scale(1.03);
-}
-.btn-sync-single:disabled {
-    background: #94a3b8;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* Nav Tabs Styling */
-.v2-tab-nav {
-    border-bottom: 2px solid #e2e8f0;
-    display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-.v2-tab-item {
-    padding: 9px 18px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #64748b;
-    text-decoration: none;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -2px;
-    transition: all 0.15s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.v2-tab-item:hover {
-    color: #0f172a;
-}
-.v2-tab-item.active {
-    color: #2563eb;
-    border-bottom-color: #2563eb;
-}
+.channel-shopee { background: #ff5722; color: #fff; }
+.channel-tiktok { background: #000; color: #fff; }
+.channel-tokopedia { background: #03ac0e; color: #fff; }
+.channel-lazada { background: #0f146d; color: #fff; }
+.channel-default { background: #64748b; color: #fff; }
 </style>
 @endpush
 
 @section('content')
-<div class="container-fluid py-3 px-3 px-lg-4">
-    <!-- Breadcrumb & Page Header -->
-    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
-        <div>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1 small text-muted">
-                    <li class="breadcrumb-item"><a href="{{ route('v2.dashboard') }}" class="text-decoration-none">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('v2.laporan.index') }}" class="text-decoration-none">Laporan</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Laporan Stok Barang V2</li>
-                </ol>
-            </nav>
-            <h4 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
-                <i class="bi bi-boxes text-primary"></i>
-                Laporan Stok Barang (Gudang &amp; Marketplace)
-            </h4>
-            <p class="text-muted small mb-0">Pemantauan real-time sisa stok fisik gudang vs kuota stok etalase marketplace terhubung.</p>
-        </div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            @if ($kpi['total_diff'] > 0)
-                <button type="button" class="btn btn-sm btn-danger fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm" id="btnSyncAllBatch">
-                    <i class="bi bi-arrow-repeat"></i>
-                    Sync Semua Selisih ({{ number_format($kpi['total_diff'], 0, ',', '.') }})
-                </button>
-            @endif
-            <a href="{{ route('v2.reports.stock.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-primary fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm">
-                <i class="bi bi-printer-fill"></i>
-                Cetak / Print Laporan
-            </a>
-        </div>
+<!-- Page Header Compact (Persis Master Produk) -->
+<div class="v2-page-header align-items-center mb-3">
+    <div>
+        <h1 class="v2-page-title d-flex align-items-center gap-2">
+            <i class="bi bi-boxes text-primary fs-5"></i> Laporan Stok Barang (Gudang &amp; Marketplace) V2
+        </h1>
+        <p class="v2-page-subtitle mb-0">Pemantauan real-time stok fisik gudang vs kuota etalase marketplace, deteksi selisih stok &amp; sinkronisasi otomatis</p>
     </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ route('v2.reports.stock') }}" class="btn btn-sm btn-v2-secondary py-1.5 px-2.5" title="Refresh Halaman">
+            <i class="bi bi-arrow-clockwise"></i>
+        </a>
+        <a href="{{ route('v2.reports.stock.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-v2-secondary py-1.5 px-3 shadow-sm" title="Cetak / Print Laporan">
+            <i class="bi bi-printer me-1"></i> Cetak Laporan
+        </a>
+        @if(($counts['diff'] ?? 0) > 0)
+            <button type="button" class="btn btn-sm btn-danger py-1.5 px-3 shadow-sm fw-semibold d-inline-flex align-items-center gap-1.5" id="btnSyncAllBatch" title="Sync Semua Selisih ke Marketplace">
+                <i class="bi bi-arrow-repeat"></i> Sync Semua Selisih ({{ number_format($counts['diff'] ?? 0) }})
+            </button>
+        @endif
+    </div>
+</div>
 
-    {{-- Navigation Tabs --}}
-    <div class="v2-tab-nav">
-        <a href="{{ route('v2.laporan.index', ['tab' => 'dilepas']) }}" class="v2-tab-item">
-            <i class="bi bi-cash-stack fs-6"></i>
-            <span>Laporan Penjualan Dilepas (Dana Cair)</span>
-        </a>
-        <a href="{{ route('v2.laporan.index', ['tab' => 'semua']) }}" class="v2-tab-item">
-            <i class="bi bi-receipt-cutoff fs-6"></i>
-            <span>Laporan Rekap Penjualan (Semua)</span>
-        </a>
-        <a href="{{ route('v2.reports.stock') }}" class="v2-tab-item active">
-            <i class="bi bi-boxes fs-6"></i>
-            <span>Laporan Stok Barang (Gudang & Marketplace)</span>
+@php
+    $currentTab = request('tab', '');
+    if (!$currentTab) {
+        if (request('is_bundle') === '0') $currentTab = 'single';
+        elseif (request('is_bundle') === '1') $currentTab = 'bundle';
+        elseif (request('is_preorder') === '0') $currentTab = 'ready';
+        elseif (request('is_preorder') === '1') $currentTab = 'po';
+        elseif (request('only_different') || request('only_diff')) $currentTab = 'diff';
+    }
+    $baseParams = request()->except(['tab', 'page', 'is_bundle', 'is_preorder', 'only_different', 'only_diff']);
+@endphp
+
+<!-- Header Summary Widgets (KPI Cards Persis Master Produk) -->
+<div class="row g-2 mb-3">
+    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <a href="{{ route('v2.reports.stock', $baseParams) }}" class="v2-stat-link {{ $currentTab === '' ? 'active' : '' }}" title="Total Master">
+            <div class="v2-stat-widget widget-blue">
+                <div class="v2-stat-icon-wrapper blue">
+                    <i class="bi bi-boxes"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($counts['total'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Total Master</span>
+                </div>
+            </div>
         </a>
     </div>
-
-    <!-- KPI Summary Cards -->
-    <div class="row g-2.5 mb-3">
-        <div class="col-6 col-md-4 col-xl-2">
-            <div class="stock-kpi-card">
-                <div class="stock-kpi-title">Total Produk</div>
-                <div class="stock-kpi-val">{{ number_format($kpi['total_products'], 0, ',', '.') }}</div>
-                <div class="stock-kpi-sub">Master SKU terdaftar</div>
-                <div class="stock-kpi-icon bg-primary bg-opacity-10 text-primary">
+    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'single'])) }}" class="v2-stat-link {{ $currentTab === 'single' ? 'active' : '' }}" title="Single Utama">
+            <div class="v2-stat-widget widget-green">
+                <div class="v2-stat-icon-wrapper green">
                     <i class="bi bi-box-seam"></i>
                 </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4 col-xl-2">
-            <div class="stock-kpi-card">
-                <div class="stock-kpi-title">Single (Utama)</div>
-                <div class="stock-kpi-val text-primary">{{ number_format($kpi['total_single'], 0, ',', '.') }}</div>
-                <div class="stock-kpi-sub">Produk satuan reguler</div>
-                <div class="stock-kpi-icon bg-info bg-opacity-10 text-info">
-                    <i class="bi bi-box"></i>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($counts['single'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Single (Utama)</span>
                 </div>
             </div>
-        </div>
-        <div class="col-6 col-md-4 col-xl-2">
-            <div class="stock-kpi-card">
-                <div class="stock-kpi-title">Paket (Bundle)</div>
-                <div class="stock-kpi-val text-purple" style="color: #7c3aed;">{{ number_format($kpi['total_bundle'], 0, ',', '.') }}</div>
-                <div class="stock-kpi-sub">Bundle set / paket</div>
-                <div class="stock-kpi-icon bg-warning bg-opacity-10 text-warning">
-                    <i class="bi bi-collection"></i>
+        </a>
+    </div>
+    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'bundle'])) }}" class="v2-stat-link {{ $currentTab === 'bundle' ? 'active' : '' }}" title="Paket Bundle">
+            <div class="v2-stat-widget widget-purple">
+                <div class="v2-stat-icon-wrapper purple">
+                    <i class="bi bi-diagram-3"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($counts['bundle'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Paket (Bundle)</span>
                 </div>
             </div>
-        </div>
-        <div class="col-6 col-md-4 col-xl-2">
-            <div class="stock-kpi-card">
-                <div class="stock-kpi-title">Pre-Order (PO)</div>
-                <div class="stock-kpi-val" style="color: #ea580c;">{{ number_format($kpi['total_po'], 0, ',', '.') }}</div>
-                <div class="stock-kpi-sub">Produk inden jahit</div>
-                <div class="stock-kpi-icon text-white" style="background: rgba(234, 88, 12, 0.1); color: #ea580c !important;">
-                    <i class="bi bi-hourglass-split"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4 col-xl-2">
-            <div class="stock-kpi-card">
-                <div class="stock-kpi-title">Stok Gudang</div>
-                <div class="stock-kpi-val text-success">{{ number_format($kpi['total_stock'], 0, ',', '.') }}</div>
-                <div class="stock-kpi-sub">Total fisik semua SKU</div>
-                <div class="stock-kpi-icon bg-success bg-opacity-10 text-success">
+        </a>
+    </div>
+    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'ready'])) }}" class="v2-stat-link {{ $currentTab === 'ready' ? 'active' : '' }}" title="Stock Ready">
+            <div class="v2-stat-widget widget-blue">
+                <div class="v2-stat-icon-wrapper blue">
                     <i class="bi bi-check-circle"></i>
                 </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-4 col-xl-2">
-            <div class="stock-kpi-card">
-                <div class="stock-kpi-title">Selisih Stok</div>
-                <div class="stock-kpi-val {{ $kpi['total_diff'] > 0 ? 'text-danger' : 'text-success' }}">
-                    {{ number_format($kpi['total_diff'], 0, ',', '.') }}
-                </div>
-                <div class="stock-kpi-sub">{{ $kpi['total_diff'] > 0 ? '⚠️ Beda gudang vs toko' : '✓ Semua sinkron' }}</div>
-                <div class="stock-kpi-icon {{ $kpi['total_diff'] > 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-success bg-opacity-10 text-success' }}">
-                    <i class="bi bi-exclamation-triangle"></i>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($counts['ready'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Stock Ready</span>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
-
-    <!-- Filter Card -->
-    <div class="stock-filter-card mb-3">
-        <div class="stock-filter-header">
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-funnel-fill text-primary"></i>
-                <span class="fw-bold text-dark small text-uppercase">Filter Stok Barang</span>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('v2.reports.stock') }}" class="btn btn-sm btn-outline-secondary py-0.5 px-2" style="font-size: 0.75rem;">
-                    <i class="bi bi-arrow-counterclockwise"></i> Reset Filter
-                </a>
-            </div>
-        </div>
-        <div class="p-3">
-            <form action="{{ route('v2.reports.stock') }}" method="GET" id="stockFilterForm">
-                <div class="row g-2.5">
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label form-label-sm fw-semibold text-muted mb-1 small">Toko Marketplace</label>
-                        <select name="store_id" class="form-select form-select-sm rounded-2">
-                            <option value="">Semua Toko Marketplace</option>
-                            @foreach ($allStores as $st)
-                                @php
-                                    $chCode = strtolower($st->channel->code ?? $st->channel->name ?? '');
-                                    $chLabel = match(true) {
-                                        str_contains($chCode, 'shopee') => 'Shopee',
-                                        str_contains($chCode, 'tiktok') => 'TikTok',
-                                        str_contains($chCode, 'lazada') => 'Lazada',
-                                        str_contains($chCode, 'tokopedia') => 'Tokopedia',
-                                        default => ucfirst($st->channel->name ?? 'MP')
-                                    };
-                                @endphp
-                                <option value="{{ $st->id }}" {{ request('store_id') == $st->id ? 'selected' : '' }}>
-                                    {{ $st->store_name }} ({{ $chLabel }})
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-6 col-md-3 col-lg-2">
-                        <label class="form-label form-label-sm fw-semibold text-muted mb-1 small">Jenis Produk</label>
-                        <select name="is_bundle" class="form-select form-select-sm rounded-2">
-                            <option value="">Semua Jenis</option>
-                            <option value="0" {{ request('is_bundle') === '0' ? 'selected' : '' }}>📦 Single (Standar)</option>
-                            <option value="1" {{ request('is_bundle') === '1' ? 'selected' : '' }}>🎁 BUNDLE (Paket)</option>
-                        </select>
-                    </div>
-
-                    <div class="col-6 col-md-3 col-lg-2">
-                        <label class="form-label form-label-sm fw-semibold text-muted mb-1 small">Tipe PO / Ready</label>
-                        <select name="is_preorder" class="form-select form-select-sm rounded-2">
-                            <option value="">Semua Tipe</option>
-                            <option value="1" {{ request('is_preorder') === '1' ? 'selected' : '' }}>⏳ Pre-Order (PO)</option>
-                            <option value="0" {{ request('is_preorder') === '0' ? 'selected' : '' }}>📦 Ready Stock</option>
-                        </select>
-                    </div>
-
-                    <div class="col-6 col-md-3 col-lg-2">
-                        <label class="form-label form-label-sm fw-semibold text-muted mb-1 small">Kategori</label>
-                        <select name="category_id" class="form-select form-select-sm rounded-2">
-                            <option value="">Semua Kategori</option>
-                            @foreach ($categories as $cat)
-                                <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>
-                                    {{ $cat->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-6 col-md-3 col-lg-3">
-                        <label class="form-label form-label-sm fw-semibold text-muted mb-1 small">Merk / Brand</label>
-                        <select name="brand_id" class="form-select form-select-sm rounded-2">
-                            <option value="">Semua Brand</option>
-                            @foreach ($brands as $br)
-                                <option value="{{ $br->id }}" {{ request('brand_id') == $br->id ? 'selected' : '' }}>
-                                    {{ $br->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-12 col-md-6 col-lg-5">
-                        <label class="form-label form-label-sm fw-semibold text-muted mb-1 small">Cari Nama Produk / SKU</label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-                            <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm border-start-0" placeholder="Ketik SKU atau nama produk...">
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-md-6 col-lg-4 d-flex align-items-center gap-3 pt-md-3">
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" name="hide_zero_stock" value="1" id="hideZeroStock" {{ request()->boolean('hide_zero_stock') ? 'checked' : '' }}>
-                            <label class="form-check-label small fw-semibold text-dark" for="hideZeroStock">
-                                Sembunyikan Stok 0
-                            </label>
-                        </div>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" name="only_different" value="1" id="onlyDifferent" {{ request()->boolean('only_different') ? 'checked' : '' }}>
-                            <label class="form-check-label small fw-bold text-danger" for="onlyDifferent">
-                                ⚠️ Hanya Beda Stok
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-lg-3 d-flex align-items-center justify-content-end gap-2 pt-2 pt-lg-3">
-                        <button type="submit" class="btn btn-sm btn-primary px-3 fw-semibold">
-                            <i class="bi bi-filter"></i> Terapkan Filter
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-primary px-3 fw-semibold" onclick="document.getElementById('stockFilterForm').action='{{ route('v2.reports.stock.print') }}'; document.getElementById('stockFilterForm').target='_blank'; document.getElementById('stockFilterForm').submit(); document.getElementById('stockFilterForm').action='{{ route('v2.reports.stock') }}'; document.getElementById('stockFilterForm').target='_self';">
-                            <i class="bi bi-printer"></i> Cetak
-                        </button>
-                    </div>
+    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'po'])) }}" class="v2-stat-link {{ $currentTab === 'po' ? 'active' : '' }}" title="Pre-Order (PO)">
+            <div class="v2-stat-widget widget-amber">
+                <div class="v2-stat-icon-wrapper amber">
+                    <i class="bi bi-clock-history"></i>
                 </div>
-            </form>
-        </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($counts['po'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Pre-Order (PO)</span>
+                </div>
+            </div>
+        </a>
     </div>
+    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+        <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'diff'])) }}" class="v2-stat-link {{ $currentTab === 'diff' ? 'active' : '' }}" title="Selisih Stok">
+            <div class="v2-stat-widget red-theme">
+                <div class="v2-stat-icon-wrapper amber" style="background-color: #fee2e2; color: #ef4444;">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num" style="color: #ef4444;">{{ number_format($counts['diff'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Selisih Stok</span>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
 
-    <!-- Data Table Card -->
-    <div class="stock-table-card">
-        <div class="d-flex align-items-center justify-content-between p-3 border-bottom bg-white flex-wrap gap-2">
-            <div class="d-flex align-items-center gap-2">
-                <span class="fw-bold text-dark" style="font-size: 0.9rem;">Daftar Stok Produk</span>
-                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-1" style="font-size: 0.72rem;">
-                    {{ number_format($products->total(), 0, ',', '.') }} SKU
-                </span>
-                @if(request()->boolean('only_different'))
-                    <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2 py-1" style="font-size: 0.72rem;">
-                        Filter: Hanya Selisih Stok
+<!-- Main Card Persis Master Produk -->
+<div class="v2-card p-0 shadow-sm overflow-hidden mb-3">
+
+    {{-- Status Tabs Bar --}}
+    @php
+        $stockTabs = [
+            ''       => ['label' => 'Semua', 'icon' => 'bi bi-boxes', 'countKey' => 'total'],
+            'single' => ['label' => 'Single (Utama)', 'icon' => 'bi bi-box-seam', 'countKey' => 'single'],
+            'bundle' => ['label' => 'Paket (Bundle)', 'icon' => 'bi bi-diagram-3', 'countKey' => 'bundle'],
+            'ready'  => ['label' => 'Stock Ready', 'icon' => 'bi bi-check-circle', 'countKey' => 'ready'],
+            'po'     => ['label' => 'Pre-Order (PO)', 'icon' => 'bi bi-clock-history', 'countKey' => 'po'],
+            'diff'   => ['label' => 'Ada Selisih', 'icon' => 'bi bi-exclamation-triangle-fill', 'countKey' => 'diff'],
+        ];
+    @endphp
+    <div class="psr-tab-bar" role="tablist">
+        @foreach($stockTabs as $tabKey => $tabInfo)
+            @php
+                $tabUrl = route('v2.reports.stock', array_merge(
+                    $baseParams,
+                    $tabKey !== '' ? ['tab' => $tabKey] : []
+                ));
+                $isActive = $currentTab === $tabKey;
+                $count = $counts[$tabInfo['countKey']] ?? 0;
+            @endphp
+            <a class="psr-tab {{ $isActive ? 'active' : '' }}" href="{{ $tabUrl }}" role="tab">
+                <i class="{{ $tabInfo['icon'] }}" style="font-size: .8rem;"></i>
+                {{ $tabInfo['label'] }}
+                @if($count > 0)
+                    <span class="tab-badge {{ $tabKey === 'diff' ? 'badge-danger-tab' : '' }}">
+                        {{ $count > 9999 ? '9999+' : number_format($count) }}
                     </span>
                 @endif
-            </div>
-            <div class="small text-muted">
-                Menampilkan {{ $products->firstItem() ?? 0 }} - {{ $products->lastItem() ?? 0 }} dari {{ number_format($products->total(), 0, ',', '.') }} barang
-            </div>
-        </div>
+            </a>
+        @endforeach
+    </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover stock-table">
+    {{-- Filter Bar --}}
+    <div class="psr-filter-bar">
+        <form method="GET" action="{{ route('v2.reports.stock') }}" id="psr-filter-form">
+            @if(request('tab'))
+                <input type="hidden" name="tab" value="{{ request('tab') }}">
+            @endif
+            <div class="row g-2 align-items-end">
+                {{-- Nama Produk --}}
+                <div class="col-12 col-md-3">
+                    <label class="form-label"><i class="bi bi-search me-1"></i>Nama Produk</label>
+                    <input type="text" name="name" class="form-control"
+                           placeholder="Cari nama produk..."
+                           value="{{ request('name') }}">
+                </div>
+                {{-- SKU --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label"><i class="bi bi-upc-scan me-1"></i>SKU / Induk</label>
+                    <input type="text" name="sku" class="form-control font-monospace"
+                           placeholder="Cari SKU / Induk..."
+                           value="{{ request('sku') }}">
+                </div>
+                {{-- Kategori --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label"><i class="bi bi-tags me-1"></i>Kategori</label>
+                    <select name="category_id" class="form-select no-select2">
+                        <option value="">Semua Kategori</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>
+                                {{ $cat->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                {{-- Channel --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label"><i class="bi bi-shop me-1"></i>Channel</label>
+                    <select name="channel_id" class="form-select no-select2">
+                        <option value="">Semua Channel</option>
+                        @foreach($channels as $ch)
+                            <option value="{{ $ch->id }}" {{ request('channel_id') == $ch->id ? 'selected' : '' }}>
+                                {{ $ch->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                {{-- Toko --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label"><i class="bi bi-building me-1"></i>Toko</label>
+                    <select name="store_id" class="form-select no-select2">
+                        <option value="">Semua Toko</option>
+                        @foreach($allStores as $st)
+                            @php $chName = $st->channel->name ?? 'MP'; @endphp
+                            <option value="{{ $st->id }}" {{ request('store_id') == $st->id ? 'selected' : '' }}>
+                                {{ $st->store_name }} ({{ $chName }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                {{-- Tombol --}}
+                <div class="col-12 col-md-1 d-flex gap-2">
+                    <button type="submit" class="psr-btn psr-btn-primary" style="height:31px; padding:0 14px;" title="Cari">
+                        <i class="bi bi-search"></i>
+                    </button>
+                    @if(request()->anyFilled(['name', 'sku', 'category_id', 'channel_id', 'store_id', 'is_bundle', 'is_preorder', 'hide_zero_stock', 'only_diff', 'only_different']))
+                        <a href="{{ route('v2.reports.stock', request('tab') ? ['tab' => request('tab')] : []) }}"
+                           class="psr-btn psr-btn-ghost" style="height:31px; padding:0 10px;" title="Reset Filter">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Checkbox Toggles --}}
+            <div class="d-flex align-items-center gap-4 mt-2 pt-1 border-top border-light">
+                <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
+                    <input class="form-check-input no-select2" type="checkbox" name="hide_zero_stock" value="1" id="filterHideZero" {{ request('hide_zero_stock') ? 'checked' : '' }} onchange="document.getElementById('psr-filter-form').submit();">
+                    <label class="form-check-label fw-semibold text-secondary" for="filterHideZero">
+                        Sembunyikan Stok 0
+                    </label>
+                </div>
+                <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
+                    <input class="form-check-input no-select2" type="checkbox" name="only_diff" value="1" id="filterOnlyDiff" {{ request('only_diff') || request('only_different') || $currentTab === 'diff' ? 'checked' : '' }} onchange="document.getElementById('psr-filter-form').submit();">
+                    <label class="form-check-label fw-semibold text-danger" for="filterOnlyDiff">
+                        Hanya Tampilkan Selisih Stok
+                    </label>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {{-- Summary Bar --}}
+    <div class="psr-summary-bar">
+        <div>
+            <i class="bi bi-list-ul me-1"></i>
+            <strong class="text-dark">{{ number_format($products->total()) }}</strong> Produk Ditemukan
+            @if($products->total() > 0)
+                &nbsp;·&nbsp; Halaman {{ $products->currentPage() }} dari {{ $products->lastPage() }}
+                &nbsp;·&nbsp; Total Stok Fisik: <strong class="text-primary">{{ number_format($counts['total_stock'] ?? 0) }} pcs</strong>
+            @endif
+        </div>
+        @if(($counts['diff'] ?? 0) > 0)
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size: 0.72rem;">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ number_format($counts['diff'] ?? 0) }} Produk Selisih
+                </span>
+            </div>
+        @endif
+    </div>
+
+    {{-- Table Persis Master Produk --}}
+    <div class="v2-card-body p-0">
+        <div class="v2-table-responsive">
+            <table class="v2-table align-middle">
                 <thead>
                     <tr>
-                        <th style="width: 40px;" class="text-center">No</th>
-                        <th style="width: 140px;">SKU</th>
-                        <th>Nama Produk</th>
-                        <th style="width: 110px;" class="text-center">Tipe / PO</th>
-                        <th style="width: 150px;">Toko Terhubung</th>
-                        <th class="th-warehouse text-end" style="width: 100px;">Stok Gudang</th>
-                        @foreach($stores as $st)
-                            @php
-                                $chCode = strtolower($st->channel->code ?? $st->channel->name ?? '');
-                                $chShort = match(true) {
-                                    str_contains($chCode, 'shopee') => 'Shopee',
-                                    str_contains($chCode, 'tiktok') => 'TikTok',
-                                    str_contains($chCode, 'lazada') => 'Lazada',
-                                    str_contains($chCode, 'tokopedia') => 'Tokopedia',
-                                    default => ucfirst($st->channel->name ?? 'MP'),
-                                };
-                            @endphp
-                            <th class="th-store text-center" style="min-width: 110px;">
-                                <div class="text-truncate" style="max-width: 130px;" title="{{ $st->store_name }}">{{ $st->short_name }}</div>
-                                <span class="d-block" style="font-size: 0.65rem; opacity: 0.85; font-weight: normal;">({{ $chShort }})</span>
-                            </th>
-                        @endforeach
-                        <th style="width: 90px;" class="text-center">Aksi Sync</th>
+                        <th style="width: 35px;" class="text-center">#</th>
+                        <th>NAMA PRODUK / MASTER</th>
+                        <th>KATEGORI &amp; BRAND</th>
+                        <th class="text-center" style="width: 130px;">STOK GUDANG</th>
+                        <th>KUOTA MARKETPLACE PER-TOKO</th>
+                        <th class="text-center" style="width: 120px;">STATUS SINKRON</th>
+                        <th class="text-center" style="width: 110px;">AKSI</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($products as $index => $product)
+                    @forelse($products as $index => $prod)
                         @php
-                            $stokGudang = (int) $product->stock;
+                            $gudangStock = (int) ($prod->stock ?? 0);
+                            $minStock    = (int) ($prod->min_stock ?? 5);
+
+                            // Marketplace comparison
                             $hasDiscrepancy = false;
-                            $discrepancyStores = [];
+                            $storeItems = [];
+                            foreach ($prod->marketplaceProducts as $mp) {
+                                if (!$mp->store) continue;
+                                $mpStock = (int) ($mp->stock ?? 0);
+                                $isDiff = ($mp->sync_stock && $mpStock !== $gudangStock);
+                                if ($isDiff) {
+                                    $hasDiscrepancy = true;
+                                }
+                                $chCode = strtolower($mp->store->channel->code ?? $mp->store->channel->name ?? 'default');
+                                $storeItems[] = [
+                                    'store_name' => $mp->store->store_name,
+                                    'channel'    => $mp->store->channel->name ?? 'MP',
+                                    'channel_code' => $chCode,
+                                    'stock'      => $mpStock,
+                                    'is_diff'    => $isDiff,
+                                    'sync_stock' => (bool)$mp->sync_stock,
+                                ];
+                            }
                         @endphp
-                        <tr id="row-product-{{ $product->id }}">
-                            <td class="text-center text-muted">{{ $products->firstItem() + $index }}</td>
-                            <td>
-                                <span class="fw-bold text-dark font-monospace" style="font-size: 0.82rem;">{{ $product->sku ?? '-' }}</span>
-                                @if($product->sku_induk)
-                                    <span class="d-block text-muted" style="font-size: 0.68rem;">Induk: {{ $product->sku_induk }}</span>
-                                @endif
+                        <tr class="{{ $hasDiscrepancy ? 'table-danger-subtle' : '' }}">
+                            <td class="text-center text-muted" style="font-size: 0.72rem;">
+                                {{ $products->firstItem() + $index }}
                             </td>
                             <td>
-                                <div class="fw-semibold text-dark">{{ $product->name }}</div>
-                                <div class="d-flex align-items-center gap-1.5 mt-1" style="font-size: 0.7rem;">
-                                    @if($product->category)
-                                        <span class="text-muted"><i class="bi bi-tag me-0.5"></i>{{ $product->category->name }}</span>
-                                    @endif
-                                    @if($product->brand)
-                                        <span class="text-muted">• {{ $product->brand->name }}</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="product-avatar-icon {{ $hasDiscrepancy ? 'border-danger' : '' }}" style="{{ $hasDiscrepancy ? 'background: #fee2e2; color: #ef4444;' : '' }}">
+                                        <i class="bi bi-box-seam"></i>
+                                    </div>
+                                    <div class="overflow-hidden">
+                                        <div class="fw-bold text-dark text-truncate" style="font-size: 0.8rem; line-height: 1.25; max-width: 280px;" title="{{ $prod->name }}">
+                                            {{ \Illuminate\Support\Str::limit($prod->name, 45) }}
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1.5 mt-1 flex-wrap">
+                                            <span class="sku-badge py-0 px-1.5" style="font-size: 0.65rem;">{{ $prod->sku ?: ($prod->sku_induk ?: '-') }}</span>
+                                            @if($prod->sku_induk && $prod->sku_induk !== $prod->sku)
+                                                <span class="text-muted" style="font-size: 0.65rem;">Induk: <code class="text-secondary">{{ $prod->sku_induk }}</code></span>
+                                            @endif
+                                            @if($prod->is_bundle)
+                                                <span class="v2-badge v2-badge-warning" style="font-size: 0.6rem; padding: 1px 4px;">
+                                                    <i class="bi bi-diagram-3 me-0.5"></i>Bundle
+                                                </span>
+                                            @else
+                                                <span class="v2-badge v2-badge-primary" style="font-size: 0.6rem; padding: 1px 4px;">Single</span>
+                                            @endif
+                                            @if($prod->is_preorder)
+                                                <span class="badge bg-secondary-subtle text-secondary border px-1 py-0.5" style="font-size: 0.58rem;">PO</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    <div class="fw-medium text-dark" style="font-size: 0.78rem;">
+                                        <i class="bi bi-folder2 text-primary me-1"></i>{{ $prod->category->name ?? 'Tanpa Kategori' }}
+                                    </div>
+                                    @if($prod->brand)
+                                        <div class="text-muted mt-0.5" style="font-size: 0.68rem;">
+                                            <i class="bi bi-tag me-1"></i>{{ $prod->brand->name }}
+                                        </div>
                                     @endif
                                 </div>
                             </td>
                             <td class="text-center">
-                                @if($product->is_preorder)
-                                    <span class="badge bg-warning bg-opacity-10 text-dark border border-warning" style="font-size: 0.7rem;">
-                                        ⏳ PO ({{ $product->preorder_days ?: 7 }}hr)
-                                    </span>
+                                @if($gudangStock <= 0)
+                                    <span class="badge bg-danger text-white font-monospace px-2 py-1" style="font-size: 0.75rem;">Habis (0)</span>
+                                @elseif($gudangStock <= $minStock)
+                                    <span class="badge bg-warning text-dark font-monospace px-2 py-1" style="font-size: 0.75rem;">Menipis ({{ $gudangStock }})</span>
                                 @else
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success" style="font-size: 0.7rem;">
-                                        📦 Ready
-                                    </span>
-                                @endif
-
-                                @if($product->is_bundle)
-                                    <span class="badge bg-purple bg-opacity-10 text-purple border d-block mt-1" style="font-size: 0.65rem; color: #7c3aed; border-color: #ddd6fe !important;">
-                                        Bundle
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace px-2.5 py-1" style="font-size: 0.78rem;">
+                                        <i class="bi bi-box me-0.5"></i>{{ number_format($gudangStock) }} {{ $prod->unit ?? 'pcs' }}
                                     </span>
                                 @endif
                             </td>
                             <td>
-                                @php
-                                    $connectedStores = $product->marketplaceProducts
-                                        ->map(fn($mp) => $mp->store)
-                                        ->filter()
-                                        ->unique('id');
-                                @endphp
-                                @if($connectedStores->isNotEmpty())
-                                    <div class="d-flex flex-wrap gap-1">
-                                        @foreach($connectedStores as $cs)
-                                            <span class="badge bg-light text-dark border py-0.5 px-1.5" style="font-size: 0.68rem;">
-                                                {{ $cs->short_name }}
-                                            </span>
+                                @if(count($storeItems) > 0)
+                                    <div class="d-flex flex-wrap gap-1.5 align-items-center">
+                                        @foreach($storeItems as $item)
+                                            @php
+                                                $pillClass = 'channel-default';
+                                                if (str_contains($item['channel_code'], 'shopee')) $pillClass = 'channel-shopee';
+                                                elseif (str_contains($item['channel_code'], 'tiktok')) $pillClass = 'channel-tiktok';
+                                                elseif (str_contains($item['channel_code'], 'tokopedia')) $pillClass = 'channel-tokopedia';
+                                                elseif (str_contains($item['channel_code'], 'lazada')) $pillClass = 'channel-lazada';
+                                            @endphp
+                                            <div class="store-chip {{ $item['is_diff'] ? 'diff-chip' : '' }}" title="{{ $item['store_name'] }} ({{ $item['channel'] }})">
+                                                <span class="channel-pill {{ $pillClass }}">{{ substr($item['channel'], 0, 3) }}</span>
+                                                <span class="text-truncate" style="max-width: 90px;">{{ $item['store_name'] }}:</span>
+                                                <span class="font-monospace fw-bold {{ $item['is_diff'] ? 'text-danger' : 'text-primary' }}">{{ $item['stock'] }}</span>
+                                                @if($item['is_diff'])
+                                                    <i class="bi bi-exclamation-triangle-fill text-danger ms-0.5" title="Beda dengan gudang ({{ $gudangStock }})"></i>
+                                                @endif
+                                            </div>
                                         @endforeach
                                     </div>
                                 @else
-                                    <span class="text-muted fst-italic" style="font-size: 0.72rem;">Belum Terhubung</span>
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1" style="font-size: 0.68rem;" title="Belum Terhubung Toko Marketplace">
+                                        <i class="bi bi-x-circle me-1"></i>Belum Terhubung
+                                    </span>
                                 @endif
                             </td>
-                            <td class="text-end bg-success bg-opacity-10">
-                                <span class="fw-bold text-success" style="font-size: 0.95rem;">
-                                    {{ number_format($stokGudang, 0, ',', '.') }}
-                                </span>
-                            </td>
-                            @foreach($stores as $st)
-                                @php
-                                    $storeMpProducts = $product->marketplaceProducts->where('store_id', $st->id);
-                                    $storeStock = $storeMpProducts->isNotEmpty() ? (int) $storeMpProducts->max('stock') : 0;
-                                    $isDifferent = ($storeMpProducts->isNotEmpty() && $storeStock !== $stokGudang);
-                                    if ($isDifferent) {
-                                        $hasDiscrepancy = true;
-                                        $discrepancyStores[] = $st->short_name;
-                                    }
-                                @endphp
-                                <td class="text-end {{ $isDifferent ? 'cell-diff' : '' }}">
-                                    @if($storeMpProducts->isEmpty())
-                                        <span class="text-muted" style="font-size: 0.72rem;">-</span>
-                                    @else
-                                        @if($isDifferent)
-                                            <span class="cell-diff-text">⚠️ {{ number_format($storeStock, 0, ',', '.') }}</span>
-                                        @else
-                                            <span class="cell-match-text">{{ number_format($storeStock, 0, ',', '.') }}</span>
-                                        @endif
-                                    @endif
-                                </td>
-                            @endforeach
                             <td class="text-center">
-                                @if($hasDiscrepancy)
-                                    <button type="button" class="btn-sync-single btn-action-sync" data-product-id="{{ $product->id }}" data-sku="{{ $product->sku ?? '-' }}">
-                                        🔄 Sync
-                                    </button>
+                                @if(count($storeItems) === 0)
+                                    <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 0.68rem;">-</span>
+                                @elseif($hasDiscrepancy)
+                                    <span class="badge bg-danger text-white px-2 py-1 shadow-sm d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;">
+                                        <i class="bi bi-exclamation-triangle-fill"></i> Ada Selisih
+                                    </span>
                                 @else
-                                    <span class="text-success fw-bold" style="font-size: 0.72rem;">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;">
                                         <i class="bi bi-check-circle-fill"></i> Sinkron
                                     </span>
                                 @endif
                             </td>
+                            <td class="text-center">
+                                <div class="d-flex align-items-center justify-content-center gap-1">
+                                    <button type="button"
+                                            class="btn btn-sm {{ $hasDiscrepancy ? 'btn-danger' : 'btn-outline-primary' }} btn-action-sync py-0.5 px-2"
+                                            style="font-size: 0.7rem; font-weight: 600;"
+                                            data-product-id="{{ $prod->id }}"
+                                            data-sku="{{ $prod->sku }}"
+                                            title="Sync Stok Gudang ke Marketplace">
+                                        <i class="bi bi-arrow-repeat me-0.5"></i> Sync
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ 7 + count($stores) }}" class="text-center py-5">
+                            <td colspan="7" class="text-center py-5">
                                 <i class="bi bi-inbox text-muted d-block mb-2" style="font-size: 2.2rem;"></i>
                                 <h6 class="text-muted fw-bold">Tidak ada data stok produk ditemukan</h6>
                                 <p class="text-muted small mb-0">Coba ubah kata kunci pencarian atau reset filter.</p>
@@ -567,18 +577,20 @@
                 </tbody>
             </table>
         </div>
+    </div>
 
-        @if($products->hasPages())
-            <div class="d-flex justify-content-between align-items-center p-3 border-top bg-white flex-wrap gap-2">
-                <div class="small text-muted">
-                    Menampilkan {{ $products->firstItem() }} s/d {{ $products->lastItem() }} dari total {{ $products->total() }} produk
+    @if($products->hasPages())
+        <div class="v2-card-footer bg-light p-2 border-top">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="text-muted" style="font-size: 0.72rem;">
+                    Menampilkan {{ $products->firstItem() ?? 0 }} - {{ $products->lastItem() ?? 0 }} dari total {{ $products->total() }} produk
                 </div>
                 <div>
-                    {{ $products->links() }}
+                    {{ $products->links('pagination::bootstrap-5') }}
                 </div>
             </div>
-        @endif
-    </div>
+        </div>
+    @endif
 </div>
 @endsection
 
@@ -626,7 +638,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(data => {
                 if (data.success) {
                     notify('Sinkronisasi Sukses', `Stok produk SKU ${sku} berhasil dikirim ke marketplace!`, 'success');
-                    this.outerHTML = '<span class="text-success fw-bold" style="font-size: 0.72rem;"><i class="bi bi-check-circle-fill"></i> Terkirim</span>';
+                    this.outerHTML = '<span class="badge bg-success text-white py-1 px-2" style="font-size: 0.68rem;"><i class="bi bi-check-circle-fill me-1"></i>Tersinkron</span>';
                 } else {
                     notify('Gagal Sinkron', data.message || 'Terjadi kesalahan sistem.', 'error');
                     this.disabled = false;
@@ -661,45 +673,58 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 });
             } else {
-                if (confirm('Sinkronkan seluruh produk yang memiliki selisih stok ke marketplace?')) {
+                if (confirm('Sinkronkan stok seluruh produk yang berselisih ke marketplace sekarang?')) {
                     executeBatchSync();
                 }
             }
         });
+    }
 
-        function executeBatchSync() {
+    function executeBatchSync() {
+        if (btnSyncAll) {
             btnSyncAll.disabled = true;
-            const originalText = btnSyncAll.innerHTML;
-            btnSyncAll.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Mengirim antrian...';
-
-            fetch('/v2/reports/stock/sync-batch', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({})
-            })
-            .then(res => res.json())
-            .then(data => {
-                btnSyncAll.disabled = false;
-                btnSyncAll.innerHTML = originalText;
-                if (data.success) {
-                    notify('Batch Sync Berhasil', data.message, 'success');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1200);
-                } else {
-                    notify('Gagal Batch Sync', data.message || 'Error.', 'error');
-                }
-            })
-            .catch(err => {
-                btnSyncAll.disabled = false;
-                btnSyncAll.innerHTML = originalText;
-                notify('Koneksi Error', 'Terjadi kesalahan saat memproses antrian.', 'error');
-            });
+            btnSyncAll.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Memproses...';
         }
+
+        fetch('/v2/reports/stock/sync-batch', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Antrian Dimulai!',
+                        text: data.message || 'Push stok sedang dijalankan di antrian background.',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    alert(data.message);
+                    window.location.reload();
+                }
+            } else {
+                notify('Gagal', data.message || 'Gagal memicu batch sync.', 'error');
+                if (btnSyncAll) {
+                    btnSyncAll.disabled = false;
+                    btnSyncAll.innerHTML = '<i class="bi bi-arrow-repeat"></i> Sync Semua Selisih';
+                }
+            }
+        })
+        .catch(err => {
+            notify('Error', 'Terjadi gangguan jaringan saat memicu sinkronisasi.', 'error');
+            if (btnSyncAll) {
+                btnSyncAll.disabled = false;
+                btnSyncAll.innerHTML = '<i class="bi bi-arrow-repeat"></i> Sync Semua Selisih';
+            }
+        });
     }
 });
 </script>

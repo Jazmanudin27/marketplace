@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Brand;
 use App\Models\Store;
+use App\Models\Channel;
 use App\Models\MasterProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,6 +30,27 @@ class LaporanStokController extends Controller
         $query = MasterProduct::with(['category', 'brand', 'marketplaceProducts.store.channel'])
             ->where('tenant_id', $tenantId);
 
+        // Tab filter (matches Master Product)
+        $tab = $request->get('tab');
+        if ($tab === 'single') {
+            $query->where(function($q) {
+                $q->where('is_bundle', false)->orWhereNull('is_bundle');
+            });
+        } elseif ($tab === 'bundle') {
+            $query->where('is_bundle', true);
+        } elseif ($tab === 'ready') {
+            $query->where(function ($q) {
+                $q->where('is_preorder', false)->orWhereNull('is_preorder');
+            });
+        } elseif ($tab === 'po') {
+            $query->where('is_preorder', true);
+        } elseif ($tab === 'diff') {
+            $query->whereHas('marketplaceProducts', function ($mq) {
+                $mq->where('sync_stock', true)
+                   ->whereColumn('stock', '!=', 'master_products.stock');
+            });
+        }
+
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
@@ -41,11 +63,11 @@ class LaporanStokController extends Controller
             $query->where('id', $request->product_id);
         }
 
-        if ($request->filled('is_bundle')) {
+        if (!$tab && $request->filled('is_bundle')) {
             $query->where('is_bundle', (bool)$request->is_bundle);
         }
 
-        if ($request->filled('is_preorder')) {
+        if (!$tab && $request->filled('is_preorder')) {
             if ($request->is_preorder === '1') {
                 $query->where('is_preorder', true);
             } elseif ($request->is_preorder === '0') {
@@ -56,11 +78,39 @@ class LaporanStokController extends Controller
             }
         }
 
+        if ($request->filled('name')) {
+            $name = trim($request->name);
+            $query->where('name', 'like', "%{$name}%");
+        }
+
+        if ($request->filled('sku')) {
+            $sku = trim($request->sku);
+            $query->where(function ($q) use ($sku) {
+                $q->where('sku', 'like', "%{$sku}%")
+                  ->orWhere('sku_induk', 'like', "%{$sku}%");
+            });
+        }
+
         if ($request->filled('search')) {
             $search = trim($request->search);
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%");
+                  ->orWhere('sku', 'like', "%{$search}%")
+                  ->orWhere('sku_induk', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('channel_id')) {
+            $channelId = $request->channel_id;
+            $query->whereHas('marketplaceProducts.store', function ($sq) use ($channelId) {
+                $sq->where('channel_id', $channelId);
+            });
+        }
+
+        if ($request->filled('store_id')) {
+            $storeId = $request->store_id;
+            $query->whereHas('marketplaceProducts', function ($mq) use ($storeId) {
+                $mq->where('store_id', $storeId);
             });
         }
 
@@ -73,7 +123,7 @@ class LaporanStokController extends Controller
             });
         }
 
-        if ($request->boolean('only_different')) {
+        if ($request->boolean('only_different') || $request->boolean('only_diff')) {
             $query->whereHas('marketplaceProducts', function ($mq) {
                 $mq->where('sync_stock', true)
                    ->whereColumn('stock', '!=', 'master_products.stock');
@@ -93,6 +143,7 @@ class LaporanStokController extends Controller
 
         $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
         $brands     = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $channels   = Channel::orderBy('name')->get();
 
         $storesQuery = Store::with('channel')
             ->where('tenant_id', $tenantId);
@@ -104,26 +155,39 @@ class LaporanStokController extends Controller
         $allStores = Store::with('channel')->where('tenant_id', $tenantId)->orderBy('store_name')->get();
         $stores    = $storesQuery->orderBy('store_name')->get();
 
-        // Base KPI metrics
-        $kpi = [
-            'total_products'   => MasterProduct::where('tenant_id', $tenantId)->count(),
-            'total_single'     => MasterProduct::where('tenant_id', $tenantId)->where(function($q) {
+        // Base KPI metrics matching Master Product layout
+        $counts = [
+            'total'       => MasterProduct::where('tenant_id', $tenantId)->count(),
+            'single'      => MasterProduct::where('tenant_id', $tenantId)->where(function($q) {
                 $q->where('is_bundle', false)->orWhereNull('is_bundle');
             })->count(),
-            'total_bundle'     => MasterProduct::where('tenant_id', $tenantId)->where('is_bundle', true)->count(),
-            'total_po'         => MasterProduct::where('tenant_id', $tenantId)->where('is_preorder', true)->count(),
-            'total_stock'      => (int) MasterProduct::where('tenant_id', $tenantId)->sum('stock'),
-            'total_diff'       => MasterProduct::where('tenant_id', $tenantId)
+            'bundle'      => MasterProduct::where('tenant_id', $tenantId)->where('is_bundle', true)->count(),
+            'ready'       => MasterProduct::where('tenant_id', $tenantId)->where(function($q) {
+                $q->where('is_preorder', false)->orWhereNull('is_preorder');
+            })->count(),
+            'po'          => MasterProduct::where('tenant_id', $tenantId)->where('is_preorder', true)->count(),
+            'diff'        => MasterProduct::where('tenant_id', $tenantId)
                 ->whereHas('marketplaceProducts', function ($mq) {
                     $mq->where('sync_stock', true)
                        ->whereColumn('stock', '!=', 'master_products.stock');
                 })->count(),
+            'total_stock' => (int) MasterProduct::where('tenant_id', $tenantId)->sum('stock'),
+        ];
+
+        $kpi = [
+            'total_products' => $counts['total'],
+            'total_single'   => $counts['single'],
+            'total_bundle'   => $counts['bundle'],
+            'total_ready'    => $counts['ready'],
+            'total_po'       => $counts['po'],
+            'total_diff'     => $counts['diff'],
+            'total_stock'    => $counts['total_stock'],
         ];
 
         $query    = $this->buildQuery($request, $tenantId);
         $products = $query->orderBy('name')->paginate(50)->withQueryString();
 
-        return view('v2.laporan_stok.index', compact('categories', 'brands', 'stores', 'allStores', 'products', 'kpi'));
+        return view('v2.laporan_stok.index', compact('categories', 'brands', 'stores', 'allStores', 'channels', 'products', 'counts', 'kpi'));
     }
 
     /**
