@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Bell, Package, ChevronRight, Clock, CheckCircle } from 'lucide-react';
 import { formatRupiah, getChannelBadge } from '../../utils/formatters';
 
@@ -19,8 +20,8 @@ export default function NotificationModal({
 
   const displayOrders = pendingOrders.slice(0, 5);
 
-  return (
-    <div className="modal-overlay" style={{ zIndex: 2100 }} onClick={onClose}>
+  const modalContent = (
+    <div className="modal-overlay" onClick={onClose}>
       <div 
         className="bottom-sheet-card" 
         onClick={(e) => e.stopPropagation()}
@@ -169,4 +170,6 @@ export default function NotificationModal({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

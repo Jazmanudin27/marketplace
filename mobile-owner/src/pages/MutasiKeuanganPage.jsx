@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ArrowDownLeft, 
   ArrowUpRight, 
@@ -847,27 +848,20 @@ export default function MutasiKeuanganPage() {
       </div>
 
       {/* ─── MODAL INPUT PEMASUKAN ─── */}
-      {activeModal === 'income' && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(3px)',
-          zIndex: 9999,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'flex-end'
-        }}>
+      {activeModal === 'income' && typeof document !== 'undefined' && createPortal(
+        <div className="modal-overlay">
           <div style={{
             background: '#ffffff',
             width: '100%',
             maxWidth: '520px',
-            maxHeight: '85vh',
+            maxHeight: '88vh',
             borderTopLeftRadius: '24px',
             borderTopRightRadius: '24px',
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.35)',
+            animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
           }}>
             <div style={{
               padding: '16px 20px',
@@ -1019,31 +1013,25 @@ export default function MutasiKeuanganPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ─── MODAL INPUT PENGELUARAN ─── */}
-      {activeModal === 'expense' && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(3px)',
-          zIndex: 9999,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'flex-end'
-        }}>
+      {activeModal === 'expense' && typeof document !== 'undefined' && createPortal(
+        <div className="modal-overlay">
           <div style={{
             background: '#ffffff',
             width: '100%',
             maxWidth: '520px',
-            maxHeight: '85vh',
+            maxHeight: '88vh',
             borderTopLeftRadius: '24px',
             borderTopRightRadius: '24px',
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.35)',
+            animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
           }}>
             <div style={{
               padding: '16px 20px',
@@ -1216,31 +1204,25 @@ export default function MutasiKeuanganPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ─── MODAL INPUT PINDAH DANA (TRANSFER) ─── */}
-      {activeModal === 'transfer' && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(3px)',
-          zIndex: 9999,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'flex-end'
-        }}>
+      {activeModal === 'transfer' && typeof document !== 'undefined' && createPortal(
+        <div className="modal-overlay">
           <div style={{
             background: '#ffffff',
             width: '100%',
             maxWidth: '520px',
-            maxHeight: '85vh',
+            maxHeight: '88vh',
             borderTopLeftRadius: '24px',
             borderTopRightRadius: '24px',
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.35)',
+            animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
           }}>
             <div style={{
               padding: '16px 20px',
@@ -1269,7 +1251,7 @@ export default function MutasiKeuanganPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmitTransfer} style={{ padding: '16px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleSubmitTransfer} style={{ padding: '16px 20px max(24px, env(safe-area-inset-bottom, 24px))', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label style={{ fontSize: '11px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '4px' }}>
                   Nominal Transfer (Rp) *
@@ -1374,7 +1356,8 @@ export default function MutasiKeuanganPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

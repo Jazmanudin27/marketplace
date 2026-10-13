@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, DollarSign, Percent, RotateCcw, Box, TrendingUp, Search, Clock, ChevronRight } from 'lucide-react';
 import { formatRupiah, getChannelBadge } from '../../utils/formatters';
 import { fetchOrders } from '../../api/ordersApi';
@@ -109,7 +110,7 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
     );
   });
 
-  return (
+  const modalContent = (
     <div className="modal-overlay" onClick={onClose}>
       <div 
         className="bottom-sheet-card" 
@@ -371,4 +372,6 @@ export default function FinanceMetricDetailModal({ metricType, metrics, onClose,
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

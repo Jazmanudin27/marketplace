@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   DollarSign, 
   Receipt, 
@@ -419,7 +420,7 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
       </div>
 
       {/* ── 3. MODAL CETAK REKAP LAPORAN (VIEW PRINT RESMI) ── */}
-      {isPrintModalOpen && (
+      {isPrintModalOpen && typeof document !== 'undefined' && createPortal(
         <div className="modal-overlay" onClick={() => setIsPrintModalOpen(false)}>
           <div 
             className="bottom-sheet-card" 
@@ -591,7 +592,8 @@ export default function LaporanPenjualanPage({ onSelectOrder }) {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

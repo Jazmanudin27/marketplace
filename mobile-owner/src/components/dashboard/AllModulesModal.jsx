@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, 
   ShoppingBag, 
@@ -82,7 +83,7 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
     }
   ];
 
-  return (
+  const modalContent = (
     <div className="modal-overlay" onClick={onClose}>
       <div 
         className="bottom-sheet-card" 
@@ -203,4 +204,6 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

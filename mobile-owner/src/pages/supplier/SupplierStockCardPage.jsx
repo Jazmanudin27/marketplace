@@ -281,7 +281,7 @@ export default function SupplierStockCardPage({ currentSupplierUser }) {
 
       {/* Modal Detail Produk: Menampilkan Harga Modal (HPP), Sembunyikan Harga Jual */}
       {selectedProduct && typeof document !== 'undefined' && createPortal(
-        <div style={{
+        <div className="modal-overlay" style={{
           position: 'fixed',
           top: 0,
           left: 0,

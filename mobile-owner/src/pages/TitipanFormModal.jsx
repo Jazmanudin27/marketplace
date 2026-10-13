@@ -197,7 +197,7 @@ export default function TitipanFormModal({
   };
 
   const modalContent = (
-    <div style={{
+    <div className="modal-overlay" style={{
       position: 'fixed',
       top: 0,
       left: 0,

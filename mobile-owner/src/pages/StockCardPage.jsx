@@ -443,7 +443,7 @@ export default function StockCardPage({
 
       {/* Modal Detail Produk */}
       {selectedProduct && typeof document !== 'undefined' && createPortal(
-        <div style={{
+        <div className="modal-overlay" style={{
           position: 'fixed',
           top: 0,
           left: 0,

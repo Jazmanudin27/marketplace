@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   User, 
   Lock, 
@@ -573,30 +574,19 @@ export default function ProfilePage({ profile, onLogout, onProfileUpdate }) {
       </div>
 
       {/* ─── MODAL PANDUAN INSTALL PWA (ANDROID & IOS) ─── */}
-      {showInstallGuide && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(5px)',
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '0'
-        }}>
+      {showInstallGuide && typeof document !== 'undefined' && createPortal(
+        <div className="modal-overlay">
           <div style={{
             width: '100%',
             maxWidth: '430px',
+            maxHeight: '88vh',
+            overflowY: 'auto',
             background: '#ffffff',
             borderTopLeftRadius: '28px',
             borderTopRightRadius: '28px',
-            padding: '24px 20px',
-            boxShadow: '0 -10px 40px rgba(0,0,0,0.2)',
-            animation: 'slideUp 0.25s ease-out'
+            padding: '24px 20px max(28px, env(safe-area-inset-bottom, 28px))',
+            boxShadow: '0 -10px 40px rgba(0,0,0,0.35)',
+            animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
           }}>
             <div style={{
               width: '40px',
@@ -674,7 +664,8 @@ export default function ProfilePage({ profile, onLogout, onProfileUpdate }) {
               Saya Mengerti
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ─── 4. LOGOUT BUTTON ("Keluar") ─── */}

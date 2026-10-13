@@ -50,7 +50,7 @@ export default function SupplierTitipanDetailModal({
   const paymentStatusLabel = activeConsignment.paymentStatusLabel || (paymentStatus === 'paid' ? 'Lunas' : paymentStatus === 'partial' ? 'Sebagian' : 'Belum Lunas');
 
   const modalContent = (
-    <div style={{
+    <div className="modal-overlay" style={{
       position: 'fixed',
       top: 0,
       left: 0,

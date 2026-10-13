@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Target, Users, Award, TrendingUp, CheckCircle2, Store, Lock, Calendar, 
   Filter, RefreshCw, ShoppingBag, Plus, Pencil, Trash2, X, Check, 
@@ -816,35 +817,22 @@ export default function TargetKomisiPage({ initialMetrics }) {
       </div>
 
       {/* ─── MODAL INPUT / EDIT TARGET KOMISI (FULL BOTTOM SHEET) ─── */}
-      {isModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(3px)',
-          zIndex: 9999,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'flex-end',
-          padding: '0'
-        }}>
+      {isModalOpen && typeof document !== 'undefined' && createPortal(
+        <div className="modal-overlay">
           <div style={{
             background: '#ffffff',
             width: '100%',
             maxWidth: '520px',
-            maxHeight: '90vh',
+            maxHeight: '88vh',
             borderTopLeftRadius: '24px',
             borderTopRightRadius: '24px',
             overflowY: 'auto',
-            padding: '20px 18px',
+            padding: '20px 18px max(28px, env(safe-area-inset-bottom, 28px))',
             display: 'flex',
             flexDirection: 'column',
             gap: '16px',
-            boxShadow: '0 -10px 25px rgba(0,0,0,0.2)',
-            animation: 'slideUp 0.25s ease-out'
+            boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.35)',
+            animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
           }}>
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
@@ -1326,7 +1314,8 @@ export default function TargetKomisiPage({ initialMetrics }) {
 
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

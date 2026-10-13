@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, User, Truck, MapPin, Package, ShieldCheck, DollarSign } from 'lucide-react';
 import { formatRupiah, getChannelBadge } from '../../utils/formatters';
 
@@ -7,8 +8,8 @@ export default function OrderDetailModal({ order, onClose }) {
 
   const channelBadge = getChannelBadge(order.channel || order.storeName);
 
-  return (
-    <div className="modal-overlay" style={{ zIndex: 2200 }} onClick={onClose}>
+  const modalContent = (
+    <div className="modal-overlay" onClick={onClose}>
       <div className="bottom-sheet-card" onClick={(e) => e.stopPropagation()}>
         {/* Top Drag Handle */}
         <div className="sheet-handle"></div>
@@ -188,4 +189,6 @@ export default function OrderDetailModal({ order, onClose }) {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

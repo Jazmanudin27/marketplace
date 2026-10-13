@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Search, RotateCcw, Package, ShieldCheck, Clock, CheckCircle2, 
   ChevronLeft, ChevronRight, X, AlertCircle, Check, HelpCircle, 
@@ -389,17 +390,13 @@ export default function ReturMasukPage() {
       )}
 
       {/* ── MODAL TERIMA BARANG (QC INSPEKSI GUDANG) ── */}
-      {qcModalData && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(3px)',
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'center'
-        }}>
+      {qcModalData && typeof document !== 'undefined' && createPortal(
+        <div className="modal-overlay">
           <div style={{
             background: '#fff', width: '100%', maxWidth: '520px',
-            maxHeight: '90vh', borderTopLeftRadius: '22px', borderTopRightRadius: '22px',
+            maxHeight: '88vh', borderTopLeftRadius: '22px', borderTopRightRadius: '22px',
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
-            boxShadow: '0 -8px 30px rgba(0,0,0,0.25)', animation: 'slideUp 0.25s ease'
+            boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.35)', animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
           }}>
             {/* Modal Header */}
             <div style={{
@@ -556,7 +553,7 @@ export default function ReturMasukPage() {
 
             {/* Modal Footer Actions */}
             <div style={{
-              padding: '12px 16px', borderTop: '1px solid #e2e8f0', background: '#f8fafc',
+              padding: '12px 16px max(24px, env(safe-area-inset-bottom, 24px))', borderTop: '1px solid #e2e8f0', background: '#f8fafc',
               display: 'flex', gap: '10px'
             }}>
               <button
@@ -596,7 +593,8 @@ export default function ReturMasukPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

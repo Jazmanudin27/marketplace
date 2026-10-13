@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Store, 
   Wallet, 
@@ -287,7 +288,7 @@ export default function SaldoMarketplacePage() {
       )}
 
       {/* Mutasi Dompet Modal (Bottom Sheet) */}
-      {selectedStore && (
+      {selectedStore && typeof document !== 'undefined' && createPortal(
         <div className="modal-overlay" onClick={() => setSelectedStore(null)}>
           <div 
             className="bottom-sheet-card" 
@@ -415,7 +416,8 @@ export default function SaldoMarketplacePage() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
