@@ -381,7 +381,7 @@
                         @php
                             $storeMpProducts = $product->marketplaceProducts->where('store_id', $store->id);
                             $storeStock = $storeMpProducts->isNotEmpty() ? (int) $storeMpProducts->max('stock') : 0;
-                            $isDifferent = ($storeMpProducts->isNotEmpty() && $storeStock !== $stokGudang);
+                            $isDifferent = (!$product->is_preorder && $storeMpProducts->isNotEmpty() && $storeStock !== $stokGudang);
                             if ($isDifferent) {
                                 $hasDiscrepancy = true;
                             }
@@ -400,7 +400,9 @@
                         </td>
                     @endforeach
                     <td class="text-center no-print">
-                        @if($hasDiscrepancy)
+                        @if($product->is_preorder)
+                            <span style="color: #64748b; font-size: 11px;">PO (Non-Sync)</span>
+                        @elseif($hasDiscrepancy)
                             <button type="button" class="btn-sync-row btn-sync-single" data-product-id="{{ $product->id }}" data-sku="{{ $product->sku ?? '-' }}">
                                 🔄 Sync
                             </button>

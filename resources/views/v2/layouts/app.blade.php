@@ -324,6 +324,8 @@
             timerProgressBar: true,
         });
     @endif
+    </script>
+
     <!-- Global Automatic Thousands Separator (Numeric Dot Format) Handler -->
     <script>
     (function() {

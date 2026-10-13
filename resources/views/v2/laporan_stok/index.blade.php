@@ -433,31 +433,33 @@
                 <tbody>
                     @forelse($products as $index => $prod)
                         @php
+                            $isPO        = (bool) ($prod->is_preorder);
                             $gudangStock = (int) ($prod->stock ?? 0);
                             $minStock    = (int) ($prod->min_stock ?? 5);
 
-                            // Marketplace comparison
+                            // Marketplace comparison: PO dikecualikan karena kuota PO tidak terikat stok fisik gudang
                             $hasDiscrepancy = false;
                             $storeItems = [];
                             foreach ($prod->marketplaceProducts as $mp) {
                                 if (!$mp->store) continue;
                                 $mpStock = (int) ($mp->stock ?? 0);
-                                $isDiff = ($mp->sync_stock && $mpStock !== $gudangStock);
+                                $isDiff = (!$isPO && $mp->sync_stock && $mpStock !== $gudangStock);
                                 if ($isDiff) {
                                     $hasDiscrepancy = true;
                                 }
                                 $chCode = strtolower($mp->store->channel->code ?? $mp->store->channel->name ?? 'default');
                                 $storeItems[] = [
-                                    'store_name' => $mp->store->store_name,
-                                    'channel'    => $mp->store->channel->name ?? 'MP',
+                                    'store_id'     => $mp->store_id,
+                                    'store_name'   => $mp->store->store_name,
+                                    'channel'      => $mp->store->channel->name ?? 'MP',
                                     'channel_code' => $chCode,
-                                    'stock'      => $mpStock,
-                                    'is_diff'    => $isDiff,
-                                    'sync_stock' => (bool)$mp->sync_stock,
+                                    'stock'        => $mpStock,
+                                    'is_diff'      => $isDiff,
+                                    'sync_stock'   => (bool)$mp->sync_stock,
                                 ];
                             }
                         @endphp
-                        <tr class="{{ $hasDiscrepancy ? 'table-danger-subtle' : '' }}">
+                        <tr class="{{ $hasDiscrepancy ? 'table-danger-subtle' : '' }}" id="product-row-{{ $prod->id }}">
                             <td class="text-center text-muted" style="font-size: 0.72rem;">
                                 {{ $products->firstItem() + $index }}
                             </td>
@@ -540,28 +542,39 @@
                                 @endif
                             </td>
                             <td class="text-center">
-                                @if(count($storeItems) === 0)
+                                @if($isPO)
+                                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;" title="Produk Pre-Order tidak mengurangi stok fisik saat pesanan masuk">
+                                        <i class="bi bi-clock-history"></i> PO (Non-Sync)
+                                    </span>
+                                @elseif(count($storeItems) === 0)
                                     <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 0.68rem;">-</span>
                                 @elseif($hasDiscrepancy)
-                                    <span class="badge bg-danger text-white px-2 py-1 shadow-sm d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;">
+                                    <span class="badge bg-danger text-white px-2 py-1 shadow-sm d-inline-flex align-items-center gap-1 status-badge-target" style="font-size: 0.68rem;">
                                         <i class="bi bi-exclamation-triangle-fill"></i> Ada Selisih
                                     </span>
                                 @else
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 d-inline-flex align-items-center gap-1 status-badge-target" style="font-size: 0.68rem;">
                                         <i class="bi bi-check-circle-fill"></i> Sinkron
                                     </span>
                                 @endif
                             </td>
                             <td class="text-center">
                                 <div class="d-flex align-items-center justify-content-center gap-1">
-                                    <button type="button"
-                                            class="btn btn-sm {{ $hasDiscrepancy ? 'btn-danger' : 'btn-outline-primary' }} btn-action-sync py-0.5 px-2"
-                                            style="font-size: 0.7rem; font-weight: 600;"
-                                            data-product-id="{{ $prod->id }}"
-                                            data-sku="{{ $prod->sku }}"
-                                            title="Sync Stok Gudang ke Marketplace">
-                                        <i class="bi bi-arrow-repeat me-0.5"></i> Sync
-                                    </button>
+                                    @if($isPO)
+                                        <span class="badge bg-light text-muted border px-2 py-1" style="font-size: 0.65rem;" title="Produk PO tidak perlu sinkronisasi stok">
+                                            <i class="bi bi-dash-circle me-1"></i>Non-Sync
+                                        </span>
+                                    @else
+                                        <button type="button"
+                                                class="btn btn-sm {{ $hasDiscrepancy ? 'btn-danger' : 'btn-outline-primary' }} btn-action-sync py-0.5 px-2"
+                                                style="font-size: 0.7rem; font-weight: 600;"
+                                                data-product-id="{{ $prod->id }}"
+                                                data-sku="{{ $prod->sku }}"
+                                                data-name="{{ $prod->name }}"
+                                                title="Sync Stok Gudang ke Marketplace">
+                                            <i class="bi bi-arrow-repeat me-0.5"></i> Sync
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -621,7 +634,9 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function () {
             const productId = this.getAttribute('data-product-id');
             const sku       = this.getAttribute('data-sku');
+            const name      = this.getAttribute('data-name') || sku;
             const originalHtml = this.innerHTML;
+            const row       = document.getElementById(`product-row-${productId}`);
 
             this.disabled = true;
             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
@@ -637,10 +652,29 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    notify('Sinkronisasi Sukses', `Stok produk SKU ${sku} berhasil dikirim ke marketplace!`, 'success');
+                    notify('Sinkronisasi Sukses', data.message || `Stok produk SKU ${sku} berhasil dikirim ke marketplace!`, 'success');
                     this.outerHTML = '<span class="badge bg-success text-white py-1 px-2" style="font-size: 0.68rem;"><i class="bi bi-check-circle-fill me-1"></i>Tersinkron</span>';
+                    
+                    if (row) {
+                        row.classList.remove('table-danger-subtle');
+                        const statusBadge = row.querySelector('.status-badge-target');
+                        if (statusBadge) {
+                            statusBadge.className = 'badge bg-success-subtle text-success border border-success-subtle px-2 py-1 d-inline-flex align-items-center gap-1 status-badge-target';
+                            statusBadge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Sinkron';
+                        }
+                        row.querySelectorAll('.store-chip').forEach(chip => {
+                            chip.classList.remove('diff-chip');
+                            const warnIcon = chip.querySelector('.bi-exclamation-triangle-fill');
+                            if (warnIcon) warnIcon.remove();
+                            const stockSpan = chip.querySelector('.font-monospace');
+                            if (stockSpan && data.master_stock !== undefined) {
+                                stockSpan.className = 'font-monospace fw-bold text-primary';
+                                stockSpan.textContent = data.master_stock;
+                            }
+                        });
+                    }
                 } else {
-                    notify('Gagal Sinkron', data.message || 'Terjadi kesalahan sistem.', 'error');
+                    notify('Gagal Sinkron', data.message || 'Terjadi kesalahan sistem.', data.is_po ? 'info' : 'error');
                     this.disabled = false;
                     this.innerHTML = originalHtml;
                 }
