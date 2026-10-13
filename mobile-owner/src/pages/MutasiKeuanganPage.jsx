@@ -23,7 +23,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { formatRupiah } from '../utils/formatters';
-import { showAlert, showToast as swalToast } from '../utils/alerts';
+import { showAlert, showConfirm, showToast as swalToast } from '../utils/alerts';
 import { 
   fetchMutasiKeuangan, 
   createMutationIncome, 
@@ -250,11 +250,18 @@ export default function MutasiKeuanganPage() {
 
   // Handle Delete Mutation
   const handleDeleteItem = async (item) => {
-    const isConfirmed = window.confirm(`Hapus transaksi ${item.reference} (${item.title || item.description})?`);
-    if (!isConfirmed) return;
+    const result = await showConfirm({
+      icon: 'warning',
+      title: 'Hapus Transaksi?',
+      text: `Hapus transaksi ${item.reference} (${item.title || item.description})?`,
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#ef4444'
+    });
+    if (!result.isConfirmed) return;
     const res = await deleteMutation(item.model_type, item.id);
     if (res && res.success) {
-      showToast('Transaksi berhasil dihapus!');
+      showToast('Transaksi berhasil dihapus!', 'success');
       loadData();
     } else {
       showAlert({ icon: 'error', title: 'Gagal', text: res?.message || 'Gagal menghapus transaksi.' });

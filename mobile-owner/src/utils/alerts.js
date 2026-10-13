@@ -13,11 +13,30 @@ const Toast = Swal.mixin({
   }
 });
 
-export const showToast = (icon, title) => {
+const VALID_ICONS = ['success', 'error', 'warning', 'info', 'question'];
+
+export const showToast = (arg1, arg2) => {
+  let icon = 'success';
+  let title = '';
+
+  if (arg1 && arg2) {
+    if (VALID_ICONS.includes(arg1)) {
+      icon = arg1;
+      title = arg2;
+    } else if (VALID_ICONS.includes(arg2)) {
+      icon = arg2;
+      title = arg1;
+    } else {
+      title = `${arg1} ${arg2}`;
+    }
+  } else if (arg1) {
+    title = arg1;
+  }
+
   return Toast.fire({
     icon,
     title,
-    background: '#1e1b4b',
+    background: '#0f172a',
     color: '#ffffff',
     customClass: {
       popup: 'swal2-mobile-toast'
@@ -29,7 +48,7 @@ export const showAlert = ({
   icon = 'info',
   title = '',
   text = '',
-  confirmButtonText = 'OK',
+  confirmButtonText = 'Mengerti',
   confirmButtonColor = '#4f46e5'
 }) => {
   return Swal.fire({
@@ -42,19 +61,20 @@ export const showAlert = ({
     customClass: {
       popup: 'swal2-mobile-popup',
       title: 'swal2-mobile-title',
+      htmlContainer: 'swal2-mobile-text',
       confirmButton: 'swal2-mobile-btn'
     }
   });
 };
 
 export const showConfirm = ({
-  icon = 'warning',
+  icon = 'question',
   title = 'Konfirmasi',
   text = '',
   confirmButtonText = 'Ya, Lanjutkan',
   cancelButtonText = 'Batal',
   confirmButtonColor = '#ef4444',
-  cancelButtonColor = '#64748b'
+  cancelButtonColor = '#94a3b8'
 }) => {
   return Swal.fire({
     icon,
@@ -66,10 +86,12 @@ export const showConfirm = ({
     confirmButtonColor,
     cancelButtonColor,
     reverseButtons: true,
+    focusCancel: true,
     background: '#ffffff',
     customClass: {
       popup: 'swal2-mobile-popup',
       title: 'swal2-mobile-title',
+      htmlContainer: 'swal2-mobile-text',
       confirmButton: 'swal2-mobile-btn',
       cancelButton: 'swal2-mobile-cancel-btn'
     }

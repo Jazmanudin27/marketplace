@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Lock, Eye, EyeOff, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 import { loginOwner } from '../api/authApi';
+import { showAlert } from '../utils/alerts';
 
 export default function LoginPage({ onLoginSuccess }) {
   const [loginInput, setLoginInput] = useState('');
@@ -315,7 +316,12 @@ export default function LoginPage({ onLoginSuccess }) {
             </label>
 
             <span 
-              onClick={() => alert('Silakan hubungi Super Admin untuk reset kata sandi.')}
+              onClick={() => showAlert({
+                icon: 'info',
+                title: 'Lupa Kata Sandi',
+                text: 'Silakan hubungi Super Admin untuk bantuan reset kata sandi akun Anda.',
+                confirmButtonText: 'Tutup'
+              })}
               style={{ 
                 color: '#818cf8', 
                 fontWeight: '600', 

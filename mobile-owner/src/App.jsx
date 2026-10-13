@@ -25,7 +25,7 @@ import OrderDetailModal from './components/orders/OrderDetailModal';
 import AllModulesModal from './components/dashboard/AllModulesModal';
 import FinanceMetricDetailModal from './components/dashboard/FinanceMetricDetailModal';
 import NotificationModal from './components/dashboard/NotificationModal';
-import { showAlert, showToast } from './utils/alerts';
+import { showAlert, showToast, showConfirm } from './utils/alerts';
 import { fetchOrders } from './api/ordersApi';
 import { fetchOwnerMetrics } from './api/metricsApi';
 import { getCurrentOwnerUser, logoutOwner } from './api/authApi';
@@ -252,14 +252,25 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
-    if (confirm('Apakah Anda yakin ingin keluar dari Portal Owner?')) {
+  const handleLogout = async () => {
+    const res = await showConfirm({
+      icon: 'question',
+      title: 'Keluar dari Portal?',
+      text: 'Apakah Anda yakin ingin keluar dari Portal Owner?',
+      confirmButtonText: 'Ya, Keluar',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8'
+    });
+
+    if (res.isConfirmed) {
       logoutOwner();
       setCurrentUser(null);
       setActiveTab('home');
       try {
         localStorage.removeItem('owner_active_tab');
       } catch (_) {}
+      showToast('success', 'Berhasil keluar');
     }
   };
 

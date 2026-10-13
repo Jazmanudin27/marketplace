@@ -13,6 +13,7 @@ import {
   deleteTargetKomisi, 
   toggleTargetKomisi 
 } from '../api/metricsApi';
+import { showAlert, showConfirm, showToast } from '../utils/alerts';
 
 const MONTH_NAMES = [
   'Semua Bulan',
@@ -185,11 +186,11 @@ export default function TargetKomisiPage({ initialMetrics }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      alert('Nama Tim Marketing wajib diisi.');
+      showAlert({ icon: 'warning', title: 'Perhatian', text: 'Nama Tim Marketing wajib diisi.' });
       return;
     }
     if (!formData.target_omset || parseFloat(formData.target_omset) < 0) {
-      alert('Target Margin (Rp) wajib diisi.');
+      showAlert({ icon: 'warning', title: 'Perhatian', text: 'Target Margin (Rp) wajib diisi.' });
       return;
     }
 
@@ -205,23 +206,33 @@ export default function TargetKomisiPage({ initialMetrics }) {
     if (res && res.success) {
       setIsModalOpen(false);
       setActionMessage({ type: 'success', text: res.message || 'Data tim berhasil disimpan!' });
+      showToast('success', res.message || 'Data tim berhasil disimpan!');
       setTimeout(() => setActionMessage(null), 3500);
       loadData(selectedMonth, selectedYear);
     } else {
-      alert(res?.message || 'Gagal menyimpan target komisi. Periksa kembali form Anda.');
+      showAlert({ icon: 'error', title: 'Gagal Simpan', text: res?.message || 'Gagal menyimpan target komisi. Periksa kembali form Anda.' });
     }
   };
 
   // Handle Delete Team
   const handleDeleteTeam = async (team) => {
-    if (!window.confirm(`Hapus Tim "${team.name}" beserta pengaturannya?`)) return;
+    const result = await showConfirm({
+      icon: 'warning',
+      title: 'Hapus Tim?',
+      text: `Hapus Tim "${team.name}" beserta pengaturannya?`,
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#ef4444'
+    });
+    if (!result.isConfirmed) return;
     const res = await deleteTargetKomisi(team.id);
     if (res && res.success) {
       setActionMessage({ type: 'success', text: res.message || 'Tim berhasil dihapus!' });
+      showToast('success', 'Tim berhasil dihapus!');
       setTimeout(() => setActionMessage(null), 3500);
       loadData(selectedMonth, selectedYear);
     } else {
-      alert(res?.message || 'Gagal menghapus tim.');
+      showAlert({ icon: 'error', title: 'Gagal', text: res?.message || 'Gagal menghapus tim.' });
     }
   };
 
@@ -231,7 +242,7 @@ export default function TargetKomisiPage({ initialMetrics }) {
     if (res && res.success) {
       loadData(selectedMonth, selectedYear);
     } else {
-      alert(res?.message || 'Gagal mengubah status tim.');
+      showAlert({ icon: 'error', title: 'Gagal', text: res?.message || 'Gagal mengubah status tim.' });
     }
   };
 
