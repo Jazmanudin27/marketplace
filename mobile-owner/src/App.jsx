@@ -33,16 +33,56 @@ import { initialOwnerProfile, initialOwnerMetrics, initialOrders } from './api/m
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => getCurrentOwnerUser());
-  // Selalu default ke 'home' (Beranda) saat membuka portal owner
-  const [activeTab, setActiveTab] = useState('home');
+  // Persist activeTab: cek URL parameter, hash, atau localStorage, fallback ke 'home'
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlTab = urlParams.get('tab') || window.location.hash.replace('#', '');
+      if (urlTab) return urlTab;
+
+      const cached = localStorage.getItem('owner_active_tab');
+      if (cached) return cached;
+    } catch (_) {}
+    return 'home';
+  });
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     try {
       localStorage.setItem('owner_active_tab', tab);
+      const url = new URL(window.location.href);
+      if (tab === 'home') {
+        url.searchParams.delete('tab');
+      } else {
+        url.searchParams.set('tab', tab);
+      }
+      window.history.replaceState({}, '', url.toString());
     } catch (_) {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTab = urlParams.get('tab') || window.location.hash.replace('#', '');
+        const target = urlTab || localStorage.getItem('owner_active_tab') || 'home';
+        setActiveTab(target);
+      } catch (_) {}
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (activeTab && activeTab !== 'home') {
+        url.searchParams.set('tab', activeTab);
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch (_) {}
+  }, []);
   const [profile, setProfile] = useState(() => {
     try {
       const cached = localStorage.getItem('owner_profile_cache');

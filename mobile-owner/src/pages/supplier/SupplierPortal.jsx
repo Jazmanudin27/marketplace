@@ -8,13 +8,29 @@ import SupplierSalesHistoryPage from './SupplierSalesHistoryPage';
 import SupplierProfilePage from './SupplierProfilePage';
 
 export default function SupplierPortal({ currentUser, onLogout }) {
-  // Default ke 'titipan' (Titipan Barang) saat membuka portal supplier
-  const [activeTab, setActiveTab] = useState('titipan');
+  // Persist activeTab: cek URL parameter atau localStorage, fallback ke 'titipan'
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlTab = urlParams.get('tab') || window.location.hash.replace('#', '');
+      if (urlTab) return urlTab;
+      const cached = localStorage.getItem('supplier_active_tab');
+      if (cached) return cached;
+    } catch (_) {}
+    return 'titipan';
+  });
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     try {
       localStorage.setItem('supplier_active_tab', tab);
+      const url = new URL(window.location.href);
+      if (tab === 'titipan') {
+        url.searchParams.delete('tab');
+      } else {
+        url.searchParams.set('tab', tab);
+      }
+      window.history.replaceState({}, '', url.toString());
     } catch (_) {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
