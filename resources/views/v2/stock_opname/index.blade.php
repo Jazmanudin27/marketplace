@@ -96,6 +96,9 @@
     </ul>
 
     <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-sm btn-outline-success fw-semibold py-1.5 px-3" style="border-radius:6px;" data-bs-toggle="modal" data-bs-target="#importOpnameModal">
+            <i class="bi bi-file-earmark-excel-fill me-1"></i> Import Opname (CSV/Excel)
+        </button>
         <a href="{{ route('v2.stock_opname.create') }}" class="btn btn-sm text-white fw-semibold py-1.5 px-3" style="background:#d97706; border:none; border-radius:6px;">
             + Catat Stock Opname
         </a>
@@ -358,5 +361,78 @@
         </div>
     </div>
 @endforeach
+
+<!-- Modal Import Stock Opname CSV / Excel -->
+<div class="modal fade" id="importOpnameModal" tabindex="-1" aria-labelledby="importOpnameModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ route('v2.stock_opname.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-header bg-light py-2.5 border-bottom">
+                    <h6 class="modal-title fw-bold d-flex align-items-center gap-2 m-0" id="importOpnameModalLabel">
+                        <i class="bi bi-file-earmark-excel-fill text-success"></i> Import Stock Opname (CSV / Excel)
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3.5">
+                    <div class="alert alert-info bg-info-subtle border-info-subtle text-info py-2.5 px-3 mb-3" style="font-size: 0.78rem; border-radius: 8px;">
+                        <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill me-1"></i> Panduan Format File Import Opname:</div>
+                        <ul class="mb-0 ps-3">
+                            <li>Format file disarankan <strong>.CSV</strong> (Comma / Semicolon Separated Values) / Excel.</li>
+                            <li>Kolom utama: <strong>SKU</strong> dan <strong>Stok Fisik</strong>.</li>
+                            <li>Sistem otomatis menghitung selisih dan mencatat riwayat penyesuaian (Adjustment) per produk.</li>
+                            <li>Baris dengan stok fisik yang <strong>kosong</strong> tidak akan diubah di database.</li>
+                        </ul>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label form-label-sm fw-semibold">Tanggal Opname <span class="text-danger">*</span></label>
+                            <input type="date" name="opname_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label form-label-sm fw-semibold">Petugas / PIC Opname <span class="text-danger">*</span></label>
+                            <input type="text" name="pic" class="form-control form-control-sm" value="{{ Auth::user()->name }}" placeholder="Nama petugas audit" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label form-label-sm fw-semibold">Catatan / Keterangan Sesi Opname</label>
+                            <input type="text" name="notes" class="form-control form-control-sm" placeholder="Contoh: Audit Rutin Bulanan Gudang Jadi">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label form-label-sm fw-semibold">Pilih File Import (.csv) <span class="text-danger">*</span></label>
+                        <input type="file" name="file" class="form-control form-control-sm" accept=".csv, .txt, .xlsx, .xls" required>
+                        <div class="form-text text-muted" style="font-size: 0.7rem;">Maksimal ukuran file: 20MB.</div>
+                    </div>
+
+                    <!-- Pilihan Download Template -->
+                    <div class="p-3 bg-light border rounded-3">
+                        <div class="fw-bold text-dark mb-1" style="font-size: 0.8rem;">
+                            <i class="bi bi-download me-1 text-success"></i> Unduh Format Template Excel/CSV:
+                        </div>
+                        <div class="text-muted mb-2.5" style="font-size: 0.72rem;">
+                            Pilih jenis format yang diinginkan untuk memudahkan pengisian data:
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{{ route('v2.stock_opname.import_template') }}" class="btn btn-sm btn-outline-success py-1.5 px-3" style="font-size: 0.75rem;">
+                                <i class="bi bi-filetype-csv me-1"></i> Download Template Kosong (Contoh)
+                            </a>
+                            <a href="{{ route('v2.stock_opname.import_template', ['with_data' => 1]) }}" class="btn btn-sm btn-success py-1.5 px-3 text-white" style="font-size: 0.75rem;">
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Download Template + Data Produk Saat Ini
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold">
+                        <i class="bi bi-upload me-1"></i> Upload & Proses Opname
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 @endsection
