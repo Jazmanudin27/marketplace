@@ -2,6 +2,111 @@
 
 @section('title', 'Master Produk V2')
 
+@push('styles')
+<style>
+/* ─── Pesanan-style Tab, Filter & Summary Bar ─── */
+.psr-tab-bar {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    gap: 0;
+}
+.psr-tab-bar::-webkit-scrollbar { display: none; }
+
+.psr-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 18px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #6b7280;
+    white-space: nowrap;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    position: relative;
+}
+.psr-tab:hover { color: #3b82f6; text-decoration: none; }
+.psr-tab.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+    font-weight: 600;
+    background: #eff6ff;
+}
+.psr-tab .tab-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 1px 6px;
+    background: #3b82f6;
+    color: #fff;
+    min-width: 18px;
+    text-align: center;
+    line-height: 1.5;
+}
+.psr-tab:not(.active) .tab-badge {
+    background: #e5e7eb;
+    color: #6b7280;
+}
+.psr-tab.active .tab-badge { background: #2563eb; }
+
+/* Filter Bar */
+.psr-filter-bar {
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+.psr-filter-bar .form-label { font-size: 0.72rem; font-weight: 600; color: #6b7280; margin-bottom: 3px; }
+.psr-filter-bar .form-control,
+.psr-filter-bar .form-select {
+    font-size: 0.79rem;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    padding: 5px 9px;
+    height: 31px;
+}
+.psr-filter-bar .form-control:focus,
+.psr-filter-bar .form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+}
+
+/* Summary Bar */
+.psr-summary-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.79rem;
+    color: #6b7280;
+}
+
+/* Action Btn */
+.psr-btn {
+    font-size: 0.75rem; font-weight: 600;
+    border-radius: 5px; padding: 4px 10px;
+    display: inline-flex; align-items: center; gap: 4px;
+    text-decoration: none; white-space: nowrap; cursor: pointer; border: none;
+    transition: all .15s;
+}
+.psr-btn-primary { background:#2563eb; color:#fff; }
+.psr-btn-primary:hover { background:#1d4ed8; color:#fff; }
+.psr-btn-ghost { background:#f9fafb; color:#374151; border:1px solid #e5e7eb; }
+.psr-btn-ghost:hover { background:#f3f4f6; border-color:#9ca3af; }
+
+/* Interactive stat widget */
+.v2-stat-link { text-decoration: none !important; display: block; height: 100%; }
+.v2-stat-link .v2-stat-widget { cursor: pointer; transition: transform .15s, box-shadow .15s; height: 100%; }
+.v2-stat-link .v2-stat-widget:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+.v2-stat-link.active .v2-stat-widget { border: 2px solid #3b82f6 !important; background: #eff6ff !important; }
+</style>
+@endpush
+
 @section('content')
 <!-- Page Header Compact -->
 <div class="v2-page-header align-items-center mb-3">
@@ -30,130 +135,203 @@
 <!-- Header Summary Widgets (KPI Cards) -->
 <div class="row g-2 mb-3">
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <div class="v2-stat-widget widget-blue">
-            <div class="v2-stat-icon-wrapper blue">
-                <i class="bi bi-boxes"></i>
+        <a href="{{ route('v2.produk.index', request()->except(['tab','page'])) }}" class="v2-stat-link {{ !request('tab') ? 'active' : '' }}">
+            <div class="v2-stat-widget widget-blue">
+                <div class="v2-stat-icon-wrapper blue">
+                    <i class="bi bi-boxes"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($counts['total'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Total Master</span>
+                </div>
             </div>
-            <div class="v2-stat-info">
-                <span class="v2-stat-num">{{ number_format($counts['total'] ?? 0) }}</span>
-                <span class="v2-stat-lbl">Total Master</span>
-            </div>
-        </div>
+        </a>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <div class="v2-stat-widget widget-green">
-            <div class="v2-stat-icon-wrapper green">
-                <i class="bi bi-box-seam"></i>
+        <a href="{{ route('v2.produk.index', array_merge(request()->except(['tab','page']), ['tab' => 'single'])) }}" class="v2-stat-link {{ request('tab') === 'single' ? 'active' : '' }}">
+            <div class="v2-stat-widget widget-green">
+                <div class="v2-stat-icon-wrapper green">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($counts['single'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Single (Utama)</span>
+                </div>
             </div>
-            <div class="v2-stat-info">
-                <span class="v2-stat-num">{{ number_format($counts['single'] ?? 0) }}</span>
-                <span class="v2-stat-lbl">Single (Utama)</span>
-            </div>
-        </div>
+        </a>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <div class="v2-stat-widget widget-purple">
-            <div class="v2-stat-icon-wrapper purple">
-                <i class="bi bi-diagram-3"></i>
+        <a href="{{ route('v2.produk.index', array_merge(request()->except(['tab','page']), ['tab' => 'bundle'])) }}" class="v2-stat-link {{ request('tab') === 'bundle' ? 'active' : '' }}">
+            <div class="v2-stat-widget widget-purple">
+                <div class="v2-stat-icon-wrapper purple">
+                    <i class="bi bi-diagram-3"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($counts['bundle'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Paket (Bundle)</span>
+                </div>
             </div>
-            <div class="v2-stat-info">
-                <span class="v2-stat-num">{{ number_format($counts['bundle'] ?? 0) }}</span>
-                <span class="v2-stat-lbl">Paket (Bundle)</span>
-            </div>
-        </div>
+        </a>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <div class="v2-stat-widget widget-blue">
-            <div class="v2-stat-icon-wrapper blue">
-                <i class="bi bi-check-circle"></i>
+        <a href="{{ route('v2.produk.index', array_merge(request()->except(['tab','page']), ['tab' => 'ready'])) }}" class="v2-stat-link {{ request('tab') === 'ready' ? 'active' : '' }}">
+            <div class="v2-stat-widget widget-blue">
+                <div class="v2-stat-icon-wrapper blue">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($counts['ready'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Stock Ready</span>
+                </div>
             </div>
-            <div class="v2-stat-info">
-                <span class="v2-stat-num">{{ number_format($counts['ready'] ?? 0) }}</span>
-                <span class="v2-stat-lbl">Stock Ready</span>
-            </div>
-        </div>
+        </a>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <div class="v2-stat-widget widget-amber">
-            <div class="v2-stat-icon-wrapper amber">
-                <i class="bi bi-clock-history"></i>
+        <a href="{{ route('v2.produk.index', array_merge(request()->except(['tab','page']), ['tab' => 'po'])) }}" class="v2-stat-link {{ request('tab') === 'po' ? 'active' : '' }}">
+            <div class="v2-stat-widget widget-amber">
+                <div class="v2-stat-icon-wrapper amber">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num">{{ number_format($counts['po'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Pre-Order (PO)</span>
+                </div>
             </div>
-            <div class="v2-stat-info">
-                <span class="v2-stat-num">{{ number_format($counts['po'] ?? 0) }}</span>
-                <span class="v2-stat-lbl">Pre-Order (PO)</span>
-            </div>
-        </div>
+        </a>
     </div>
     <div class="col-12 col-sm-6 col-md-4 col-xl-2">
-        <div class="v2-stat-widget red-theme">
-            <div class="v2-stat-icon-wrapper amber" style="background-color: #fee2e2; color: #ef4444;">
-                <i class="bi bi-link-45deg"></i>
+        <a href="{{ route('v2.produk.index', array_merge(request()->except(['tab','page']), ['tab' => 'unlinked'])) }}" class="v2-stat-link {{ request('tab') === 'unlinked' ? 'active' : '' }}">
+            <div class="v2-stat-widget red-theme">
+                <div class="v2-stat-icon-wrapper amber" style="background-color: #fee2e2; color: #ef4444;">
+                    <i class="bi bi-link-45deg"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num" style="color: #ef4444;">{{ number_format($counts['unlinked'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Belum Linked</span>
+                </div>
             </div>
-            <div class="v2-stat-info">
-                <span class="v2-stat-num" style="color: #ef4444;">{{ number_format($counts['unlinked'] ?? 0) }}</span>
-                <span class="v2-stat-lbl">Belum Linked</span>
-            </div>
-        </div>
+        </a>
     </div>
 </div>
 
-<!-- Filter Box Compact -->
-<div class="v2-card mb-3">
-    <div class="v2-card-body p-2.5">
-        <form method="GET" action="{{ url('/v2/produk') }}" class="row g-2 align-items-center">
-            <div class="col-12 col-md-3">
-                <input type="text" name="name" class="form-control form-control-sm" placeholder="Cari nama produk..." value="{{ request('name') }}">
-            </div>
-            <div class="col-12 col-md-2">
-                <input type="text" name="sku" class="form-control form-control-sm font-monospace" placeholder="Cari SKU / SKU Induk..." value="{{ request('sku') }}">
-            </div>
-            <div class="col-6 col-md-2">
-                <select name="is_bundle" class="form-select form-select-sm no-select2">
-                    <option value="">-- Semua Jenis --</option>
-                    <option value="0" {{ request('is_bundle') === '0' ? 'selected' : '' }}>Single (Biasa)</option>
-                    <option value="1" {{ request('is_bundle') === '1' ? 'selected' : '' }}>Paket (Bundle)</option>
-                </select>
-            </div>
-            <div class="col-6 col-md-2">
-                <select name="is_preorder" class="form-select form-select-sm no-select2">
-                    <option value="">-- Tipe --</option>
-                    <option value="0" {{ request('is_preorder') === '0' ? 'selected' : '' }}>Ready</option>
-                    <option value="1" {{ request('is_preorder') === '1' ? 'selected' : '' }}>Pre-Order</option>
-                </select>
-            </div>
-            <div class="col-6 col-md-2">
-                <select name="store_id" class="form-select form-select-sm">
-                    <option value="">-- Semua Toko --</option>
-                    @foreach($stores as $st)
-                        <option value="{{ $st->id }}" {{ request('store_id') == $st->id ? 'selected' : '' }}>
-                            {{ $st->store_name }} ({{ $st->channel->name ?? 'MP' }})
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-6 col-md-1 d-flex align-items-center gap-1">
-                <button type="submit" class="btn btn-sm btn-v2-primary w-100 justify-content-center py-1" title="Cari">
-                    <i class="bi bi-search"></i>
-                </button>
-                @if(request()->anyFilled(['name', 'sku', 'is_bundle', 'is_preorder', 'store_id', 'link_status']))
-                    <a href="{{ url('/v2/produk') }}" class="btn btn-sm btn-v2-secondary py-1" title="Reset Filter">
-                        <i class="bi bi-x-lg"></i>
-                    </a>
+<!-- Main Card -->
+<div class="v2-card p-0 shadow-sm overflow-hidden mb-3">
+
+    {{-- Status Tabs --}}
+    @php
+        $currentTab = request('tab', '');
+        $productTabs = [
+            ''         => ['label' => 'Semua', 'icon' => 'bi bi-boxes', 'countKey' => 'total'],
+            'single'   => ['label' => 'Single (Utama)', 'icon' => 'bi bi-box-seam', 'countKey' => 'single'],
+            'bundle'   => ['label' => 'Paket (Bundle)', 'icon' => 'bi bi-diagram-3', 'countKey' => 'bundle'],
+            'ready'    => ['label' => 'Stock Ready', 'icon' => 'bi bi-check-circle', 'countKey' => 'ready'],
+            'po'       => ['label' => 'Pre-Order (PO)', 'icon' => 'bi bi-clock-history', 'countKey' => 'po'],
+            'unlinked' => ['label' => 'Belum Linked', 'icon' => 'bi bi-link-45deg', 'countKey' => 'unlinked'],
+        ];
+    @endphp
+    <div class="psr-tab-bar" role="tablist">
+        @foreach($productTabs as $tabKey => $tabInfo)
+            @php
+                $tabUrl = route('v2.produk.index', array_merge(
+                    request()->except(['tab','page']),
+                    $tabKey !== '' ? ['tab' => $tabKey] : []
+                ));
+                $isActive = $currentTab === $tabKey;
+                $count = $counts[$tabInfo['countKey']] ?? 0;
+            @endphp
+            <a class="psr-tab {{ $isActive ? 'active' : '' }}" href="{{ $tabUrl }}" role="tab">
+                <i class="{{ $tabInfo['icon'] }}" style="font-size: .8rem;"></i>
+                {{ $tabInfo['label'] }}
+                @if($count > 0)
+                    <span class="tab-badge">{{ $count > 9999 ? '9999+' : number_format($count) }}</span>
                 @endif
+            </a>
+        @endforeach
+    </div>
+
+    {{-- Filter Bar --}}
+    <div class="psr-filter-bar">
+        <form method="GET" action="{{ route('v2.produk.index') }}" id="psr-filter-form">
+            @if(request('tab'))
+                <input type="hidden" name="tab" value="{{ request('tab') }}">
+            @endif
+            <div class="row g-2 align-items-end">
+                {{-- Nama Produk --}}
+                <div class="col-12 col-md-3">
+                    <label class="form-label"><i class="bi bi-search me-1"></i>Nama Produk</label>
+                    <input type="text" name="name" class="form-control"
+                           placeholder="Cari nama produk..."
+                           value="{{ request('name') }}">
+                </div>
+                {{-- SKU --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label"><i class="bi bi-upc-scan me-1"></i>SKU / Induk</label>
+                    <input type="text" name="sku" class="form-control font-monospace"
+                           placeholder="Cari SKU / Induk..."
+                           value="{{ request('sku') }}">
+                </div>
+                {{-- Kategori --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label"><i class="bi bi-tags me-1"></i>Kategori</label>
+                    <select name="category_id" class="form-select no-select2">
+                        <option value="">Semua Kategori</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>
+                                {{ $cat->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                {{-- Channel --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label"><i class="bi bi-shop me-1"></i>Channel</label>
+                    <select name="channel_id" class="form-select no-select2">
+                        <option value="">Semua Channel</option>
+                        @foreach($channels as $ch)
+                            <option value="{{ $ch->id }}" {{ request('channel_id') == $ch->id ? 'selected' : '' }}>
+                                {{ $ch->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                {{-- Toko --}}
+                <div class="col-6 col-md-2">
+                    <label class="form-label"><i class="bi bi-building me-1"></i>Toko</label>
+                    <select name="store_id" class="form-select no-select2">
+                        <option value="">Semua Toko</option>
+                        @foreach($stores as $st)
+                            @php $chName = $st->channel->name ?? 'MP'; @endphp
+                            <option value="{{ $st->id }}" {{ request('store_id') == $st->id ? 'selected' : '' }}>
+                                {{ $st->store_name }} ({{ $chName }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                {{-- Tombol --}}
+                <div class="col-12 col-md-1 d-flex gap-2">
+                    <button type="submit" class="psr-btn psr-btn-primary" style="height:31px; padding:0 14px;" title="Cari">
+                        <i class="bi bi-search"></i>
+                    </button>
+                    @if(request()->anyFilled(['name', 'sku', 'category_id', 'channel_id', 'store_id', 'is_bundle', 'is_preorder', 'link_status']))
+                        <a href="{{ route('v2.produk.index', request('tab') ? ['tab' => request('tab')] : []) }}"
+                           class="psr-btn psr-btn-ghost" style="height:31px; padding:0 10px;" title="Reset Filter">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    @endif
+                </div>
             </div>
         </form>
     </div>
-</div>
 
-<!-- Main Table Card -->
-<div class="v2-card mb-3">
-    <div class="v2-card-header bg-light py-2 d-flex align-items-center justify-content-between">
-        <h6 class="v2-card-title d-flex align-items-center gap-2 m-0">
-            <i class="bi bi-list-columns-reverse text-primary"></i> Daftar Master Produk
-            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.65rem;">
-                {{ $products->total() }} Item
-            </span>
-        </h6>
+    {{-- Summary Bar --}}
+    <div class="psr-summary-bar">
+        <div>
+            <i class="bi bi-list-ul me-1"></i>
+            <strong class="text-dark">{{ number_format($products->total()) }}</strong> Hasil Ditemukan
+            @if($products->total() > 0)
+                &nbsp;·&nbsp; Halaman {{ $products->currentPage() }} dari {{ $products->lastPage() }}
+            @endif
+        </div>
         <!-- Bulk Action Bar -->
         <div id="bulkActionBar" class="d-none align-items-center gap-2">
             <span class="badge bg-primary px-2.5 py-1 rounded-pill" id="selectedCountBadge" style="font-size: 0.72rem;">0 Dipilih</span>
@@ -162,6 +340,7 @@
             </button>
         </div>
     </div>
+
     <div class="v2-card-body p-0">
         <div class="v2-table-responsive">
             <table class="v2-table align-middle">

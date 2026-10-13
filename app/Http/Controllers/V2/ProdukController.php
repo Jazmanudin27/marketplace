@@ -32,6 +32,28 @@ class ProdukController extends Controller
             });
         }
 
+        $tab = $request->query('tab', '');
+        if ($tab === 'single') {
+            $query->where(function($q) {
+                $q->where('is_bundle', false)->orWhereNull('is_bundle');
+            });
+        } elseif ($tab === 'bundle') {
+            $query->where('is_bundle', true);
+        } elseif ($tab === 'ready') {
+            $query->where(function($q) {
+                $q->where('is_preorder', false)->orWhereNull('is_preorder');
+            });
+        } elseif ($tab === 'po') {
+            $query->where('is_preorder', true);
+        } elseif ($tab === 'unlinked') {
+            $query->where(function($q) {
+                $q->whereDoesntHave('marketplaceProducts')
+                  ->orWhereDoesntHave('marketplaceProducts', function($mq) {
+                      $mq->whereRaw('LOWER(TRIM(marketplace_sku)) = LOWER(TRIM(master_products.sku))');
+                  });
+            });
+        }
+
         if ($request->filled('is_bundle')) {
             if ($request->is_bundle === '1') {
                 $query->where('is_bundle', true);
@@ -62,6 +84,10 @@ class ProdukController extends Controller
             $query->whereHas('marketplaceProducts', function($q) use ($request) {
                 $q->where('store_id', $request->store_id);
             });
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
         }
 
         if ($request->filled('link_status')) {
