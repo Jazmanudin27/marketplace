@@ -17,10 +17,10 @@ import ScanSpkPage from './pages/ScanSpkPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import SupplierPortal from './pages/supplier/SupplierPortal';
-import OwnerTitipanBarangPage from './pages/owner/OwnerTitipanBarangPage';
-import OwnerStockCardPage from './pages/owner/OwnerStockCardPage';
-import OwnerPaymentHistoryPage from './pages/owner/OwnerPaymentHistoryPage';
-import OwnerSalesHistoryPage from './pages/owner/OwnerSalesHistoryPage';
+import TitipanBarangPage from './pages/TitipanBarangPage';
+import StockCardPage from './pages/StockCardPage';
+import PaymentHistoryPage from './pages/PaymentHistoryPage';
+import SalesHistoryPage from './pages/SalesHistoryPage';
 import OrderDetailModal from './components/orders/OrderDetailModal';
 import AllModulesModal from './components/dashboard/AllModulesModal';
 import FinanceMetricDetailModal from './components/dashboard/FinanceMetricDetailModal';
@@ -459,7 +459,7 @@ export default function App() {
           )}
 
           {activeTab === 'titipan_barang' && (
-            <OwnerTitipanBarangPage 
+            <TitipanBarangPage 
               currentOwnerUser={currentUser}
               onOpenStockCard={() => handleTabChange('kartu_stok')}
               onOpenPayments={() => handleTabChange('pembayaran_titipan')}
@@ -468,7 +468,7 @@ export default function App() {
           )}
 
           {activeTab === 'kartu_stok' && (
-            <OwnerStockCardPage 
+            <StockCardPage 
               currentOwnerUser={currentUser}
               onOpenTitipan={() => handleTabChange('titipan_barang')}
               onOpenStockCard={() => handleTabChange('kartu_stok')}
@@ -478,7 +478,7 @@ export default function App() {
           )}
 
           {activeTab === 'pembayaran_titipan' && (
-            <OwnerPaymentHistoryPage 
+            <PaymentHistoryPage 
               currentOwnerUser={currentUser}
               onOpenTitipan={() => handleTabChange('titipan_barang')}
               onOpenStockCard={() => handleTabChange('kartu_stok')}
@@ -488,7 +488,7 @@ export default function App() {
           )}
 
           {activeTab === 'penjualan_titipan' && (
-            <OwnerSalesHistoryPage 
+            <SalesHistoryPage 
               currentOwnerUser={currentUser}
               onOpenTitipan={() => handleTabChange('titipan_barang')}
               onOpenStockCard={() => handleTabChange('kartu_stok')}

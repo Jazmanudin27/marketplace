@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, RefreshCw, Package, X, ChevronRight, Layers, Tag, Building2, Filter, Box, CreditCard, ShoppingBag } from 'lucide-react';
-import { fetchSupplierStockCard, fetchConsignmentResources } from '../../api/supplierConsignmentApi';
+import { fetchSupplierStockCard, fetchConsignmentResources } from '../api/supplierConsignmentApi';
 
-export default function OwnerStockCardPage({ 
+export default function StockCardPage({ 
   currentOwnerUser, 
   onOpenTitipan, 
   onOpenStockCard, 

@@ -462,7 +462,8 @@
                         <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill me-1"></i> Panduan Format File Import:</div>
                         <ul class="mb-0 ps-3">
                             <li>Format file disarankan <strong>.CSV</strong> (Comma Separated Values) / Excel.</li>
-                            <li>Sistem akan menggunakan kolom <strong>SKU</strong> sebagai penanda unik. Jika SKU sudah ada di database, data produk akan otomatis diperbarui.</li>
+                            <li>Sistem menggunakan kolom <strong>SKU</strong> sebagai penanda unik. Jika SKU sudah ada, produk akan otomatis diperbarui.</li>
+                            <li>Kolom yang <strong>kosong atau bernilai 0</strong> tidak akan menimpa/mengubah data lama di database.</li>
                             <li>Kategori & Brand akan otomatis terbuat di database jika belum ada.</li>
                         </ul>
                     </div>

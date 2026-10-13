@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, TrendingUp, RefreshCw, ShoppingBag, CheckCircle2, Package, Building2, Box, Layers, CreditCard } from 'lucide-react';
-import { fetchSupplierSalesHistory, fetchConsignmentResources } from '../../api/supplierConsignmentApi';
+import { fetchSupplierSalesHistory, fetchConsignmentResources } from '../api/supplierConsignmentApi';
 
-export default function OwnerSalesHistoryPage({ 
+export default function SalesHistoryPage({ 
   currentOwnerUser, 
   onOpenTitipan, 
   onOpenStockCard, 

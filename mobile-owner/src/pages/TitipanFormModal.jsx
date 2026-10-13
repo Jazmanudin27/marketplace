@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Plus, Trash2, Save, Box, Info, AlertTriangle, Loader2 } from 'lucide-react';
-import { fetchConsignmentResources } from '../../api/supplierConsignmentApi';
-import { showToast, showAlert } from '../../utils/alerts';
+import { fetchConsignmentResources } from '../api/supplierConsignmentApi';
+import { showToast, showAlert } from '../utils/alerts';
 
-export default function OwnerTitipanFormModal({
+export default function TitipanFormModal({
   initialData = null,
   currentOwnerUser = null,
   onClose,

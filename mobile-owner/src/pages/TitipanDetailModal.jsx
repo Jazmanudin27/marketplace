@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Calendar, User, FileText, CheckCircle2, Clock, Package, AlertCircle, CreditCard, ArrowDownRight, DollarSign } from 'lucide-react';
-import { fetchSupplierConsignmentDetail } from '../../api/supplierConsignmentApi';
+import { fetchSupplierConsignmentDetail } from '../api/supplierConsignmentApi';
 
-export default function OwnerTitipanDetailModal({
+export default function TitipanDetailModal({
   consignment,
   onClose
 }) {

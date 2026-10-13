@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Filter, Calendar, CreditCard, ChevronRight, RefreshCw, X, Receipt, CheckCircle2, DollarSign, Building2, Box, Layers, ShoppingBag } from 'lucide-react';
-import { fetchSupplierSettlements, fetchConsignmentResources } from '../../api/supplierConsignmentApi';
+import { fetchSupplierSettlements, fetchConsignmentResources } from '../api/supplierConsignmentApi';
 
-export default function OwnerPaymentHistoryPage({ 
+export default function PaymentHistoryPage({ 
   currentOwnerUser, 
   onOpenTitipan, 
   onOpenStockCard, 

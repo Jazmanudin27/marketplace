@@ -24,12 +24,12 @@ import {
   createSupplierConsignment, 
   updateSupplierConsignment, 
   fetchConsignmentResources 
-} from '../../api/supplierConsignmentApi';
-import { showToast, showAlert } from '../../utils/alerts';
-import OwnerTitipanDetailModal from './OwnerTitipanDetailModal';
-import OwnerTitipanFormModal from './OwnerTitipanFormModal';
+} from '../api/supplierConsignmentApi';
+import { showToast, showAlert } from '../utils/alerts';
+import TitipanDetailModal from './TitipanDetailModal';
+import TitipanFormModal from './TitipanFormModal';
 
-export default function OwnerTitipanBarangPage({ 
+export default function TitipanBarangPage({ 
   currentOwnerUser, 
   onOpenStockCard, 
   onOpenPayments, 
@@ -945,7 +945,7 @@ export default function OwnerTitipanBarangPage({
 
       {/* Detail Modal */}
       {selectedConsignment && (
-        <OwnerTitipanDetailModal
+        <TitipanDetailModal
           consignment={selectedConsignment}
           onClose={() => setSelectedConsignment(null)}
         />
@@ -953,7 +953,7 @@ export default function OwnerTitipanBarangPage({
 
       {/* Form Input Modal (Create/Edit Consignment) */}
       {formModalData && (
-        <OwnerTitipanFormModal
+        <TitipanFormModal
           initialData={formModalData?.id ? formModalData : null}
           currentOwnerUser={currentOwnerUser}
           onClose={() => setFormModalData(null)}
