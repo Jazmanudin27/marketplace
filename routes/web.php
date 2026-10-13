@@ -330,6 +330,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/laporan', [\App\Http\Controllers\V2\LaporanPenjualanController::class, 'index'])->name('laporan.index');
         Route::get('/laporan-penjualan', [\App\Http\Controllers\V2\LaporanPenjualanController::class, 'index']);
 
+        // Laporan Stok Barang (Gudang & Marketplace) V2
+        Route::get('/reports/stock', [\App\Http\Controllers\V2\LaporanStokController::class, 'index'])->name('reports.stock');
+        Route::get('/reports/stock/print', [\App\Http\Controllers\V2\LaporanStokController::class, 'print'])->name('reports.stock.print');
+        Route::post('/reports/stock/{product}/sync', [\App\Http\Controllers\V2\LaporanStokController::class, 'syncStock'])->name('reports.stock.sync');
+        Route::post('/reports/stock/sync-batch', [\App\Http\Controllers\V2\LaporanStokController::class, 'syncBatch'])->name('reports.stock.sync_batch');
+
+        Route::get('/laporan-stok', [\App\Http\Controllers\V2\LaporanStokController::class, 'index'])->name('laporan_stok.index');
+        Route::get('/laporan-stok/print', [\App\Http\Controllers\V2\LaporanStokController::class, 'print'])->name('laporan_stok.print');
+        Route::post('/laporan-stok/{product}/sync', [\App\Http\Controllers\V2\LaporanStokController::class, 'syncStock'])->name('laporan_stok.sync');
+        Route::post('/laporan-stok/sync-batch', [\App\Http\Controllers\V2\LaporanStokController::class, 'syncBatch'])->name('laporan_stok.sync_batch');
+
         // Titipan Barang (Supplier Consignment) V2
         Route::prefix('titipan-barang')->name('titipan_barang.')->group(function () {
             Route::get('/', [\App\Http\Controllers\V2\TitipanBarangController::class, 'index'])->name('index');

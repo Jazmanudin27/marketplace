@@ -87,6 +87,10 @@
         <i class="bi bi-receipt-cutoff fs-6"></i>
         <span>Laporan Rekap Penjualan (Semua)</span>
     </a>
+    <a href="{{ route('v2.reports.stock') }}" class="v2-tab-item">
+        <i class="bi bi-boxes fs-6"></i>
+        <span>Laporan Stok Barang</span>
+    </a>
 </div>
 
 {{-- ── TAB 1: LAPORAN PENJUALAN DILEPAS (DANA CAIR) ── --}}
