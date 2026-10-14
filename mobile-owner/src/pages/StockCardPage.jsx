@@ -140,70 +140,72 @@ export default function StockCardPage({ onBack }) {
           </div>
         </div>
 
-        {/* 2. Stok Menipis Alert */}
+        {/* 2. Ready Stock */}
         <div 
-          onClick={() => setStatusFilter(statusFilter === 'low' ? 'all' : 'low')}
+          onClick={() => setStatusFilter(statusFilter === 'ready' ? 'all' : 'ready')}
           style={{
-            background: summary.lowStockCount > 0 ? '#fffbeb' : '#ffffff',
+            background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
             borderRadius: '16px',
             padding: '13px 14px',
-            border: summary.lowStockCount > 0 ? '1px solid #fde68a' : '1px solid #e2e8f0',
-            borderLeft: summary.lowStockCount > 0 ? '4px solid #f59e0b' : '4px solid #94a3b8',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
+            border: '1px solid #bbf7d0',
+            borderLeft: '4px solid #10b981',
+            cursor: 'pointer'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: '10px', fontWeight: '800', color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Stock Ready
+            </div>
+            <CheckCircle2 size={13} color="#16a34a" />
+          </div>
+          <div style={{ fontSize: '20px', fontWeight: '900', color: '#166534', margin: '4px 0' }}>
+            {Number(summary.readyCount || 0).toLocaleString('id-ID')} <span style={{ fontSize: '12px', fontWeight: '700' }}>SKU</span>
+          </div>
+          <div style={{ fontSize: '10.5px', color: '#15803d' }}>
+            Produk Reguler Siap Jual
+          </div>
+        </div>
+
+        {/* 3. Pre-Order (PO) */}
+        <div 
+          onClick={() => setStatusFilter(statusFilter === 'po' ? 'all' : 'po')}
+          style={{
+            background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+            borderRadius: '16px',
+            padding: '13px 14px',
+            border: '1px solid #fde68a',
+            borderLeft: '4px solid #f59e0b',
+            cursor: 'pointer'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ fontSize: '10px', fontWeight: '800', color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Stok Menipis
+              Pre-Order (PO)
             </div>
-            {summary.lowStockCount > 0 && <AlertTriangle size={13} color="#d97706" />}
+            <Clock size={13} color="#d97706" />
           </div>
           <div style={{ fontSize: '20px', fontWeight: '900', color: '#b45309', margin: '4px 0' }}>
-            {Number(summary.lowStockCount || 0).toLocaleString('id-ID')} <span style={{ fontSize: '12px', fontWeight: '700' }}>SKU</span>
+            {Number(summary.poCount || 0).toLocaleString('id-ID')} <span style={{ fontSize: '12px', fontWeight: '700' }}>SKU</span>
           </div>
-          <div style={{ fontSize: '10.5px', color: '#d97706' }}>
-            Stok &lt; 10 PCS (Perlu Restock)
-          </div>
-        </div>
-
-        {/* 3. Stok Kosong */}
-        <div 
-          onClick={() => setStatusFilter(statusFilter === 'empty' ? 'all' : 'empty')}
-          style={{
-            background: summary.emptyStockCount > 0 ? '#fef2f2' : '#ffffff',
-            borderRadius: '16px',
-            padding: '13px 14px',
-            border: summary.emptyStockCount > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0',
-            borderLeft: summary.emptyStockCount > 0 ? '4px solid #ef4444' : '4px solid #94a3b8',
-            cursor: 'pointer'
-          }}
-        >
-          <div style={{ fontSize: '10px', fontWeight: '800', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Stok Kosong (0)
-          </div>
-          <div style={{ fontSize: '18px', fontWeight: '900', color: '#991b1b', margin: '4px 0' }}>
-            {Number(summary.emptyStockCount || 0).toLocaleString('id-ID')} <span style={{ fontSize: '12px', fontWeight: '700' }}>SKU</span>
-          </div>
-          <div style={{ fontSize: '10.5px', color: '#b91c1c' }}>
-            Habis / Belum Diproduksi
+          <div style={{ fontSize: '10.5px', color: '#b45309' }}>
+            Produk Custom / PO
           </div>
         </div>
 
         {/* 4. Nilai Aset Stok */}
         <div style={{
-          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
           borderRadius: '16px',
           padding: '13px 14px',
-          border: '1px solid #bbf7d0'
+          border: '1px solid #cbd5e1'
         }}>
-          <div style={{ fontSize: '10px', fontWeight: '800', color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <div style={{ fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             Nilai Aset Stok (HPP)
           </div>
-          <div style={{ fontSize: '15px', fontWeight: '900', color: '#166534', fontFamily: 'monospace', margin: '4px 0' }}>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#0f172a', fontFamily: 'monospace', margin: '4px 0' }}>
             Rp {Number(summary.totalAssetValue || 0).toLocaleString('id-ID')}
           </div>
-          <div style={{ fontSize: '10.5px', color: '#15803d' }}>
+          <div style={{ fontSize: '10.5px', color: '#64748b' }}>
             Estimasi modal persediaan
           </div>
         </div>
@@ -260,9 +262,10 @@ export default function StockCardPage({ onBack }) {
       <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
         {[
           { key: 'all', label: 'Semua Stok' },
+          { key: 'ready', label: `Stock Ready (${summary.readyCount || 0})` },
+          { key: 'po', label: `Pre-Order / PO (${summary.poCount || 0})` },
           { key: 'low', label: `Menipis (<10) ${summary.lowStockCount > 0 ? `(${summary.lowStockCount})` : ''}` },
-          { key: 'empty', label: `Kosong (0) ${summary.emptyStockCount > 0 ? `(${summary.emptyStockCount})` : ''}` },
-          { key: 'ready', label: 'Stok Aman (≥10)' }
+          { key: 'empty', label: `Stok 0 ${summary.emptyStockCount > 0 ? `(${summary.emptyStockCount})` : ''}` }
         ].map((tab) => {
           const isActive = statusFilter === tab.key;
           return (
@@ -368,6 +371,31 @@ export default function StockCardPage({ onBack }) {
                     }}>
                       {prod.sku}
                     </span>
+                    {prod.isPreorder ? (
+                      <span style={{
+                        background: '#fef3c7',
+                        color: '#92400e',
+                        border: '1px solid #fde68a',
+                        fontSize: '9px',
+                        fontWeight: '800',
+                        padding: '1px 5px',
+                        borderRadius: '4px'
+                      }}>
+                        PO
+                      </span>
+                    ) : (
+                      <span style={{
+                        background: '#dcfce7',
+                        color: '#15803d',
+                        border: '1px solid #bbf7d0',
+                        fontSize: '9px',
+                        fontWeight: '800',
+                        padding: '1px 5px',
+                        borderRadius: '4px'
+                      }}>
+                        READY
+                      </span>
+                    )}
                     {prod.barcode && (
                       <span style={{ fontSize: '9.5px', color: '#94a3b8' }}>
                         #{prod.barcode}

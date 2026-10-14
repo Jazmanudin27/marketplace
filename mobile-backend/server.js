@@ -4139,7 +4139,9 @@ app.get('/api/v2/owner/stock-card/finished-goods', async (req, res) => {
     } else if (status === 'empty') {
       whereSql += ` AND (mp.stock <= 0 OR mp.stock IS NULL)`;
     } else if (status === 'ready') {
-      whereSql += ` AND mp.stock >= 10`;
+      whereSql += ` AND (mp.is_preorder = 0 OR mp.is_preorder IS NULL)`;
+    } else if (status === 'po') {
+      whereSql += ` AND mp.is_preorder = 1`;
     }
 
     // 1. Hitung Ringkasan Metrik Monitoring Stok Gudang Jadi
@@ -4149,7 +4151,8 @@ app.get('/api/v2/owner/stock-card/finished-goods', async (req, res) => {
          COALESCE(SUM(stock), 0) as total_stock,
          COALESCE(SUM(CASE WHEN stock > 0 AND stock < 10 THEN 1 ELSE 0 END), 0) as low_stock_count,
          COALESCE(SUM(CASE WHEN stock <= 0 OR stock IS NULL THEN 1 ELSE 0 END), 0) as empty_stock_count,
-         COALESCE(SUM(CASE WHEN stock >= 10 THEN 1 ELSE 0 END), 0) as ready_stock_count,
+         COALESCE(SUM(CASE WHEN is_preorder = 1 THEN 1 ELSE 0 END), 0) as po_count,
+         COALESCE(SUM(CASE WHEN is_preorder = 0 OR is_preorder IS NULL THEN 1 ELSE 0 END), 0) as ready_count,
          COALESCE(SUM(stock * cost_price), 0) as total_asset_value
        FROM master_products mp
        WHERE mp.tenant_id = ? AND (mp.is_active = 1 OR mp.is_active IS NULL)`,
@@ -4158,7 +4161,7 @@ app.get('/api/v2/owner/stock-card/finished-goods', async (req, res) => {
 
     // 2. Ambil Daftar Produk Sesuai Filter
     const products = await query(
-      `SELECT mp.id, mp.name, mp.sku, mp.barcode, mp.stock, mp.min_stock,
+      `SELECT mp.id, mp.name, mp.sku, mp.barcode, mp.stock, mp.min_stock, mp.is_preorder,
               mp.unit, mp.cost_price, mp.price, mp.image_url, mp.sub_kategori, mp.ukuran, mp.warna,
               mp.updated_at
        FROM master_products mp
@@ -4175,6 +4178,7 @@ app.get('/api/v2/owner/stock-card/finished-goods', async (req, res) => {
       const minStock = parseInt(p.min_stock || 10, 10);
       const costPrice = parseFloat(p.cost_price || 0);
       const price = parseFloat(p.price || 0);
+      const isPreorder = Boolean(p.is_preorder);
       let stockStatus = 'ready';
       if (stock <= 0) stockStatus = 'empty';
       else if (stock < 10) stockStatus = 'low';
@@ -4194,6 +4198,7 @@ app.get('/api/v2/owner/stock-card/finished-goods', async (req, res) => {
         category: p.sub_kategori || null,
         size: p.ukuran || null,
         color: p.warna || null,
+        isPreorder,
         status: stockStatus,
         updatedAt: p.updated_at
       };
@@ -4206,7 +4211,8 @@ app.get('/api/v2/owner/stock-card/finished-goods', async (req, res) => {
         totalStock: parseInt(summaryRow?.total_stock || 0, 10),
         lowStockCount: parseInt(summaryRow?.low_stock_count || 0, 10),
         emptyStockCount: parseInt(summaryRow?.empty_stock_count || 0, 10),
-        readyStockCount: parseInt(summaryRow?.ready_stock_count || 0, 10),
+        readyCount: parseInt(summaryRow?.ready_count || 0, 10),
+        poCount: parseInt(summaryRow?.po_count || 0, 10),
         totalAssetValue: parseFloat(summaryRow?.total_asset_value || 0)
       },
       page,
