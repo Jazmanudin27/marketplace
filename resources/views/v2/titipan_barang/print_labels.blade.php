@@ -74,12 +74,18 @@
             color: #1e293b;
         }
 
-        /* Stickers Grid Container - 6 Columns Grid */
+        @page {
+            size: 100mm 150mm;
+            margin: 3mm;
+        }
+
+        /* Stickers Grid Container - Fitted for 100mm x 150mm Paper */
         .labels-grid {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 8px;
-            max-width: 1200px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4mm;
+            width: 100%;
+            max-width: 94mm;
             margin: 0 auto;
         }
 
@@ -100,14 +106,15 @@
             text-align: center;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
             position: relative;
+            box-sizing: border-box;
         }
 
         .badge-titipan {
-            font-size: 7px;
+            font-size: 7.5px;
             font-weight: 800;
             background: #0284c7;
             color: #ffffff;
-            padding: 1px 5px;
+            padding: 1px 6px;
             border-radius: 3px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -116,7 +123,7 @@
 
         .ref-tag {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 8px;
+            font-size: 8.5px;
             color: #000000;
             font-weight: 800;
             word-break: break-all;
@@ -126,7 +133,7 @@
         }
 
         .supplier-tag {
-            font-size: 7.5px;
+            font-size: 8px;
             color: #334155;
             font-weight: 600;
             max-width: 95%;
@@ -137,8 +144,8 @@
         }
 
         .qr-wrapper {
-            width: 72px;
-            height: 72px;
+            width: 76px;
+            height: 76px;
             flex-shrink: 0;
             background: #ffffff;
             padding: 1px;
@@ -157,7 +164,7 @@
 
         .sku-tag {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 8.5px;
+            font-size: 9px;
             color: #000000;
             font-weight: 800;
             word-break: break-all;
@@ -167,7 +174,7 @@
         }
 
         .product-name-tag {
-            font-size: 7px;
+            font-size: 7.5px;
             color: #475569;
             font-weight: 600;
             max-width: 95%;
@@ -177,27 +184,33 @@
             line-height: 1.1;
         }
 
-        /* Print Media Styling - 6 Columns */
+        /* Print Media Styling - 100mm x 150mm Sheet */
         @media print {
-            body {
+            html, body {
+                width: 100mm;
                 background: #ffffff;
                 padding: 0;
+                margin: 0;
             }
             .no-print-bar {
                 display: none !important;
             }
             .labels-grid {
                 display: grid;
-                grid-template-columns: repeat(6, 1fr);
-                gap: 4px;
-                max-width: 100%;
-                margin: 0;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 3mm;
+                width: 100%;
+                max-width: 94mm;
+                margin: 0 auto;
+                box-sizing: border-box;
             }
             .sticker-card {
                 border: 1px solid #000000;
                 box-shadow: none;
                 border-radius: 4px;
-                padding: 5px 3px;
+                padding: 6px 3px;
+                page-break-inside: avoid;
+                break-inside: avoid;
             }
         }
     </style>
