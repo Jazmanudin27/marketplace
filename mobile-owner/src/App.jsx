@@ -383,9 +383,9 @@ export default function App() {
           />
         ) : activeTab === 'kartu_stok' ? (
           <SubPageHeader 
-            title="Kartu Stok Konsinyasi" 
-            subtitle="Rekapitulasi sisa stok & nilai barang titipan supplier"
-            onBack={() => handleTabChange('titipan_barang')} 
+            title="Kartu Stok Gudang Jadi" 
+            subtitle="Monitoring stok fisik barang jadi & riwayat mutasi gudang"
+            onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'pembayaran_titipan' ? (
           <SubPageHeader 
@@ -520,11 +520,7 @@ export default function App() {
 
           {activeTab === 'kartu_stok' && (
             <StockCardPage 
-              currentOwnerUser={currentUser}
-              onOpenTitipan={() => handleTabChange('titipan_barang')}
-              onOpenStockCard={() => handleTabChange('kartu_stok')}
-              onOpenPayments={() => handleTabChange('pembayaran_titipan')}
-              onOpenSales={() => handleTabChange('penjualan_titipan')}
+              onBack={() => handleTabChange('home')}
             />
           )}
 

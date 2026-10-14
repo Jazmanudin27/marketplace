@@ -42,6 +42,7 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
     {
       group: 'Gudang & Stok Jadi',
       items: [
+        { id: 'kartu_stok', title: 'Kartu Stok Gudang Jadi', desc: 'Monitoring stok barang jadi & kartu mutasi', icon: Layers, color: '#2563eb' },
         { id: 'warehouse', title: 'Mutasi Masuk & Keluar', desc: 'Pergerakan stok gudang jadi', icon: Boxes, color: '#7c3aed' },
         { id: 'stock_opname', title: 'Opname Stok Jadi', desc: 'Pengecekan fisik stok akhir', icon: ShieldCheck, color: '#6366f1' },
         { id: 'scan_kemasan', title: 'Scan & Kemasan', desc: 'Scan barcode produk, update stok & request produksi', icon: ScanLine, color: '#06b6d4' },
@@ -51,7 +52,6 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
       group: 'Konsinyasi & Titipan Supplier',
       items: [
         { id: 'titipan_barang', title: 'Titipan Barang (Konsinyasi)', desc: 'Barang titipan supplier, stok & HPP', icon: Boxes, color: '#f59e0b' },
-        { id: 'kartu_stok', title: 'Kartu Stok Konsinyasi', desc: 'Rekap sisa stok & nilai modal persediaan', icon: Layers, color: '#10b981' },
         { id: 'pembayaran_titipan', title: 'Histori Pembayaran Titipan', desc: 'Rekap pelunasan transfer hasil penjualan', icon: HandCoins, color: '#059669' },
         { id: 'penjualan_titipan', title: 'Histori Penjualan Titipan', desc: 'Barang titipan laku terjual via pesanan', icon: ShoppingBag, color: '#2563eb' },
       ]

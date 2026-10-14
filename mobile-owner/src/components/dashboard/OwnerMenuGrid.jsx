@@ -105,9 +105,9 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
     {
       id: 'kartu_stok',
       title: 'Kartu Stok',
-      category: 'Konsinyasi',
+      category: 'Gudang Jadi',
       icon: Layers,
-      gradient: 'linear-gradient(135deg, #10b981, #059669)'
+      gradient: 'linear-gradient(135deg, #2563eb, #1d4ed8)'
     }
   ];
 

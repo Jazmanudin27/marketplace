@@ -1,95 +1,112 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, RefreshCw, Package, X, ChevronRight, Layers, Tag, Building2, Filter, Box, CreditCard, ShoppingBag } from 'lucide-react';
-import { fetchSupplierStockCard, fetchConsignmentResources } from '../api/supplierConsignmentApi';
+import { 
+  Search, RefreshCw, Package, X, ChevronRight, Layers, AlertTriangle, 
+  ArrowDownLeft, ArrowUpRight, SlidersHorizontal, CheckCircle2, XCircle, 
+  Clock, User, BarChart3, ShieldAlert, Sparkles, Box
+} from 'lucide-react';
+import { fetchFinishedGoodsStockCard, fetchProductStockMovements } from '../api/stockCardApi';
 
-export default function StockCardPage({ 
-  currentOwnerUser, 
-  onOpenTitipan, 
-  onOpenStockCard, 
-  onOpenPayments, 
-  onOpenSales,
-  onBack 
-}) {
+export default function StockCardPage({ onBack }) {
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState({
     totalProducts: 0,
-    totalRemainingQty: 0,
-    totalSoldQty: 0,
-    totalRemainingValue: 0,
-    totalSoldValue: 0
+    totalStock: 0,
+    lowStockCount: 0,
+    emptyStockCount: 0,
+    readyStockCount: 0,
+    totalAssetValue: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedSupplierId, setSelectedSupplierId] = useState('');
-  const [suppliersList, setSuppliersList] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'low', 'empty', 'ready'
+
+  // Modal Detail Kartu Stok & Riwayat Mutasi
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [movements, setMovements] = useState([]);
+  const [isLoadingMovements, setIsLoadingMovements] = useState(false);
 
-  // Load suppliers list
-  useEffect(() => {
-    fetchConsignmentResources()
-      .then(res => {
-        if (res && res.suppliers) setSuppliersList(res.suppliers);
-      })
-      .catch(() => {});
-  }, []);
-
-  const loadStockCard = async () => {
+  const loadStockData = async () => {
     setIsLoading(true);
     try {
-      const res = await fetchSupplierStockCard({
+      const res = await fetchFinishedGoodsStockCard({
         search,
-        supplier_id: selectedSupplierId || undefined
+        status: statusFilter,
+        limit: 100
       });
-      if (res && res.data) {
-        setItems(res.data);
+      if (res && res.success) {
+        setItems(res.data || []);
         if (res.summary) setSummary(res.summary);
       }
     } catch (err) {
-      console.warn('Failed to load owner stock card:', err);
+      console.warn('Failed to load finished goods stock card:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadStockCard();
-  }, [search, selectedSupplierId]);
+    loadStockData();
+  }, [search, statusFilter]);
+
+  // Buka detail kartu stok produk
+  const handleOpenProductCard = async (product) => {
+    setSelectedProduct(product);
+    setIsLoadingMovements(true);
+    setMovements([]);
+    try {
+      const res = await fetchProductStockMovements(product.id);
+      if (res && res.success) {
+        setMovements(res.movements || []);
+      }
+    } catch (err) {
+      console.warn('Failed to load movements:', err);
+    } finally {
+      setIsLoadingMovements(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setSelectedProduct(null);
+    setMovements([]);
+  };
 
   return (
-    <div style={{ padding: '16px 14px 90px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      {/* Title & Refresh */}
+    <div style={{ padding: '16px 14px 90px', display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '600px', margin: '0 auto' }}>
+      
+      {/* ── Header Title & Refresh ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: 0 }}>
-              Kartu Stok Konsinyasi
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: 0, letterSpacing: '-0.3px' }}>
+              Kartu Stok Gudang Jadi
             </h2>
             <span style={{
-              background: '#e0e7ff',
-              color: '#4338ca',
+              background: '#dbeafe',
+              color: '#1d4ed8',
               fontSize: '10px',
               fontWeight: '800',
-              padding: '2px 7px',
-              borderRadius: '6px'
+              padding: '2px 8px',
+              borderRadius: '6px',
+              textTransform: 'uppercase'
             }}>
-              Owner
+              Monitoring
             </span>
           </div>
           <p style={{ fontSize: '11.5px', color: '#64748b', margin: '3px 0 0' }}>
-            Rekap sisa stok, barang terjual, dan modal barang konsinyasi
+            Monitoring stok fisik siap kirim, sisa stok & kartu mutasi produk
           </p>
         </div>
 
         <button
-          onClick={loadStockCard}
+          onClick={loadStockData}
           disabled={isLoading}
           style={{
             background: '#ffffff',
             border: '1px solid #cbd5e1',
             borderRadius: '12px',
-            width: '36px',
-            height: '36px',
+            width: '38px',
+            height: '38px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -97,231 +114,126 @@ export default function StockCardPage({
             cursor: 'pointer',
             boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
           }}
+          title="Segarkan Data"
         >
-          <RefreshCw size={15} style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
+          <RefreshCw size={16} style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
         </button>
       </div>
 
-      {/* Quick Navigation Pills */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
-        {onOpenTitipan && (
-          <button
-            onClick={onOpenTitipan}
-            style={{
-              background: '#ffffff',
-              color: '#475569',
-              border: '1px solid #e2e8f0',
-              borderRadius: '10px',
-              padding: '7px 14px',
-              fontSize: '11.5px',
-              fontWeight: '700',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              flexShrink: 0
-            }}
-          >
-            <Box size={13} color="#f59e0b" />
-            <span>Titipan</span>
-          </button>
-        )}
+      {/* ── KPI Ringkasan Metrik Gudang Jadi ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        {/* 1. Total Stok Fisik */}
+        <div style={{
+          background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+          borderRadius: '16px',
+          padding: '13px 14px',
+          border: '1px solid #bfdbfe'
+        }}>
+          <div style={{ fontSize: '10px', fontWeight: '800', color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Total Fisik Gudang
+          </div>
+          <div style={{ fontSize: '20px', fontWeight: '900', color: '#1e3a8a', margin: '4px 0' }}>
+            {Number(summary.totalStock || 0).toLocaleString('id-ID')} <span style={{ fontSize: '12px', fontWeight: '700' }}>PCS</span>
+          </div>
+          <div style={{ fontSize: '10.5px', color: '#2563eb' }}>
+            {Number(summary.totalProducts || 0).toLocaleString('id-ID')} Produk / SKU
+          </div>
+        </div>
 
-        <button
+        {/* 2. Stok Menipis Alert */}
+        <div 
+          onClick={() => setStatusFilter(statusFilter === 'low' ? 'all' : 'low')}
           style={{
-            background: '#1e293b',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '10px',
-            padding: '7px 14px',
-            fontSize: '11.5px',
-            fontWeight: '800',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            flexShrink: 0
+            background: summary.lowStockCount > 0 ? '#fffbeb' : '#ffffff',
+            borderRadius: '16px',
+            padding: '13px 14px',
+            border: summary.lowStockCount > 0 ? '1px solid #fde68a' : '1px solid #e2e8f0',
+            borderLeft: summary.lowStockCount > 0 ? '4px solid #f59e0b' : '4px solid #94a3b8',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
           }}
         >
-          <Layers size={13} color="#38bdf8" />
-          <span>Stok</span>
-        </button>
-
-        {onOpenPayments && (
-          <button
-            onClick={onOpenPayments}
-            style={{
-              background: '#ffffff',
-              color: '#475569',
-              border: '1px solid #e2e8f0',
-              borderRadius: '10px',
-              padding: '7px 14px',
-              fontSize: '11.5px',
-              fontWeight: '700',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              flexShrink: 0
-            }}
-          >
-            <CreditCard size={13} color="#059669" />
-            <span>Pembayaran</span>
-          </button>
-        )}
-
-        {onOpenSales && (
-          <button
-            onClick={onOpenSales}
-            style={{
-              background: '#ffffff',
-              color: '#475569',
-              border: '1px solid #e2e8f0',
-              borderRadius: '10px',
-              padding: '7px 14px',
-              fontSize: '11.5px',
-              fontWeight: '700',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              flexShrink: 0
-            }}
-          >
-            <ShoppingBag size={13} color="#2563eb" />
-            <span>Penjualan</span>
-          </button>
-        )}
-      </div>
-
-      {/* KPI 4 Cards: Sisa Stok, Terjual, Total Stok (Rp), Total Terjual (Rp) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-        {/* 1. Sisa Stok */}
-        <div style={{
-          background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-          borderRadius: '16px',
-          padding: '12px 14px',
-          border: '1px solid #a7f3d0'
-        }}>
-          <div style={{ fontSize: '10.5px', fontWeight: '700', color: '#047857', textTransform: 'uppercase' }}>
-            Sisa Stok
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: '10px', fontWeight: '800', color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Stok Menipis
+            </div>
+            {summary.lowStockCount > 0 && <AlertTriangle size={13} color="#d97706" />}
           </div>
-          <div style={{ fontSize: '18px', fontWeight: '900', color: '#065f46', margin: '4px 0' }}>
-            {Number(summary.totalRemainingQty || 0).toLocaleString('id-ID')} PCS
+          <div style={{ fontSize: '20px', fontWeight: '900', color: '#b45309', margin: '4px 0' }}>
+            {Number(summary.lowStockCount || 0).toLocaleString('id-ID')} <span style={{ fontSize: '12px', fontWeight: '700' }}>SKU</span>
           </div>
-          <div style={{ fontSize: '10px', color: '#059669' }}>Stok fisik di toko</div>
+          <div style={{ fontSize: '10.5px', color: '#d97706' }}>
+            Stok &lt; 10 PCS (Perlu Restock)
+          </div>
         </div>
 
-        {/* 2. Terjual */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '16px',
-          padding: '12px 14px',
-          border: '1px solid #e2e8f0',
-          borderLeft: '4px solid #3b82f6',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-        }}>
-          <div style={{ fontSize: '10.5px', fontWeight: '700', color: '#1d4ed8', textTransform: 'uppercase' }}>
-            Terjual
+        {/* 3. Stok Kosong */}
+        <div 
+          onClick={() => setStatusFilter(statusFilter === 'empty' ? 'all' : 'empty')}
+          style={{
+            background: summary.emptyStockCount > 0 ? '#fef2f2' : '#ffffff',
+            borderRadius: '16px',
+            padding: '13px 14px',
+            border: summary.emptyStockCount > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0',
+            borderLeft: summary.emptyStockCount > 0 ? '4px solid #ef4444' : '4px solid #94a3b8',
+            cursor: 'pointer'
+          }}
+        >
+          <div style={{ fontSize: '10px', fontWeight: '800', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Stok Kosong (0)
           </div>
-          <div style={{ fontSize: '18px', fontWeight: '900', color: '#1e40af', margin: '4px 0' }}>
-            {Number(summary.totalSoldQty || 0).toLocaleString('id-ID')} PCS
+          <div style={{ fontSize: '18px', fontWeight: '900', color: '#991b1b', margin: '4px 0' }}>
+            {Number(summary.emptyStockCount || 0).toLocaleString('id-ID')} <span style={{ fontSize: '12px', fontWeight: '700' }}>SKU</span>
           </div>
-          <div style={{ fontSize: '10px', color: '#94a3b8' }}>Total barang laku</div>
+          <div style={{ fontSize: '10.5px', color: '#b91c1c' }}>
+            Habis / Belum Diproduksi
+          </div>
         </div>
 
-        {/* 3. Total Stok (Rp) */}
+        {/* 4. Nilai Aset Stok */}
         <div style={{
-          background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
           borderRadius: '16px',
-          padding: '12px 14px',
-          border: '1px solid #fde68a'
+          padding: '13px 14px',
+          border: '1px solid #bbf7d0'
         }}>
-          <div style={{ fontSize: '10.5px', fontWeight: '700', color: '#b45309', textTransform: 'uppercase' }}>
-            Total Stok (Rp)
+          <div style={{ fontSize: '10px', fontWeight: '800', color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Nilai Aset Stok (HPP)
           </div>
-          <div style={{ fontSize: '15px', fontWeight: '900', color: '#92400e', fontFamily: 'monospace', margin: '4px 0' }}>
-            Rp {Number(summary.totalRemainingValue || 0).toLocaleString('id-ID')}
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#166534', fontFamily: 'monospace', margin: '4px 0' }}>
+            Rp {Number(summary.totalAssetValue || 0).toLocaleString('id-ID')}
           </div>
-          <div style={{ fontSize: '10px', color: '#b45309' }}>Nilai sisa modal stok</div>
-        </div>
-
-        {/* 4. Total Terjual (Rp) */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '16px',
-          padding: '12px 14px',
-          border: '1px solid #e2e8f0',
-          borderLeft: '4px solid #10b981',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-        }}>
-          <div style={{ fontSize: '10.5px', fontWeight: '700', color: '#047857', textTransform: 'uppercase' }}>
-            Total Terjual (Rp)
+          <div style={{ fontSize: '10.5px', color: '#15803d' }}>
+            Estimasi modal persediaan
           </div>
-          <div style={{ fontSize: '15px', fontWeight: '900', color: '#065f46', fontFamily: 'monospace', margin: '4px 0' }}>
-            Rp {Number(summary.totalSoldValue || 0).toLocaleString('id-ID')}
-          </div>
-          <div style={{ fontSize: '10px', color: '#94a3b8' }}>Nilai modal barang terjual</div>
         </div>
       </div>
 
-      {/* Filter Supplier (Owner Specific) */}
-      {suppliersList.length > 0 && (
-        <div style={{
-          background: '#ffffff',
-          border: '1px solid #cbd5e1',
-          borderRadius: '14px',
-          padding: '6px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <Building2 size={16} color="#64748b" />
-          <select
-            value={selectedSupplierId}
-            onChange={(e) => setSelectedSupplierId(e.target.value)}
-            style={{
-              border: 'none',
-              outline: 'none',
-              fontSize: '12px',
-              fontWeight: '600',
-              color: '#334155',
-              width: '100%',
-              background: 'transparent',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="">Semua Supplier Titipan</option>
-            {suppliersList.map(s => (
-              <option key={s.id} value={s.id}>
-                {s.supplier_name || s.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Search Input */}
+      {/* ── Search Bar ── */}
       <div style={{
-        background: '#ffffff',
-        border: '1px solid #cbd5e1',
-        borderRadius: '14px',
-        padding: '8px 14px',
+        position: 'relative',
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+        background: '#ffffff',
+        borderRadius: '14px',
+        border: '1px solid #cbd5e1',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+        overflow: 'hidden'
       }}>
-        <Search size={16} color="#94a3b8" />
+        <div style={{ paddingLeft: '14px', display: 'flex', alignItems: 'center' }}>
+          <Search size={16} color="#64748b" />
+        </div>
         <input
           type="text"
-          placeholder="Cari nama produk atau SKU..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cari nama barang, SKU, atau barcode..."
           style={{
+            width: '100%',
+            padding: '11px 12px',
             border: 'none',
             outline: 'none',
-            fontSize: '13px',
-            width: '100%',
+            fontSize: '12.5px',
             color: '#1e293b',
             background: 'transparent'
           }}
@@ -329,111 +241,179 @@ export default function StockCardPage({
         {search && (
           <button
             onClick={() => setSearch('')}
-            style={{ border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+            style={{
+              background: 'none',
+              border: 'none',
+              paddingRight: '12px',
+              cursor: 'pointer',
+              color: '#94a3b8',
+              display: 'flex',
+              alignItems: 'center'
+            }}
           >
-            ✕
+            <X size={15} />
           </button>
         )}
       </div>
 
-      {/* Product Stock List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {/* ── Filter Tabs ── */}
+      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+        {[
+          { key: 'all', label: 'Semua Stok' },
+          { key: 'low', label: `Menipis (<10) ${summary.lowStockCount > 0 ? `(${summary.lowStockCount})` : ''}` },
+          { key: 'empty', label: `Kosong (0) ${summary.emptyStockCount > 0 ? `(${summary.emptyStockCount})` : ''}` },
+          { key: 'ready', label: 'Stok Aman (≥10)' }
+        ].map((tab) => {
+          const isActive = statusFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setStatusFilter(tab.key)}
+              style={{
+                background: isActive ? '#0f172a' : '#ffffff',
+                color: isActive ? '#ffffff' : '#475569',
+                border: isActive ? 'none' : '1px solid #e2e8f0',
+                borderRadius: '10px',
+                padding: '7px 13px',
+                fontSize: '11.5px',
+                fontWeight: isActive ? '800' : '600',
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Daftar Produk Gudang Jadi ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '13px' }}>
-            Memuat kartu stok konsinyasi...
+          <div style={{ padding: '40px 0', textAlign: 'center', color: '#64748b' }}>
+            <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 10px', display: 'block', color: '#3b82f6' }} />
+            <span style={{ fontSize: '12px', fontWeight: '600' }}>Memuat data stok gudang jadi...</span>
           </div>
         ) : items.length === 0 ? (
           <div style={{
             background: '#ffffff',
-            borderRadius: '18px',
-            padding: '36px 16px',
+            borderRadius: '16px',
+            padding: '36px 20px',
             textAlign: 'center',
-            border: '1px solid #e2e8f0',
-            color: '#94a3b8'
+            border: '1px dashed #cbd5e1'
           }}>
-            <Package size={34} style={{ margin: '0 auto 10px', opacity: 0.35 }} />
-            <div style={{ fontSize: '14px', fontWeight: '700', color: '#64748b' }}>Belum ada data barang</div>
-            <div style={{ fontSize: '11.5px', marginTop: '4px' }}>Data persediaan akan tampil saat ada barang masuk.</div>
+            <Package size={36} color="#94a3b8" style={{ margin: '0 auto 10px' }} />
+            <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b', margin: '0 0 4px' }}>
+              Tidak Ada Produk Ditemukan
+            </h4>
+            <p style={{ fontSize: '11.5px', color: '#64748b', margin: 0 }}>
+              {search ? 'Coba ubah kata kunci pencarian SKU atau nama barang' : 'Belum ada produk di kategori filter ini'}
+            </p>
           </div>
         ) : (
-          items.map((prod, idx) => {
-            const sold = (prod.totalSold || 0);
-            const remaining = (prod.sisaStok || 0);
-
+          items.map((prod) => {
+            const isLow = prod.stock > 0 && prod.stock < 10;
+            const isEmpty = prod.stock <= 0;
+            
             return (
               <div
-                key={prod.masterProductId ? `${prod.masterProductId}_${idx}` : idx}
-                onClick={() => setSelectedProduct(prod)}
+                key={prod.id}
+                onClick={() => handleOpenProductCard(prod)}
                 style={{
                   background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '18px',
-                  padding: '14px 16px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                  borderRadius: '16px',
+                  padding: '12px 14px',
+                  border: isLow ? '1px solid #fde68a' : isEmpty ? '1px solid #fecaca' : '1px solid #e2e8f0',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
+                  alignItems: 'center',
+                  gap: '12px',
                   cursor: 'pointer',
-                  transition: 'transform 0.15s ease'
+                  transition: 'transform 0.1s ease',
+                  position: 'relative'
                 }}
               >
-                {/* Header: Nama Produk & Arrow */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1, paddingRight: '8px' }}>
-                    <div style={{ fontWeight: '800', fontSize: '14px', color: '#1e293b', lineHeight: '1.3' }}>
-                      {prod.productName}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace', fontWeight: '700', marginTop: '3px' }}>
-                      SKU: {prod.sku}
-                    </div>
-                    {prod.supplierName && (
-                      <div style={{ fontSize: '10.5px', color: '#6366f1', fontWeight: '700', marginTop: '2px' }}>
-                        Supplier: {prod.supplierName}
-                      </div>
+                {/* Thumbnail Gambar Produk */}
+                <div style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '12px',
+                  background: '#f1f5f9',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  overflow: 'hidden',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  {prod.imageUrl ? (
+                    <img src={prod.imageUrl} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <Package size={22} color="#94a3b8" />
+                  )}
+                </div>
+
+                {/* Info Produk */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                    <span style={{
+                      background: '#f1f5f9',
+                      color: '#334155',
+                      fontSize: '9.5px',
+                      fontWeight: '800',
+                      fontFamily: 'monospace',
+                      padding: '1.5px 6px',
+                      borderRadius: '4px'
+                    }}>
+                      {prod.sku}
+                    </span>
+                    {prod.barcode && (
+                      <span style={{ fontSize: '9.5px', color: '#94a3b8' }}>
+                        #{prod.barcode}
+                      </span>
                     )}
                   </div>
-                  <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '10px',
-                    width: '30px',
-                    height: '30px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#64748b'
+
+                  <h4 style={{
+                    fontSize: '12.5px',
+                    fontWeight: '700',
+                    color: '#0f172a',
+                    margin: '0 0 3px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
                   }}>
-                    <ChevronRight size={16} />
+                    {prod.name}
+                  </h4>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px', color: '#64748b' }}>
+                    <span>HPP: <strong>Rp {Number(prod.costPrice || 0).toLocaleString('id-ID')}</strong></span>
+                    <span>·</span>
+                    <span>Nilai: <strong style={{ color: '#0f172a' }}>Rp {Number(prod.assetValue || 0).toLocaleString('id-ID')}</strong></span>
                   </div>
                 </div>
 
-                {/* Sisa Stok & Terjual Grid */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '8px',
-                  background: '#f8fafc',
-                  border: '1px solid #f1f5f9',
-                  borderRadius: '12px',
-                  padding: '10px 12px'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>
-                      Sisa Stok
-                    </div>
-                    <div style={{ fontSize: '14px', fontWeight: '900', color: remaining > 0 ? '#059669' : '#dc2626', marginTop: '2px' }}>
-                      {remaining} PCS
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>
-                      Terjual
-                    </div>
-                    <div style={{ fontSize: '14px', fontWeight: '900', color: '#2563eb', marginTop: '2px' }}>
-                      {sold} PCS
-                    </div>
-                  </div>
+                {/* Sisa Stok Badge */}
+                <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                  <span style={{
+                    background: isEmpty ? '#fef2f2' : isLow ? '#fffbeb' : '#ecfdf5',
+                    color: isEmpty ? '#dc2626' : isLow ? '#b45309' : '#047857',
+                    border: isEmpty ? '1px solid #fecaca' : isLow ? '1px solid #fde68a' : '1px solid #a7f3d0',
+                    fontSize: '12px',
+                    fontWeight: '900',
+                    padding: '3px 8px',
+                    borderRadius: '8px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    {isEmpty ? '0' : Number(prod.stock).toLocaleString('id-ID')} {prod.unit || 'PCS'}
+                  </span>
+                  
+                  <span style={{ fontSize: '9.5px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    Kartu Stok <ChevronRight size={11} />
+                  </span>
                 </div>
               </div>
             );
@@ -441,224 +421,241 @@ export default function StockCardPage({
         )}
       </div>
 
-      {/* Modal Detail Produk */}
-      {selectedProduct && typeof document !== 'undefined' && createPortal(
-        <div className="modal-overlay" style={{
+      {/* ── Modal Pop-up Kartu Stok & Riwayat Mutasi Barang Jadi ── */}
+      {selectedProduct && createPortal(
+        <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(6px)',
-          WebkitBackdropFilter: 'blur(6px)',
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(3px)',
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'center',
-          zIndex: 99999,
-          animation: 'fadeIn 0.2s ease-out'
+          zIndex: 9999
         }}>
           <div style={{
             background: '#ffffff',
             width: '100%',
-            maxWidth: '480px',
+            maxWidth: '560px',
+            maxHeight: '90vh',
             borderRadius: '24px 24px 0 0',
-            boxShadow: '0 -10px 25px rgba(0,0,0,0.2)',
+            overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
-            maxHeight: '90vh',
-            animation: 'slideUp 0.25s ease-out',
-            overflow: 'hidden'
+            boxShadow: '0 -8px 30px rgba(0,0,0,0.15)',
+            animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
           }}>
             {/* Header Modal */}
             <div style={{
-              background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-              padding: '16px 20px',
+              padding: '16px 18px',
+              borderBottom: '1px solid #e2e8f0',
               display: 'flex',
+              alignItems: 'center',
               justifyContent: 'space-between',
-              alignItems: 'flex-start'
+              background: '#f8fafc'
             }}>
               <div>
-                <span style={{
-                  background: 'rgba(245, 158, 11, 0.2)',
-                  color: '#fbbf24',
-                  fontSize: '10.5px',
-                  fontWeight: '800',
-                  padding: '2px 8px',
-                  borderRadius: '6px',
-                  display: 'inline-block',
-                  marginBottom: '6px',
-                  letterSpacing: '0.5px'
-                }}>
-                  DETAIL KARTU STOK OWNER
-                </span>
-                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#f8fafc', margin: 0, lineHeight: '1.3' }}>
-                  {selectedProduct.productName}
-                </h3>
-                <div style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace', marginTop: '4px' }}>
-                  SKU: {selectedProduct.sku}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{
+                    background: '#e0e7ff',
+                    color: '#4338ca',
+                    fontSize: '10px',
+                    fontWeight: '800',
+                    padding: '1.5px 6px',
+                    borderRadius: '4px'
+                  }}>
+                    BIN CARD / KARTU STOK
+                  </span>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#475569', fontFamily: 'monospace' }}>
+                    {selectedProduct.sku}
+                  </span>
                 </div>
+                <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', margin: '4px 0 0' }}>
+                  {selectedProduct.name}
+                </h3>
               </div>
 
               <button
-                onClick={() => setSelectedProduct(null)}
+                onClick={handleCloseModal}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: 'none',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
                   borderRadius: '50%',
                   width: '32px',
                   height: '32px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#cbd5e1',
+                  color: '#64748b',
                   cursor: 'pointer'
                 }}
               >
-                <X size={17} />
+                <X size={16} />
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div style={{ padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Box Harga Modal */}
-              <div style={{
-                background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-                border: '1px solid #fde68a',
-                borderRadius: '16px',
-                padding: '14px 16px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#b45309', textTransform: 'uppercase' }}>
-                    Harga Modal (HPP Titipan)
-                  </div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: '#92400e', fontFamily: 'monospace', marginTop: '2px' }}>
-                    Rp {Number(selectedProduct.costPrice || selectedProduct.avgCostPrice || 0).toLocaleString('id-ID')}
-                  </div>
-                </div>
-                <div style={{
-                  background: '#fef08a',
-                  color: '#854d0e',
-                  fontSize: '11px',
-                  fontWeight: '800',
-                  padding: '4px 10px',
-                  borderRadius: '10px'
-                }}>
-                  / {selectedProduct.unit || 'PCS'}
-                </div>
-              </div>
-
-              {/* Rincian Stok & Terjual */}
-              <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px'
-              }}>
-                <div style={{ fontSize: '11.5px', fontWeight: '800', color: '#1e293b', textTransform: 'uppercase' }}>
-                  Rekap Kuantitas Fisik
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-                  <span style={{ color: '#64748b' }}>Sisa Stok di Toko:</span>
-                  <span style={{ fontWeight: '900', color: (selectedProduct.sisaStok || 0) > 0 ? '#059669' : '#dc2626' }}>
-                    {selectedProduct.sisaStok || 0} PCS
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-                  <span style={{ color: '#64748b' }}>Jumlah Terjual:</span>
-                  <span style={{ fontWeight: '900', color: '#2563eb' }}>
-                    {selectedProduct.totalSold || 0} PCS
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
-                  <span style={{ color: '#64748b' }}>Total Barang Diterima:</span>
-                  <span style={{ fontWeight: '800', color: '#1e293b' }}>
-                    {selectedProduct.totalReceived || 0} PCS
-                  </span>
-                </div>
-              </div>
-
-              {/* Rincian Nilai Rupiah Modal */}
-              <div style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-              }}>
-                <div style={{ fontSize: '11.5px', fontWeight: '800', color: '#1e293b', textTransform: 'uppercase' }}>
-                  Akumulasi Nilai Modal (HPP)
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-                  <span style={{ color: '#64748b' }}>Nilai Sisa Stok (Rp):</span>
-                  <span style={{ fontWeight: '900', color: '#d97706', fontFamily: 'monospace' }}>
-                    Rp {Number(selectedProduct.totalValueRemaining || 0).toLocaleString('id-ID')}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-                  <span style={{ color: '#64748b' }}>Nilai Terjual (Rp):</span>
-                  <span style={{ fontWeight: '900', color: '#059669', fontFamily: 'monospace' }}>
-                    Rp {Number(selectedProduct.totalValueSold || 0).toLocaleString('id-ID')}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Modal */}
+            {/* Quick Summary Product in Modal */}
             <div style={{
-              padding: '14px 20px calc(14px + env(safe-area-inset-bottom, 12px))',
+              padding: '12px 18px',
               background: '#ffffff',
-              borderTop: '1px solid #e2e8f0',
-              display: 'flex',
-              justifyContent: 'flex-end'
+              borderBottom: '1px solid #f1f5f9',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: '8px',
+              textAlign: 'center'
             }}>
-              <button
-                onClick={() => setSelectedProduct(null)}
-                style={{
-                  width: '100%',
-                  padding: '11px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-                  color: '#ffffff',
-                  fontWeight: '700',
-                  fontSize: '13px',
-                  cursor: 'pointer'
-                }}
-              >
-                Tutup
-              </button>
+              <div style={{ padding: '8px', background: '#f8fafc', borderRadius: '10px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b' }}>SISA STOK</div>
+                <div style={{ fontSize: '15px', fontWeight: '900', color: '#0f172a' }}>
+                  {Number(selectedProduct.stock).toLocaleString('id-ID')} {selectedProduct.unit || 'PCS'}
+                </div>
+              </div>
+
+              <div style={{ padding: '8px', background: '#f8fafc', borderRadius: '10px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b' }}>HARGA MODAL (HPP)</div>
+                <div style={{ fontSize: '13px', fontWeight: '800', color: '#047857' }}>
+                  Rp {Number(selectedProduct.costPrice || 0).toLocaleString('id-ID')}
+                </div>
+              </div>
+
+              <div style={{ padding: '8px', background: '#f8fafc', borderRadius: '10px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b' }}>TOTAL ASET</div>
+                <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e40af' }}>
+                  Rp {Number(selectedProduct.assetValue || (selectedProduct.stock * selectedProduct.costPrice) || 0).toLocaleString('id-ID')}
+                </div>
+              </div>
+            </div>
+
+            {/* Sub-header riwayat mutasi */}
+            <div style={{ padding: '10px 18px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>
+                Riwayat Mutasi Keluar & Masuk
+              </span>
+              <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                {movements.length} Transaksi Terakhir
+              </span>
+            </div>
+
+            {/* List Riwayat Pergerakan Stok */}
+            <div style={{ padding: '10px 18px 24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {isLoadingMovements ? (
+                <div style={{ padding: '40px 0', textAlign: 'center', color: '#64748b' }}>
+                  <RefreshCw size={20} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px', display: 'block', color: '#3b82f6' }} />
+                  <span style={{ fontSize: '11.5px' }}>Mengambil riwayat kartu stok...</span>
+                </div>
+              ) : movements.length === 0 ? (
+                <div style={{ padding: '30px 0', textAlign: 'center', color: '#94a3b8' }}>
+                  <Package size={28} style={{ margin: '0 auto 6px', display: 'block', opacity: 0.5 }} />
+                  <div style={{ fontSize: '12px', fontWeight: '600' }}>Belum ada catatan mutasi stok</div>
+                  <p style={{ fontSize: '10.5px', margin: '2px 0 0' }}>Perubahan stok akan otomatis tercatat di kartu stok ini</p>
+                </div>
+              ) : (
+                movements.map((mov) => {
+                  const isOut = mov.type === 'out';
+                  const isIn = mov.type === 'in';
+                  const isAdj = mov.type === 'adj';
+
+                  return (
+                    <div
+                      key={mov.id}
+                      style={{
+                        padding: '10px 12px',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '10px'
+                      }}
+                    >
+                      {/* Badge Tipe Mutasi */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          background: isOut ? '#fef2f2' : isIn ? '#ecfdf5' : '#f0f9ff',
+                          color: isOut ? '#ef4444' : isIn ? '#10b981' : '#0284c7',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          {isOut ? <ArrowUpRight size={16} /> : isIn ? <ArrowDownLeft size={16} /> : <SlidersHorizontal size={14} />}
+                        </div>
+
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <span style={{
+                              fontSize: '9.5px',
+                              fontWeight: '800',
+                              color: isOut ? '#dc2626' : isIn ? '#047857' : '#0284c7',
+                              textTransform: 'uppercase'
+                            }}>
+                              {isOut ? 'BARANG KELUAR' : isIn ? 'BARANG MASUK' : 'PENYESUAIAN (OPNAME)'}
+                            </span>
+                            <span style={{ fontSize: '9px', color: '#94a3b8' }}>·</span>
+                            <span style={{ fontSize: '9.5px', color: '#64748b' }}>
+                              {mov.createdAt ? new Date(mov.createdAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
+                            </span>
+                          </div>
+
+                          <div style={{
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            color: '#1e293b',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            marginTop: '2px'
+                          }}>
+                            {mov.reference}
+                          </div>
+
+                          {mov.userName && (
+                            <div style={{ fontSize: '9.5px', color: '#94a3b8', marginTop: '1px' }}>
+                              PIC: {mov.userName}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Qty & Balance After */}
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{
+                          fontSize: '13px',
+                          fontWeight: '800',
+                          color: isOut ? '#dc2626' : isIn ? '#15803d' : '#0284c7'
+                        }}>
+                          {mov.quantity > 0 ? `+${mov.quantity}` : mov.quantity}
+                        </div>
+                        <div style={{ fontSize: '9.5px', color: '#64748b', marginTop: '1px' }}>
+                          Sisa: <strong>{mov.balanceAfter}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>,
         document.body
       )}
 
+      {/* Animation Styles */}
       <style>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
-        }
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
         }
       `}</style>
     </div>

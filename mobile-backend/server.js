@@ -4116,6 +4116,168 @@ app.get(['/api/v2/owner/supplier-consignments/meta/resources', '/api/v2/supplier
   }
 });
 
+// ─── KARTU STOK GUDANG JADI (MONITORING STOK BARANG JADI) ───────────────────
+app.get('/api/v2/owner/stock-card/finished-goods', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const search = (req.query.search || '').trim();
+    const status = (req.query.status || 'all').trim(); // 'all', 'low', 'empty', 'ready'
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const offset = (page - 1) * limit;
+
+    let whereSql = `WHERE mp.tenant_id = ? AND (mp.is_active = 1 OR mp.is_active IS NULL)`;
+    const params = [tenantId];
+
+    if (search) {
+      whereSql += ` AND (mp.name LIKE ? OR mp.sku LIKE ? OR mp.barcode LIKE ? OR mp.sku_induk LIKE ?)`;
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    if (status === 'low') {
+      whereSql += ` AND mp.stock > 0 AND mp.stock < 10`;
+    } else if (status === 'empty') {
+      whereSql += ` AND (mp.stock <= 0 OR mp.stock IS NULL)`;
+    } else if (status === 'ready') {
+      whereSql += ` AND mp.stock >= 10`;
+    }
+
+    // 1. Hitung Ringkasan Metrik Monitoring Stok Gudang Jadi
+    const [summaryRow] = await query(
+      `SELECT 
+         COUNT(*) as total_products,
+         COALESCE(SUM(stock), 0) as total_stock,
+         COALESCE(SUM(CASE WHEN stock > 0 AND stock < 10 THEN 1 ELSE 0 END), 0) as low_stock_count,
+         COALESCE(SUM(CASE WHEN stock <= 0 OR stock IS NULL THEN 1 ELSE 0 END), 0) as empty_stock_count,
+         COALESCE(SUM(CASE WHEN stock >= 10 THEN 1 ELSE 0 END), 0) as ready_stock_count,
+         COALESCE(SUM(stock * cost_price), 0) as total_asset_value
+       FROM master_products mp
+       WHERE mp.tenant_id = ? AND (mp.is_active = 1 OR mp.is_active IS NULL)`,
+      [tenantId]
+    );
+
+    // 2. Ambil Daftar Produk Sesuai Filter
+    const products = await query(
+      `SELECT mp.id, mp.name, mp.sku, mp.barcode, mp.stock, mp.min_stock, mp.safety_stock,
+              mp.unit, mp.cost_price, mp.price, mp.image_url, mp.sub_kategori, mp.ukuran, mp.warna,
+              mp.updated_at
+       FROM master_products mp
+       ${whereSql}
+       ORDER BY 
+         CASE WHEN mp.stock <= 0 THEN 1 WHEN mp.stock < 10 THEN 2 ELSE 3 END ASC,
+         mp.name ASC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    const items = products.map(p => {
+      const stock = parseInt(p.stock || 0, 10);
+      const minStock = parseInt(p.min_stock || 10, 10);
+      const costPrice = parseFloat(p.cost_price || 0);
+      const price = parseFloat(p.price || 0);
+      let stockStatus = 'ready';
+      if (stock <= 0) stockStatus = 'empty';
+      else if (stock < 10) stockStatus = 'low';
+
+      return {
+        id: p.id,
+        name: p.name || 'Produk Tanpa Nama',
+        sku: p.sku || '-',
+        barcode: p.barcode || null,
+        stock,
+        minStock,
+        unit: p.unit || 'PCS',
+        costPrice,
+        price,
+        assetValue: stock * costPrice,
+        imageUrl: p.image_url || null,
+        category: p.sub_kategori || null,
+        size: p.ukuran || null,
+        color: p.warna || null,
+        status: stockStatus,
+        updatedAt: p.updated_at
+      };
+    });
+
+    return res.json({
+      success: true,
+      summary: {
+        totalProducts: parseInt(summaryRow?.total_products || 0, 10),
+        totalStock: parseInt(summaryRow?.total_stock || 0, 10),
+        lowStockCount: parseInt(summaryRow?.low_stock_count || 0, 10),
+        emptyStockCount: parseInt(summaryRow?.empty_stock_count || 0, 10),
+        readyStockCount: parseInt(summaryRow?.ready_stock_count || 0, 10),
+        totalAssetValue: parseFloat(summaryRow?.total_asset_value || 0)
+      },
+      page,
+      limit,
+      data: items
+    });
+
+  } catch (err) {
+    console.error('[Node-API] Stock card finished goods error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── DETAIL RIWAYAT MUTASI KARTU STOK PRODUK GUDANG JADI ───────────────────
+app.get('/api/v2/owner/stock-card/finished-goods/:productId/movements', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const productId = parseInt(req.params.productId, 10);
+
+    const [product] = await query(
+      `SELECT id, name, sku, barcode, stock, unit, cost_price, price, image_url 
+       FROM master_products 
+       WHERE id = ? AND tenant_id = ? LIMIT 1`,
+      [productId, tenantId]
+    );
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Produk tidak ditemukan.' });
+    }
+
+    const movements = await query(
+      `SELECT sm.id, sm.type, sm.quantity, sm.reference, sm.balance_after, sm.created_at,
+              u.name as user_name
+       FROM stock_movements sm
+       LEFT JOIN users u ON u.id = sm.user_id
+       WHERE sm.master_product_id = ? AND sm.tenant_id = ?
+       ORDER BY sm.created_at DESC, sm.id DESC
+       LIMIT 100`,
+      [productId, tenantId]
+    );
+
+    return res.json({
+      success: true,
+      product: {
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        barcode: product.barcode,
+        stock: parseInt(product.stock || 0, 10),
+        unit: product.unit || 'PCS',
+        costPrice: parseFloat(product.cost_price || 0),
+        price: parseFloat(product.price || 0),
+        imageUrl: product.image_url
+      },
+      movements: movements.map(m => ({
+        id: m.id,
+        type: m.type, // 'in', 'out', 'adj'
+        quantity: parseInt(m.quantity || 0, 10),
+        reference: m.reference || '-',
+        balanceAfter: parseInt(m.balance_after || 0, 10),
+        userName: m.user_name || 'Sistem / Admin',
+        createdAt: m.created_at
+      }))
+    });
+
+  } catch (err) {
+    console.error('[Node-API] Stock movement ledger error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Rekapitulasi Kartu Stok Konsinyasi (Stock Card)
 app.get(['/api/v2/owner/supplier-consignments/reports/stock-card', '/api/v2/supplier-consignments/reports/stock-card'], async (req, res) => {
   try {
