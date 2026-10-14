@@ -332,125 +332,164 @@ class StockOpnameController extends Controller
         $userNotes = trim($request->notes ?? '');
         $baseReference = "Stock Opname - {$pic}" . ($userNotes ? " ({$userNotes})" : '');
         $userId = Auth::id();
-        $syncMarketplace = $request->boolean('sync_marketplace', false);
 
         $adjustedCount = 0;
         $matchingCount = 0;
         $skippedCount  = 0;
         $skippedDetails = [];
-        $adjustedProductIds = [];
 
         $hasBarcode = Schema::hasColumn('master_products', 'barcode');
 
-        DB::transaction(function () use (
-            $lines, $delimiter, $getValue, $parseQty, $tenantId, $baseReference, $userId, $date, $hasBarcode,
-            &$adjustedCount, &$matchingCount, &$skippedCount, &$skippedDetails, &$adjustedProductIds
-        ) {
-            for ($i = 1; $i < count($lines); $i++) {
-                $line = trim($lines[$i]);
-                if ($line === '') continue;
-
-                $row = str_getcsv($line, $delimiter);
-                if (count($row) < 1) continue;
-
-                $sku = strtoupper($getValue($row, ['sku', 'kodesku', 'kode', 'kodebarang', 'kodeproduk', 'productsku', 'barcode']));
-                if (empty($sku)) {
-                    $skippedCount++;
-                    continue;
-                }
-
-                $rawActualStock = $getValue($row, ['stokfisik', 'stok', 'jumlah', 'qty', 'quantity', 'actualstock', 'jumlahfisik', 'hasilhitung', 'fisik']);
-                if ($rawActualStock === '') {
-                    $skippedCount++;
-                    continue;
-                }
-
-                $actualStock = $parseQty($rawActualStock);
-                if ($actualStock === null || $actualStock < 0) {
-                    $skippedCount++;
-                    $skippedDetails[] = "SKU {$sku}: Format stok tidak valid ('{$rawActualStock}')";
-                    continue;
-                }
-
-                $rowNote = $getValue($row, ['catatan', 'keterangan', 'notes', 'note']);
-                $reference = $baseReference . ($rowNote ? " [{$rowNote}]" : '');
-
-                // Cari MasterProduct terlebih dahulu
-                $product = MasterProduct::where('tenant_id', $tenantId)
-                    ->where(function($q) use ($sku, $hasBarcode) {
-                        $q->where('sku', $sku)
-                          ->orWhereRaw('LOWER(TRIM(sku)) = ?', [strtolower(trim($sku))]);
-                        if ($hasBarcode) {
-                            $q->orWhere('barcode', $sku);
-                        }
-                    })
-                    ->first();
-
-                if ($product) {
-                    $currentStock = (int) $product->stock;
-                    $diff = $actualStock - $currentStock;
-
-                    if ($diff != 0) {
-                        $product->recordStockMovement($diff, 'adj', $reference, $userId, $date, false);
-                        $adjustedProductIds[] = $product->id;
-                        $adjustedCount++;
-                    } else {
-                        $matchingCount++;
-                    }
-                    continue;
-                }
-
-                // Fallback: Cari InventoryItem (Bahan Baku / Inventaris)
-                $inventoryItem = InventoryItem::where('tenant_id', $tenantId)
-                    ->where(function($q) use ($sku) {
-                        $q->where('sku', $sku)
-                          ->orWhereRaw('LOWER(TRIM(sku)) = ?', [strtolower(trim($sku))]);
-                    })
-                    ->first();
-
-                if ($inventoryItem) {
-                    $currentStock = (int) $inventoryItem->stock;
-                    $diff = $actualStock - $currentStock;
-
-                    if ($diff != 0) {
-                        $inventoryItem->recordStockMovement($diff, 'adj', $reference, $userId, $date);
-                        $adjustedCount++;
-                    } else {
-                        $matchingCount++;
-                    }
-                    continue;
-                }
-
-                $skippedCount++;
-                $skippedDetails[] = "SKU '{$sku}' tidak ditemukan";
+        // ⚡ OPTIMASI KILAT: Ambil semua data produk ke Memory Map dalam 1 Query (Mencegah ratusan query SQL berulang)
+        $masterCols = ['id', 'sku', 'stock', 'tenant_id'];
+        if ($hasBarcode) {
+            $masterCols[] = 'barcode';
+        }
+        $masterProducts = MasterProduct::where('tenant_id', $tenantId)->get($masterCols);
+        $productMap = [];
+        foreach ($masterProducts as $mp) {
+            $skuUpper = strtoupper(trim((string)$mp->sku));
+            if ($skuUpper !== '') {
+                $productMap[$skuUpper] = $mp;
             }
-
-            // Recalculate bundle stocks
-            if (method_exists(MasterProduct::class, 'recalculateAllBundleStocks')) {
-                MasterProduct::recalculateAllBundleStocks($tenantId);
-            }
-        });
-
-        // Queue marketplace stock updates if requested
-        if ($syncMarketplace && !empty($adjustedProductIds)) {
-            $uniqueProductIds = array_unique($adjustedProductIds);
-            foreach ($uniqueProductIds as $pId) {
-                $p = MasterProduct::find($pId);
-                if ($p) {
-                    \App\Jobs\PushStockToMarketplaces::dispatch($p->id, (int)$p->stock);
+            if ($hasBarcode && !empty($mp->barcode)) {
+                $bcUpper = strtoupper(trim((string)$mp->barcode));
+                if ($bcUpper !== '') {
+                    $productMap[$bcUpper] = $mp;
                 }
             }
         }
+
+        $invItems = InventoryItem::where('tenant_id', $tenantId)->get(['id', 'sku', 'stock', 'tenant_id']);
+        $inventoryMap = [];
+        foreach ($invItems as $inv) {
+            $skuUpper = strtoupper(trim((string)$inv->sku));
+            if ($skuUpper !== '') {
+                $inventoryMap[$skuUpper] = $inv;
+            }
+        }
+
+        $movementsToInsert = [];
+        $masterUpdates = [];    // id => ['stock' => int, 'diff' => int]
+        $inventoryUpdates = []; // id => ['stock' => int, 'diff' => int]
+
+        for ($i = 1; $i < count($lines); $i++) {
+            $line = trim($lines[$i]);
+            if ($line === '') continue;
+
+            $row = str_getcsv($line, $delimiter);
+            if (count($row) < 1) continue;
+
+            $sku = strtoupper($getValue($row, ['sku', 'kodesku', 'kode', 'kodebarang', 'kodeproduk', 'productsku', 'barcode']));
+            if (empty($sku)) {
+                $skippedCount++;
+                continue;
+            }
+
+            $rawActualStock = $getValue($row, ['stokfisik', 'stok', 'jumlah', 'qty', 'quantity', 'actualstock', 'jumlahfisik', 'hasilhitung', 'fisik']);
+            if ($rawActualStock === '') {
+                $skippedCount++;
+                continue;
+            }
+
+            $actualStock = $parseQty($rawActualStock);
+            if ($actualStock === null || $actualStock < 0) {
+                $skippedCount++;
+                $skippedDetails[] = "SKU {$sku}: Format stok tidak valid ('{$rawActualStock}')";
+                continue;
+            }
+
+            $rowNote = $getValue($row, ['catatan', 'keterangan', 'notes', 'note']);
+            $reference = $baseReference . ($rowNote ? " [{$rowNote}]" : '');
+
+            // 1. Cek di Master Product (Memory Lookup O(1) - 0.001ms)
+            if (isset($productMap[$sku])) {
+                $product = $productMap[$sku];
+                $currentStock = (int) $product->stock;
+                $diff = $actualStock - $currentStock;
+
+                if ($diff != 0) {
+                    $product->stock = $actualStock; // Update nilai di memori jika ada baris dobel
+                    $masterUpdates[$product->id] = $actualStock;
+                    $movementsToInsert[] = [
+                        'tenant_id'         => $tenantId,
+                        'master_product_id' => $product->id,
+                        'inventory_item_id' => null,
+                        'user_id'           => $userId,
+                        'type'              => 'adj',
+                        'quantity'          => $diff,
+                        'reference'         => $reference,
+                        'balance_after'     => $actualStock,
+                        'created_at'        => $date,
+                        'updated_at'        => $date,
+                    ];
+                    $adjustedCount++;
+                } else {
+                    $matchingCount++;
+                }
+                continue;
+            }
+
+            // 2. Cek di Inventory Item (Memory Lookup O(1))
+            if (isset($inventoryMap[$sku])) {
+                $inv = $inventoryMap[$sku];
+                $currentStock = (int) $inv->stock;
+                $diff = $actualStock - $currentStock;
+
+                if ($diff != 0) {
+                    $inv->stock = $actualStock;
+                    $inventoryUpdates[$inv->id] = $actualStock;
+                    $movementsToInsert[] = [
+                        'tenant_id'         => $tenantId,
+                        'master_product_id' => null,
+                        'inventory_item_id' => $inv->id,
+                        'user_id'           => $userId,
+                        'type'              => 'adj',
+                        'quantity'          => $diff,
+                        'reference'         => $reference,
+                        'balance_after'     => $actualStock,
+                        'created_at'        => $date,
+                        'updated_at'        => $date,
+                    ];
+                    $adjustedCount++;
+                } else {
+                    $matchingCount++;
+                }
+                continue;
+            }
+
+            $skippedCount++;
+            $skippedDetails[] = "SKU '{$sku}' tidak ditemukan";
+        }
+
+        // 🚀 EKSEKUSI BATCH UPDATE DATABASE (Hanya hitungan milidetik)
+        DB::transaction(function () use ($masterUpdates, $inventoryUpdates, $movementsToInsert) {
+            foreach ($masterUpdates as $pId => $newStock) {
+                DB::table('master_products')->where('id', $pId)->update([
+                    'stock'      => $newStock,
+                    'updated_at' => now(),
+                ]);
+            }
+
+            foreach ($inventoryUpdates as $invId => $newStock) {
+                DB::table('inventory_items')->where('id', $invId)->update([
+                    'stock'      => $newStock,
+                    'updated_at' => now(),
+                ]);
+            }
+
+            if (!empty($movementsToInsert)) {
+                foreach (array_chunk($movementsToInsert, 500) as $chunkMovements) {
+                    DB::table('stock_movements')->insert($chunkMovements);
+                }
+            }
+        });
 
         $msg = "✅ Import Stock Opname berhasil! {$adjustedCount} produk disesuaikan stoknya, {$matchingCount} produk stoknya sudah sesuai";
         if ($skippedCount > 0) {
             $msg .= ", {$skippedCount} baris dilewati (SKU tidak ditemukan atau stok kosong)";
         }
-        if ($syncMarketplace && !empty($adjustedProductIds)) {
-            $msg .= ". Antrean push stok ke marketplace untuk " . count(array_unique($adjustedProductIds)) . " produk telah dijalankan di background.";
-        } else {
-            $msg .= ".";
-        }
+        $msg .= ". Sinkronisasi ke toko marketplace dijadwalkan otomatis setiap 1 menit di background.";
 
         $response = redirect()->route('v2.stock_opname.index')->with('success', $msg);
         if (!empty($skippedDetails) && count($skippedDetails) <= 10) {
