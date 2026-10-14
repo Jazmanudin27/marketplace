@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class ScannerGudangController extends Controller
 {
@@ -401,15 +402,24 @@ class ScannerGudangController extends Controller
         $query = MasterProduct::where('tenant_id', $tenantId)
             ->where('is_active', true);
 
+        $hasBarcode = Schema::hasColumn('master_products', 'barcode');
+
         if (!empty($search)) {
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search, $hasBarcode) {
                 $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhere('sku', 'like', '%' . $search . '%')
-                  ->orWhere('barcode', 'like', '%' . $search . '%');
+                  ->orWhere('sku', 'like', '%' . $search . '%');
+                if ($hasBarcode) {
+                    $q->orWhere('barcode', 'like', '%' . $search . '%');
+                }
             });
         }
 
-        $products = $query->select(['id', 'sku', 'barcode', 'name', 'stock', 'unit', 'price'])
+        $selectCols = ['id', 'sku', 'name', 'stock', 'unit', 'price'];
+        if ($hasBarcode) {
+            $selectCols[] = 'barcode';
+        }
+
+        $products = $query->select($selectCols)
             ->orderBy('name')
             ->limit(30)
             ->get();

@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class StockOpnameController extends Controller
 {
@@ -337,8 +338,10 @@ class StockOpnameController extends Controller
         $skippedCount  = 0;
         $skippedDetails = [];
 
+        $hasBarcode = Schema::hasColumn('master_products', 'barcode');
+
         DB::transaction(function () use (
-            $lines, $delimiter, $getValue, $parseQty, $tenantId, $baseReference, $userId, $date,
+            $lines, $delimiter, $getValue, $parseQty, $tenantId, $baseReference, $userId, $date, $hasBarcode,
             &$adjustedCount, &$matchingCount, &$skippedCount, &$skippedDetails
         ) {
             for ($i = 1; $i < count($lines); $i++) {
@@ -372,10 +375,12 @@ class StockOpnameController extends Controller
 
                 // Cari MasterProduct terlebih dahulu
                 $product = MasterProduct::where('tenant_id', $tenantId)
-                    ->where(function($q) use ($sku) {
+                    ->where(function($q) use ($sku, $hasBarcode) {
                         $q->where('sku', $sku)
-                          ->orWhereRaw('LOWER(TRIM(sku)) = ?', [strtolower(trim($sku))])
-                          ->orWhere('barcode', $sku);
+                          ->orWhereRaw('LOWER(TRIM(sku)) = ?', [strtolower(trim($sku))]);
+                        if ($hasBarcode) {
+                            $q->orWhere('barcode', $sku);
+                        }
                     })
                     ->first();
 

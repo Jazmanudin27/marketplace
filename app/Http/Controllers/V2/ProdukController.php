@@ -10,6 +10,7 @@ use App\Models\Store;
 use App\Models\Channel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class ProdukController extends Controller
 {
@@ -468,7 +469,7 @@ class ProdukController extends Controller
                     ->first();
 
                 // Fallback check barcode if not found by sku
-                if (!$existingProduct) {
+                if (!$existingProduct && Schema::hasColumn('master_products', 'barcode')) {
                     $existingProduct = MasterProduct::where('tenant_id', $tenantId)
                         ->where(function($q) use ($sku) {
                             $q->where('barcode', $sku)
