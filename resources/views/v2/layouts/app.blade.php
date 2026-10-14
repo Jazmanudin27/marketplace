@@ -173,8 +173,17 @@
     <!-- Scripts -->
     <script>
         function toggleV2Sidebar() {
-            $('#v2Sidebar').toggleClass('collapsed');
+            $('body').toggleClass('sidebar-collapsed');
+            const isCollapsed = $('body').hasClass('sidebar-collapsed');
+            localStorage.setItem('v2_sidebar_collapsed', isCollapsed ? '1' : '0');
         }
+
+        // Restore sidebar collapsed state on load
+        (function() {
+            if (localStorage.getItem('v2_sidebar_collapsed') === '1') {
+                $('body').addClass('sidebar-collapsed');
+            }
+        })();
 
         // Live Clock Counter
         setInterval(function() {

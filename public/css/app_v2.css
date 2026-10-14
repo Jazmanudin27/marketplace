@@ -300,6 +300,64 @@ body.v2-layout {
     font-size: 0.68rem;
 }
 
+/* Sidebar Collapsed / Minimized State */
+body.sidebar-collapsed {
+    --v2-sidebar-width: 64px;
+}
+
+body.sidebar-collapsed .v2-sidebar {
+    width: 64px !important;
+}
+
+body.sidebar-collapsed .v2-sidebar-brand {
+    padding: 0.85rem 0.5rem;
+    justify-content: center;
+}
+
+body.sidebar-collapsed .v2-sidebar-brand > div,
+body.sidebar-collapsed .v2-nav-section-title,
+body.sidebar-collapsed .v2-nav-link > span,
+body.sidebar-collapsed .v2-nav-link > div > span,
+body.sidebar-collapsed .v2-dropdown-arrow,
+body.sidebar-collapsed .v2-sidebar .overflow-hidden,
+body.sidebar-collapsed .v2-sidebar .px-3.py-2.border-bottom {
+    display: none !important;
+}
+
+body.sidebar-collapsed .v2-nav-link {
+    justify-content: center;
+    padding: 0.5rem 0;
+    position: relative;
+}
+
+body.sidebar-collapsed .v2-nav-link i {
+    width: auto;
+    font-size: 1.15rem;
+    margin: 0 !important;
+}
+
+body.sidebar-collapsed .v2-nav-link > div {
+    justify-content: center;
+}
+
+body.sidebar-collapsed .v2-submenu {
+    display: none !important;
+}
+
+body.sidebar-collapsed .v2-user-card {
+    justify-content: center;
+}
+
+body.sidebar-collapsed .v2-user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+}
+
+body.sidebar-collapsed .v2-main-content {
+    margin-left: 64px !important;
+}
+
 /* Main Content Container */
 .v2-main-content {
     flex: 1;
