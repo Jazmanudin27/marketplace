@@ -796,27 +796,21 @@ class OrderController extends Controller
         try {
             foreach ($stores as $store) {
                 if ($store->channel->code === 'shopee') {
-                    // Sinkronisasi chunk pertama (Hari 1-15) secara instan
-                    dispatch_sync(new \App\Jobs\PullOrdersFromShopee($store, $timeFrom1, $timeTo1));
-                    // Sinkronisasi chunk kedua (Hari 16-30) secara instan
-                    dispatch_sync(new \App\Jobs\PullOrdersFromShopee($store, $timeFrom2, $timeTo2));
+                    \App\Jobs\PullOrdersFromShopee::dispatch($store, $timeFrom1, $timeTo1);
+                    \App\Jobs\PullOrdersFromShopee::dispatch($store, $timeFrom2, $timeTo2);
                 } elseif (in_array($store->channel->code, ['tiktok', 'tokopedia'])) {
-                    // Sinkronisasi chunk pertama (Hari 1-15) secara instan
-                    dispatch_sync(new \App\Jobs\PullOrdersFromTiktok($store, $timeFrom1, $timeTo1));
-                    // Sinkronisasi chunk kedua (Hari 16-30) secara instan
-                    dispatch_sync(new \App\Jobs\PullOrdersFromTiktok($store, $timeFrom2, $timeTo2));
+                    \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom1, $timeTo1);
+                    \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom2, $timeTo2);
                 } elseif ($store->channel->code === 'lazada') {
-                    // Sinkronisasi chunk pertama (Hari 1-15) secara instan
-                    dispatch_sync(new \App\Jobs\PullOrdersFromLazada($store, $timeFrom1, $timeTo1));
-                    // Sinkronisasi chunk kedua (Hari 16-30) secara instan
-                    dispatch_sync(new \App\Jobs\PullOrdersFromLazada($store, $timeFrom2, $timeTo2));
+                    \App\Jobs\PullOrdersFromLazada::dispatch($store, $timeFrom1, $timeTo1);
+                    \App\Jobs\PullOrdersFromLazada::dispatch($store, $timeFrom2, $timeTo2);
                 }
             }
 
-            return back()->with('success', 'Berhasil menyinkronkan data pesanan 30 hari terakhir dari marketplace!');
+            return back()->with('success', 'Permintaan tarik pesanan 30 hari terakhir dari ' . $stores->count() . ' toko sedang diproses di antrean background!');
         } catch (\Exception $e) {
-            Log::error('[OrderSync] Gagal melakukan sinkronisasi instan: ' . $e->getMessage());
-            return back()->with('error', 'Gagal melakukan sinkronisasi pesanan: ' . $e->getMessage());
+            Log::error('[OrderSync] Gagal melakukan sinkronisasi: ' . $e->getMessage());
+            return back()->with('error', 'Gagal memicu sinkronisasi pesanan: ' . $e->getMessage());
         }
     }
 

@@ -51,4 +51,7 @@ Schedule::command('stock:sync --filter=diff')->everyFifteenMinutes()->withoutOve
 // Sinkronisasi saldo & mutasi dompet marketplace otomatis setiap jam
 Schedule::command('marketplace:sync-wallets --days=15')->hourly()->withoutOverlapping();
 
+// Proses antrean background jobs (tarik produk, tarik pesanan, push stok) setiap menit
+Schedule::command('queue:work --stop-when-empty --max-time=50')->everyMinute()->withoutOverlapping();
+
 

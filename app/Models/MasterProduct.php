@@ -352,13 +352,13 @@ class MasterProduct extends Model
     /**
      * Catat pergerakan stok, perbarui stok lokal kilat, dan push async ke toko marketplace.
      */
-    public function recordStockMovement(int $quantity, string $type, string $reference, ?int $userId = null, ?string $date = null): void
+    public function recordStockMovement(int $quantity, string $type, string $reference, ?int $userId = null, ?string $date = null, bool $pushMarketplace = true): void
     {
         if ($this->is_bundle && Schema::hasTable('master_product_bundles')) {
             // Deduct components instead of bundle parent directly
             foreach ($this->components as $component) {
                 $compQty = $quantity * $component->pivot->quantity;
-                $component->recordStockMovement($compQty, $type, $reference . " (Komponen dari Set: " . $this->sku . ")", $userId, $date);
+                $component->recordStockMovement($compQty, $type, $reference . " (Komponen dari Set: " . $this->sku . ")", $userId, $date, $pushMarketplace);
             }
 
             // Sync parent set stock to connected marketplace listings
@@ -374,16 +374,14 @@ class MasterProduct extends Model
                     'updated_at' => now(),
                 ]);
 
-            try {
-                DB::afterCommit(function() use ($newStock) {
-                    if (function_exists('dispatchAfterResponse')) {
-                        \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($this->id, $newStock);
-                    } else {
+            if ($pushMarketplace) {
+                try {
+                    DB::afterCommit(function() use ($newStock) {
                         \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
-                    }
-                });
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::warning('[StockSync] Push bundle stock error: ' . $e->getMessage());
+                    });
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('[StockSync] Push bundle stock error: ' . $e->getMessage());
+                }
             }
             return;
         }
@@ -433,16 +431,14 @@ class MasterProduct extends Model
             ]);
              
         // 4. 🚀 Push stok ke API Marketplace secara ASYNC / NON-BLOCKING
-        try {
-            DB::afterCommit(function() use ($newStock) {
-                if (function_exists('dispatchAfterResponse')) {
-                    \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($this->id, $newStock);
-                } else {
+        if ($pushMarketplace) {
+            try {
+                DB::afterCommit(function() use ($newStock) {
                     \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
-                }
-            });
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning('[StockSync] Push stock error: ' . $e->getMessage());
+                });
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('[StockSync] Push stock error: ' . $e->getMessage());
+            }
         }
 
         // 5. 🎁 Jika produk ini adalah komponen dari Set/Bundle, perbarui stok Set/Bundle induknya!

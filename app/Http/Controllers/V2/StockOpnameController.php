@@ -332,17 +332,19 @@ class StockOpnameController extends Controller
         $userNotes = trim($request->notes ?? '');
         $baseReference = "Stock Opname - {$pic}" . ($userNotes ? " ({$userNotes})" : '');
         $userId = Auth::id();
+        $syncMarketplace = $request->boolean('sync_marketplace', false);
 
         $adjustedCount = 0;
         $matchingCount = 0;
         $skippedCount  = 0;
         $skippedDetails = [];
+        $adjustedProductIds = [];
 
         $hasBarcode = Schema::hasColumn('master_products', 'barcode');
 
         DB::transaction(function () use (
             $lines, $delimiter, $getValue, $parseQty, $tenantId, $baseReference, $userId, $date, $hasBarcode,
-            &$adjustedCount, &$matchingCount, &$skippedCount, &$skippedDetails
+            &$adjustedCount, &$matchingCount, &$skippedCount, &$skippedDetails, &$adjustedProductIds
         ) {
             for ($i = 1; $i < count($lines); $i++) {
                 $line = trim($lines[$i]);
@@ -389,7 +391,8 @@ class StockOpnameController extends Controller
                     $diff = $actualStock - $currentStock;
 
                     if ($diff != 0) {
-                        $product->recordStockMovement($diff, 'adj', $reference, $userId, $date);
+                        $product->recordStockMovement($diff, 'adj', $reference, $userId, $date, false);
+                        $adjustedProductIds[] = $product->id;
                         $adjustedCount++;
                     } else {
                         $matchingCount++;
@@ -428,9 +431,23 @@ class StockOpnameController extends Controller
             }
         });
 
+        // Queue marketplace stock updates if requested
+        if ($syncMarketplace && !empty($adjustedProductIds)) {
+            $uniqueProductIds = array_unique($adjustedProductIds);
+            foreach ($uniqueProductIds as $pId) {
+                $p = MasterProduct::find($pId);
+                if ($p) {
+                    \App\Jobs\PushStockToMarketplaces::dispatch($p->id, (int)$p->stock);
+                }
+            }
+        }
+
         $msg = "✅ Import Stock Opname berhasil! {$adjustedCount} produk disesuaikan stoknya, {$matchingCount} produk stoknya sudah sesuai";
         if ($skippedCount > 0) {
-            $msg .= ", {$skippedCount} baris dilewati (SKU tidak ditemukan atau stok kosong).";
+            $msg .= ", {$skippedCount} baris dilewati (SKU tidak ditemukan atau stok kosong)";
+        }
+        if ($syncMarketplace && !empty($adjustedProductIds)) {
+            $msg .= ". Antrean push stok ke marketplace untuk " . count(array_unique($adjustedProductIds)) . " produk telah dijalankan di background.";
         } else {
             $msg .= ".";
         }

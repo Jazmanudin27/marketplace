@@ -406,6 +406,18 @@
                         <div class="form-text text-muted" style="font-size: 0.7rem;">Maksimal ukuran file: 20MB.</div>
                     </div>
 
+                    <div class="mb-3 p-2.5 border rounded-2 bg-white">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="sync_marketplace" id="syncMarketplaceCheck" value="1">
+                            <label class="form-check-label fw-semibold text-dark small" for="syncMarketplaceCheck">
+                                <i class="bi bi-shop me-1 text-primary"></i> Sinkronkan perubahan stok ke Marketplace (Background Queue)
+                            </label>
+                        </div>
+                        <div class="form-text text-muted ps-4" style="font-size: 0.72rem;">
+                            Proses import tetap kilat tanpa timeout 504. Sinkronisasi ke toko Shopee/TikTok/Tokopedia/Lazada akan dikerjakan di antrean background.
+                        </div>
+                    </div>
+
                     <!-- Pilihan Download Template -->
                     <div class="p-3 bg-light border rounded-3">
                         <div class="fw-bold text-dark mb-1" style="font-size: 0.8rem;">

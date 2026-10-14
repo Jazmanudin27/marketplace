@@ -268,6 +268,7 @@ class LaporanStokController extends Controller
     public function syncBatch(Request $request)
     {
         $this->checkAccess();
+        @set_time_limit(300);
         $tenantId = Auth::user()->tenant_id;
         $productIds = $request->input('product_ids', []);
 
@@ -289,7 +290,7 @@ class LaporanStokController extends Controller
         foreach ($products as $p) {
             try {
                 // Khusus menu V2, forcePushPreOrder = true
-                PushStockToMarketplaces::dispatchSync($p->id, (int)$p->stock, true);
+                PushStockToMarketplaces::dispatch($p->id, (int)$p->stock, true);
                 $count++;
             } catch (\Throwable $e) {
                 $errors[] = $p->sku . ': ' . $e->getMessage();
@@ -300,7 +301,7 @@ class LaporanStokController extends Controller
             'success' => true,
             'count'   => $count,
             'errors'  => $errors,
-            'message' => "Berhasil menyinkronkan {$count} produk ke marketplace."
+            'message' => "Berhasil memasukkan {$count} produk ke antrean sinkronisasi marketplace di background."
         ]);
     }
 }
