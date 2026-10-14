@@ -4158,7 +4158,7 @@ app.get('/api/v2/owner/stock-card/finished-goods', async (req, res) => {
 
     // 2. Ambil Daftar Produk Sesuai Filter
     const products = await query(
-      `SELECT mp.id, mp.name, mp.sku, mp.barcode, mp.stock, mp.min_stock, mp.safety_stock,
+      `SELECT mp.id, mp.name, mp.sku, mp.barcode, mp.stock, mp.min_stock,
               mp.unit, mp.cost_price, mp.price, mp.image_url, mp.sub_kategori, mp.ukuran, mp.warna,
               mp.updated_at
        FROM master_products mp
