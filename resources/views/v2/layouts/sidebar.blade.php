@@ -217,6 +217,21 @@
                 request()->routeIs('v2.scanner_gudang.*') ||
                 request()->routeIs('v2.stock_opname.*') ||
                 request()->routeIs('v2.reports.stock*');
+
+            $lowStockAlertCount = 0;
+            if (auth()->check() && auth()->user()->tenant_id) {
+                try {
+                    $lowStockAlertCount = \Illuminate\Support\Facades\Cache::remember(
+                        'low_stock_count_' . auth()->user()->tenant_id,
+                        60,
+                        function () {
+                            return \App\Models\MasterProduct::where('tenant_id', auth()->user()->tenant_id)
+                                ->where('stock', '<', 10)
+                                ->count();
+                        }
+                    );
+                } catch (\Throwable $e) {}
+            }
         @endphp
         <div class="v2-nav-item v2-nav-dropdown {{ $isGudangJadiActive ? 'show' : '' }}">
             <a href="javascript:void(0)"
@@ -227,7 +242,12 @@
                     <i class="bi bi-arrow-left-right text-primary"></i>
                     <span>Gudang Jadi</span>
                 </div>
-                <i class="bi bi-chevron-down v2-dropdown-arrow ms-auto" style="font-size: 0.65rem;"></i>
+                <div class="d-flex align-items-center gap-1.5 ms-auto">
+                    @if($lowStockAlertCount > 0)
+                        <span class="badge bg-danger rounded-pill px-1.5 py-0.5" style="font-size: 0.6rem;" title="{{ $lowStockAlertCount }} Produk Stok < 10">{{ $lowStockAlertCount }}</span>
+                    @endif
+                    <i class="bi bi-chevron-down v2-dropdown-arrow" style="font-size: 0.65rem;"></i>
+                </div>
             </a>
             <div class="collapse v2-submenu {{ $isGudangJadiActive ? 'show' : '' }}" id="gudangJadiSubmenu">
                 <div class="v2-submenu-inner">
@@ -242,9 +262,14 @@
                         <span>Scanner Gudang</span>
                     </a>
                     <a href="{{ route('v2.reports.stock') }}"
-                        class="v2-submenu-link {{ request()->is('v2/reports/stock*') || request()->is('v2/laporan-stok*') || request()->routeIs('v2.reports.stock*') ? 'active' : '' }}">
-                        <i class="bi bi-boxes text-info me-1.5"></i>
-                        <span>Laporan Stok Barang</span>
+                        class="v2-submenu-link d-flex align-items-center justify-content-between {{ request()->is('v2/reports/stock*') || request()->is('v2/laporan-stok*') || request()->routeIs('v2.reports.stock*') ? 'active' : '' }}">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-boxes text-info me-1.5"></i>
+                            <span>Stok Barang</span>
+                        </div>
+                        @if($lowStockAlertCount > 0)
+                            <span class="badge bg-danger rounded-pill px-1.5 py-0.5 ms-auto" style="font-size: 0.62rem;" title="{{ $lowStockAlertCount }} Produk Stok < 10">{{ $lowStockAlertCount }}</span>
+                        @endif
                     </a>
                 </div>
             </div>

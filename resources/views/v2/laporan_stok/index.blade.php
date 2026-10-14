@@ -1,6 +1,6 @@
 @extends('v2.layouts.app')
 
-@section('title', 'Laporan Stok Barang (Gudang & Marketplace) V2')
+@section('title', 'Stok Barang')
 
 @push('styles')
 <style>
@@ -54,6 +54,10 @@
 .psr-tab.active .tab-badge { background: #2563eb; }
 .psr-tab .tab-badge.badge-danger-tab {
     background: #ef4444 !important;
+    color: #fff !important;
+}
+.psr-tab .tab-badge.badge-warning-tab {
+    background: #f59e0b !important;
     color: #fff !important;
 }
 
@@ -157,7 +161,7 @@
 <div class="v2-page-header align-items-center mb-3">
     <div>
         <h1 class="v2-page-title d-flex align-items-center gap-2">
-            <i class="bi bi-boxes text-primary fs-5"></i> Laporan Stok Barang (Gudang &amp; Marketplace) V2
+            <i class="bi bi-boxes text-primary fs-5"></i> Stok Barang
         </h1>
         <p class="v2-page-subtitle mb-0">Pemantauan real-time stok fisik gudang vs kuota etalase marketplace, deteksi selisih stok &amp; sinkronisasi otomatis</p>
     </div>
@@ -184,13 +188,44 @@
         elseif (request('is_preorder') === '0') $currentTab = 'ready';
         elseif (request('is_preorder') === '1') $currentTab = 'po';
         elseif (request('only_different') || request('only_diff')) $currentTab = 'diff';
+        elseif (request('low_stock') || request('only_low')) $currentTab = 'low';
     }
-    $baseParams = request()->except(['tab', 'page', 'is_bundle', 'is_preorder', 'only_different', 'only_diff']);
+    $baseParams = request()->except(['tab', 'page', 'is_bundle', 'is_preorder', 'only_different', 'only_diff', 'low_stock', 'only_low']);
 @endphp
+
+{{-- ── Banner Alert Stok Kurang Dari 10 PCS ── --}}
+@if(($counts['low'] ?? 0) > 0)
+    <div class="alert alert-warning border-0 border-start border-4 border-warning d-flex flex-wrap align-items-center justify-content-between p-3 mb-3 rounded-3 shadow-xs" style="background: #fffbeb; border-left-color: #f59e0b !important;">
+        <div class="d-flex align-items-center gap-2.5">
+            <div class="d-flex align-items-center justify-content-center rounded-circle bg-warning text-dark flex-shrink-0" style="width: 36px; height: 36px; font-size: 1.1rem;">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <div>
+                <div class="fw-bold text-dark" style="font-size: 0.88rem;">
+                    ⚠️ Peringatan Stok Gudang: Ada <span class="badge bg-danger text-white rounded-pill px-2 py-0.5 mx-0.5" style="font-size: 0.82rem;">{{ number_format($counts['low'] ?? 0) }} produk</span> dengan stok kurang dari 10 PCS!
+                </div>
+                <div class="text-secondary mt-0.5" style="font-size: 0.74rem;">
+                    Produk di bawah batas minimum (10 pcs) berisiko kehabisan saat ada lonjakan pesanan marketplace.
+                </div>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+            @if($currentTab === 'low')
+                <a href="{{ route('v2.reports.stock', $baseParams) }}" class="btn btn-sm btn-outline-secondary py-1 px-3 fw-medium" style="font-size: 0.76rem;">
+                    <i class="bi bi-x-circle me-1"></i>Tampilkan Semua Produk
+                </a>
+            @else
+                <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'low'])) }}" class="btn btn-sm btn-warning py-1.5 px-3 fw-bold text-dark shadow-xs" style="font-size: 0.76rem;">
+                    <i class="bi bi-filter-circle-fill me-1"></i>Lihat {{ number_format($counts['low'] ?? 0) }} Produk Menipis (&lt; 10 PCS)
+                </a>
+            @endif
+        </div>
+    </div>
+@endif
 
 <!-- Header Summary Widgets (KPI Cards Persis Master Produk) -->
 <div class="row g-2 mb-3">
-    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+    <div class="col-12 col-sm-6 col-md-4 col-xl">
         <a href="{{ route('v2.reports.stock', $baseParams) }}" class="v2-stat-link {{ $currentTab === '' ? 'active' : '' }}" title="Total Master">
             <div class="v2-stat-widget widget-blue">
                 <div class="v2-stat-icon-wrapper blue">
@@ -203,7 +238,7 @@
             </div>
         </a>
     </div>
-    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+    <div class="col-12 col-sm-6 col-md-4 col-xl">
         <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'single'])) }}" class="v2-stat-link {{ $currentTab === 'single' ? 'active' : '' }}" title="Single Utama">
             <div class="v2-stat-widget widget-green">
                 <div class="v2-stat-icon-wrapper green">
@@ -216,7 +251,7 @@
             </div>
         </a>
     </div>
-    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+    <div class="col-12 col-sm-6 col-md-4 col-xl">
         <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'bundle'])) }}" class="v2-stat-link {{ $currentTab === 'bundle' ? 'active' : '' }}" title="Paket Bundle">
             <div class="v2-stat-widget widget-purple">
                 <div class="v2-stat-icon-wrapper purple">
@@ -229,7 +264,7 @@
             </div>
         </a>
     </div>
-    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+    <div class="col-12 col-sm-6 col-md-4 col-xl">
         <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'ready'])) }}" class="v2-stat-link {{ $currentTab === 'ready' ? 'active' : '' }}" title="Stock Ready">
             <div class="v2-stat-widget widget-blue">
                 <div class="v2-stat-icon-wrapper blue">
@@ -242,7 +277,7 @@
             </div>
         </a>
     </div>
-    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+    <div class="col-12 col-sm-6 col-md-4 col-xl">
         <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'po'])) }}" class="v2-stat-link {{ $currentTab === 'po' ? 'active' : '' }}" title="Pre-Order (PO)">
             <div class="v2-stat-widget widget-amber">
                 <div class="v2-stat-icon-wrapper amber">
@@ -255,7 +290,7 @@
             </div>
         </a>
     </div>
-    <div class="col-12 col-sm-6 col-md-4 col-xl-2">
+    <div class="col-12 col-sm-6 col-md-4 col-xl">
         <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'diff'])) }}" class="v2-stat-link {{ $currentTab === 'diff' ? 'active' : '' }}" title="Selisih Stok">
             <div class="v2-stat-widget red-theme">
                 <div class="v2-stat-icon-wrapper amber" style="background-color: #fee2e2; color: #ef4444;">
@@ -264,6 +299,19 @@
                 <div class="v2-stat-info">
                     <span class="v2-stat-num" style="color: #ef4444;">{{ number_format($counts['diff'] ?? 0) }}</span>
                     <span class="v2-stat-lbl">Selisih Stok</span>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-12 col-sm-6 col-md-4 col-xl">
+        <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'low'])) }}" class="v2-stat-link {{ $currentTab === 'low' ? 'active' : '' }}" title="Stok Gudang < 10 PCS">
+            <div class="v2-stat-widget" style="background: {{ ($counts['low'] ?? 0) > 0 ? '#fffbeb' : '#fff' }}; border-color: {{ ($counts['low'] ?? 0) > 0 ? '#fde68a' : '#e5e7eb' }};">
+                <div class="v2-stat-icon-wrapper amber" style="background-color: #fef3c7; color: #d97706;">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                </div>
+                <div class="v2-stat-info">
+                    <span class="v2-stat-num" style="color: #d97706;">{{ number_format($counts['low'] ?? 0) }}</span>
+                    <span class="v2-stat-lbl">Stok &lt; 10 PCS</span>
                 </div>
             </div>
         </a>
@@ -282,6 +330,7 @@
             'ready'  => ['label' => 'Stock Ready', 'icon' => 'bi bi-check-circle', 'countKey' => 'ready'],
             'po'     => ['label' => 'Pre-Order (PO)', 'icon' => 'bi bi-clock-history', 'countKey' => 'po'],
             'diff'   => ['label' => 'Ada Selisih', 'icon' => 'bi bi-exclamation-triangle-fill', 'countKey' => 'diff'],
+            'low'    => ['label' => 'Stok < 10 PCS', 'icon' => 'bi bi-exclamation-triangle-fill', 'countKey' => 'low'],
         ];
     @endphp
     <div class="psr-tab-bar" role="tablist">
@@ -298,7 +347,7 @@
                 <i class="{{ $tabInfo['icon'] }}" style="font-size: .8rem;"></i>
                 {{ $tabInfo['label'] }}
                 @if($count > 0)
-                    <span class="tab-badge {{ $tabKey === 'diff' ? 'badge-danger-tab' : '' }}">
+                    <span class="tab-badge {{ $tabKey === 'diff' ? 'badge-danger-tab' : ($tabKey === 'low' ? 'badge-warning-tab' : '') }}">
                         {{ $count > 9999 ? '9999+' : number_format($count) }}
                     </span>
                 @endif
@@ -392,6 +441,12 @@
                         Hanya Tampilkan Selisih Stok
                     </label>
                 </div>
+                <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
+                    <input class="form-check-input no-select2" type="checkbox" name="low_stock" value="1" id="filterLowStock" {{ request('low_stock') || $currentTab === 'low' ? 'checked' : '' }} onchange="if(this.checked){ window.location='{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'low'])) }}'; } else { window.location='{{ route('v2.reports.stock', $baseParams) }}'; }">
+                    <label class="form-check-label fw-semibold text-warning-emphasis" for="filterLowStock">
+                        Hanya Stok &lt; 10 PCS
+                    </label>
+                </div>
             </div>
         </form>
     </div>
@@ -406,13 +461,18 @@
                 &nbsp;·&nbsp; Total Stok Fisik: <strong class="text-primary">{{ number_format($counts['total_stock'] ?? 0) }} pcs</strong>
             @endif
         </div>
-        @if(($counts['diff'] ?? 0) > 0)
-            <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2">
+            @if(($counts['low'] ?? 0) > 0)
+                <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'low'])) }}" class="badge bg-warning text-dark border border-warning px-2.5 py-1 text-decoration-none shadow-xs" style="font-size: 0.72rem;" title="Klik untuk filter produk stok < 10">
+                    <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i>{{ number_format($counts['low'] ?? 0) }} Stok &lt; 10 PCS
+                </a>
+            @endif
+            @if(($counts['diff'] ?? 0) > 0)
                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size: 0.72rem;">
                     <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ number_format($counts['diff'] ?? 0) }} Produk Selisih
                 </span>
-            </div>
-        @endif
+            @endif
+        </div>
     </div>
 
     {{-- Table Persis Master Produk --}}
@@ -424,7 +484,7 @@
                         <th style="width: 35px;" class="text-center">#</th>
                         <th>NAMA PRODUK / MASTER</th>
                         <th>KATEGORI &amp; BRAND</th>
-                        <th class="text-center" style="width: 130px;">STOK GUDANG</th>
+                        <th class="text-center" style="width: 140px;">STOK GUDANG</th>
                         <th>KUOTA MARKETPLACE PER-TOKO</th>
                         <th class="text-center" style="width: 120px;">STATUS SINKRON</th>
                         <th class="text-center" style="width: 110px;">AKSI</th>
@@ -436,6 +496,7 @@
                             $isPO        = (bool) ($prod->is_preorder);
                             $gudangStock = (int) ($prod->stock ?? 0);
                             $minStock    = (int) ($prod->min_stock ?? 5);
+                            $isLowStock  = ($gudangStock < 10);
 
                             // Marketplace comparison: PO dikecualikan karena kuota PO tidak terikat stok fisik gudang
                             $hasDiscrepancy = false;
@@ -459,13 +520,13 @@
                                 ];
                             }
                         @endphp
-                        <tr class="{{ $hasDiscrepancy ? 'table-danger-subtle' : '' }}" id="product-row-{{ $prod->id }}">
+                        <tr class="{{ $hasDiscrepancy ? 'table-danger-subtle' : ($isLowStock ? 'table-warning-subtle' : '') }}" id="product-row-{{ $prod->id }}">
                             <td class="text-center text-muted" style="font-size: 0.72rem;">
                                 {{ $products->firstItem() + $index }}
                             </td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="product-avatar-icon {{ $hasDiscrepancy ? 'border-danger' : '' }}" style="{{ $hasDiscrepancy ? 'background: #fee2e2; color: #ef4444;' : '' }}">
+                                    <div class="product-avatar-icon {{ $hasDiscrepancy ? 'border-danger' : ($isLowStock ? 'border-warning' : '') }}" style="{{ $hasDiscrepancy ? 'background: #fee2e2; color: #ef4444;' : ($isLowStock ? 'background: #fef3c7; color: #d97706;' : '') }}">
                                         <i class="bi bi-box-seam"></i>
                                     </div>
                                     <div class="overflow-hidden">
@@ -505,9 +566,13 @@
                             </td>
                             <td class="text-center">
                                 @if($gudangStock <= 0)
-                                    <span class="badge bg-danger text-white font-monospace px-2 py-1" style="font-size: 0.75rem;">Habis (0)</span>
-                                @elseif($gudangStock <= $minStock)
-                                    <span class="badge bg-warning text-dark font-monospace px-2 py-1" style="font-size: 0.75rem;">Menipis ({{ $gudangStock }})</span>
+                                    <span class="badge bg-danger text-white font-monospace px-2 py-1 shadow-xs" style="font-size: 0.75rem;" title="Stok Kosong / Habis!">
+                                        <i class="bi bi-x-circle me-1"></i>Habis (0)
+                                    </span>
+                                @elseif($gudangStock < 10)
+                                    <span class="badge bg-warning text-dark border border-warning font-monospace px-2 py-1 shadow-xs" style="font-size: 0.75rem;" title="Peringatan: Stok kurang dari 10 PCS!">
+                                        <i class="bi bi-exclamation-triangle-fill text-danger me-0.5"></i>{{ $gudangStock }} {{ $prod->unit ?? 'pcs' }}
+                                    </span>
                                 @else
                                     <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace px-2.5 py-1" style="font-size: 0.78rem;">
                                         <i class="bi bi-box me-0.5"></i>{{ number_format($gudangStock) }} {{ $prod->unit ?? 'pcs' }}

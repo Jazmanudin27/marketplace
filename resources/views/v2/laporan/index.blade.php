@@ -89,7 +89,7 @@
     </a>
     <a href="{{ route('v2.reports.stock') }}" class="v2-tab-item">
         <i class="bi bi-boxes fs-6"></i>
-        <span>Laporan Stok Barang</span>
+        <span>Stok Barang</span>
     </a>
 </div>
 

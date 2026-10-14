@@ -49,6 +49,8 @@ class LaporanStokController extends Controller
                 $mq->where('sync_stock', true)
                    ->whereColumn('stock', '!=', 'master_products.stock');
             });
+        } elseif ($tab === 'low') {
+            $query->where('stock', '<', 10);
         }
 
         if ($request->filled('category_id')) {
@@ -171,6 +173,7 @@ class LaporanStokController extends Controller
                     $mq->where('sync_stock', true)
                        ->whereColumn('stock', '!=', 'master_products.stock');
                 })->count(),
+            'low'         => MasterProduct::where('tenant_id', $tenantId)->where('stock', '<', 10)->count(),
             'total_stock' => (int) MasterProduct::where('tenant_id', $tenantId)->sum('stock'),
         ];
 
@@ -181,6 +184,7 @@ class LaporanStokController extends Controller
             'total_ready'    => $counts['ready'],
             'total_po'       => $counts['po'],
             'total_diff'     => $counts['diff'],
+            'total_low'      => $counts['low'],
             'total_stock'    => $counts['total_stock'],
         ];
 
