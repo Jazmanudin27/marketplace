@@ -104,8 +104,16 @@
 
         <!-- Payments History -->
         <div class="card border-0 shadow-sm rounded-3">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h6 class="card-title fw-bold mb-0">Riwayat Pembayaran Kasir</h6>
+            <div class="card-header bg-white py-2.5 px-3 border-bottom d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-cash-stack text-success fs-5"></i>
+                    <h6 class="card-title fw-bold mb-0">Riwayat Pembayaran Kasir</h6>
+                </div>
+                @if($sale->status !== 'cancelled' && $sale->remaining_amount > 0)
+                    <button type="button" class="btn btn-sm btn-success fw-semibold px-2.5 py-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalRecordPaymentShow">
+                        <i class="bi bi-plus-circle me-1"></i> Catat Pembayaran / Cicilan
+                    </button>
+                @endif
             </div>
             <div class="table-responsive">
                 <table class="table align-middle mb-0" style="font-size: 0.83rem;">
@@ -116,6 +124,9 @@
                             <th>Tujuan Kas / Bank</th>
                             <th>Keterangan</th>
                             <th class="text-end pe-3">Jumlah Dibayar</th>
+                            @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner']))
+                                <th class="text-center" style="width: 60px;">Aksi</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -126,10 +137,21 @@
                                 <td>{{ ucwords(str_replace('_', ' ', $pmt->payment_destination ?: 'kas_besar')) }}</td>
                                 <td class="text-muted">{{ $pmt->notes ?: '-' }}</td>
                                 <td class="text-end pe-3 font-monospace fw-bold text-success">Rp {{ number_format($pmt->amount, 0, ',', '.') }}</td>
+                                @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner']))
+                                    <td class="text-center">
+                                        <form method="POST" action="{{ route('offline_sales.payments.destroy', [$sale->id, $pmt->id]) }}" class="d-inline" onsubmit="return confirm('Hapus cicilan pembayaran Rp {{ number_format($pmt->amount, 0, ',', '.') }} ini? Saldo kas/bank dan jurnal pemasukan keuangan akan di-rollback.')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger btn-xs py-0 px-1.5" title="Hapus Pembayaran">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                @endif
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-3 text-muted fst-italic">Belum ada riwayat pembayaran tercatat.</td>
+                                <td colspan="{{ (auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner'])) ? 6 : 5 }}" class="text-center py-3 text-muted fst-italic">Belum ada riwayat pembayaran tercatat.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -248,6 +270,107 @@
         </div>
     </div>
 </div>
+
+{{-- Modal Catat Pembayaran / Cicilan --}}
+@if($sale->status !== 'cancelled' && $sale->remaining_amount > 0)
+<div class="modal fade" id="modalRecordPaymentShow" tabindex="-1" aria-labelledby="modalRecordPaymentShowLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white py-2.5">
+                <h6 class="modal-title fw-bold" id="modalRecordPaymentShowLabel">
+                    <i class="bi bi-cash-coin me-1.5"></i> Catat Pembayaran / Cicilan #{{ $sale->sale_number }}
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ route('offline_sales.payments.store', $sale->id) }}">
+                @csrf
+                <div class="modal-body p-3">
+                    <div class="p-2.5 bg-light rounded-3 border mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted">Grand Total Tagihan:</span>
+                            <span class="font-monospace fw-bold">Rp {{ number_format($sale->grand_total, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted">Sudah Dibayar:</span>
+                            <span class="font-monospace fw-semibold text-success">Rp {{ number_format($sale->paid_amount, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-top pt-1">
+                            <span class="small fw-bold text-dark">Sisa Tagihan / Piutang:</span>
+                            <span class="font-monospace fw-bold text-danger fs-6">Rp {{ number_format($sale->remaining_amount, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-2.5">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-dark mb-1">Tanggal Bayar <span class="text-danger">*</span></label>
+                            <input type="date" name="payment_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-dark mb-1">Metode Bayar <span class="text-danger">*</span></label>
+                            <select name="payment_method" class="form-select form-select-sm fw-semibold" required>
+                                <option value="tunai" selected>Tunai / Cash</option>
+                                <option value="transfer">Transfer Bank</option>
+                                <option value="qris">QRIS / E-Wallet</option>
+                                @if($sale->customer_id)
+                                    <option value="reseller_balance">Saldo Reseller</option>
+                                @endif
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-2.5">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-semibold text-dark mb-0">Nominal Pembayaran (Rp) <span class="text-danger">*</span></label>
+                            <button type="button" class="btn btn-link btn-xs text-primary p-0 text-decoration-none small fw-semibold" onclick="document.getElementById('modal_payment_amount').value = '{{ (int)$sale->remaining_amount }}'">Lunasi Semua</button>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text py-0 px-2 text-success fw-bold">Rp</span>
+                            <input type="number" name="amount" id="modal_payment_amount" class="form-control form-control-sm text-end font-monospace fw-bold text-success fs-6"
+                                   min="1" max="{{ (int)$sale->remaining_amount }}" value="{{ (int)$sale->remaining_amount }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-2.5">
+                        <label class="form-label small fw-semibold text-dark mb-1">
+                            <i class="bi bi-bank text-primary me-1"></i>Kas / Bank Tujuan Masuk <span class="text-danger">*</span>
+                        </label>
+                        <select name="payment_destination" class="form-select form-select-sm fw-semibold" required>
+                            @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                @foreach($bankAccounts as $bank)
+                                    <option value="{{ $bank->bank_name }}" {{ ($sale->payment_destination == $bank->bank_name || $loop->first) ? 'selected' : '' }}>
+                                        {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }} — Saldo: Rp {{ number_format($bank->current_balance, 0, ',', '.') }}
+                                    </option>
+                                @endforeach
+                            @else
+                                <option value="kas_besar">Kas Toko (Utama)</option>
+                                <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                            @endif
+                        </select>
+                    </div>
+
+                    <div class="mb-2.5">
+                        <label class="form-label small fw-semibold text-dark mb-1">No. Referensi / Bukti Transfer (Opsional)</label>
+                        <input type="text" name="reference_number" class="form-control form-control-sm" placeholder="Contoh: REF-12345678">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold text-dark mb-1">Catatan / Keterangan (Opsional)</label>
+                        <input type="text" name="notes" class="form-control form-control-sm"
+                               value="{{ $sale->status === \App\Models\OfflineSale::STATUS_WAITING_DP ? 'Pembayaran DP' : 'Cicilan Tagihan POS' }}"
+                               placeholder="Contoh: Pelunasan piutang, DP tambahan...">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-sm btn-success px-4 fw-bold shadow-sm">
+                        <i class="bi bi-check-circle me-1"></i> Simpan Pembayaran
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 
 {{-- Modal Terbitkan SPK Produksi --}}
 @php

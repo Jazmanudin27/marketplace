@@ -138,6 +138,66 @@ class OfflineSaleTest extends TestCase
         $this->assertEquals(7, $this->masterProduct->stock);
     }
 
+    public function test_offline_sale_store_automatically_records_income_and_updates_bank_account(): void
+    {
+        $bank = \App\Models\BankAccount::create([
+            'tenant_id'       => $this->tenant->id,
+            'bank_name'       => 'Kas Kasir Toko',
+            'account_number'  => '111-222-333',
+            'account_name'    => 'Kas Toko',
+            'current_balance' => 100000,
+            'is_active'       => true,
+        ]);
+
+        $payload = [
+            'items' => [
+                [
+                    'master_product_id' => $this->masterProduct->id,
+                    'quantity'          => 2,
+                    'unit_price'        => 25000,
+                ]
+            ],
+            'payment_method'      => 'tunai',
+            'payment_destination' => 'Kas Kasir Toko',
+            'paid_amount'         => 50000,
+            'discount_amount'     => 0,
+            'buyer_name'          => 'Pelanggan POS Tunai',
+            'buyer_phone'         => '081999888777',
+            'notes'               => 'Pembayaran Lunas Kasir',
+        ];
+
+        $response = $this->actingAs($this->user)
+            ->post(route('offline_sales.store'), $payload);
+
+        $response->assertRedirect(route('offline_sales.index'));
+        $response->assertSessionHas('success');
+
+        $sale = OfflineSale::where('tenant_id', $this->tenant->id)
+            ->where('buyer_name', 'Pelanggan POS Tunai')
+            ->first();
+        $this->assertNotNull($sale);
+        $this->assertEquals(50000, (float)$sale->paid_amount);
+
+        // 1. Saldo bank bertambah
+        $bank->refresh();
+        $this->assertEquals(150000, (float)$bank->current_balance);
+
+        // 2. Record OfflineSalePayment terbuat
+        $payment = $sale->payments()->first();
+        $this->assertNotNull($payment);
+        $this->assertEquals(50000, (float)$payment->amount);
+        $this->assertEquals('Kas Kasir Toko', $payment->payment_destination);
+        $this->assertNotNull($payment->income_id);
+
+        // 3. Record Income keuangan terbuat
+        $this->assertDatabaseHas('incomes', [
+            'id'                  => $payment->income_id,
+            'tenant_id'           => $this->tenant->id,
+            'amount'              => 50000,
+            'payment_destination' => 'Kas Kasir Toko',
+        ]);
+    }
+
     public function test_offline_sale_store_fails_if_insufficient_stock(): void
     {
         $payload = [

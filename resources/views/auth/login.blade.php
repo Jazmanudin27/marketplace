@@ -524,7 +524,7 @@
                 <!-- Remember Me & Forgot Password -->
                 <div class="form-row-options">
                     <label class="custom-checkbox" for="remember">
-                        <input type="checkbox" id="remember" name="remember" class="checkbox-input" {{ old('remember') ? 'checked' : '' }}>
+                        <input type="checkbox" id="remember" name="remember" class="checkbox-input" checked>
                         <span class="checkbox-label">Ingat sesi saya</span>
                     </label>
                     <a href="#" class="helper-link" onclick="alert('Silakan hubungi Super Admin untuk mereset kata sandi Anda.'); return false;">

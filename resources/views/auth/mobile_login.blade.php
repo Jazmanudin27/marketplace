@@ -207,7 +207,7 @@
 
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="remember" id="remember">
+                    <input class="form-check-input" type="checkbox" name="remember" id="remember" checked>
                     <label class="form-check-label small text-muted fw-semibold" for="remember">
                         Ingat Saya
                     </label>

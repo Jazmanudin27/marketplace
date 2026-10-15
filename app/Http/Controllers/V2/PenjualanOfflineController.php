@@ -279,7 +279,12 @@ class PenjualanOfflineController extends Controller
             ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
-        return view('v2.penjualan_offline.show', compact('sale'));
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('bank_name')
+            ->get();
+
+        return view('v2.penjualan_offline.show', compact('sale', 'bankAccounts'));
     }
 
     /**

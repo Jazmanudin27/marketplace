@@ -225,7 +225,26 @@
                             <option value="tunai" {{ $offlineSale->payment_method === 'tunai' ? 'selected' : '' }}>Tunai / Cash</option>
                             <option value="transfer" {{ $offlineSale->payment_method === 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
                             <option value="qris" {{ $offlineSale->payment_method === 'qris' ? 'selected' : '' }}>QRIS / E-Wallet</option>
+                            <option value="reseller_balance" {{ $offlineSale->payment_method === 'reseller_balance' ? 'selected' : '' }}>Saldo Reseller</option>
                             <option value="piutang" {{ $offlineSale->payment_method === 'piutang' ? 'selected' : '' }}>Piutang / Tempo Kredit</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-2.5" id="wrapper_payment_destination">
+                        <label class="form-label small fw-semibold text-secondary mb-1">
+                            <i class="bi bi-bank text-primary me-1"></i>Kas / Rekening Masuk
+                        </label>
+                        <select name="payment_destination" id="payment_destination" class="form-select form-select-sm fw-semibold">
+                            @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                @foreach($bankAccounts as $bank)
+                                    <option value="{{ $bank->bank_name }}" {{ ($offlineSale->payment_destination == $bank->bank_name || $loop->first) ? 'selected' : '' }}>
+                                        {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }} — Saldo: Rp {{ number_format($bank->current_balance, 0, ',', '.') }}
+                                    </option>
+                                @endforeach
+                            @else
+                                <option value="kas_besar" {{ $offlineSale->payment_destination === 'kas_besar' ? 'selected' : '' }}>Kas Toko (Utama)</option>
+                                <option value="kas_kecil" {{ $offlineSale->payment_destination === 'kas_kecil' ? 'selected' : '' }}>Kas Kecil (Operasional)</option>
+                            @endif
                         </select>
                     </div>
 

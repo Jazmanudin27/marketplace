@@ -140,6 +140,7 @@ class OfflineSaleController extends Controller
             'items.*.quantity'          => 'required|integer|min:1',
             'items.*.unit_price'        => 'required|numeric|min:0',
             'payment_method'            => 'nullable|string|in:tunai,transfer,qris,piutang,reseller_balance',
+            'payment_destination'       => 'nullable|string|max:100',
             'paid_amount'               => 'nullable|numeric|min:0',
             'discount_amount'           => 'nullable|numeric|min:0',
             'buyer_name'                => 'nullable|string|max:100',
@@ -284,44 +285,100 @@ class OfflineSaleController extends Controller
                 }
             }
 
+            $paymentDest = $request->payment_destination ?: 'kas_besar';
             $isPo = $request->boolean('is_po');
-            $initialStatus = $isPo ? OfflineSale::STATUS_WAITING_DP : OfflineSale::STATUS_COMPLETED;
+            $initialStatus = $isPo
+                ? ($paidAmount > 0 ? OfflineSale::STATUS_PENDING_SPK : OfflineSale::STATUS_WAITING_DP)
+                : OfflineSale::STATUS_COMPLETED;
             $followUpDate = $isPo ? ($request->follow_up_date ?: now()->addDays(3)->toDateString()) : null;
 
             $sale = OfflineSale::create([
-                'tenant_id'       => $tenantId,
-                'user_id'         => Auth::id(),
-                'customer_id'     => $customerId,
-                'store_id'        => $request->store_id,
-                'sale_number'     => OfflineSale::generateSaleNumber(),
-                'status'          => $initialStatus,
-                'buyer_name'      => $request->buyer_name,
-                'buyer_phone'     => $request->buyer_phone,
-                'institution_name'=> $request->institution_name,
-                'payment_method'  => $paymentMethod,
-                'total_amount'    => $totalAmount,
-                'discount_amount' => $discountAmount,
-                'discount_type'   => $globalDiscType,
-                'discount_value'  => $globalDiscVal,
-                'grand_total'     => $grandTotal,
-                'paid_amount'     => $paidAmount,
-                'change_amount'   => $changeAmount,
-                'notes'           => $request->notes,
-                'sold_at'         => now(),
-                'is_dropship'      => (bool) $request->is_dropship,
-                'dropshipper_name'  => $request->is_dropship ? $request->dropshipper_name : null,
-                'dropshipper_phone' => $request->is_dropship ? $request->dropshipper_phone : null,
-                'resi_number'       => $request->is_dropship ? $request->resi_number : null,
-                'resi_file'         => $request->is_dropship ? $resiFilePath : null,
-                'is_po'             => $isPo,
-                'follow_up_date'    => $followUpDate,
+                'tenant_id'           => $tenantId,
+                'user_id'             => Auth::id(),
+                'customer_id'         => $customerId,
+                'store_id'            => $request->store_id,
+                'sale_number'         => OfflineSale::generateSaleNumber(),
+                'status'              => $initialStatus,
+                'buyer_name'          => $request->buyer_name,
+                'buyer_phone'         => $request->buyer_phone,
+                'institution_name'    => $request->institution_name,
+                'payment_method'      => $paymentMethod,
+                'payment_destination' => $paymentDest,
+                'total_amount'        => $totalAmount,
+                'discount_amount'     => $discountAmount,
+                'discount_type'       => $globalDiscType,
+                'discount_value'      => $globalDiscVal,
+                'grand_total'         => $grandTotal,
+                'paid_amount'         => $paidAmount,
+                'change_amount'       => $changeAmount,
+                'notes'               => $request->notes,
+                'sold_at'             => now(),
+                'is_dropship'         => (bool) $request->is_dropship,
+                'dropshipper_name'    => $request->is_dropship ? $request->dropshipper_name : null,
+                'dropshipper_phone'   => $request->is_dropship ? $request->dropshipper_phone : null,
+                'resi_number'         => $request->is_dropship ? $request->resi_number : null,
+                'resi_file'           => $request->is_dropship ? $resiFilePath : null,
+                'is_po'               => $isPo,
+                'follow_up_date'      => $followUpDate,
             ]);
 
-            if ($paymentMethod === 'reseller_balance' && $paidAmount > 0) {
+            $actualPayment = min($paidAmount, $grandTotal);
+
+            if ($paymentMethod === 'reseller_balance' && $actualPayment > 0) {
                 $custToDeduct = $customer ?? ($customerId ? \App\Models\Customer::where('tenant_id', $tenantId)->find($customerId) : null);
                 if ($custToDeduct) {
-                    $custToDeduct->adjustBalance($paidAmount, 'out', "Pembayaran Penjualan Offline #{$sale->sale_number}", Auth::id());
+                    $custToDeduct->adjustBalance($actualPayment, 'out', "Pembayaran Penjualan Offline #{$sale->sale_number}", Auth::id());
                 }
+
+                $paymentNumber = OfflineSalePayment::generatePaymentNumber($tenantId);
+                $sale->payments()->create([
+                    'tenant_id'           => $tenantId,
+                    'payment_number'      => $paymentNumber,
+                    'payment_date'        => now()->toDateString(),
+                    'amount'              => $actualPayment,
+                    'payment_method'      => $paymentMethod,
+                    'payment_destination' => 'reseller_balance',
+                    'notes'               => 'Pembayaran Kasir (Saldo Reseller)',
+                    'created_by'          => Auth::id(),
+                    'income_id'           => null,
+                ]);
+            } elseif ($actualPayment > 0) {
+                // Tambahkan saldo ke kas/bank tujuan jika ada rekening yang cocok
+                $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+                    ->where(function($q) use ($paymentDest) {
+                        $q->where('bank_name', $paymentDest)
+                          ->orWhere('id', $paymentDest);
+                    })->first();
+
+                if ($bank) {
+                    $bank->increment('current_balance', $actualPayment);
+                }
+
+                $paymentNumber = OfflineSalePayment::generatePaymentNumber($tenantId);
+
+                // Catat transaksi pemasukan (Income) di Keuangan
+                $income = \App\Models\Income::create([
+                    'tenant_id'           => $tenantId,
+                    'title'               => "Pembayaran Kasir POS #{$sale->sale_number} ({$paymentNumber})",
+                    'category'            => 'services',
+                    'payment_destination' => $paymentDest,
+                    'amount'              => $actualPayment,
+                    'income_date'         => now()->toDateString(),
+                    'description'         => "Penerimaan kasir POS offline #{$sale->sale_number} oleh " . ($sale->buyer_name ?: 'Umum') . ($request->notes ? " - " . $request->notes : ''),
+                ]);
+
+                // Simpan record riwayat pembayaran kasir
+                $sale->payments()->create([
+                    'tenant_id'           => $tenantId,
+                    'payment_number'      => $paymentNumber,
+                    'payment_date'        => now()->toDateString(),
+                    'amount'              => $actualPayment,
+                    'payment_method'      => $paymentMethod,
+                    'payment_destination' => $paymentDest,
+                    'notes'               => 'Pembayaran Kasir Saat Transaksi Dibuat',
+                    'created_by'          => Auth::id(),
+                    'income_id'           => $income ? $income->id : null,
+                ]);
             }
 
             foreach ($itemsData as $itemData) {
@@ -904,27 +961,41 @@ class OfflineSaleController extends Controller
         $paymentDest = $request->payment_destination;
 
         DB::transaction(function () use ($offlineSale, $request, $tenantId, $payAmount, $paymentDest) {
-            $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
-                ->where(function($q) use ($paymentDest) {
-                    $q->where('bank_name', $paymentDest)
-                      ->orWhere('id', $paymentDest);
-                })->first();
+            $income = null;
 
-            if ($bank) {
-                $bank->increment('current_balance', $payAmount);
+            if ($request->payment_method === 'reseller_balance') {
+                $cust = $offlineSale->customer_id ? \App\Models\Customer::where('tenant_id', $tenantId)->find($offlineSale->customer_id) : null;
+                if (!$cust || (float) $cust->balance < $payAmount) {
+                    abort(422, 'Saldo reseller tidak mencukupi untuk pembayaran ini. Saldo saat ini: Rp ' . number_format($cust ? $cust->balance : 0, 0, ',', '.'));
+                }
+                $cust->adjustBalance($payAmount, 'out', "Pembayaran Cicilan POS #{$offlineSale->sale_number}", Auth::id());
+            } else {
+                $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+                    ->where(function($q) use ($paymentDest) {
+                        $q->where('bank_name', $paymentDest)
+                          ->orWhere('id', $paymentDest);
+                    })->first();
+
+                if ($bank) {
+                    $bank->increment('current_balance', $payAmount);
+                }
+
+                $paymentNumber = OfflineSalePayment::generatePaymentNumber($tenantId);
+
+                $income = \App\Models\Income::create([
+                    'tenant_id'           => $tenantId,
+                    'title'               => "Pembayaran Cicilan POS #{$offlineSale->sale_number} ({$paymentNumber})",
+                    'category'            => 'services',
+                    'payment_destination' => $paymentDest,
+                    'amount'              => $payAmount,
+                    'income_date'         => $request->payment_date,
+                    'description'         => "Pembayaran cicilan offline POS #{$offlineSale->sale_number} oleh " . ($offlineSale->buyer_name ?: 'Umum') . ($request->notes ? " - " . $request->notes : ''),
+                ]);
             }
 
-            $paymentNumber = OfflineSalePayment::generatePaymentNumber($tenantId);
-
-            $income = \App\Models\Income::create([
-                'tenant_id'           => $tenantId,
-                'title'               => "Pembayaran Cicilan POS #{$offlineSale->sale_number} ({$paymentNumber})",
-                'category'            => 'services',
-                'payment_destination' => $paymentDest,
-                'amount'              => $payAmount,
-                'income_date'         => $request->payment_date,
-                'description'         => "Pembayaran cicilan offline POS #{$offlineSale->sale_number} oleh " . ($offlineSale->buyer_name ?: 'Umum') . ($request->notes ? " - " . $request->notes : ''),
-            ]);
+            if (!isset($paymentNumber)) {
+                $paymentNumber = OfflineSalePayment::generatePaymentNumber($tenantId);
+            }
 
             $offlineSale->payments()->create([
                 'tenant_id'           => $tenantId,
