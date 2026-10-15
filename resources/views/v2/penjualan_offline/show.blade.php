@@ -295,7 +295,7 @@
                 </h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="POST" action="{{ route('offline_sales.payments.store', $sale->id) }}">
+            <form method="POST" action="{{ route('offline_sales.payments.store', $sale->id) }}" id="formRecordPaymentShow">
                 @csrf
                 <div class="modal-body p-3">
                     <div class="p-2.5 bg-light rounded-3 border mb-3">
@@ -323,7 +323,6 @@
                             <select name="payment_method" class="form-select form-select-sm fw-semibold" required>
                                 <option value="tunai" selected>Tunai / Cash</option>
                                 <option value="transfer">Transfer Bank</option>
-                                <option value="qris">QRIS / E-Wallet</option>
                                 @if($sale->customer_id)
                                     <option value="reseller_balance">Saldo Reseller</option>
                                 @endif
@@ -334,12 +333,12 @@
                     <div class="mb-2.5">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="form-label small fw-semibold text-dark mb-0">Nominal Pembayaran (Rp) <span class="text-danger">*</span></label>
-                            <button type="button" class="btn btn-link btn-xs text-primary p-0 text-decoration-none small fw-semibold" onclick="document.getElementById('modal_payment_amount').value = '{{ (int)$sale->remaining_amount }}'">Lunasi Semua</button>
+                            <button type="button" class="btn btn-link btn-xs text-primary p-0 text-decoration-none small fw-semibold" id="btn_modal_pay_all">Lunasi Semua</button>
                         </div>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text py-0 px-2 text-success fw-bold">Rp</span>
-                            <input type="number" name="amount" id="modal_payment_amount" class="form-control form-control-sm text-end font-monospace fw-bold text-success fs-6"
-                                   min="1" max="{{ (int)$sale->remaining_amount }}" value="{{ (int)$sale->remaining_amount }}" required>
+                            <input type="text" name="amount" id="modal_payment_amount" class="form-control form-control-sm text-end font-monospace fw-bold text-success fs-6"
+                                   value="{{ number_format($sale->remaining_amount, 0, ',', '.') }}" inputmode="numeric" required>
                         </div>
                     </div>
 
@@ -383,6 +382,43 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const payInput = document.getElementById('modal_payment_amount');
+    const payForm = document.getElementById('formRecordPaymentShow');
+    const btnPayAll = document.getElementById('btn_modal_pay_all');
+
+    function formatRupiah(num) {
+        return new Intl.NumberFormat('id-ID').format(Math.round(num || 0));
+    }
+    function parseRupiah(str) {
+        if (!str) return 0;
+        return parseFloat(str.toString().replace(/[^0-9]/g, '')) || 0;
+    }
+
+    if (payInput) {
+        payInput.addEventListener('input', function() {
+            this.value = formatRupiah(parseRupiah(this.value));
+        });
+    }
+
+    if (btnPayAll && payInput) {
+        btnPayAll.addEventListener('click', function(e) {
+            e.preventDefault();
+            payInput.value = formatRupiah({{ (int)$sale->remaining_amount }});
+        });
+    }
+
+    if (payForm && payInput) {
+        payForm.addEventListener('submit', function() {
+            payInput.value = parseRupiah(payInput.value);
+        });
+    }
+});
+</script>
+@endpush
 @endif
 
 {{-- Modal Terbitkan SPK Produksi --}}

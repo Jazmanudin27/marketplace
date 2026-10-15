@@ -964,6 +964,12 @@ class OfflineSaleController extends Controller
             return back()->with('error', 'Transaksi ini sudah lunas.');
         }
 
+        if ($request->has('amount')) {
+            $request->merge([
+                'amount' => (float) preg_replace('/[^0-9]/', '', (string) $request->amount),
+            ]);
+        }
+
         $request->validate([
             'amount'              => 'required|numeric|min:1|max:' . $remainingAmount,
             'payment_method'      => 'required|string|in:tunai,transfer,qris,piutang,reseller_balance,lainnya',

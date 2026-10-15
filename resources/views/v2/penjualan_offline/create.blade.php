@@ -204,7 +204,6 @@
                         <select name="payment_method" id="payment_method" class="form-select form-select-sm fw-semibold">
                             <option value="tunai" selected>Tunai / Cash</option>
                             <option value="transfer">Transfer Bank</option>
-                            <option value="qris">QRIS / E-Wallet</option>
                             <option value="reseller_balance">Saldo Reseller</option>
                             <option value="piutang">Piutang / Tempo Kredit</option>
                         </select>
