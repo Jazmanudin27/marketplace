@@ -580,8 +580,16 @@ $(document).ready(function() {
         
         let chCode = (order.channel_code || 'general').toLowerCase();
         let chClass = 'badge-channel-' + chCode;
-        if (!['shopee', 'tiktok', 'tokopedia', 'lazada'].includes(chCode)) {
-            chClass = 'badge-channel-general';
+        if (order.is_offline_sale) {
+            chClass = 'bg-primary text-white';
+            $('#autoShipToggle').prop('checked', false).prop('disabled', true);
+            $('label[for="autoShipToggle"]').html('<i class="bi bi-shop text-light me-1"></i> Penjualan Offline (Non-API)');
+        } else {
+            if (!['shopee', 'tiktok', 'tokopedia', 'lazada'].includes(chCode)) {
+                chClass = 'badge-channel-general';
+            }
+            $('#autoShipToggle').prop('disabled', false);
+            $('label[for="autoShipToggle"]').html('<i class="bi bi-send-fill text-success me-1"></i> Auto-Kirim API');
         }
 
         $('#badgeChannel').attr('class', 'badge me-1 ' + chClass).text(order.channel_name || 'Marketplace');
@@ -974,6 +982,8 @@ $(document).ready(function() {
             data: {
                 _token: '{{ csrf_token() }}',
                 auto_ship: autoShip ? 1 : 0,
+                is_offline_sale: (currentOrder && currentOrder.is_offline_sale) ? 1 : 0,
+                packed_items: scannedItems,
                 item_sources: scannedSources
             },
             dataType: 'json',
@@ -1168,8 +1178,15 @@ $(document).ready(function() {
         });
     });
 
-    // Auto-focus order input on start
-    focusOrderInput();
+    // Auto-focus atau auto-scan dari query parameter URL (misal: ?scan=POS-20261015-001)
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoScanTarget = urlParams.get('scan') || urlParams.get('order');
+    if (autoScanTarget) {
+        $('#inputScanOrder').val(autoScanTarget);
+        fetchOrderDetails(autoScanTarget);
+    } else {
+        focusOrderInput();
+    }
 });
 </script>
 @endpush

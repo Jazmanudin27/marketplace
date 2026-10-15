@@ -391,6 +391,36 @@
         @endforeach
     </div>
 
+    {{-- Packing Sub-Tabs --}}
+    @php
+        $currentPacking = request('packing_status', '');
+        $subPackingTabs = [
+            ''         => ['label' => 'Semua Status Kemas', 'countKey' => '__all__'],
+            'pending'  => ['label' => 'Belum Kemas', 'countKey' => 'pending'],
+            'packing'  => ['label' => 'Sedang Dikemas', 'countKey' => 'packing'],
+            'verified' => ['label' => 'Sudah Dikemas', 'countKey' => 'verified'],
+        ];
+    @endphp
+    <div class="pos-sub-bar" style="background:#f8fafc; border-top: 1px dashed #e2e8f0;">
+        <span class="pos-sub-label"><i class="bi bi-box-seam me-1 text-primary"></i>Status Kemas:</span>
+        @foreach($subPackingTabs as $pkKey => $pkInfo)
+            @php
+                $pkUrl = route('v2.penjualan_offline.index', array_merge(
+                    request()->except(['packing_status','page']),
+                    $pkKey !== '' ? ['packing_status' => $pkKey] : [],
+                ));
+                $pkActive = $currentPacking === $pkKey;
+                $pkCount  = $packingCounts[$pkInfo['countKey']] ?? 0;
+            @endphp
+            <a href="{{ $pkUrl }}" class="pos-sub-pill {{ $pkActive ? 'active' : '' }}">
+                {{ $pkInfo['label'] }}
+                @if($pkCount > 0)
+                    <span class="pill-n">{{ $pkCount > 999 ? '999+' : $pkCount }}</span>
+                @endif
+            </a>
+        @endforeach
+    </div>
+
     {{-- Filter Bar --}}
     <div class="pos-filter-bar">
         <form method="GET" action="{{ route('v2.penjualan_offline.index') }}" id="pos-filter-form">
@@ -399,6 +429,9 @@
             @endif
             @if(request('payment_status'))
                 <input type="hidden" name="payment_status" value="{{ request('payment_status') }}">
+            @endif
+            @if(request('packing_status'))
+                <input type="hidden" name="packing_status" value="{{ request('packing_status') }}">
             @endif
             <div class="row g-2 align-items-end">
                 {{-- Cari --}}
@@ -592,6 +625,23 @@
                                     {{ strtoupper(str_replace('_', ' ', $sale->status)) }}
                                 </span>
                             @endif
+
+                            {{-- Packing Status Badge --}}
+                            <div class="mt-1">
+                                @if($sale->packing_status === 'verified' || ($sale->items->count() > 0 && $sale->items->sum('quantity') > 0 && $sale->items->sum('packed_quantity') >= $sale->items->sum('quantity')))
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-0.5" style="font-size: 0.68rem;" title="Semua produk sudah terverifikasi & dikemas">
+                                        <i class="bi bi-box-seam-fill me-0.5"></i>Sudah Kemas
+                                    </span>
+                                @elseif($sale->packing_status === 'packing' || ($sale->items->sum('packed_quantity') > 0))
+                                    <span class="badge bg-warning bg-opacity-15 text-dark border border-warning border-opacity-25 rounded-pill px-2 py-0.5" style="font-size: 0.68rem;" title="Sebagian produk sudah dikemas">
+                                        <i class="bi bi-hourglass-split me-0.5"></i>Proses Kemas
+                                    </span>
+                                @else
+                                    <span class="badge bg-light text-secondary border rounded-pill px-2 py-0.5" style="font-size: 0.68rem;" title="Belum dilakukan verifikasi kemasan">
+                                        <i class="bi bi-box-seam me-0.5"></i>Belum Kemas
+                                    </span>
+                                @endif
+                            </div>
                         </td>
 
                         {{-- 7. Aksi (Icon-Only Berwarna Solid) --}}
@@ -601,6 +651,9 @@
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 @if($sale->status !== 'cancelled')
+                                    <a href="{{ route('v2.scanner_gudang.index', ['scan' => $sale->sale_number]) }}" class="btn-action-icon" style="background:#0284c7; color:#fff;" title="Scan Kemas di Layar Gudang">
+                                        <i class="bi bi-upc-scan"></i>
+                                    </a>
                                     <a href="{{ route('v2.penjualan_offline.edit', $sale->id) }}" class="btn-action-icon btn-action-edit" title="Edit Nota POS">
                                         <i class="bi bi-pencil"></i>
                                     </a>

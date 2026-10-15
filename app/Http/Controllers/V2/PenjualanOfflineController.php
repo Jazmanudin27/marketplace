@@ -35,7 +35,7 @@ class PenjualanOfflineController extends Controller
             $orphanedSale->update(['status' => $reverted]);
         }
 
-        $query = OfflineSale::with(['user', 'items', 'spks', 'store'])
+        $query = OfflineSale::with(['user', 'items', 'spks', 'store', 'packer'])
             ->where('tenant_id', $tenantId)
             ->orderByDesc('created_at');
 
@@ -75,6 +75,19 @@ class PenjualanOfflineController extends Controller
                       ->where('is_po', false);
             } else {
                 $query->where('status', $request->status);
+            }
+        }
+
+        if ($request->filled('packing_status')) {
+            if ($request->packing_status === 'verified') {
+                $query->whereIn('packing_status', ['verified', 'packed']);
+            } elseif ($request->packing_status === 'packing') {
+                $query->where('packing_status', 'packing');
+            } elseif ($request->packing_status === 'pending') {
+                $query->where(function($q) {
+                    $q->where('packing_status', 'pending')
+                      ->orWhereNull('packing_status');
+                });
             }
         }
 
@@ -179,6 +192,20 @@ class PenjualanOfflineController extends Controller
             'belum_lunas' => (clone $payCountBase)->where('status', '!=', OfflineSale::STATUS_CANCELLED)->whereRaw('paid_amount < grand_total')->count(),
         ];
 
+        // Calculate Packing Counts
+        $packCountBase = OfflineSale::where('tenant_id', $tenantId);
+        if ($request->filled('date_from')) $packCountBase->whereDate('sold_at', '>=', $request->date_from);
+        if ($request->filled('date_to'))   $packCountBase->whereDate('sold_at', '<=', $request->date_to);
+        if ($request->filled('status')) {
+            $packCountBase->where('status', $request->status);
+        }
+        $packingCounts = [
+            '__all__'   => (clone $packCountBase)->count(),
+            'pending'   => (clone $packCountBase)->where(fn($q) => $q->where('packing_status', 'pending')->orWhereNull('packing_status'))->count(),
+            'packing'   => (clone $packCountBase)->where('packing_status', 'packing')->count(),
+            'verified'  => (clone $packCountBase)->whereIn('packing_status', ['verified', 'packed'])->count(),
+        ];
+
         // Calculate KPI Statistics
         $kpiQuery = OfflineSale::where('tenant_id', $tenantId)
             ->where('status', '!=', OfflineSale::STATUS_CANCELLED);
@@ -199,6 +226,7 @@ class PenjualanOfflineController extends Controller
             'sales',
             'tabCounts',
             'paymentCounts',
+            'packingCounts',
             'totalSalesCount',
             'totalSalesOmset',
             'totalSalesPaid',
@@ -275,7 +303,7 @@ class PenjualanOfflineController extends Controller
     public function show($id)
     {
         $tenantId = Auth::user()->tenant_id;
-        $sale = OfflineSale::with(['user', 'items.masterProduct', 'payments', 'spks', 'store'])
+        $sale = OfflineSale::with(['user', 'items.masterProduct', 'payments', 'spks', 'store', 'packer'])
             ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
@@ -407,5 +435,17 @@ class PenjualanOfflineController extends Controller
 
         $controller = new \App\Http\Controllers\OfflineSaleController();
         return $controller->cancel($request, $offlineSale);
+    }
+
+    /**
+     * Simpan verifikasi scan kemas barang untuk penjualan offline (V2).
+     */
+    public function updateScanKemas(Request $request, $id)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $offlineSale = OfflineSale::where('tenant_id', $tenantId)->findOrFail($id);
+
+        $controller = new \App\Http\Controllers\OfflineSaleController();
+        return $controller->updateScanKemas($request, $offlineSale);
     }
 }

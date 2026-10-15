@@ -5,6 +5,8 @@ namespace App\Http\Controllers\V2;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OfflineSale;
+use App\Models\OfflineSaleItem;
 use App\Models\MasterProduct;
 use App\Models\MarketplaceProduct;
 use App\Models\StockMovement;
@@ -66,9 +68,109 @@ class ScannerGudangController extends Controller
         }
 
         if (!$order) {
+            $offlineSale = OfflineSale::with(['items.masterProduct', 'store', 'user', 'packer'])
+                ->where('tenant_id', $tenantId)
+                ->where(function ($q) use ($cleanIdentifier) {
+                    $q->where('sale_number', $cleanIdentifier)
+                      ->orWhere('id', $cleanIdentifier);
+                })
+                ->first();
+
+            if (!$offlineSale) {
+                $offlineSale = OfflineSale::with(['items.masterProduct', 'store', 'user', 'packer'])
+                    ->where('tenant_id', $tenantId)
+                    ->where('sale_number', 'like', "%{$cleanIdentifier}%")
+                    ->first();
+            }
+
+            if ($offlineSale) {
+                if ($offlineSale->status === OfflineSale::STATUS_CANCELLED) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Penjualan Offline '{$offlineSale->sale_number}' telah dibatalkan."
+                    ], 400);
+                }
+
+                if ($offlineSale->packing_status === 'pending' || empty($offlineSale->packing_status)) {
+                    $offlineSale->update(['packing_status' => 'packing']);
+                }
+
+                $items = [];
+                foreach ($offlineSale->items as $item) {
+                    $masterProduct = $item->masterProduct;
+                    $sku = $item->sku ?? ($masterProduct ? $masterProduct->sku : '');
+                    $name = $item->product_name ?? ($masterProduct ? $masterProduct->name : 'Produk POS');
+                    $image = $masterProduct && $masterProduct->image_url ? $masterProduct->image_url : '/images/placeholder.png';
+                    $barcode = $masterProduct ? ($masterProduct->barcode ?? null) : null;
+
+                    $activeConsignments = [];
+                    if ($masterProduct) {
+                        $cItems = SupplierConsignmentItem::where('master_product_id', $masterProduct->id)
+                            ->whereHas('consignment', function ($q) use ($offlineSale) {
+                                $q->where('tenant_id', $offlineSale->tenant_id)->where('status', 'approved');
+                            })
+                            ->with('consignment.supplier')
+                            ->get();
+
+                        foreach ($cItems as $ci) {
+                            $sisa = max(0, (int) $ci->qty_received - (int) ($ci->qty_sold ?? 0));
+                            if ($sisa > 0) {
+                                $activeConsignments[] = [
+                                    'consignment_item_id' => $ci->id,
+                                    'consignment_id'      => $ci->supplier_consignment_id,
+                                    'reference_number'    => $ci->consignment ? $ci->consignment->reference_number : '-',
+                                    'supplier_name'       => ($ci->consignment && $ci->consignment->supplier) ? $ci->consignment->supplier->name : 'Supplier',
+                                    'sisa_stok'           => $sisa,
+                                ];
+                            }
+                        }
+                    }
+                    $totalTitipanStock = array_sum(array_column($activeConsignments, 'sisa_stok'));
+
+                    $items[] = [
+                        'id'                    => $item->id,
+                        'sku'                   => $sku,
+                        'barcode'               => $barcode,
+                        'name'                  => $name,
+                        'image'                 => $image,
+                        'quantity'              => (int) $item->quantity,
+                        'packed_quantity'       => (int) ($item->packed_quantity ?? 0),
+                        'is_substituted'        => false,
+                        'original_sku'          => null,
+                        'original_product_name' => null,
+                        'substitution_note'     => null,
+                        'master_product_id'     => $masterProduct ? $masterProduct->id : null,
+                        'active_consignments'   => $activeConsignments,
+                        'total_titipan_stock'   => $totalTitipanStock,
+                        'gudang_stock'          => $masterProduct ? (int) $masterProduct->stock : 0,
+                    ];
+                }
+
+                return response()->json([
+                    'success'         => true,
+                    'is_offline_sale' => true,
+                    'order'           => [
+                        'id'                   => $offlineSale->id,
+                        'is_offline_sale'      => true,
+                        'invoice_number'       => $offlineSale->sale_number,
+                        'order_marketplace_id' => $offlineSale->sale_number,
+                        'tracking_number'      => '-',
+                        'buyer_name'           => $offlineSale->buyer_name ?: 'Pelanggan Walk-in (Umum)',
+                        'recipient_address'    => $offlineSale->shipping_address ?: ($offlineSale->institution_name ?: 'Transaksi Kasir POS'),
+                        'packing_status'       => $offlineSale->packing_status ?: 'pending',
+                        'channel_name'         => 'Penjualan Offline',
+                        'channel_code'         => 'offline',
+                        'store_name'           => $offlineSale->store ? $offlineSale->store->store_name : 'Toko POS',
+                        'courier'              => $offlineSale->shipping_courier ?: ($offlineSale->is_po ? 'Pre-Order (PO)' : 'Ambil di Toko / Langsung'),
+                        'notes'                => $offlineSale->notes,
+                        'items'                => $items,
+                    ]
+                ]);
+            }
+
             return response()->json([
                 'success' => false,
-                'message' => "Pesanan dengan nomor invoice / resi '{$cleanIdentifier}' tidak ditemukan."
+                'message' => "Pesanan / Nota Offline dengan nomor '{$cleanIdentifier}' tidak ditemukan."
             ], 404);
         }
 
@@ -255,16 +357,37 @@ class ScannerGudangController extends Controller
     /**
      * Konfirmasi verifikasi packing & opsi kirim langsung via API Marketplace (AJAX V2).
      */
-    public function completePack(Request $request, Order $order)
+    public function completePack(Request $request, $order)
     {
-        abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
+        $tenantId = Auth::user()->tenant_id;
 
-        if ($order->order_status !== Order::STATUS_READY_TO_SHIP) {
+        // Cek apakah berupa Order atau OfflineSale
+        $orderModel = $order instanceof Order ? $order : Order::where('tenant_id', $tenantId)->find($order);
+
+        if (!$orderModel) {
+            $offlineSaleId = is_object($order) ? ($order->id ?? null) : $order;
+            $offlineSale = OfflineSale::where('tenant_id', $tenantId)->find($offlineSaleId);
+
+            if ($offlineSale) {
+                return app(\App\Http\Controllers\OfflineSaleController::class)->updateScanKemas($request, $offlineSale);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Pesanan atau nota offline tidak ditemukan.'
+            ], 404);
+        }
+
+        abort_unless($orderModel->tenant_id === $tenantId, 403);
+
+        if ($orderModel->order_status !== Order::STATUS_READY_TO_SHIP) {
             return response()->json([
                 'success' => false,
                 'message' => 'Pesanan tidak dalam status SIAP KIRIM.'
             ], 400);
         }
+
+        $order = $orderModel;
 
         $order->update([
             'packing_status' => 'verified',

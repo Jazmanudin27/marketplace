@@ -618,6 +618,9 @@
                         <td class="meta-label">Invoice No</td>
                         <td class="meta-value">
                             <span class="invoice-no-pill">{{ $offlineSale->sale_number }}</span>
+                            <div style="margin-top: 4px; text-align: right;">
+                                <svg id="invoice-barcode" style="max-height: 32px; max-width: 175px;"></svg>
+                            </div>
                         </td>
                     </tr>
                     <tr>
@@ -751,6 +754,9 @@
             <span>No:</span>
             <strong>{{ $offlineSale->sale_number }}</strong>
         </div>
+        <div style="text-align: center; margin: 5px 0;">
+            <svg id="thermal-barcode" style="max-height: 32px; width: 100%; max-width: 190px;"></svg>
+        </div>
         <div style="display: flex; justify-content: space-between; font-size: 11px;">
             <span>Tgl:</span>
             <span>{{ $offlineSale->sold_at?->format('d/m/Y H:i') }}</span>
@@ -802,8 +808,35 @@
     </div>
     @endif
 
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script>
-        // Auto trigger print dialog after fonts are loaded
+        // Render barcode nota penjualan offline
+        try {
+            const saleNo = @json($offlineSale->sale_number);
+            if (document.getElementById('invoice-barcode')) {
+                JsBarcode("#invoice-barcode", saleNo, {
+                    format: "CODE128",
+                    width: 1.2,
+                    height: 28,
+                    displayValue: false,
+                    margin: 0
+                });
+            }
+            if (document.getElementById('thermal-barcode')) {
+                JsBarcode("#thermal-barcode", saleNo, {
+                    format: "CODE128",
+                    width: 1.2,
+                    height: 26,
+                    displayValue: true,
+                    fontSize: 9,
+                    margin: 0
+                });
+            }
+        } catch(e) {
+            console.error('JsBarcode error:', e);
+        }
+
+        // Auto trigger print dialog after fonts & barcode are loaded
         window.addEventListener('load', function() {
             setTimeout(function() {
                 window.print();

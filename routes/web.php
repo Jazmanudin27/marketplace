@@ -253,6 +253,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/penjualan-offline/{id}/edit', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'edit'])->name('penjualan_offline.edit');
         Route::put('/penjualan-offline/{id}', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'update'])->name('penjualan_offline.update');
         Route::post('/penjualan-offline/{id}/cancel', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'cancel'])->name('penjualan_offline.cancel');
+        Route::post('/penjualan-offline/{id}/scan-kemas', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'updateScanKemas'])->name('penjualan_offline.scan_kemas');
 
         // Pesanan Retur V2
         Route::get('/retur', [\App\Http\Controllers\V2\ReturController::class, 'index'])->name('retur.index');
@@ -871,6 +872,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/offline-sales/{offlineSale}/cancel', [OfflineSaleController::class, 'cancel'])->name('offline_sales.cancel');
         Route::post('/offline-sales/{offlineSale}/return', [OfflineSaleController::class, 'processReturn'])->name('offline_sales.return');
         Route::post('/offline-sales/{offlineSale}/create-spk', [OfflineSaleController::class, 'createSpk'])->name('offline_sales.create_spk');
+        Route::post('/offline-sales/{offlineSale}/scan-kemas', [OfflineSaleController::class, 'updateScanKemas'])->name('offline_sales.scan_kemas');
         Route::get('/offline-sales/{offlineSale}/print', [OfflineSaleController::class, 'printReceipt'])->name('offline_sales.print');
     });
 

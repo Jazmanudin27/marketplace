@@ -10,11 +10,12 @@ class OfflineSaleItem extends Model
 {
     protected $fillable = [
         'offline_sale_id', 'master_product_id',
-        'product_name', 'sku', 'quantity', 'unit_price',
+        'product_name', 'sku', 'quantity', 'packed_quantity', 'unit_price',
         'discount_type', 'discount_value', 'discount_amount', 'subtotal',
     ];
 
     protected $casts = [
+        'packed_quantity' => 'integer',
         'unit_price'      => 'decimal:2',
         'discount_value'  => 'decimal:2',
         'discount_amount' => 'decimal:2',

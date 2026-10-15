@@ -1419,4 +1419,151 @@ class OfflineSaleController extends Controller
 
         return back()->with('success', "✅ Berhasil menerbitkan {$totalSpk} SPK Produksi ({$summaryText}) di bawah Kode Produksi {$noProduksi} dengan status: {$tahapSaatIni}. Status transaksi kini: SPK Sedang Diproses.");
     }
+
+    /**
+     * Simpan verifikasi scan kemas barang untuk penjualan offline.
+     */
+    public function updateScanKemas(Request $request, OfflineSale $offlineSale)
+    {
+        abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
+
+        if ($offlineSale->status === OfflineSale::STATUS_CANCELLED) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaksi yang dibatalkan tidak dapat dikemas.'
+                ], 422);
+            }
+            return back()->with('error', 'Transaksi yang dibatalkan tidak dapat dikemas.');
+        }
+
+        $offlineSale->load('items.masterProduct');
+
+        // Reset packing jika diminta
+        if ($request->boolean('reset')) {
+            $offlineSale->items()->update(['packed_quantity' => 0]);
+            $offlineSale->update([
+                'packing_status' => 'pending',
+                'packed_at'      => null,
+                'packed_by'      => null,
+            ]);
+
+            $itemsData = $offlineSale->items->map(function ($it) {
+                return [
+                    'id'              => $it->id,
+                    'packed_quantity' => 0,
+                    'quantity'        => (int) $it->quantity,
+                    'is_completed'    => false,
+                ];
+            });
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success'        => true,
+                    'message'        => 'Progres scan kemas berhasil di-reset.',
+                    'packing_status' => 'pending',
+                    'packing_label'  => 'Belum Dikemas',
+                    'packed_at'      => '-',
+                    'packer_name'    => '-',
+                    'is_all_done'    => false,
+                    'items'          => $itemsData,
+                ]);
+            }
+            return back()->with('success', 'Progres scan kemas berhasil di-reset.');
+        }
+
+        // Tandai semua selesai jika diminta
+        if ($request->boolean('mark_all_done')) {
+            foreach ($offlineSale->items as $item) {
+                $item->update(['packed_quantity' => (int) $item->quantity]);
+                $item->packed_quantity = (int) $item->quantity;
+            }
+        } elseif ($request->filled('increment_item_id')) {
+            $targetItem = $offlineSale->items->firstWhere('id', (int) $request->increment_item_id);
+            if ($targetItem) {
+                $targetQty = (int) $targetItem->quantity;
+                $newQty = min($targetQty, (int) $targetItem->packed_quantity + 1);
+                $targetItem->update(['packed_quantity' => $newQty]);
+                $targetItem->packed_quantity = $newQty;
+            }
+        } elseif ($request->filled('decrement_item_id')) {
+            $targetItem = $offlineSale->items->firstWhere('id', (int) $request->decrement_item_id);
+            if ($targetItem) {
+                $newQty = max(0, (int) $targetItem->packed_quantity - 1);
+                $targetItem->update(['packed_quantity' => $newQty]);
+                $targetItem->packed_quantity = $newQty;
+            }
+        } else {
+            $packedItems = $request->input('packed_items', []);
+            if (!empty($packedItems) && is_array($packedItems)) {
+                foreach ($offlineSale->items as $item) {
+                    $targetQty = (int) $item->quantity;
+                    if (isset($packedItems[$item->id])) {
+                        $qty = max(0, min($targetQty, (int) $packedItems[$item->id]));
+                        $item->update(['packed_quantity' => $qty]);
+                        $item->packed_quantity = $qty;
+                    }
+                }
+            }
+        }
+
+        $totalItems = $offlineSale->items->count();
+        $completedItems = 0;
+        $totalPackedQty = 0;
+        $totalTargetQty = 0;
+
+        foreach ($offlineSale->items as $item) {
+            $targetQty = (int) $item->quantity;
+            $totalTargetQty += $targetQty;
+            $currentPacked = (int) $item->packed_quantity;
+            $totalPackedQty += $currentPacked;
+
+            if ($currentPacked >= $targetQty && $targetQty > 0) {
+                $completedItems++;
+            }
+        }
+
+        $allDone = ($completedItems >= $totalItems && $totalItems > 0) || ($totalTargetQty > 0 && $totalPackedQty >= $totalTargetQty);
+        $status = $allDone ? 'verified' : ($totalPackedQty > 0 ? 'packing' : 'pending');
+
+        $offlineSale->update([
+            'packing_status' => $status,
+            'packed_at'      => $allDone ? ($offlineSale->packed_at ?: now()) : ($status === 'packing' ? now() : null),
+            'packed_by'      => Auth::id(),
+        ]);
+
+        $statusLabel = match ($status) {
+            'verified' => 'Sudah Dikemas',
+            'packing'  => 'Sedang Dikemas',
+            default    => 'Belum Dikemas',
+        };
+
+        $itemsData = $offlineSale->items->map(function ($it) {
+            return [
+                'id'              => $it->id,
+                'packed_quantity' => (int) $it->packed_quantity,
+                'quantity'        => (int) $it->quantity,
+                'is_completed'    => (int) $it->packed_quantity >= (int) $it->quantity,
+            ];
+        });
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'        => true,
+                'message'        => $allDone ? 'Semua produk penjualan offline berhasil diverifikasi & dikemas!' : 'Progres scan kemas berhasil disimpan.',
+                'packing_status' => $status,
+                'packing_label'  => $statusLabel,
+                'packed_at'      => $offlineSale->packed_at ? $offlineSale->packed_at->format('d/m/Y H:i') : now()->format('d/m/Y H:i'),
+                'packer_name'    => Auth::user() ? Auth::user()->name : 'Petugas Gudang',
+                'is_all_done'    => $allDone,
+                'completed_items'=> $completedItems,
+                'total_items'    => $totalItems,
+                'total_packed'   => $totalPackedQty,
+                'total_target'   => $totalTargetQty,
+                'items'          => $itemsData,
+            ]);
+        }
+
+        return back()->with('success', $allDone ? 'Semua produk penjualan offline berhasil diverifikasi & dikemas!' : 'Progres scan kemas berhasil disimpan.');
+    }
 }

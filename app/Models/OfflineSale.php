@@ -16,6 +16,7 @@ class OfflineSale extends Model
         'is_dropship', 'dropshipper_name', 'dropshipper_phone', 'resi_number', 'resi_file', 'is_po', 'follow_up_date',
         'approved_by', 'approved_at',
         'cancellation_reason', 'cancelled_by',
+        'packing_status', 'packed_at', 'packed_by',
     ];
 
     protected $casts = [
@@ -26,6 +27,7 @@ class OfflineSale extends Model
         'paid_amount'     => 'decimal:2',
         'change_amount'   => 'decimal:2',
         'sold_at'         => 'datetime',
+        'packed_at'       => 'datetime',
         'follow_up_date'  => 'date',
         'is_dropship'     => 'boolean',
         'is_po'           => 'boolean',
@@ -89,6 +91,29 @@ class OfflineSale extends Model
     public function spks(): HasMany
     {
         return $this->hasMany(Spk::class, 'no_pesanan', 'sale_number');
+    }
+
+    public function packer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'packed_by');
+    }
+
+    public function getPackingStatusLabelAttribute(): string
+    {
+        return match ($this->packing_status) {
+            'verified', 'packed' => 'Sudah Dikemas',
+            'packing'            => 'Sedang Dikemas',
+            default              => 'Belum Dikemas',
+        };
+    }
+
+    public function getPackingBadgeClassAttribute(): string
+    {
+        return match ($this->packing_status) {
+            'verified', 'packed' => 'bg-success text-white',
+            'packing'            => 'bg-info text-dark',
+            default              => 'bg-secondary text-white',
+        };
     }
 
     public function getTotalReturnedAmountAttribute(): float

@@ -11,11 +11,21 @@
         </h1>
         <p class="text-muted small mb-0">Rincian produk, transaksi kasir, dan pembayaran nota penjualan offline</p>
     </div>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
         <a href="{{ route('v2.penjualan_offline.index') }}" class="btn btn-sm btn-outline-secondary px-3">
             <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
         @if($sale->status !== 'cancelled')
+            @php
+                $isAllPacked = $sale->packing_status === 'verified' || ($sale->items->sum('quantity') > 0 && $sale->items->sum('packed_quantity') >= $sale->items->sum('quantity'));
+            @endphp
+            <button type="button" class="btn btn-sm {{ $isAllPacked ? 'btn-success text-white' : 'btn-primary' }} px-3 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalScanKemasOffline" id="btnHeaderScanKemas">
+                <i class="bi bi-{{ $isAllPacked ? 'check-circle-fill' : 'upc-scan' }} me-1"></i>
+                <span id="txtBtnHeaderKemas">{{ $isAllPacked ? 'Sudah Dikemas (Lihat Scan)' : 'Scan & Kemas Barang' }}</span>
+            </button>
+            <a href="{{ route('v2.scanner_gudang.index', ['scan' => $sale->sale_number]) }}" target="_blank" class="btn btn-sm btn-outline-dark px-3" title="Buka di Layar Scanner Gudang Fullscreen">
+                <i class="bi bi-fullscreen me-1"></i> Layar Gudang
+            </a>
             <a href="{{ route('v2.penjualan_offline.edit', $sale->id) }}" class="btn btn-sm btn-warning text-dark px-3 fw-semibold">
                 <i class="bi bi-pencil-square me-1"></i> Edit Transaksi
             </a>
@@ -33,7 +43,7 @@
                     <i class="bi bi-gear-wide-connected me-1"></i> Lihat SPK ({{ $firstSpk->no_produksi ?: $firstSpk->no_spk }})
                 </a>
             @else
-                <button type="button" class="btn btn-sm btn-primary px-3 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCreateSpk">
+                <button type="button" class="btn btn-sm btn-outline-primary px-3 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCreateSpk">
                     <i class="bi bi-hammer me-1"></i> Buat SPK
                 </button>
             @endif
@@ -67,9 +77,32 @@
                             <tr>
                                 <td class="ps-3">
                                     <div class="fw-bold text-dark">{{ $item->product_name ?? ($item->masterProduct->name ?? 'Produk POS') }}</div>
-                                    <small class="text-muted font-monospace">SKU: {{ $item->sku ?? ($item->masterProduct->sku ?? '-') }}</small>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap mt-0.5">
+                                        <small class="text-muted font-monospace">SKU: {{ $item->sku ?? ($item->masterProduct->sku ?? '-') }}</small>
+                                        @if($item->masterProduct && $item->masterProduct->barcode)
+                                            <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.65rem;">
+                                                <i class="bi bi-barcode me-0.5"></i>{{ $item->masterProduct->barcode }}
+                                            </span>
+                                        @endif
+                                        @if($item->packed_quantity >= $item->quantity)
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size:0.68rem;" id="badgeItemPacked_{{ $item->id }}">
+                                                <i class="bi bi-check2-circle me-0.5"></i>Lengkap ({{ $item->packed_quantity }}/{{ $item->quantity }})
+                                            </span>
+                                        @elseif($item->packed_quantity > 0)
+                                            <span class="badge bg-warning bg-opacity-15 text-dark border border-warning border-opacity-25" style="font-size:0.68rem;" id="badgeItemPacked_{{ $item->id }}">
+                                                <i class="bi bi-hourglass-split me-0.5"></i>Sebagian ({{ $item->packed_quantity }}/{{ $item->quantity }})
+                                            </span>
+                                        @else
+                                            <span class="badge bg-light text-secondary border" style="font-size:0.68rem;" id="badgeItemPacked_{{ $item->id }}">
+                                                <i class="bi bi-dash-circle me-0.5"></i>Belum Dikemas (0/{{ $item->quantity }})
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
-                                <td class="text-center fw-bold">{{ number_format($item->quantity, 0, ',', '.') }}</td>
+                                <td class="text-center fw-bold">
+                                    <span class="fs-6">{{ number_format($item->quantity, 0, ',', '.') }}</span>
+                                    <small class="d-block text-muted" style="font-size:0.7rem;">Kemas: <strong class="{{ $item->packed_quantity >= $item->quantity ? 'text-success' : ($item->packed_quantity > 0 ? 'text-warning' : 'text-secondary') }}" id="txtTablePackedQty_{{ $item->id }}">{{ $item->packed_quantity }}</strong></small>
+                                </td>
                                 <td class="text-end font-monospace">Rp {{ number_format($item->unit_price, 0, ',', '.') }}</td>
                                 <td class="text-end font-monospace text-muted">Rp {{ number_format($item->masterProduct->purchase_price ?? 0, 0, ',', '.') }}</td>
                                 <td class="text-end pe-3 font-monospace fw-bold text-dark">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
@@ -208,6 +241,55 @@
                     <small class="text-muted d-block">Catatan Nota:</small>
                     <span class="fst-italic text-secondary">{{ $sale->notes ?: '-' }}</span>
                 </div>
+            </div>
+        </div>
+
+        <!-- Packaging & Scan Status Card -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-box-seam text-primary fs-5"></i>
+                    <h6 class="card-title fw-bold mb-0">Status Pengemasan</h6>
+                </div>
+                <span class="badge {{ $sale->packing_badge_class }}" id="cardPackingBadge">
+                    {{ $sale->packing_status_label }}
+                </span>
+            </div>
+            <div class="card-body p-3" style="font-size: 0.85rem;">
+                @php
+                    $tQty = (int) $sale->items->sum('quantity');
+                    $pQty = (int) $sale->items->sum('packed_quantity');
+                    $pct = $tQty > 0 ? min(100, round(($pQty / $tQty) * 100)) : 0;
+                @endphp
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted fw-semibold">Progres Kemas:</span>
+                        <strong class="font-monospace text-dark" id="txtCardPackingProgress">{{ $pQty }} / {{ $tQty }} Pcs ({{ $pct }}%)</strong>
+                    </div>
+                    <div class="progress" style="height: 8px; border-radius: 999px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ $pct }}%;" id="barCardPackingProgress" aria-valuenow="{{ $pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between py-1.5 border-bottom">
+                    <span class="text-muted">Petugas Kemas:</span>
+                    <strong class="text-dark" id="txtCardPackerName">{{ $sale->packer->name ?? ($sale->packed_by ? 'User #'.$sale->packed_by : '-') }}</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1.5 mb-3 border-bottom">
+                    <span class="text-muted">Waktu Selesai:</span>
+                    <strong class="text-dark" id="txtCardPackedAt">{{ $sale->packed_at ? \Carbon\Carbon::parse($sale->packed_at)->format('d/m/Y H:i') : '-' }}</strong>
+                </div>
+
+                @if($sale->status !== 'cancelled')
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-primary btn-sm fw-semibold shadow-sm d-flex align-items-center justify-content-center gap-1.5 py-2" data-bs-toggle="modal" data-bs-target="#modalScanKemasOffline">
+                            <i class="bi bi-upc-scan fs-6"></i> Buka Layar Scan Kemas
+                        </button>
+                        <a href="{{ route('v2.scanner_gudang.index', ['scan' => $sale->sale_number]) }}" target="_blank" class="btn btn-outline-dark btn-sm fw-semibold d-flex align-items-center justify-content-center gap-1.5">
+                            <i class="bi bi-fullscreen"></i> Terminal Scanner Gudang
+                        </a>
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -783,6 +865,605 @@ document.addEventListener('DOMContentLoaded', function() {
 
     modalCreateSpk.addEventListener('shown.bs.modal', renderSpkSummary);
     renderSpkSummary();
+});
+</script>
+@endpush
+@if($sale->status !== 'cancelled')
+{{-- Modal Scan & Kemas Offline --}}
+<div class="modal fade" id="modalScanKemasOffline" tabindex="-1" aria-labelledby="modalScanKemasOfflineLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-3">
+            <div class="modal-header bg-dark text-white py-3 px-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-primary bg-opacity-25 p-2 rounded-circle text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="bi bi-upc-scan fs-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold mb-0 text-white" id="modalScanKemasOfflineLabel">
+                            Scan & Kemas Nota #{{ $sale->sale_number }}
+                        </h6>
+                        <small class="text-white-50 fs-12">
+                            {{ $sale->buyer_name ?: 'Pelanggan Walk-in (Umum)' }} &bull; {{ $sale->store->store_name ?? 'Toko POS' }}
+                        </small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge {{ $sale->packing_badge_class }} px-2.5 py-1.5" id="modalHeaderPackingBadge">
+                        {{ $sale->packing_status_label }}
+                    </span>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <div class="modal-body p-4 bg-white">
+                {{-- Audio & Quick Tools Bar --}}
+                <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom flex-wrap gap-2">
+                    <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
+                        <input class="form-check-input" type="checkbox" id="modalSoundToggle" checked style="width: 2.3em; height: 1.15em; cursor: pointer;">
+                        <label class="form-check-label text-muted fs-12 mb-0 fw-semibold" for="modalSoundToggle" style="cursor: pointer;">
+                            <i class="bi bi-volume-up-fill text-info me-1"></i> Suara Scanner
+                        </label>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5">
+                        <button type="button" class="btn btn-xs btn-outline-success fw-semibold px-2.5 py-1" id="btnModalMarkAllDone" style="font-size: 0.75rem;">
+                            <i class="bi bi-check-all me-1"></i> Tandai Semua Selesai
+                        </button>
+                        <button type="button" class="btn btn-xs btn-outline-danger fw-semibold px-2.5 py-1" id="btnModalResetProgress" style="font-size: 0.75rem;">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Progres
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Barcode / SKU Scan Input Field --}}
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-dark fs-12 mb-1.5 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-upc-scan text-primary me-1"></i> Tembak Barcode / SKU Produk:</span>
+                        <span class="badge bg-light text-secondary border font-monospace fs-11">Tekan Enter otomatis dihitung</span>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-primary border-end-0"><i class="bi bi-barcode fs-5"></i></span>
+                        <input type="text" class="form-control form-control-lg font-monospace text-uppercase border-start-0 border-end-0" 
+                               id="modalBarcodeScanInput" 
+                               placeholder="Tembak barcode produk atau ketik SKU disini..." 
+                               autocomplete="off" 
+                               style="font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">
+                        <button class="btn btn-outline-secondary" type="button" id="btnModalClearScanInput" title="Bersihkan input">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <div class="form-text text-muted fs-11 mt-1">
+                        Scanner gun akan membaca barcode atau SKU yang tertera pada kemasan produk secara otomatis.
+                    </div>
+                </div>
+
+                {{-- Alert Live Feedback --}}
+                <div id="modalScanFeedback" class="alert d-none py-2 px-3 mb-3 border fs-12 d-flex align-items-center justify-content-between" role="alert">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi fs-5" id="modalScanFeedbackIcon"></i>
+                        <span id="modalScanFeedbackText">-</span>
+                    </div>
+                    <button type="button" class="btn-close fs-11" onclick="$('#modalScanFeedback').addClass('d-none')"></button>
+                </div>
+
+                {{-- Progress Bar Container --}}
+                @php
+                    $initTotal = (int) $sale->items->sum('quantity');
+                    $initPacked = (int) $sale->items->sum('packed_quantity');
+                    $initPct = $initTotal > 0 ? min(100, round(($initPacked / $initTotal) * 100)) : 0;
+                @endphp
+                <div class="bg-light p-3 rounded-3 border mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1.5">
+                        <span class="fw-semibold text-secondary fs-12">Total Kemasan Terverifikasi:</span>
+                        <strong class="font-monospace text-dark fs-13" id="modalProgressText">
+                            <span id="modalPackedTotalCount">{{ $initPacked }}</span> / <span id="modalTargetTotalCount">{{ $initTotal }}</span> Pcs (<span id="modalPackedPct">{{ $initPct }}</span>%)
+                        </strong>
+                    </div>
+                    <div class="progress" style="height: 10px; border-radius: 999px;">
+                        <div class="progress-bar {{ $initPct >= 100 ? 'bg-success' : 'bg-primary' }} progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: {{ $initPct }}%;" 
+                             id="modalProgressBar" 
+                             aria-valuenow="{{ $initPct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                {{-- Items Checklist Table --}}
+                <div class="border rounded-3 overflow-hidden">
+                    <div class="table-responsive" style="max-height: 280px;">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                            <thead class="table-light text-uppercase fw-semibold" style="font-size: 0.72rem; position: sticky; top: 0; z-index: 1;">
+                                <tr>
+                                    <th class="ps-3 py-2">Item Produk</th>
+                                    <th class="text-center py-2" style="width: 100px;">Target</th>
+                                    <th class="text-center py-2" style="width: 140px;">Hasil Scan</th>
+                                    <th class="text-center pe-3 py-2" style="width: 110px;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modalItemsTbody">
+                                @foreach($sale->items as $item)
+                                    @php
+                                        $itQty = (int) $item->quantity;
+                                        $itPacked = (int) $item->packed_quantity;
+                                        $itDone = $itPacked >= $itQty;
+                                        $skuClean = trim($item->sku ?? ($item->masterProduct->sku ?? ''));
+                                        $barcodeClean = trim($item->masterProduct->barcode ?? '');
+                                    @endphp
+                                    <tr id="modalItemRow_{{ $item->id }}" 
+                                        class="{{ $itDone ? 'table-success bg-opacity-25' : '' }}"
+                                        data-id="{{ $item->id }}"
+                                        data-sku="{{ strtolower($skuClean) }}"
+                                        data-barcode="{{ strtolower($barcodeClean) }}"
+                                        data-target="{{ $itQty }}"
+                                        data-name="{{ $item->product_name ?? ($item->masterProduct->name ?? 'Produk POS') }}">
+                                        <td class="ps-3 py-2.5">
+                                            <div class="fw-bold text-dark fs-12">{{ $item->product_name ?? ($item->masterProduct->name ?? 'Produk POS') }}</div>
+                                            <div class="d-flex align-items-center gap-1.5 flex-wrap mt-0.5">
+                                                <span class="badge bg-dark font-monospace" style="font-size: 0.65rem;">SKU: {{ $skuClean ?: '-' }}</span>
+                                                @if($barcodeClean)
+                                                    <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.65rem;">
+                                                        <i class="bi bi-barcode me-0.5"></i>{{ $barcodeClean }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td class="text-center py-2.5 font-monospace fw-bold fs-13 text-secondary">
+                                            {{ $itQty }} Pcs
+                                        </td>
+                                        <td class="text-center py-2.5">
+                                            <div class="input-group input-group-sm justify-content-center" style="width: 120px; margin: 0 auto;">
+                                                <button class="btn btn-outline-secondary btn-item-adjust px-2" type="button" data-id="{{ $item->id }}" data-delta="-1" title="Kurangi 1">
+                                                    <i class="bi bi-dash"></i>
+                                                </button>
+                                                <input type="text" class="form-control text-center font-monospace fw-bold item-packed-qty-input {{ $itDone ? 'bg-success text-white' : 'bg-white' }}" 
+                                                       id="itemInputPacked_{{ $item->id }}" 
+                                                       value="{{ $itPacked }}" 
+                                                       readonly 
+                                                       style="max-width: 50px;">
+                                                <button class="btn btn-outline-primary btn-item-adjust px-2" type="button" data-id="{{ $item->id }}" data-delta="1" title="Tambah 1">
+                                                    <i class="bi bi-plus"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td class="text-center pe-3 py-2.5">
+                                            <span class="badge {{ $itDone ? 'bg-success text-white' : ($itPacked > 0 ? 'bg-warning text-dark' : 'bg-secondary text-white') }} rounded-pill px-2 py-1 fs-11" id="itemStatusBadge_{{ $item->id }}">
+                                                <i class="bi bi-{{ $itDone ? 'check-circle-fill' : ($itPacked > 0 ? 'hourglass-split' : 'dash-circle') }} me-0.5"></i>
+                                                {{ $itDone ? 'Lengkap' : ($itPacked > 0 ? 'Kurang '.($itQty - $itPacked) : 'Belum') }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-light py-2.5 px-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <a href="{{ route('v2.scanner_gudang.index', ['scan' => $sale->sale_number]) }}" target="_blank" class="btn btn-sm btn-outline-dark fw-semibold" title="Buka terminal scanner gudang lengkap">
+                        <i class="bi bi-fullscreen me-1"></i> Buka Terminal Gudang
+                    </a>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-secondary px-3" data-bs-dismiss="modal">
+                        Tutup
+                    </button>
+                    <button type="button" class="btn btn-sm btn-success px-4 fw-bold shadow-sm" id="btnModalSaveKemas">
+                        <i class="bi bi-check-circle-fill me-1"></i> Selesai & Simpan Kemasan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    // -------------------------------------------------------------
+    // State Variabel Modal Scan Kemas Offline
+    // -------------------------------------------------------------
+    const offlineSaleId = {{ $sale->id }};
+    const offlineSaleNo = @json($sale->sale_number);
+    let itemsState = {};
+
+    // Inisialisasi state item dari server
+    @foreach($sale->items as $it)
+        itemsState[{{ $it->id }}] = {
+            id: {{ $it->id }},
+            name: @json($it->product_name ?? ($it->masterProduct->name ?? 'Produk POS')),
+            sku: @json(strtolower(trim($it->sku ?? ($it->masterProduct->sku ?? '')))),
+            barcode: @json(strtolower(trim($it->masterProduct->barcode ?? ''))),
+            target: {{ (int) $it->quantity }},
+            packed: {{ (int) $it->packed_quantity }},
+        };
+    @endforeach
+
+    // -------------------------------------------------------------
+    // Web Audio Synthesizer (Buzzer & Beep)
+    // -------------------------------------------------------------
+    let offlineAudioCtx = null;
+    function getOfflineAudioCtx() {
+        if (!offlineAudioCtx) {
+            offlineAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        return offlineAudioCtx;
+    }
+
+    function playOfflineTone(freq = 880, type = 'sine', duration = 0.12) {
+        if (!$('#modalSoundToggle').is(':checked')) return;
+        try {
+            const ctx = getOfflineAudioCtx();
+            if (ctx.state === 'suspended') ctx.resume();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + duration);
+        } catch(e) {
+            console.error('Audio error:', e);
+        }
+    }
+
+    function playOfflineSuccess() {
+        playOfflineTone(880, 'sine', 0.08);
+        setTimeout(() => playOfflineTone(1320, 'sine', 0.12), 80);
+    }
+
+    function playOfflineCompleteFanfare() {
+        playOfflineTone(523, 'sine', 0.1);
+        setTimeout(() => playOfflineTone(659, 'sine', 0.1), 100);
+        setTimeout(() => playOfflineTone(784, 'sine', 0.1), 200);
+        setTimeout(() => playOfflineTone(1046, 'sine', 0.25), 300);
+    }
+
+    function playOfflineError() {
+        playOfflineTone(220, 'sawtooth', 0.25);
+    }
+
+    // -------------------------------------------------------------
+    // Render Progress & Update Item Row
+    // -------------------------------------------------------------
+    function updateProgressUi() {
+        let totalTarget = 0;
+        let totalPacked = 0;
+        let allDone = true;
+
+        Object.values(itemsState).forEach(it => {
+            totalTarget += it.target;
+            totalPacked += it.packed;
+            if (it.packed < it.target) allDone = false;
+
+            // Update row item
+            const row = $(`#modalItemRow_${it.id}`);
+            const input = $(`#itemInputPacked_${it.id}`);
+            const badge = $(`#itemStatusBadge_${it.id}`);
+            const isDone = it.packed >= it.target;
+
+            input.val(it.packed);
+
+            if (isDone) {
+                row.addClass('table-success bg-opacity-25');
+                input.removeClass('bg-white').addClass('bg-success text-white');
+                badge.removeClass('bg-warning bg-secondary text-dark').addClass('bg-success text-white')
+                     .html('<i class="bi bi-check-circle-fill me-0.5"></i>Lengkap');
+            } else if (it.packed > 0) {
+                row.removeClass('table-success bg-opacity-25');
+                input.removeClass('bg-success text-white').addClass('bg-white');
+                badge.removeClass('bg-success bg-secondary text-white').addClass('bg-warning text-dark')
+                     .html(`<i class="bi bi-hourglass-split me-0.5"></i>Kurang ${it.target - it.packed}`);
+            } else {
+                row.removeClass('table-success bg-opacity-25');
+                input.removeClass('bg-success text-white').addClass('bg-white');
+                badge.removeClass('bg-success bg-warning text-dark').addClass('bg-secondary text-white')
+                     .html('<i class="bi bi-dash-circle me-0.5"></i>Belum');
+            }
+        });
+
+        const pct = totalTarget > 0 ? Math.min(100, Math.round((totalPacked / totalTarget) * 100)) : 0;
+        $('#modalPackedTotalCount').text(totalPacked);
+        $('#modalTargetTotalCount').text(totalTarget);
+        $('#modalPackedPct').text(pct);
+        $('#modalProgressBar').css('width', pct + '%').attr('aria-valuenow', pct);
+
+        if (pct >= 100) {
+            $('#modalProgressBar').removeClass('bg-primary').addClass('bg-success');
+        } else {
+            $('#modalProgressBar').removeClass('bg-success').addClass('bg-primary');
+        }
+    }
+
+    function showFeedback(message, isSuccess = true) {
+        const alertBox = $('#modalScanFeedback');
+        const icon = $('#modalScanFeedbackIcon');
+        const text = $('#modalScanFeedbackText');
+
+        alertBox.removeClass('d-none alert-success alert-danger alert-warning');
+        if (isSuccess) {
+            alertBox.addClass('alert-success');
+            icon.attr('class', 'bi bi-check-circle-fill text-success fs-5');
+        } else {
+            alertBox.addClass('alert-danger');
+            icon.attr('class', 'bi bi-exclamation-triangle-fill text-danger fs-5');
+        }
+        text.text(message);
+    }
+
+    // -------------------------------------------------------------
+    // Scan Barcode / SKU Handler
+    // -------------------------------------------------------------
+    $('#modalBarcodeScanInput').on('keydown', function(e) {
+        if (e.key === 'Enter' || e.which === 13) {
+            e.preventDefault();
+            const scanned = $(this).val().trim();
+            $(this).val('');
+            if (scanned) {
+                processBarcodeScan(scanned);
+            }
+        }
+    });
+
+    $('#btnModalClearScanInput').on('click', function() {
+        $('#modalBarcodeScanInput').val('').focus();
+    });
+
+    function processBarcodeScan(code) {
+        const clean = code.toLowerCase().trim();
+        let matched = null;
+
+        // 1. Cocok persis SKU atau Barcode
+        for (let id in itemsState) {
+            const it = itemsState[id];
+            if ((it.sku && it.sku === clean) || (it.barcode && it.barcode === clean)) {
+                matched = it;
+                break;
+            }
+        }
+
+        // 2. Cocok barcode format SPK (SPK-xxx|ITEM-xxx|SKU)
+        if (!matched && clean.includes('|')) {
+            const parts = clean.split('|');
+            for (let part of parts) {
+                const sub = part.trim();
+                for (let id in itemsState) {
+                    const it = itemsState[id];
+                    if ((it.sku && it.sku === sub) || (it.barcode && it.barcode === sub)) {
+                        matched = it;
+                        break;
+                    }
+                }
+                if (matched) break;
+            }
+        }
+
+        // 3. Fallback partial SKU match
+        if (!matched) {
+            for (let id in itemsState) {
+                const it = itemsState[id];
+                if ((it.sku && (it.sku.includes(clean) || clean.includes(it.sku))) ||
+                    (it.barcode && (it.barcode.includes(clean) || clean.includes(it.barcode)))) {
+                    matched = it;
+                    break;
+                }
+            }
+        }
+
+        if (matched) {
+            if (matched.packed >= matched.target) {
+                playOfflineError();
+                showFeedback(`Produk '${matched.name}' sudah mencapai target kemas (${matched.target} pcs). Tidak dapat menambah lagi.`, false);
+                return;
+            }
+
+            matched.packed++;
+            playOfflineSuccess();
+            showFeedback(`✅ Scan Berhasil: '${matched.name}' (+1 pcs) &bull; ${matched.packed} / ${matched.target} Pcs`, true);
+            updateProgressUi();
+
+            // Cek apakah semua selesai
+            let allCompleted = Object.values(itemsState).every(it => it.packed >= it.target);
+            if (allCompleted) {
+                playOfflineCompleteFanfare();
+                showFeedback(`🎉 SEMUA ITEM LENGKAP! Silakan klik 'Selesai & Simpan Kemasan'.`, true);
+            }
+        } else {
+            playOfflineError();
+            showFeedback(`❌ Barcode / SKU '${code}' tidak cocok dengan item manapun pada nota ini.`, false);
+        }
+    }
+
+    // -------------------------------------------------------------
+    // Manual Plus / Minus Button
+    // -------------------------------------------------------------
+    $(document).on('click', '.btn-item-adjust', function() {
+        const id = $(this).data('id');
+        const delta = parseInt($(this).data('delta'));
+        const it = itemsState[id];
+
+        if (!it) return;
+
+        if (delta > 0) {
+            if (it.packed < it.target) {
+                it.packed++;
+                playOfflineSuccess();
+                updateProgressUi();
+            } else {
+                playOfflineError();
+                showFeedback(`Item '${it.name}' sudah penuh (${it.target} Pcs).`, false);
+            }
+        } else if (delta < 0) {
+            if (it.packed > 0) {
+                it.packed--;
+                playOfflineTone(440, 'sine', 0.08);
+                updateProgressUi();
+            }
+        }
+    });
+
+    // -------------------------------------------------------------
+    // Tandai Semua Selesai
+    // -------------------------------------------------------------
+    $('#btnModalMarkAllDone').on('click', function() {
+        Object.values(itemsState).forEach(it => {
+            it.packed = it.target;
+        });
+        playOfflineCompleteFanfare();
+        updateProgressUi();
+        showFeedback('Semua item telah ditandai lengkap selesai.', true);
+    });
+
+    // -------------------------------------------------------------
+    // Reset Progres
+    // -------------------------------------------------------------
+    $('#btnModalResetProgress').on('click', function() {
+        Swal.fire({
+            title: 'Reset Progres Scan?',
+            text: 'Semua jumlah terkemas pada nota ini akan dikembalikan ke 0.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Reset ke 0',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Object.values(itemsState).forEach(it => {
+                    it.packed = 0;
+                });
+                updateProgressUi();
+                showFeedback('Progres scan kemas berhasil di-reset.', false);
+
+                // Kirim reset ke backend
+                $.ajax({
+                    url: `{{ route('v2.penjualan_offline.scan_kemas', $sale->id) }}`,
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        reset: 1
+                    },
+                    dataType: 'json',
+                    success: function(res) {
+                        applyBackendUpdate(res);
+                    }
+                });
+            }
+        });
+    });
+
+    // -------------------------------------------------------------
+    // Simpan Kemasan ke Server
+    // -------------------------------------------------------------
+    $('#btnModalSaveKemas').on('click', function() {
+        const packedItemsPayload = {};
+        Object.values(itemsState).forEach(it => {
+            packedItemsPayload[it.id] = it.packed;
+        });
+
+        Swal.fire({
+            title: 'Menyimpan Kemasan...',
+            text: 'Memproses status pengemasan transaksi offline.',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        $.ajax({
+            url: `{{ route('v2.penjualan_offline.scan_kemas', $sale->id) }}`,
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                packed_items: packedItemsPayload
+            },
+            dataType: 'json',
+            success: function(res) {
+                Swal.close();
+                if (res.success) {
+                    playOfflineCompleteFanfare();
+                    applyBackendUpdate(res);
+                    $('#modalScanKemasOffline').modal('hide');
+                    Swal.fire({
+                        icon: 'success',
+                        title: res.is_all_done ? 'Berhasil Dikemas Lengkap!' : 'Progres Tersimpan',
+                        text: res.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    playOfflineError();
+                    Swal.fire('Gagal', res.message || 'Gagal menyimpan kemasan.', 'error');
+                }
+            },
+            error: function(xhr) {
+                Swal.close();
+                playOfflineError();
+                let msg = 'Terjadi kesalahan sistem.';
+                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                Swal.fire('Error', msg, 'error');
+            }
+        });
+    });
+
+    function applyBackendUpdate(res) {
+        // Update header button
+        const isAll = res.is_all_done || res.packing_status === 'verified';
+        if (isAll) {
+            $('#btnHeaderScanKemas').removeClass('btn-primary').addClass('btn-success text-white');
+            $('#btnHeaderScanKemas i').attr('class', 'bi bi-check-circle-fill me-1');
+            $('#txtBtnHeaderKemas').text('Sudah Dikemas (Lihat Scan)');
+            $('#cardPackingBadge').attr('class', 'badge bg-success text-white').text('Sudah Dikemas');
+            $('#modalHeaderPackingBadge').attr('class', 'badge bg-success text-white px-2.5 py-1.5').text('Sudah Dikemas');
+        } else if (res.packing_status === 'packing') {
+            $('#btnHeaderScanKemas').removeClass('btn-success text-white').addClass('btn-primary');
+            $('#btnHeaderScanKemas i').attr('class', 'bi bi-upc-scan me-1');
+            $('#txtBtnHeaderKemas').text('Lanjutkan Scan Kemas');
+            $('#cardPackingBadge').attr('class', 'badge bg-info text-dark').text('Sedang Dikemas');
+            $('#modalHeaderPackingBadge').attr('class', 'badge bg-info text-dark px-2.5 py-1.5').text('Sedang Dikemas');
+        } else {
+            $('#btnHeaderScanKemas').removeClass('btn-success text-white').addClass('btn-primary');
+            $('#btnHeaderScanKemas i').attr('class', 'bi bi-upc-scan me-1');
+            $('#txtBtnHeaderKemas').text('Scan & Kemas Barang');
+            $('#cardPackingBadge').attr('class', 'badge bg-secondary text-white').text('Belum Dikemas');
+            $('#modalHeaderPackingBadge').attr('class', 'badge bg-secondary text-white px-2.5 py-1.5').text('Belum Dikemas');
+        }
+
+        if (res.packer_name) $('#txtCardPackerName').text(res.packer_name);
+        if (res.packed_at) $('#txtCardPackedAt').text(res.packed_at);
+
+        if (res.items && Array.isArray(res.items)) {
+            res.items.forEach(it => {
+                $(`#txtTablePackedQty_${it.id}`).text(it.packed_quantity);
+                const badge = $(`#badgeItemPacked_${it.id}`);
+                if (it.is_completed) {
+                    badge.attr('class', 'badge bg-success bg-opacity-10 text-success border border-success border-opacity-25')
+                         .html(`<i class="bi bi-check2-circle me-0.5"></i>Lengkap (${it.packed_quantity}/${it.quantity})`);
+                } else if (it.packed_quantity > 0) {
+                    badge.attr('class', 'badge bg-warning bg-opacity-15 text-dark border border-warning border-opacity-25')
+                         .html(`<i class="bi bi-hourglass-split me-0.5"></i>Sebagian (${it.packed_quantity}/${it.quantity})`);
+                } else {
+                    badge.attr('class', 'badge bg-light text-secondary border')
+                         .html(`<i class="bi bi-dash-circle me-0.5"></i>Belum Dikemas (0/${it.quantity})`);
+                }
+            });
+        }
+
+        if (res.total_target !== undefined && res.total_packed !== undefined) {
+            const pPct = res.total_target > 0 ? Math.min(100, Math.round((res.total_packed / res.total_target) * 100)) : 0;
+            $('#txtCardPackingProgress').text(`${res.total_packed} / ${res.total_target} Pcs (${pPct}%)`);
+            $('#barCardPackingProgress').css('width', `${pPct}%`);
+        }
+    }
+
+    // Auto-focus barcode input saat modal dibuka
+    const modalEl = document.getElementById('modalScanKemasOffline');
+    if (modalEl) {
+        modalEl.addEventListener('shown.bs.modal', function () {
+            $('#modalBarcodeScanInput').focus();
+        });
+    }
 });
 </script>
 @endpush
