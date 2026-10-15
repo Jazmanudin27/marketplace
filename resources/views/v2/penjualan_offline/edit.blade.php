@@ -212,43 +212,15 @@
             </div>
 
             <!-- Payment Card -->
+            <!-- Diskon & Nilai Tagihan -->
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-white py-2.5 border-bottom">
                     <h6 class="card-title fw-bold mb-0 text-dark">
-                        <i class="bi bi-cash-stack text-success me-1.5"></i> Pembayaran Kasir
+                        <i class="bi bi-tag text-primary me-1.5"></i> Diskon & Ringkasan Tagihan
                     </h6>
                 </div>
                 <div class="card-body p-3">
-                    <div class="mb-2.5">
-                        <label class="form-label small fw-semibold text-secondary mb-1">Metode Pembayaran</label>
-                        <select name="payment_method" id="payment_method" class="form-select form-select-sm fw-semibold">
-                            <option value="tunai" {{ $offlineSale->payment_method === 'tunai' ? 'selected' : '' }}>Tunai / Cash</option>
-                            <option value="transfer" {{ $offlineSale->payment_method === 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
-                            <option value="qris" {{ $offlineSale->payment_method === 'qris' ? 'selected' : '' }}>QRIS / E-Wallet</option>
-                            <option value="reseller_balance" {{ $offlineSale->payment_method === 'reseller_balance' ? 'selected' : '' }}>Saldo Reseller</option>
-                            <option value="piutang" {{ $offlineSale->payment_method === 'piutang' ? 'selected' : '' }}>Piutang / Tempo Kredit</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-2.5" id="wrapper_payment_destination">
-                        <label class="form-label small fw-semibold text-secondary mb-1">
-                            <i class="bi bi-bank text-primary me-1"></i>Kas / Rekening Masuk
-                        </label>
-                        <select name="payment_destination" id="payment_destination" class="form-select form-select-sm fw-semibold">
-                            @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
-                                @foreach($bankAccounts as $bank)
-                                    <option value="{{ $bank->bank_name }}" {{ ($offlineSale->payment_destination == $bank->bank_name || $loop->first) ? 'selected' : '' }}>
-                                        {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }} — Saldo: Rp {{ number_format($bank->current_balance, 0, ',', '.') }}
-                                    </option>
-                                @endforeach
-                            @else
-                                <option value="kas_besar" {{ $offlineSale->payment_destination === 'kas_besar' ? 'selected' : '' }}>Kas Toko (Utama)</option>
-                                <option value="kas_kecil" {{ $offlineSale->payment_destination === 'kas_kecil' ? 'selected' : '' }}>Kas Kecil (Operasional)</option>
-                            @endif
-                        </select>
-                    </div>
-
-                    <div class="mb-2.5">
+                    <div class="mb-3">
                         <label class="form-label small fw-semibold text-secondary mb-1">Diskon Nota (Rp)</label>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text py-0 px-2 text-muted small">Rp</span>
@@ -256,33 +228,41 @@
                                    value="{{ number_format($offlineSale->discount_amount, 0, ',', '.') }}"
                                    class="form-control form-control-sm text-end font-monospace fw-semibold" placeholder="0">
                         </div>
+                        <div class="form-text text-muted small" style="font-size: 0.72rem;">Potongan diskon langsung untuk total nota belanja.</div>
                     </div>
 
-                    <div class="mb-2.5">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="form-label small fw-semibold text-secondary mb-0">Jumlah Uang Dibayar (Rp)</label>
-                            <button type="button" class="btn btn-link btn-xs text-primary p-0 text-decoration-none small fw-semibold" id="btn_exact_amount">Uang Pas</button>
-                        </div>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text py-0 px-2 text-success small fw-bold">Rp</span>
-                            <input type="text" name="paid_amount" id="paid_amount"
-                                   value="{{ number_format($offlineSale->paid_amount, 0, ',', '.') }}"
-                                   class="form-control form-control-sm text-end font-monospace fw-bold fs-6 border-success text-success" placeholder="0">
-                        </div>
-                        <div class="d-flex gap-1 mt-1.5 flex-wrap">
-                            <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1.5 quick-cash-btn" data-amt="50000" style="font-size: 0.72rem;">50.000</button>
-                            <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1.5 quick-cash-btn" data-amt="100000" style="font-size: 0.72rem;">100.000</button>
-                            <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1.5 quick-cash-btn" data-amt="200000" style="font-size: 0.72rem;">200.000</button>
-                            <button type="button" class="btn btn-outline-secondary btn-xs py-0 px-1.5 quick-cash-btn" data-amt="500000" style="font-size: 0.72rem;">500.000</button>
-                        </div>
-                    </div>
-
+                    <!-- Status Pembayaran Saat Ini (Read-Only) -->
                     <div class="p-2.5 bg-light rounded-3 border mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1.5 pb-1 border-bottom">
+                            <span class="small text-muted fw-semibold">Status Bayar:</span>
+                            <span class="badge {{ $offlineSale->is_paid ? 'bg-success' : 'bg-warning text-dark' }}">
+                                {{ $offlineSale->is_paid ? 'LUNAS' : 'BELUM LUNAS' }}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted">Total Terbayar:</span>
+                            <span class="font-monospace fw-bold text-success">Rp {{ number_format($offlineSale->paid_amount, 0, ',', '.') }}</span>
+                        </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="small fw-semibold text-secondary" id="label_change">Kembalian / Piutang:</span>
-                            <span id="display_change" class="fw-bold font-monospace fs-6">Rp 0</span>
+                            <span class="small fw-semibold text-secondary" id="label_change">Sisa Piutang:</span>
+                            <span id="display_change" class="fw-bold font-monospace fs-6 text-danger">Rp {{ number_format($offlineSale->remaining_amount, 0, ',', '.') }}</span>
                         </div>
                     </div>
+
+                    <!-- Hidden input to maintain paid_amount reference for calculation & submit -->
+                    <input type="hidden" name="paid_amount" id="paid_amount" value="{{ (int)$offlineSale->paid_amount }}">
+
+                    <!-- Notice / Shortcut ke Show -->
+                    <div class="alert alert-info py-2 px-2.5 small mb-3 d-flex align-items-start gap-2" style="font-size: 0.76rem;">
+                        <i class="bi bi-info-circle-fill text-primary mt-0.5"></i>
+                        <div>
+                            Pencatatan pembayaran kasir atau cicilan dilakukan di <strong>Menu Detail Nota (Show)</strong> agar tercatat otomatis ke kas/bank & jurnal keuangan.
+                        </div>
+                    </div>
+
+                    <a href="{{ route('v2.penjualan_offline.show', $offlineSale->id) }}" class="btn btn-outline-primary btn-sm w-100 fw-semibold py-1.5 mb-3">
+                        <i class="bi bi-receipt me-1"></i> Buka Detail & Catat Pembayaran
+                    </a>
 
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-warning py-2 fw-bold text-dark shadow-sm">
@@ -353,27 +333,33 @@ document.addEventListener('DOMContentLoaded', function() {
         calculateTotals();
     });
 
-    paidInput.addEventListener('input', function() {
-        this.value = formatRupiah(parseRupiah(this.value));
-        calculateTotals();
-    });
+    if (paidInput && paidInput.type !== 'hidden') {
+        paidInput.addEventListener('input', function() {
+            this.value = formatRupiah(parseRupiah(this.value));
+            calculateTotals();
+        });
+    }
 
     document.querySelectorAll('.quick-cash-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const amt = parseFloat(this.dataset.amt) || 0;
-            paidInput.value = formatRupiah(amt);
-            calculateTotals();
+            if (paidInput) {
+                paidInput.value = formatRupiah(amt);
+                calculateTotals();
+            }
         });
     });
 
-    btnExactAmount.addEventListener('click', function() {
-        let subtotal = 0;
-        cart.forEach(item => { subtotal += (item.qty * item.price); });
-        const discount = parseRupiah(discountInput.value);
-        const grandTotal = Math.max(0, subtotal - discount);
-        paidInput.value = formatRupiah(grandTotal);
-        calculateTotals();
-    });
+    if (btnExactAmount) {
+        btnExactAmount.addEventListener('click', function() {
+            let subtotal = 0;
+            cart.forEach(item => { subtotal += (item.qty * item.price); });
+            const discount = discountInput ? parseRupiah(discountInput.value) : 0;
+            const grandTotal = Math.max(0, subtotal - discount);
+            if (paidInput) paidInput.value = formatRupiah(grandTotal);
+            calculateTotals();
+        });
+    }
 
     btnAddItem.addEventListener('click', function() {
         const prodId = selectProduct.value;
