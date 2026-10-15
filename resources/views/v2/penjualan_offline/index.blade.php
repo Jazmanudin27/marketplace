@@ -243,26 +243,39 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.18);
 }
-.btn-action-detail {
-    background: #2563eb;
+.btn-action-detail,
+.btn-action-view {
+    background: #059669 !important;
     color: #ffffff !important;
 }
-.btn-action-detail:hover {
-    background: #1d4ed8;
+.btn-action-detail:hover,
+.btn-action-view:hover {
+    background: #047857 !important;
+    color: #ffffff !important;
+}
+.btn-action-scan {
+    background: #7c3aed !important;
+    color: #ffffff !important;
+}
+.btn-action-scan:hover {
+    background: #6d28d9 !important;
+    color: #ffffff !important;
 }
 .btn-action-edit {
-    background: #f59e0b;
+    background: #f59e0b !important;
     color: #ffffff !important;
 }
 .btn-action-edit:hover {
-    background: #d97706;
+    background: #d97706 !important;
+    color: #ffffff !important;
 }
 .btn-action-cancel {
-    background: #ef4444;
+    background: #ef4444 !important;
     color: #ffffff !important;
 }
 .btn-action-cancel:hover {
-    background: #dc2626;
+    background: #dc2626 !important;
+    color: #ffffff !important;
 }
 </style>
 @endpush
@@ -647,17 +660,18 @@
                         {{-- 7. Aksi (Icon-Only Berwarna Solid) --}}
                         <td class="text-center pe-3">
                             <div class="btn-action-group">
-                                <a href="{{ route('v2.penjualan_offline.show', $sale->id) }}" class="btn-action-icon btn-action-detail" title="Lihat Detail Nota">
+                                <a href="{{ route('v2.penjualan_offline.show', $sale->id) }}" class="btn-action-icon btn-action-view" style="background:#059669 !important; color:#ffffff !important;" title="Lihat Detail Nota">
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 @if($sale->status !== 'cancelled')
-                                    <a href="{{ route('v2.scanner_gudang.index', ['scan' => $sale->sale_number]) }}" class="btn-action-icon" style="background:#0284c7; color:#fff;" title="Scan Kemas di Layar Gudang">
+                                    <a href="{{ route('v2.scanner_gudang.index', ['scan' => $sale->sale_number]) }}" class="btn-action-icon btn-action-scan" style="background:#7c3aed !important; color:#ffffff !important;" title="Scan Kemas di Layar Gudang">
                                         <i class="bi bi-upc-scan"></i>
                                     </a>
-                                    <a href="{{ route('v2.penjualan_offline.edit', $sale->id) }}" class="btn-action-icon btn-action-edit" title="Edit Nota POS">
+                                    <a href="{{ route('v2.penjualan_offline.edit', $sale->id) }}" class="btn-action-icon btn-action-edit" style="background:#f59e0b !important; color:#ffffff !important;" title="Edit Nota POS">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <button type="button" class="btn-action-icon btn-action-cancel btn-trigger-cancel" 
+                                            style="background:#ef4444 !important; color:#ffffff !important;"
                                             data-id="{{ $sale->id }}" 
                                             data-no="{{ $sale->sale_number }}"
                                             data-buyer="{{ $sale->buyer_name ?: 'Umum (Walk-in)' }}"
