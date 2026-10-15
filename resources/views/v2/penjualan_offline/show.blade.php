@@ -150,9 +150,22 @@
                                 @endif
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="{{ (auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner'])) ? 6 : 5 }}" class="text-center py-3 text-muted fst-italic">Belum ada riwayat pembayaran tercatat.</td>
-                            </tr>
+                            @if((float)$sale->paid_amount > 0)
+                                <tr>
+                                    <td class="ps-3">{{ \Carbon\Carbon::parse($sale->sold_at ?: $sale->created_at)->format('d/m/Y H:i') }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ strtoupper($sale->payment_method ?: 'TUNAI') }}</span></td>
+                                    <td>{{ ucwords(str_replace('_', ' ', $sale->payment_destination ?: 'kas_besar')) }}</td>
+                                    <td class="text-muted">Pembayaran Kasir Saat Transaksi Dibuat</td>
+                                    <td class="text-end pe-3 font-monospace fw-bold text-success">Rp {{ number_format(min($sale->paid_amount, $sale->grand_total), 0, ',', '.') }}</td>
+                                    @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner']))
+                                        <td class="text-center text-muted small"><span class="badge bg-light text-secondary border">Awal</span></td>
+                                    @endif
+                                </tr>
+                            @else
+                                <tr>
+                                    <td colspan="{{ (auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner'])) ? 6 : 5 }}" class="text-center py-3 text-muted fst-italic">Belum ada riwayat pembayaran tercatat.</td>
+                                </tr>
+                            @endif
                         @endforelse
                     </tbody>
                 </table>

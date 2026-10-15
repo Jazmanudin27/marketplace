@@ -9,6 +9,7 @@ use App\Models\OfflineSalePayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class OfflineSaleController extends Controller
 {
@@ -425,6 +426,29 @@ class OfflineSaleController extends Controller
                 $offlineSale->update(['status' => $reverted]);
                 $offlineSale->status = $reverted;
             }
+        }
+
+        // Auto-heal legacy data: jika paid_amount > 0 tapi belum ada record di offline_sale_payments
+        if ((float) $offlineSale->paid_amount > 0 && $offlineSale->payments->isEmpty()) {
+            $paymentNumber = OfflineSalePayment::generatePaymentNumber($offlineSale->tenant_id);
+            $actualPayment = min((float) $offlineSale->paid_amount, (float) $offlineSale->grand_total);
+            if ($actualPayment <= 0) {
+                $actualPayment = (float) $offlineSale->paid_amount;
+            }
+
+            $offlineSale->payments()->create([
+                'tenant_id'           => $offlineSale->tenant_id,
+                'payment_number'      => $paymentNumber,
+                'payment_date'        => $offlineSale->sold_at ? Carbon::parse($offlineSale->sold_at)->toDateString() : ($offlineSale->created_at ? Carbon::parse($offlineSale->created_at)->toDateString() : now()->toDateString()),
+                'amount'              => $actualPayment,
+                'payment_method'      => $offlineSale->payment_method ?: 'tunai',
+                'payment_destination' => $offlineSale->payment_destination ?: 'kas_besar',
+                'notes'               => 'Pembayaran Kasir Saat Transaksi Dibuat',
+                'created_by'          => $offlineSale->user_id ?: Auth::id(),
+                'income_id'           => null,
+            ]);
+
+            $offlineSale->load('payments.user');
         }
 
         $bankAccounts = \App\Models\BankAccount::where('tenant_id', Auth::user()->tenant_id)

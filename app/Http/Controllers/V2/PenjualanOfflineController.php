@@ -279,6 +279,30 @@ class PenjualanOfflineController extends Controller
             ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
+        // Auto-heal data lama: jika nota sudah memiliki pembayaran tercatat (paid_amount > 0)
+        // tetapi belum memiliki record detail di offline_sale_payments
+        if ((float) $sale->paid_amount > 0 && $sale->payments->isEmpty()) {
+            $paymentNumber = OfflineSalePayment::generatePaymentNumber($tenantId);
+            $actualPayment = min((float) $sale->paid_amount, (float) $sale->grand_total);
+            if ($actualPayment <= 0) {
+                $actualPayment = (float) $sale->paid_amount;
+            }
+
+            $sale->payments()->create([
+                'tenant_id'           => $tenantId,
+                'payment_number'      => $paymentNumber,
+                'payment_date'        => $sale->sold_at ? Carbon::parse($sale->sold_at)->toDateString() : ($sale->created_at ? Carbon::parse($sale->created_at)->toDateString() : now()->toDateString()),
+                'amount'              => $actualPayment,
+                'payment_method'      => $sale->payment_method ?: 'tunai',
+                'payment_destination' => $sale->payment_destination ?: 'kas_besar',
+                'notes'               => 'Pembayaran Kasir Saat Transaksi Dibuat',
+                'created_by'          => $sale->user_id ?: Auth::id(),
+                'income_id'           => null,
+            ]);
+
+            $sale->load('payments');
+        }
+
         $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->orderBy('bank_name')

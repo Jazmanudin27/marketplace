@@ -231,10 +231,43 @@
                             </span>
                         </div>
                         <div class="card-body p-0">
-                            @if($offlineSale->payments->isEmpty())
+                            @if($offlineSale->payments->isEmpty() && (float)$offlineSale->paid_amount <= 0)
                                 <div class="text-center py-4 text-muted">
                                     <i class="fas fa-receipt fa-2x mb-2 text-muted opacity-50"></i>
                                     <p class="mb-0 small">Belum ada catatan pembayaran / cicilan yang masuk.</p>
+                                </div>
+                            @elseif($offlineSale->payments->isEmpty() && (float)$offlineSale->paid_amount > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                                        <thead class="table-light text-secondary" style="font-size: 0.75rem;">
+                                            <tr>
+                                                <th class="ps-3 py-2">NO. PEMBAYARAN</th>
+                                                <th class="py-2">TANGGAL</th>
+                                                <th class="text-end py-2">NOMINAL</th>
+                                                <th class="py-2">METODE</th>
+                                                <th class="py-2">KAS / BANK</th>
+                                                <th class="py-2">CATATAN</th>
+                                                <th class="py-2">PETUGAS</th>
+                                                @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner']))
+                                                    <th class="text-center py-2 pe-3" style="width: 50px;">AKSI</th>
+                                                @endif
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="ps-3 font-monospace fw-bold text-dark">-</td>
+                                                <td>{{ $offlineSale->sold_at ? \Carbon\Carbon::parse($offlineSale->sold_at)->format('d/m/Y') : '-' }}</td>
+                                                <td class="text-end font-monospace fw-bold text-success">Rp {{ number_format(min($offlineSale->paid_amount, $offlineSale->grand_total), 0, ',', '.') }}</td>
+                                                <td><span class="badge bg-light text-dark border">{{ strtoupper($offlineSale->payment_method ?: 'TUNAI') }}</span></td>
+                                                <td><span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 fw-normal">{{ ucwords(str_replace('_', ' ', $offlineSale->payment_destination ?: 'kas_besar')) }}</span></td>
+                                                <td><small class="text-muted">Pembayaran Kasir Saat Transaksi Dibuat</small></td>
+                                                <td><small class="text-dark">{{ $offlineSale->user->name ?? '-' }}</small></td>
+                                                @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner']))
+                                                    <td class="text-center pe-3"><span class="badge bg-light text-secondary border">Awal</span></td>
+                                                @endif
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             @else
                                 <div class="table-responsive">
