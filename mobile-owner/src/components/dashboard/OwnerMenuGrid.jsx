@@ -33,6 +33,13 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
       gradient: 'linear-gradient(135deg, #2563eb, #1d4ed8)'
     },
     {
+      id: 'penjualan_offline',
+      title: 'Jual Offline',
+      category: 'Transaksi',
+      icon: Store,
+      gradient: 'linear-gradient(135deg, #0284c7, #0369a1)'
+    },
+    {
       id: 'returns',
       title: 'Retur Masuk',
       category: 'Transaksi',

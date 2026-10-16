@@ -5184,6 +5184,251 @@ app.delete(['/api/v2/owner/supplier-consignments/:id', '/api/v2/supplier-consign
 });
 
 
+// ─── 16. PENJUALAN OFFLINE (POS & PRE-ORDER SPK) ─────────────────────────────
+app.get('/api/v2/owner/offline-sales', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const search = (req.query.search || '').trim();
+    const statusFilter = (req.query.status || 'ALL').trim();
+    const packingFilter = (req.query.packing_status || 'ALL').trim();
+    const filterType = (req.query.filter_type || 'ALL').trim(); // 'ALL', 'UNPACKED', 'PIUTANG', 'PO_SPK', 'COMPLETED'
+    const from = (req.query.from || '').trim();
+    const to = (req.query.to || '').trim();
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25));
+    const offset = (page - 1) * limit;
+
+    let conditions = ['os.tenant_id = ?'];
+    let params = [tenantId];
+
+    if (search) {
+      conditions.push('(os.sale_number LIKE ? OR os.buyer_name LIKE ? OR os.institution_name LIKE ? OR os.buyer_phone LIKE ?)');
+      const s = `%${search}%`;
+      params.push(s, s, s, s);
+    }
+
+    if (statusFilter && statusFilter !== 'ALL') {
+      conditions.push('os.status = ?');
+      params.push(statusFilter);
+    }
+
+    if (packingFilter && packingFilter !== 'ALL') {
+      conditions.push('os.packing_status = ?');
+      params.push(packingFilter);
+    }
+
+    if (filterType === 'UNPACKED') {
+      conditions.push("(os.packing_status IS NULL OR os.packing_status NOT IN ('verified', 'packed')) AND os.status != 'cancelled'");
+    } else if (filterType === 'PIUTANG') {
+      conditions.push("os.paid_amount < os.grand_total AND os.status != 'cancelled'");
+    } else if (filterType === 'PO_SPK') {
+      conditions.push("os.is_po = 1 AND os.status != 'cancelled'");
+    } else if (filterType === 'COMPLETED') {
+      conditions.push("os.status = 'completed'");
+    }
+
+    if (from) {
+      conditions.push('DATE(os.sold_at) >= ?');
+      params.push(from);
+    }
+    if (to) {
+      conditions.push('DATE(os.sold_at) <= ?');
+      params.push(to);
+    }
+
+    const whereClause = conditions.join(' AND ');
+
+    // 1. KPI Aggregation Summary
+    const [kpi] = await query(
+      `SELECT 
+         COUNT(*) as total_count,
+         COALESCE(SUM(CASE WHEN status != 'cancelled' THEN grand_total ELSE 0 END), 0) as total_omset,
+         COALESCE(SUM(CASE WHEN status != 'cancelled' THEN paid_amount ELSE 0 END), 0) as total_terbayar,
+         COALESCE(SUM(CASE WHEN status != 'cancelled' AND grand_total > paid_amount THEN (grand_total - paid_amount) ELSE 0 END), 0) as total_piutang,
+         COALESCE(SUM(CASE WHEN status != 'cancelled' AND (packing_status IS NULL OR packing_status NOT IN ('verified', 'packed')) THEN 1 ELSE 0 END), 0) as unpacked_count,
+         COALESCE(SUM(CASE WHEN status != 'cancelled' AND is_po = 1 THEN 1 ELSE 0 END), 0) as po_spk_count
+       FROM offline_sales os
+       WHERE os.tenant_id = ?`,
+      [tenantId]
+    );
+
+    // 2. Total filtered count
+    const [countRow] = await query(
+      `SELECT COUNT(*) as filtered_count FROM offline_sales os WHERE ${whereClause}`,
+      params
+    );
+    const totalFiltered = countRow ? countRow.filtered_count : 0;
+
+    // 3. Paginated Sales Query
+    const sales = await query(
+      `SELECT 
+         os.*,
+         s.store_name,
+         u.name as cashier_name,
+         p.name as packer_name
+       FROM offline_sales os
+       LEFT JOIN stores s ON s.id = os.store_id
+       LEFT JOIN users u ON u.id = os.user_id
+       LEFT JOIN users p ON p.id = os.packed_by
+       WHERE ${whereClause}
+       ORDER BY os.sold_at DESC, os.id DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    if (sales.length > 0) {
+      const saleIds = sales.map(s => s.id);
+      const saleNumbers = sales.map(s => s.sale_number).filter(Boolean);
+
+      // Fetch items for these sales
+      const items = await query(
+        `SELECT 
+           osi.*,
+           mp.image_url,
+           mp.barcode as master_barcode
+         FROM offline_sale_items osi
+         LEFT JOIN master_products mp ON mp.id = osi.master_product_id
+         WHERE osi.offline_sale_id IN (${saleIds.map(() => '?').join(',')})
+         ORDER BY osi.id ASC`,
+        saleIds
+      );
+
+      const itemsBySale = {};
+      for (const it of items) {
+        if (!itemsBySale[it.offline_sale_id]) itemsBySale[it.offline_sale_id] = [];
+        itemsBySale[it.offline_sale_id].push(it);
+      }
+
+      // Fetch linked SPK info if any
+      let spksBySaleNumber = {};
+      if (saleNumbers.length > 0) {
+        try {
+          const spks = await query(
+            `SELECT id, no_spk, no_pesanan, status, kategori_produk, deadline, created_at
+             FROM spks 
+             WHERE tenant_id = ? AND no_pesanan IN (${saleNumbers.map(() => '?').join(',')})`,
+            [tenantId, ...saleNumbers]
+          );
+          for (const spk of spks) {
+            if (!spksBySaleNumber[spk.no_pesanan]) spksBySaleNumber[spk.no_pesanan] = [];
+            spksBySaleNumber[spk.no_pesanan].push(spk);
+          }
+        } catch (_) {}
+      }
+
+      // Attach items and SPKs
+      for (const sale of sales) {
+        sale.items = itemsBySale[sale.id] || [];
+        sale.spks = spksBySaleNumber[sale.sale_number] || [];
+        sale.total_items_qty = sale.items.reduce((acc, it) => acc + (parseInt(it.quantity, 10) || 0), 0);
+        sale.total_packed_qty = sale.items.reduce((acc, it) => acc + (parseInt(it.packed_quantity, 10) || 0), 0);
+        sale.remaining_amount = Math.max(0, (parseFloat(sale.grand_total) || 0) - (parseFloat(sale.paid_amount) || 0));
+        sale.is_lunas = sale.remaining_amount <= 0;
+      }
+    }
+
+    return res.json({
+      success: true,
+      summary: {
+        totalOmset: parseFloat(kpi?.total_omset || 0),
+        totalTerbayar: parseFloat(kpi?.total_terbayar || 0),
+        totalPiutang: parseFloat(kpi?.total_piutang || 0),
+        totalCount: parseInt(kpi?.total_count || 0, 10),
+        unpackedCount: parseInt(kpi?.unpacked_count || 0, 10),
+        poSpkCount: parseInt(kpi?.po_spk_count || 0, 10),
+      },
+      pagination: {
+        page,
+        limit,
+        total: totalFiltered,
+        totalPages: Math.ceil(totalFiltered / limit),
+      },
+      data: sales
+    });
+  } catch (err) {
+    console.error('[Node-API] Get offline sales error:', err);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil data penjualan offline: ' + err.message });
+  }
+});
+
+app.get('/api/v2/owner/offline-sales/:id', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const saleId = parseInt(req.params.id, 10);
+
+    if (isNaN(saleId) || saleId <= 0) {
+      return res.status(400).json({ success: false, message: 'ID transaksi tidak valid.' });
+    }
+
+    const [sale] = await query(
+      `SELECT 
+         os.*,
+         s.store_name,
+         u.name as cashier_name,
+         p.name as packer_name
+       FROM offline_sales os
+       LEFT JOIN stores s ON s.id = os.store_id
+       LEFT JOIN users u ON u.id = os.user_id
+       LEFT JOIN users p ON p.id = os.packed_by
+       WHERE os.id = ? AND os.tenant_id = ?
+       LIMIT 1`,
+      [saleId, tenantId]
+    );
+
+    if (!sale) {
+      return res.status(404).json({ success: false, message: 'Transaksi penjualan offline tidak ditemukan.' });
+    }
+
+    // Items
+    const items = await query(
+      `SELECT 
+         osi.*,
+         mp.image_url,
+         mp.barcode as master_barcode,
+         mp.stock as current_stock
+       FROM offline_sale_items osi
+       LEFT JOIN master_products mp ON mp.id = osi.master_product_id
+       WHERE osi.offline_sale_id = ?
+       ORDER BY osi.id ASC`,
+      [saleId]
+    );
+
+    // Payments
+    let payments = [];
+    try {
+      payments = await query(
+        `SELECT * FROM offline_sale_payments WHERE offline_sale_id = ? ORDER BY payment_date ASC, id ASC`,
+        [saleId]
+      );
+    } catch (_) {}
+
+    // Linked SPKs
+    let spks = [];
+    if (sale.sale_number) {
+      try {
+        spks = await query(
+          `SELECT id, no_spk, no_pesanan, status, kategori_produk, deadline, created_at
+           FROM spks WHERE tenant_id = ? AND no_pesanan = ?`,
+          [tenantId, sale.sale_number]
+        );
+      } catch (_) {}
+    }
+
+    sale.items = items;
+    sale.payments = payments;
+    sale.spks = spks;
+    sale.total_items_qty = items.reduce((acc, it) => acc + (parseInt(it.quantity, 10) || 0), 0);
+    sale.total_packed_qty = items.reduce((acc, it) => acc + (parseInt(it.packed_quantity, 10) || 0), 0);
+    sale.remaining_amount = Math.max(0, (parseFloat(sale.grand_total) || 0) - (parseFloat(sale.paid_amount) || 0));
+    sale.is_lunas = sale.remaining_amount <= 0;
+
+    return res.json({ success: true, data: sale });
+  } catch (err) {
+    console.error('[Node-API] Get offline sale detail error:', err);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil detail transaksi: ' + err.message });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'mobile-owner-backend', time: new Date() });

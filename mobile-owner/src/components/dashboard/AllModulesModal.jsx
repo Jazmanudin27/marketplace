@@ -33,6 +33,7 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
       group: 'Transaksi & Penjualan',
       items: [
         { id: 'orders', title: 'Pesanan Masuk', desc: 'Daftar transaksi marketplace & POS', icon: ShoppingBag, color: '#2563eb' },
+        { id: 'penjualan_offline', title: 'Penjualan Offline (POS & PO)', desc: 'Transaksi toko fisik, piutang & pre-order SPK', icon: Store, color: '#0284c7' },
         { id: 'returns', title: 'Retur Masuk', desc: 'Komplain pembeli & QC retur barang', icon: RotateCcw, color: '#ef4444' },
         { id: 'laporan_penjualan', title: 'Laporan Penjualan', desc: 'Rekap omset, HPP, fee & margin', icon: FileText, color: '#4f46e5' },
         { id: 'target', title: 'Target Marketing', desc: 'Realisasi omset & komisi tim', icon: Target, color: '#0ea5e9' },

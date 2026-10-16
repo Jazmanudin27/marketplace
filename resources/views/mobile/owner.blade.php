@@ -115,9 +115,35 @@
     <!-- Shortcuts / Pintasan Cepat -->
     <div class="row g-2 mb-3">
         <div class="col-6">
-            <a href="{{ route('mobile.owner.profit_loss') }}" class="text-decoration-none">
+            <a href="{{ route('mobile.owner.penjualan_offline') }}" class="text-decoration-none">
+                <div class="p-3 bg-white border rounded-4 d-flex align-items-center gap-2.5 shadow-sm" style="transition: all 0.2s;">
+                    <div class="rounded-3 bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+                        <i class="fas fa-store fs-5"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0.5" style="font-size: 0.8rem; line-height: 1.2;">Jual Offline</h6>
+                        <span class="text-muted d-block" style="font-size: 0.65rem;">POS &amp; PO SPK</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6">
+            <a href="{{ route('mobile.owner.sales') }}" class="text-decoration-none">
                 <div class="p-3 bg-white border rounded-4 d-flex align-items-center gap-2.5 shadow-sm" style="transition: all 0.2s;">
                     <div class="rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+                        <i class="fas fa-shopping-bag fs-5"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0.5" style="font-size: 0.8rem; line-height: 1.2;">Jual Online</h6>
+                        <span class="text-muted d-block" style="font-size: 0.65rem;">Marketplace</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6">
+            <a href="{{ route('mobile.owner.profit_loss') }}" class="text-decoration-none">
+                <div class="p-3 bg-white border rounded-4 d-flex align-items-center gap-2.5 shadow-sm" style="transition: all 0.2s;">
+                    <div class="rounded-3 bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
                         <i class="fas fa-file-invoice-dollar fs-5"></i>
                     </div>
                     <div>

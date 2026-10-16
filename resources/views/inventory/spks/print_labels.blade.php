@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Cetak Label Stiker Kemasan - SPK #{{ $spk->no_spk }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap"
+        rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 
     <style>
@@ -48,6 +51,7 @@
             gap: 6px;
             box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
         }
+
         .btn-print:hover {
             background: #1d4ed8;
         }
@@ -121,6 +125,7 @@
             align-items: center;
             justify-content: center;
         }
+
         .qr-wrapper canvas {
             width: 100% !important;
             height: 100% !important;
@@ -140,15 +145,19 @@
 
         /* Print Media Styling - 100mm x 150mm Sheet */
         @media print {
-            html, body {
+
+            html,
+            body {
                 width: 100mm;
                 background: #ffffff;
                 padding: 0;
                 margin: 0;
             }
+
             .no-print-bar {
                 display: none !important;
             }
+
             .labels-grid {
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
@@ -158,6 +167,7 @@
                 margin: 0 auto;
                 box-sizing: border-box;
             }
+
             .sticker-card {
                 border: 1px solid #000000;
                 box-shadow: none;
@@ -169,6 +179,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <!-- Top Non-Print Control Toolbar -->
@@ -190,14 +201,14 @@
 
     <!-- Sticker Labels Grid (6 Columns) -->
     <div class="labels-grid">
-        @foreach($spk->items as $item)
+        @foreach ($spk->items as $item)
             @php
-                $skuDisplay = $item->sku ?: ($item->masterProduct->sku ?? ('ITEM-' . $item->id));
-                $barcodeVal = $spk->no_spk . "|ITEM-" . $item->id . "|" . $skuDisplay;
+                $skuDisplay = $item->sku ?: $item->masterProduct->sku ?? 'ITEM-' . $item->id;
+                $barcodeVal = $spk->no_spk . '|ITEM-' . $item->id . '|' . $skuDisplay;
                 $repeatQty = max(1, (int) $item->quantity);
             @endphp
 
-            @for($i = 1; $i <= $repeatQty; $i++)
+            @for ($i = 1; $i <= $repeatQty; $i++)
                 <div class="sticker-card">
                     <span class="badge-spk">SPK</span>
                     <div class="spk-tag" title="{{ $spk->no_spk }}">#{{ $spk->no_spk }}</div>
@@ -205,7 +216,7 @@
                     <div class="qr-wrapper">
                         <canvas id="qr-canvas-{{ $item->id }}-{{ $i }}"></canvas>
                     </div>
-                    
+
                     <div class="sku-tag" title="{{ $skuDisplay }}">{{ $skuDisplay }}</div>
                 </div>
             @endfor
@@ -214,21 +225,22 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            @foreach($spk->items as $item)
+            @foreach ($spk->items as $item)
                 @php
-                    $skuDisplay = $item->sku ?: ($item->masterProduct->sku ?? ('ITEM-' . $item->id));
-                    $barcodeVal = $spk->no_spk . "|ITEM-" . $item->id . "|" . $skuDisplay;
+                    $skuDisplay = $item->sku ?: $item->masterProduct->sku ?? 'ITEM-' . $item->id;
+                    $barcodeVal = $spk->no_spk . '|ITEM-' . $item->id . '|' . $skuDisplay;
                     $repeatQty = max(1, (int) $item->quantity);
                 @endphp
-                @for($i = 1; $i <= $repeatQty; $i++)
+                @for ($i = 1; $i <= $repeatQty; $i++)
                     try {
                         new QRious({
-                            element: document.getElementById("qr-canvas-{{ $item->id }}-{{ $i }}"),
+                            element: document.getElementById(
+                                "qr-canvas-{{ $item->id }}-{{ $i }}"),
                             value: @json($barcodeVal),
                             size: 140,
                             level: 'L'
                         });
-                    } catch(e) {
+                    } catch (e) {
                         console.error("QR Code generation error: ", e);
                     }
                 @endfor
@@ -236,4 +248,5 @@
         });
     </script>
 </body>
+
 </html>

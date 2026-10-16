@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\MasterProduct;
 use App\Models\Order;
+use App\Models\OfflineSale;
 use App\Models\ProductionOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -360,6 +361,53 @@ class MobileController extends Controller
         })->get();
 
         return view('mobile.owner_sales', compact('orders', 'todayRevenue', 'monthRevenue', 'search', 'stores', 'channels', 'storeId', 'channelId'));
+    }
+
+    public function ownerPenjualanOffline(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $search = $request->input('search');
+        $tab = $request->input('tab', 'all');
+
+        $query = OfflineSale::with(['store', 'items', 'spks'])
+            ->where('tenant_id', $tenantId);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('sale_number', 'like', "%{$search}%")
+                  ->orWhere('buyer_name', 'like', "%{$search}%")
+                  ->orWhere('institution_name', 'like', "%{$search}%")
+                  ->orWhere('buyer_phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($tab === 'unpacked') {
+            $query->where(function($q) {
+                $q->whereNull('packing_status')
+                  ->orWhereNotIn('packing_status', ['verified', 'packed']);
+            })->where('status', '!=', 'cancelled');
+        } elseif ($tab === 'piutang') {
+            $query->whereRaw('paid_amount < grand_total')->where('status', '!=', 'cancelled');
+        } elseif ($tab === 'po') {
+            $query->where('is_po', 1)->where('status', '!=', 'cancelled');
+        } elseif ($tab === 'completed') {
+            $query->where('status', 'completed');
+        }
+
+        // Summary KPI
+        $summary = [
+            'total_omset' => (float) OfflineSale::where('tenant_id', $tenantId)->where('status', '!=', 'cancelled')->sum('grand_total'),
+            'total_piutang' => (float) (OfflineSale::where('tenant_id', $tenantId)->where('status', '!=', 'cancelled')->whereRaw('paid_amount < grand_total')->selectRaw('SUM(grand_total - paid_amount) as piutang')->value('piutang') ?? 0),
+            'unpacked_count' => OfflineSale::where('tenant_id', $tenantId)->where('status', '!=', 'cancelled')->where(function($q) {
+                $q->whereNull('packing_status')->orWhereNotIn('packing_status', ['verified', 'packed']);
+            })->count(),
+            'po_count' => OfflineSale::where('tenant_id', $tenantId)->where('status', '!=', 'cancelled')->where('is_po', 1)->count(),
+            'total_count' => OfflineSale::where('tenant_id', $tenantId)->count(),
+        ];
+
+        $sales = $query->orderBy('sold_at', 'desc')->orderBy('id', 'desc')->paginate(15)->withQueryString();
+
+        return view('mobile.owner_penjualan_offline', compact('sales', 'summary', 'search', 'tab'));
     }
 
     public function ownerStokProduk(Request $request)

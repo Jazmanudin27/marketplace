@@ -518,8 +518,8 @@
 <body>
     @php
         $role = Auth::user()->role;
-        $isOwnerActive = request()->routeIs('mobile.owner') && !request()->routeIs('mobile.owner.sales*') && !request()->routeIs('mobile.owner.stok_produk*') && !request()->routeIs('mobile.owner.stok_barang*');
-        $isSalesActive = request()->routeIs('mobile.owner.sales*');
+        $isOwnerActive = request()->routeIs('mobile.owner') && !request()->routeIs('mobile.owner.sales*') && !request()->routeIs('mobile.owner.penjualan_offline*') && !request()->routeIs('mobile.owner.stok_produk*') && !request()->routeIs('mobile.owner.stok_barang*');
+        $isSalesActive = request()->routeIs('mobile.owner.sales*') || request()->routeIs('mobile.owner.penjualan_offline*');
         $isStokProdukActive = request()->routeIs('mobile.owner.stok_produk*');
         $isStokBarangActive = request()->routeIs('mobile.owner.stok_barang*');
         

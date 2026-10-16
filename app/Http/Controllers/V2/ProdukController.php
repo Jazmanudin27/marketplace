@@ -460,6 +460,10 @@ class ProdukController extends Controller
                 $rawIsBundle = $getValue(['isbundle', 'bundle', 'paket', 'set']);
                 $rawIsPreorder = $getValue(['ispreorder', 'preorder', 'po']);
 
+                $rawShopeePrice = $getValue(['hargashopee', 'shopeeprice', 'shopee']);
+                $rawTiktokPrice = $getValue(['hargatiktok', 'tiktokprice', 'tiktok']);
+                $rawLazadaPrice = $getValue(['hargalazada', 'lazadaprice', 'lazada']);
+
                 // Find existing product by SKU (resilient matching)
                 $existingProduct = MasterProduct::where('tenant_id', $tenantId)
                     ->where(function($q) use ($sku) {
@@ -479,7 +483,7 @@ class ProdukController extends Controller
                 }
 
                 if ($existingProduct) {
-                    // MODE UPDATE: Hanya update kolom yang ADA isinya dan BUKAN 0
+                    // MODE UPDATE: Hanya update kolom yang ADA datanya (data kosong diabaikan)
                     $updateData = [];
 
                     if ($hasValue($rawName)) {
@@ -506,12 +510,12 @@ class ProdukController extends Controller
                     }
 
                     $parsedStock = $parseNumber($rawStock);
-                    if ($parsedStock !== null && $parsedStock > 0) {
+                    if ($parsedStock !== null && $rawStock !== '') {
                         $updateData['stock'] = (int)$parsedStock;
                     }
 
                     $parsedMinStock = $parseNumber($rawMinStock);
-                    if ($parsedMinStock !== null && $parsedMinStock > 0) {
+                    if ($parsedMinStock !== null && $rawMinStock !== '') {
                         $updateData['min_stock'] = (int)$parsedMinStock;
                     }
 
@@ -545,28 +549,55 @@ class ProdukController extends Controller
                         $updateData['brand_id'] = $brand->id;
                     }
 
-                    if ($hasValue($rawIsBundle) && !in_array(strtolower($rawIsBundle), ['0', '-'])) {
-                        $updateData['is_bundle'] = in_array(strtolower($rawIsBundle), ['1', 'true', 'yes', 'ya', 'paket', 'bundle']);
+                    if ($rawIsBundle !== '') {
+                        $lowerBundle = strtolower(trim($rawIsBundle));
+                        if (in_array($lowerBundle, ['1', 'true', 'yes', 'ya', 'paket', 'bundle'])) {
+                            $updateData['is_bundle'] = true;
+                        } elseif (in_array($lowerBundle, ['0', 'false', 'tidak', 'no', 'bukan bundle', 'single'])) {
+                            $updateData['is_bundle'] = false;
+                        }
                     }
 
-                    if ($hasValue($rawIsPreorder) && !in_array(strtolower($rawIsPreorder), ['0', '-'])) {
-                        $updateData['is_preorder'] = in_array(strtolower($rawIsPreorder), ['1', 'true', 'yes', 'ya', 'po']);
+                    if ($rawIsPreorder !== '') {
+                        $lowerPo = strtolower(trim($rawIsPreorder));
+                        if (in_array($lowerPo, ['1', 'true', 'yes', 'ya', 'po', 'preorder'])) {
+                            $updateData['is_preorder'] = true;
+                        } elseif (in_array($lowerPo, ['0', 'false', 'tidak', 'no', 'ready', 'bukan po'])) {
+                            $updateData['is_preorder'] = false;
+                        }
+                    }
+
+                    if (Schema::hasColumn('master_products', 'shopee_price')) {
+                        $parsedShopee = $parseNumber($rawShopeePrice);
+                        if ($parsedShopee !== null && $parsedShopee > 0) {
+                            $updateData['shopee_price'] = $parsedShopee;
+                        }
+                    }
+                    if (Schema::hasColumn('master_products', 'tiktok_price')) {
+                        $parsedTiktok = $parseNumber($rawTiktokPrice);
+                        if ($parsedTiktok !== null && $parsedTiktok > 0) {
+                            $updateData['tiktok_price'] = $parsedTiktok;
+                        }
+                    }
+                    if (Schema::hasColumn('master_products', 'lazada_price')) {
+                        $parsedLazada = $parseNumber($rawLazadaPrice);
+                        if ($parsedLazada !== null && $parsedLazada > 0) {
+                            $updateData['lazada_price'] = $parsedLazada;
+                        }
                     }
 
                     if (!empty($updateData)) {
                         $existingProduct->update($updateData);
                         $updatedCount++;
                     } else {
-                        // Kolom kosong atau 0 semua, tidak melakukan update data
+                        // Kolom kosong semua, tidak melakukan update data
                         $skippedCount++;
                     }
                 } else {
-                    // MODE INSERT (Produk Baru)
-                    if (empty($rawName)) {
-                        // Produk baru wajib memiliki Nama
-                        $skippedCount++;
-                        continue;
-                    }
+                    // MODE INSERT (Produk Baru / Belum Ada di Master Produk)
+                    // Nama produk wajib di database: sesuaikan otomatis dengan SKU jika di file kosong
+                    $productName = $hasValue($rawName) ? $rawName : $sku;
+                    $skuInduk = $hasValue($rawSkuInduk) ? strtoupper($rawSkuInduk) : $sku;
 
                     $categoryId = null;
                     if ($hasValue($rawCategory)) {
@@ -594,14 +625,26 @@ class ProdukController extends Controller
                     $parsedEstKain = $parseNumber($rawEstKain);
                     $parsedEstBiaya = $parseNumber($rawEstBiaya);
 
-                    $isBundle = in_array(strtolower($rawIsBundle), ['1', 'true', 'yes', 'ya', 'paket', 'bundle']);
-                    $isPreorder = in_array(strtolower($rawIsPreorder), ['1', 'true', 'yes', 'ya', 'po']);
+                    $isBundle = false;
+                    if ($rawIsBundle !== '') {
+                        $lowerBundle = strtolower(trim($rawIsBundle));
+                        $isBundle = in_array($lowerBundle, ['1', 'true', 'yes', 'ya', 'paket', 'bundle']);
+                    }
+
+                    // Otomatis PO untuk produk baru (kecuali eksplisit diset 0 / ready / tidak)
+                    $isPreorder = true;
+                    if ($rawIsPreorder !== '') {
+                        $lowerPo = strtolower(trim($rawIsPreorder));
+                        if (in_array($lowerPo, ['0', 'false', 'tidak', 'no', 'ready', 'bukan po'])) {
+                            $isPreorder = false;
+                        }
+                    }
 
                     $productData = [
                         'tenant_id' => $tenantId,
-                        'name' => $rawName,
+                        'name' => $productName,
                         'sku' => $sku,
-                        'sku_induk' => $hasValue($rawSkuInduk) ? strtoupper($rawSkuInduk) : $sku,
+                        'sku_induk' => $skuInduk,
                         'price' => ($parsedPrice !== null && $parsedPrice > 0) ? $parsedPrice : 0,
                         'reseller_price' => ($parsedReseller !== null && $parsedReseller > 0) ? $parsedReseller : 0,
                         'cost_price' => ($parsedCost !== null && $parsedCost > 0) ? $parsedCost : 0,
@@ -617,6 +660,25 @@ class ProdukController extends Controller
                         'is_active' => true,
                     ];
 
+                    if (Schema::hasColumn('master_products', 'shopee_price')) {
+                        $parsedShopee = $parseNumber($rawShopeePrice);
+                        if ($parsedShopee !== null && $parsedShopee > 0) {
+                            $productData['shopee_price'] = $parsedShopee;
+                        }
+                    }
+                    if (Schema::hasColumn('master_products', 'tiktok_price')) {
+                        $parsedTiktok = $parseNumber($rawTiktokPrice);
+                        if ($parsedTiktok !== null && $parsedTiktok > 0) {
+                            $productData['tiktok_price'] = $parsedTiktok;
+                        }
+                    }
+                    if (Schema::hasColumn('master_products', 'lazada_price')) {
+                        $parsedLazada = $parseNumber($rawLazadaPrice);
+                        if ($parsedLazada !== null && $parsedLazada > 0) {
+                            $productData['lazada_price'] = $parsedLazada;
+                        }
+                    }
+
                     MasterProduct::create($productData);
                     $insertedCount++;
                 }
@@ -629,7 +691,7 @@ class ProdukController extends Controller
             }
         }
 
-        return redirect()->route('v2.produk.index')->with('success', "Import produk selesai! {$insertedCount} produk baru ditambahkan, {$updatedCount} produk diperbarui" . ($skippedCount > 0 ? ", {$skippedCount} baris tidak diupdate/dilewati (karena kosong, bernilai 0, atau SKU tidak valid)." : "."));
+        return redirect()->route('v2.produk.index')->with('success', "Import produk selesai! {$insertedCount} produk baru ditambahkan (otomatis PO), {$updatedCount} produk diperbarui" . ($skippedCount > 0 ? ", {$skippedCount} baris tidak diupdate/dilewati (karena kosong atau SKU tidak valid)." : "."));
     }
 
     public function show($id)

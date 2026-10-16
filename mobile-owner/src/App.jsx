@@ -21,6 +21,7 @@ import TitipanBarangPage from './pages/TitipanBarangPage';
 import StockCardPage from './pages/StockCardPage';
 import PaymentHistoryPage from './pages/PaymentHistoryPage';
 import SalesHistoryPage from './pages/SalesHistoryPage';
+import PenjualanOfflinePage from './pages/PenjualanOfflinePage';
 import OrderDetailModal from './components/orders/OrderDetailModal';
 import AllModulesModal from './components/dashboard/AllModulesModal';
 import FinanceMetricDetailModal from './components/dashboard/FinanceMetricDetailModal';
@@ -351,6 +352,12 @@ export default function App() {
             subtitle="Saldo dompet, tertahan (escrow) & mutasi dompet toko"
             onBack={() => handleTabChange('home')} 
           />
+        ) : activeTab === 'penjualan_offline' ? (
+          <SubPageHeader 
+            title="Penjualan Offline" 
+            subtitle="Transaksi kasir POS toko fisik & pre-order SPK"
+            onBack={() => handleTabChange('home')} 
+          />
         ) : activeTab === 'laporan_penjualan' ? (
           <SubPageHeader 
             title="Laporan Penjualan" 
@@ -423,6 +430,7 @@ export default function App() {
               onOpenAllModules={() => setIsAllModulesOpen(true)}
               onSelectMenu={(menuId) => {
                 if (menuId === 'orders') handleOpenOrders('ALL');
+                else if (menuId === 'penjualan_offline' || menuId === 'offline_sales' || menuId === 'pos') handleTabChange('penjualan_offline');
                 else if (menuId === 'returns' || menuId === 'retur_masuk') handleTabChange('retur_masuk');
                 else if (menuId === 'analytics') handleTabChange('analytics');
                 else if (menuId === 'target' || menuId === 'target_komisi') handleTabChange('target_komisi');
@@ -495,6 +503,13 @@ export default function App() {
 
           {activeTab === 'retur_masuk' && (
             <ReturMasukPage />
+          )}
+
+          {activeTab === 'penjualan_offline' && (
+            <PenjualanOfflinePage 
+              onOpenScanKemasan={() => handleTabChange('scan_kemasan')}
+              onOpenScanSpk={() => handleTabChange('scan_spk')}
+            />
           )}
 
           {activeTab === 'scan_kemasan' && (

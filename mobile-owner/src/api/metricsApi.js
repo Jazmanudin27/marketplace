@@ -635,7 +635,73 @@ export async function fetchScanSpkHistory({ search = '', date = '' } = {}) {
   return { success: false, kpi: { todayScans: 0, todayPcs: 0, todaySpks: 0 }, data: [] };
 }
 
+// ─── PENJUALAN OFFLINE API ───────────────────────────────────────────────────
 
+export async function fetchOfflineSales({
+  search = '',
+  status = 'ALL',
+  packingStatus = 'ALL',
+  filterType = 'ALL',
+  from = '',
+  to = '',
+  page = 1,
+  limit = 25
+} = {}) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
 
+    const q = new URLSearchParams();
+    if (search) q.append('search', search);
+    if (status && status !== 'ALL') q.append('status', status);
+    if (packingStatus && packingStatus !== 'ALL') q.append('packing_status', packingStatus);
+    if (filterType && filterType !== 'ALL') q.append('filter_type', filterType);
+    if (from) q.append('from', from);
+    if (to) q.append('to', to);
+    if (page) q.append('page', String(page));
+    if (limit) q.append('limit', String(limit));
 
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/offline-sales${qs}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
 
+    if (response.ok) return await response.json();
+  } catch (error) {
+    console.warn('[MetricsApi] fetchOfflineSales error:', error.message);
+  }
+  return {
+    success: false,
+    summary: { totalOmset: 0, totalTerbayar: 0, totalPiutang: 0, totalCount: 0, unpackedCount: 0, poSpkCount: 0 },
+    pagination: { page: 1, limit: 25, total: 0, totalPages: 1 },
+    data: []
+  };
+}
+
+export async function fetchOfflineSaleDetail(id) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/offline-sales/${id}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+
+    if (response.ok) return await response.json();
+  } catch (error) {
+    console.warn('[MetricsApi] fetchOfflineSaleDetail error:', error.message);
+  }
+  return { success: false, data: null };
+}

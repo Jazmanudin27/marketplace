@@ -1588,6 +1588,7 @@ class MasterProductController extends Controller
         $syncMarketplace = $request->boolean('sync_to_marketplace');
         $productsToSync  = [];
         $updatedCount    = 0;
+        $createdCount    = 0;
         $notFoundCount   = 0;
 
         \DB::beginTransaction();
@@ -1603,7 +1604,49 @@ class MasterProductController extends Controller
                     ->first();
 
                 if (!$product) {
-                    $notFoundCount++;
+                    $newCost = ($hppIdx !== null && isset($row[$hppIdx]) && trim($row[$hppIdx]) !== '') ? (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hppIdx])) : 0;
+                    $newPrice = ($hargaNormalIdx !== null && isset($row[$hargaNormalIdx]) && trim($row[$hargaNormalIdx]) !== '') ? (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaNormalIdx])) : 0;
+                    $newReseller = ($hargaDropshipIdx !== null && isset($row[$hargaDropshipIdx]) && trim($row[$hargaDropshipIdx]) !== '') ? (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaDropshipIdx])) : 0;
+                    $newEstKain = ($estKainIdx !== null && isset($row[$estKainIdx]) && trim($row[$estKainIdx]) !== '') ? (float) preg_replace('/[^0-9.]/', '', str_replace(',', '.', trim($row[$estKainIdx]))) : 0;
+                    $newEstBiaya = ($estBiayaProduksiIdx !== null && isset($row[$estBiayaProduksiIdx]) && trim($row[$estBiayaProduksiIdx]) !== '') ? (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$estBiayaProduksiIdx])) : 0;
+
+                    $newProductData = [
+                        'tenant_id' => $tenantId,
+                        'name' => $sku,
+                        'sku' => $sku,
+                        'sku_induk' => $sku,
+                        'cost_price' => $newCost > 0 ? $newCost : 0,
+                        'price' => $newPrice > 0 ? $newPrice : 0,
+                        'reseller_price' => $newReseller > 0 ? $newReseller : 0,
+                        'est_kain' => $newEstKain > 0 ? $newEstKain : 0,
+                        'est_biaya_produksi' => $newEstBiaya > 0 ? $newEstBiaya : 0,
+                        'stock' => 0,
+                        'min_stock' => 5,
+                        'unit' => 'pcs',
+                        'is_preorder' => true,
+                        'is_bundle' => false,
+                        'is_active' => true,
+                    ];
+
+                    if ($hargaShopeeIdx !== null && isset($row[$hargaShopeeIdx]) && trim($row[$hargaShopeeIdx]) !== '' && \Illuminate\Support\Facades\Schema::hasColumn('master_products', 'shopee_price')) {
+                        $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaShopeeIdx]));
+                        if ($val > 0) $newProductData['shopee_price'] = $val;
+                    }
+                    if ($hargaTiktokIdx !== null && isset($row[$hargaTiktokIdx]) && trim($row[$hargaTiktokIdx]) !== '' && \Illuminate\Support\Facades\Schema::hasColumn('master_products', 'tiktok_price')) {
+                        $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaTiktokIdx]));
+                        if ($val > 0) $newProductData['tiktok_price'] = $val;
+                    }
+                    if ($hargaLazadaIdx !== null && isset($row[$hargaLazadaIdx]) && trim($row[$hargaLazadaIdx]) !== '' && \Illuminate\Support\Facades\Schema::hasColumn('master_products', 'lazada_price')) {
+                        $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaLazadaIdx]));
+                        if ($val > 0) $newProductData['lazada_price'] = $val;
+                    }
+
+                    $product = MasterProduct::create($newProductData);
+                    $createdCount++;
+
+                    if ($syncMarketplace) {
+                        $productsToSync[] = $product->id;
+                    }
                     continue;
                 }
 
@@ -1702,7 +1745,7 @@ class MasterProductController extends Controller
             return back()->with('error', 'Terjadi kesalahan saat mengimpor harga: ' . $e->getMessage());
         }
 
-        $msg = "✅ Berhasil memperbarui harga untuk {$updatedCount} produk!";
+        $msg = "✅ Berhasil memperbarui harga untuk {$updatedCount} produk!" . ($createdCount > 0 ? " ({$createdCount} produk baru ditambahkan otomatis PO)" : "");
         if ($syncMarketplace && count($productsToSync) > 0) {
             $msg .= " ⚡ Sinkronisasi harga " . count($productsToSync) . " produk ke toko marketplace sedang berjalan di latar belakang.";
         }
