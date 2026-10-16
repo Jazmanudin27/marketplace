@@ -11,6 +11,7 @@ use App\Models\Channel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 class ProdukController extends Controller
 {
@@ -320,10 +321,13 @@ class ProdukController extends Controller
 
     public function importProduct(Request $request)
     {
+        @set_time_limit(0);
+        @ini_set('memory_limit', '1024M');
+
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([
-            'file' => 'required|file|max:10240',
+            'file' => 'required|file|max:20480',
         ]);
 
         $file = $request->file('file');
@@ -332,6 +336,37 @@ class ProdukController extends Controller
         $insertedCount = 0;
         $updatedCount = 0;
         $skippedCount = 0;
+        $hasBundleChanges = false;
+
+        // ⚡ Cache schema check 1 kali di awal (mencegah ribuan query SHOW FULL COLUMNS di loop)
+        $hasBarcodeCol = Schema::hasColumn('master_products', 'barcode');
+        $hasShopeeCol  = Schema::hasColumn('master_products', 'shopee_price');
+        $hasTiktokCol  = Schema::hasColumn('master_products', 'tiktok_price');
+        $hasLazadaCol  = Schema::hasColumn('master_products', 'lazada_price');
+
+        // ⚡ Preload semua Master Product tenant ke Memory Map dalam 1 Query (Mencegah Full Table Scan per baris)
+        $masterProducts = MasterProduct::where('tenant_id', $tenantId)->get();
+        $productMap = [];
+        foreach ($masterProducts as $mp) {
+            $skuUpper = strtoupper(trim((string)$mp->sku));
+            if ($skuUpper !== '') {
+                $productMap[$skuUpper] = $mp;
+            }
+            if ($hasBarcodeCol && !empty($mp->barcode)) {
+                $bcUpper = strtoupper(trim((string)$mp->barcode));
+                if ($bcUpper !== '') {
+                    $productMap[$bcUpper] = $mp;
+                }
+            }
+        }
+
+        // ⚡ Preload Kategori & Brand ke memory cache
+        $categoriesCache = Category::where('tenant_id', $tenantId)->get()->keyBy(function($c) {
+            return strtolower(trim((string)$c->name));
+        });
+        $brandsCache = Brand::where('tenant_id', $tenantId)->get()->keyBy(function($b) {
+            return strtolower(trim((string)$b->name));
+        });
 
         if (($handle = fopen($filePath, 'r')) !== FALSE) {
             $bom = fread($handle, 3);
@@ -397,15 +432,12 @@ class ProdukController extends Controller
                 // Handle both dot and comma
                 if (strpos($cleaned, '.') !== false && strpos($cleaned, ',') !== false) {
                     if (strrpos($cleaned, ',') > strrpos($cleaned, '.')) {
-                        // Indonesian format: 100.000,50 -> dot is thousand separator, comma is decimal
                         $cleaned = str_replace('.', '', $cleaned);
                         $cleaned = str_replace(',', '.', $cleaned);
                     } else {
-                        // US format: 100,000.50 -> comma is thousand separator, dot is decimal
                         $cleaned = str_replace(',', '', $cleaned);
                     }
                 } elseif (strpos($cleaned, ',') !== false) {
-                    // Only comma: e.g. "1,5" or "100,000"
                     $parts = explode(',', $cleaned);
                     if (count($parts) === 2 && strlen($parts[1]) === 3 && (int)$parts[0] > 0) {
                         $cleaned = str_replace(',', '', $cleaned);
@@ -413,7 +445,6 @@ class ProdukController extends Controller
                         $cleaned = str_replace(',', '.', $cleaned);
                     }
                 } elseif (strpos($cleaned, '.') !== false) {
-                    // Only dot: e.g. "100.000" vs "1.50"
                     $parts = explode('.', $cleaned);
                     if (count($parts) > 2) {
                         $cleaned = str_replace('.', '', $cleaned);
@@ -425,269 +456,287 @@ class ProdukController extends Controller
                 return is_numeric($cleaned) ? (float)$cleaned : null;
             };
 
-            while (($row = fgetcsv($handle, 2000, $delimiter)) !== FALSE) {
-                if (count($row) < 1 || (count($row) === 1 && trim((string)$row[0]) === '')) continue;
+            DB::beginTransaction();
+            try {
+                while (($row = fgetcsv($handle, 2000, $delimiter)) !== FALSE) {
+                    if (count($row) < 1 || (count($row) === 1 && trim((string)$row[0]) === '')) continue;
 
-                $getValue = function($keyNames) use ($headerMap, $row) {
-                    if (!is_array($keyNames)) $keyNames = [$keyNames];
-                    foreach ($keyNames as $k) {
-                        $cleanKey = strtolower(trim(str_replace([' ', '_', '-'], '', $k)));
-                        if (isset($headerMap[$cleanKey]) && isset($row[$headerMap[$cleanKey]])) {
-                            return trim((string)$row[$headerMap[$cleanKey]]);
+                    $getValue = function($keyNames) use ($headerMap, $row) {
+                        if (!is_array($keyNames)) $keyNames = [$keyNames];
+                        foreach ($keyNames as $k) {
+                            $cleanKey = strtolower(trim(str_replace([' ', '_', '-'], '', $k)));
+                            if (isset($headerMap[$cleanKey]) && isset($row[$headerMap[$cleanKey]])) {
+                                return trim((string)$row[$headerMap[$cleanKey]]);
+                            }
                         }
-                    }
-                    return '';
-                };
+                        return '';
+                    };
 
-                $sku = strtoupper($getValue(['sku', 'kodesku', 'kodeproduk', 'productsku', 'itemsku']));
-                if (empty($sku)) {
-                    $skippedCount++;
-                    continue;
-                }
-
-                $rawName = $getValue(['namaproduk', 'nama', 'productname', 'namabarang', 'title']);
-                $rawSkuInduk = $getValue(['skuinduk', 'parentsku', 'induksku']);
-                $rawPrice = $getValue(['hargajual', 'harga', 'price', 'sellingprice', 'hargajualproduk']);
-                $rawReseller = $getValue(['hargadropship', 'dropship', 'hargareseller', 'resellerprice', 'reseller']);
-                $rawCost = $getValue(['hpphargabeli', 'hpp', 'costprice', 'hargabeli', 'modal', 'hargamodal']);
-                $rawStock = $getValue(['stok', 'stock', 'qty', 'jumlahstok', 'kuantitas']);
-                $rawMinStock = $getValue(['minstok', 'minstock', 'warningstok', 'safetystock', 'stokminimal']);
-                $rawUnit = $getValue(['satuan', 'unit', 'uom']);
-                $rawEstKain = $getValue(['estkain', 'estimasikain', 'kain', 'pemakaiankain']);
-                $rawEstBiaya = $getValue(['estbiayaproduksi', 'biayaproduksi', 'estproduksi', 'ongkosjahit']);
-                $rawCategory = $getValue(['kategori', 'category', 'namakategori']);
-                $rawBrand = $getValue(['brandmerek', 'brand', 'merek', 'model']);
-                $rawIsBundle = $getValue(['isbundle', 'bundle', 'paket', 'set']);
-                $rawIsPreorder = $getValue(['ispreorder', 'preorder', 'po']);
-
-                $rawShopeePrice = $getValue(['hargashopee', 'shopeeprice', 'shopee']);
-                $rawTiktokPrice = $getValue(['hargatiktok', 'tiktokprice', 'tiktok']);
-                $rawLazadaPrice = $getValue(['hargalazada', 'lazadaprice', 'lazada']);
-
-                // Find existing product by SKU (resilient matching)
-                $existingProduct = MasterProduct::where('tenant_id', $tenantId)
-                    ->where(function($q) use ($sku) {
-                        $q->where('sku', $sku)
-                          ->orWhereRaw('LOWER(TRIM(sku)) = ?', [strtolower(trim($sku))]);
-                    })
-                    ->first();
-
-                // Fallback check barcode if not found by sku
-                if (!$existingProduct && Schema::hasColumn('master_products', 'barcode')) {
-                    $existingProduct = MasterProduct::where('tenant_id', $tenantId)
-                        ->where(function($q) use ($sku) {
-                            $q->where('barcode', $sku)
-                              ->orWhereRaw('LOWER(TRIM(barcode)) = ?', [strtolower(trim($sku))]);
-                        })
-                        ->first();
-                }
-
-                if ($existingProduct) {
-                    // MODE UPDATE: Hanya update kolom yang ADA datanya (data kosong diabaikan)
-                    $updateData = [];
-
-                    if ($hasValue($rawName)) {
-                        $updateData['name'] = $rawName;
-                    }
-
-                    if ($hasValue($rawSkuInduk)) {
-                        $updateData['sku_induk'] = strtoupper($rawSkuInduk);
-                    }
-
-                    $parsedPrice = $parseNumber($rawPrice);
-                    if ($parsedPrice !== null && $parsedPrice > 0) {
-                        $updateData['price'] = $parsedPrice;
-                    }
-
-                    $parsedReseller = $parseNumber($rawReseller);
-                    if ($parsedReseller !== null && $parsedReseller > 0) {
-                        $updateData['reseller_price'] = $parsedReseller;
-                    }
-
-                    $parsedCost = $parseNumber($rawCost);
-                    if ($parsedCost !== null && $parsedCost > 0) {
-                        $updateData['cost_price'] = $parsedCost;
-                    }
-
-                    $parsedStock = $parseNumber($rawStock);
-                    if ($parsedStock !== null && $rawStock !== '') {
-                        $updateData['stock'] = (int)$parsedStock;
-                    }
-
-                    $parsedMinStock = $parseNumber($rawMinStock);
-                    if ($parsedMinStock !== null && $rawMinStock !== '') {
-                        $updateData['min_stock'] = (int)$parsedMinStock;
-                    }
-
-                    if ($hasValue($rawUnit)) {
-                        $updateData['unit'] = $rawUnit;
-                    }
-
-                    $parsedEstKain = $parseNumber($rawEstKain);
-                    if ($parsedEstKain !== null && $parsedEstKain > 0) {
-                        $updateData['est_kain'] = $parsedEstKain;
-                    }
-
-                    $parsedEstBiaya = $parseNumber($rawEstBiaya);
-                    if ($parsedEstBiaya !== null && $parsedEstBiaya > 0) {
-                        $updateData['est_biaya_produksi'] = $parsedEstBiaya;
-                    }
-
-                    if ($hasValue($rawCategory)) {
-                        $category = Category::firstOrCreate(
-                            ['tenant_id' => $tenantId, 'name' => $rawCategory],
-                            ['slug' => \Illuminate\Support\Str::slug($rawCategory)]
-                        );
-                        $updateData['category_id'] = $category->id;
-                    }
-
-                    if ($hasValue($rawBrand)) {
-                        $brand = Brand::firstOrCreate(
-                            ['tenant_id' => $tenantId, 'name' => $rawBrand],
-                            ['slug' => \Illuminate\Support\Str::slug($rawBrand)]
-                        );
-                        $updateData['brand_id'] = $brand->id;
-                    }
-
-                    if ($rawIsBundle !== '') {
-                        $lowerBundle = strtolower(trim($rawIsBundle));
-                        if (in_array($lowerBundle, ['1', 'true', 'yes', 'ya', 'paket', 'bundle'])) {
-                            $updateData['is_bundle'] = true;
-                        } elseif (in_array($lowerBundle, ['0', 'false', 'tidak', 'no', 'bukan bundle', 'single'])) {
-                            $updateData['is_bundle'] = false;
-                        }
-                    }
-
-                    if ($rawIsPreorder !== '') {
-                        $lowerPo = strtolower(trim($rawIsPreorder));
-                        if (in_array($lowerPo, ['1', 'true', 'yes', 'ya', 'po', 'preorder'])) {
-                            $updateData['is_preorder'] = true;
-                        } elseif (in_array($lowerPo, ['0', 'false', 'tidak', 'no', 'ready', 'bukan po'])) {
-                            $updateData['is_preorder'] = false;
-                        }
-                    }
-
-                    if (Schema::hasColumn('master_products', 'shopee_price')) {
-                        $parsedShopee = $parseNumber($rawShopeePrice);
-                        if ($parsedShopee !== null && $parsedShopee > 0) {
-                            $updateData['shopee_price'] = $parsedShopee;
-                        }
-                    }
-                    if (Schema::hasColumn('master_products', 'tiktok_price')) {
-                        $parsedTiktok = $parseNumber($rawTiktokPrice);
-                        if ($parsedTiktok !== null && $parsedTiktok > 0) {
-                            $updateData['tiktok_price'] = $parsedTiktok;
-                        }
-                    }
-                    if (Schema::hasColumn('master_products', 'lazada_price')) {
-                        $parsedLazada = $parseNumber($rawLazadaPrice);
-                        if ($parsedLazada !== null && $parsedLazada > 0) {
-                            $updateData['lazada_price'] = $parsedLazada;
-                        }
-                    }
-
-                    if (!empty($updateData)) {
-                        $existingProduct->update($updateData);
-                        $updatedCount++;
-                    } else {
-                        // Kolom kosong semua, tidak melakukan update data
+                    $sku = strtoupper($getValue(['sku', 'kodesku', 'kodeproduk', 'productsku', 'itemsku', 'barcode', 'kode', 'skubarang']));
+                    if (empty($sku)) {
                         $skippedCount++;
-                    }
-                } else {
-                    // MODE INSERT (Produk Baru / Belum Ada di Master Produk)
-                    // Nama produk wajib di database: sesuaikan otomatis dengan SKU jika di file kosong
-                    $productName = $hasValue($rawName) ? $rawName : $sku;
-                    $skuInduk = $hasValue($rawSkuInduk) ? strtoupper($rawSkuInduk) : $sku;
-
-                    $categoryId = null;
-                    if ($hasValue($rawCategory)) {
-                        $category = Category::firstOrCreate(
-                            ['tenant_id' => $tenantId, 'name' => $rawCategory],
-                            ['slug' => \Illuminate\Support\Str::slug($rawCategory)]
-                        );
-                        $categoryId = $category->id;
+                        continue;
                     }
 
-                    $brandId = null;
-                    if ($hasValue($rawBrand)) {
-                        $brand = Brand::firstOrCreate(
-                            ['tenant_id' => $tenantId, 'name' => $rawBrand],
-                            ['slug' => \Illuminate\Support\Str::slug($rawBrand)]
-                        );
-                        $brandId = $brand->id;
-                    }
+                    $rawName = $getValue(['namaproduk', 'nama', 'productname', 'namabarang', 'title']);
+                    $rawSkuInduk = $getValue(['skuinduk', 'parentsku', 'induksku']);
+                    $rawPrice = $getValue(['hargajual', 'harga', 'price', 'sellingprice', 'hargajualproduk']);
+                    $rawReseller = $getValue(['hargadropship', 'dropship', 'hargareseller', 'resellerprice', 'reseller']);
+                    $rawCost = $getValue(['hpphargabeli', 'hpp', 'costprice', 'hargabeli', 'modal', 'hargamodal']);
+                    $rawStock = $getValue(['stok', 'stock', 'qty', 'jumlahstok', 'kuantitas']);
+                    $rawMinStock = $getValue(['minstok', 'minstock', 'warningstok', 'safetystock', 'stokminimal']);
+                    $rawUnit = $getValue(['satuan', 'unit', 'uom']);
+                    $rawEstKain = $getValue(['estkain', 'estimasikain', 'kain', 'pemakaiankain']);
+                    $rawEstBiaya = $getValue(['estbiayaproduksi', 'biayaproduksi', 'estproduksi', 'ongkosjahit']);
+                    $rawCategory = $getValue(['kategori', 'category', 'namakategori']);
+                    $rawBrand = $getValue(['brandmerek', 'brand', 'merek', 'model']);
+                    $rawIsBundle = $getValue(['isbundle', 'bundle', 'paket', 'set']);
+                    $rawIsPreorder = $getValue(['ispreorder', 'preorder', 'po']);
 
-                    $parsedPrice = $parseNumber($rawPrice);
-                    $parsedReseller = $parseNumber($rawReseller);
-                    $parsedCost = $parseNumber($rawCost);
-                    $parsedStock = $parseNumber($rawStock);
-                    $parsedMinStock = $parseNumber($rawMinStock);
-                    $parsedEstKain = $parseNumber($rawEstKain);
-                    $parsedEstBiaya = $parseNumber($rawEstBiaya);
+                    $rawShopeePrice = $getValue(['hargashopee', 'shopeeprice', 'shopee']);
+                    $rawTiktokPrice = $getValue(['hargatiktok', 'tiktokprice', 'tiktok']);
+                    $rawLazadaPrice = $getValue(['hargalazada', 'lazadaprice', 'lazada']);
 
-                    $isBundle = false;
-                    if ($rawIsBundle !== '') {
-                        $lowerBundle = strtolower(trim($rawIsBundle));
-                        $isBundle = in_array($lowerBundle, ['1', 'true', 'yes', 'ya', 'paket', 'bundle']);
-                    }
+                    // ⚡ O(1) Memory Lookup untuk mencari produk eksisting (Tanpa query database)
+                    $existingProduct = $productMap[$sku] ?? null;
 
-                    // Otomatis PO untuk produk baru (kecuali eksplisit diset 0 / ready / tidak)
-                    $isPreorder = true;
-                    if ($rawIsPreorder !== '') {
-                        $lowerPo = strtolower(trim($rawIsPreorder));
-                        if (in_array($lowerPo, ['0', 'false', 'tidak', 'no', 'ready', 'bukan po'])) {
-                            $isPreorder = false;
+                    if ($existingProduct) {
+                        // MODE UPDATE: Hanya update kolom yang ADA datanya (data kosong diabaikan)
+                        $updateData = [];
+
+                        if ($hasValue($rawName)) {
+                            $updateData['name'] = $rawName;
                         }
-                    }
 
-                    $productData = [
-                        'tenant_id' => $tenantId,
-                        'name' => $productName,
-                        'sku' => $sku,
-                        'sku_induk' => $skuInduk,
-                        'price' => ($parsedPrice !== null && $parsedPrice > 0) ? $parsedPrice : 0,
-                        'reseller_price' => ($parsedReseller !== null && $parsedReseller > 0) ? $parsedReseller : 0,
-                        'cost_price' => ($parsedCost !== null && $parsedCost > 0) ? $parsedCost : 0,
-                        'stock' => ($parsedStock !== null && $parsedStock > 0) ? (int)$parsedStock : 0,
-                        'min_stock' => ($parsedMinStock !== null && $parsedMinStock > 0) ? (int)$parsedMinStock : 5,
-                        'unit' => $hasValue($rawUnit) ? $rawUnit : 'pcs',
-                        'est_kain' => ($parsedEstKain !== null && $parsedEstKain > 0) ? $parsedEstKain : 0,
-                        'est_biaya_produksi' => ($parsedEstBiaya !== null && $parsedEstBiaya > 0) ? $parsedEstBiaya : 0,
-                        'category_id' => $categoryId,
-                        'brand_id' => $brandId,
-                        'is_bundle' => $isBundle,
-                        'is_preorder' => $isPreorder,
-                        'is_active' => true,
-                    ];
+                        if ($hasValue($rawSkuInduk)) {
+                            $updateData['sku_induk'] = strtoupper($rawSkuInduk);
+                        }
 
-                    if (Schema::hasColumn('master_products', 'shopee_price')) {
-                        $parsedShopee = $parseNumber($rawShopeePrice);
-                        if ($parsedShopee !== null && $parsedShopee > 0) {
-                            $productData['shopee_price'] = $parsedShopee;
+                        $parsedPrice = $parseNumber($rawPrice);
+                        if ($parsedPrice !== null && $parsedPrice > 0) {
+                            $updateData['price'] = $parsedPrice;
                         }
-                    }
-                    if (Schema::hasColumn('master_products', 'tiktok_price')) {
-                        $parsedTiktok = $parseNumber($rawTiktokPrice);
-                        if ($parsedTiktok !== null && $parsedTiktok > 0) {
-                            $productData['tiktok_price'] = $parsedTiktok;
-                        }
-                    }
-                    if (Schema::hasColumn('master_products', 'lazada_price')) {
-                        $parsedLazada = $parseNumber($rawLazadaPrice);
-                        if ($parsedLazada !== null && $parsedLazada > 0) {
-                            $productData['lazada_price'] = $parsedLazada;
-                        }
-                    }
 
-                    MasterProduct::create($productData);
-                    $insertedCount++;
+                        $parsedReseller = $parseNumber($rawReseller);
+                        if ($parsedReseller !== null && $parsedReseller > 0) {
+                            $updateData['reseller_price'] = $parsedReseller;
+                        }
+
+                        $parsedCost = $parseNumber($rawCost);
+                        if ($parsedCost !== null && $parsedCost > 0) {
+                            $updateData['cost_price'] = $parsedCost;
+                        }
+
+                        $parsedStock = $parseNumber($rawStock);
+                        if ($parsedStock !== null && $rawStock !== '') {
+                            $updateData['stock'] = (int)$parsedStock;
+                        }
+
+                        $parsedMinStock = $parseNumber($rawMinStock);
+                        if ($parsedMinStock !== null && $rawMinStock !== '') {
+                            $updateData['min_stock'] = (int)$parsedMinStock;
+                        }
+
+                        if ($hasValue($rawUnit)) {
+                            $updateData['unit'] = $rawUnit;
+                        }
+
+                        $parsedEstKain = $parseNumber($rawEstKain);
+                        if ($parsedEstKain !== null && $parsedEstKain > 0) {
+                            $updateData['est_kain'] = $parsedEstKain;
+                        }
+
+                        $parsedEstBiaya = $parseNumber($rawEstBiaya);
+                        if ($parsedEstBiaya !== null && $parsedEstBiaya > 0) {
+                            $updateData['est_biaya_produksi'] = $parsedEstBiaya;
+                        }
+
+                        if ($hasValue($rawCategory)) {
+                            $catKey = strtolower(trim($rawCategory));
+                            if (!$categoriesCache->has($catKey)) {
+                                $newCat = Category::create([
+                                    'tenant_id' => $tenantId,
+                                    'name' => $rawCategory,
+                                    'slug' => \Illuminate\Support\Str::slug($rawCategory),
+                                ]);
+                                $categoriesCache->put($catKey, $newCat);
+                            }
+                            $updateData['category_id'] = $categoriesCache->get($catKey)->id;
+                        }
+
+                        if ($hasValue($rawBrand)) {
+                            $brandKey = strtolower(trim($rawBrand));
+                            if (!$brandsCache->has($brandKey)) {
+                                $newBrand = Brand::create([
+                                    'tenant_id' => $tenantId,
+                                    'name' => $rawBrand,
+                                    'slug' => \Illuminate\Support\Str::slug($rawBrand),
+                                ]);
+                                $brandsCache->put($brandKey, $newBrand);
+                            }
+                            $updateData['brand_id'] = $brandsCache->get($brandKey)->id;
+                        }
+
+                        if ($rawIsBundle !== '') {
+                            $lowerBundle = strtolower(trim($rawIsBundle));
+                            if (in_array($lowerBundle, ['1', 'true', 'yes', 'ya', 'paket', 'bundle'])) {
+                                $updateData['is_bundle'] = true;
+                                $hasBundleChanges = true;
+                            } elseif (in_array($lowerBundle, ['0', 'false', 'tidak', 'no', 'bukan bundle', 'single'])) {
+                                $updateData['is_bundle'] = false;
+                            }
+                        }
+
+                        if ($rawIsPreorder !== '') {
+                            $lowerPo = strtolower(trim($rawIsPreorder));
+                            if (in_array($lowerPo, ['1', 'true', 'yes', 'ya', 'po', 'preorder'])) {
+                                $updateData['is_preorder'] = true;
+                            } elseif (in_array($lowerPo, ['0', 'false', 'tidak', 'no', 'ready', 'bukan po'])) {
+                                $updateData['is_preorder'] = false;
+                            }
+                        }
+
+                        if ($hasShopeeCol) {
+                            $parsedShopee = $parseNumber($rawShopeePrice);
+                            if ($parsedShopee !== null && $parsedShopee > 0) {
+                                $updateData['shopee_price'] = $parsedShopee;
+                            }
+                        }
+                        if ($hasTiktokCol) {
+                            $parsedTiktok = $parseNumber($rawTiktokPrice);
+                            if ($parsedTiktok !== null && $parsedTiktok > 0) {
+                                $updateData['tiktok_price'] = $parsedTiktok;
+                            }
+                        }
+                        if ($hasLazadaCol) {
+                            $parsedLazada = $parseNumber($rawLazadaPrice);
+                            if ($parsedLazada !== null && $parsedLazada > 0) {
+                                $updateData['lazada_price'] = $parsedLazada;
+                            }
+                        }
+
+                        if (!empty($updateData)) {
+                            $existingProduct->update($updateData);
+                            $updatedCount++;
+                        } else {
+                            $skippedCount++;
+                        }
+                    } else {
+                        // MODE INSERT (Produk Baru / Belum Ada di Master Produk)
+                        // Nama produk wajib di database: sesuaikan otomatis dengan SKU jika di file kosong
+                        $productName = $hasValue($rawName) ? $rawName : $sku;
+                        $skuInduk = $hasValue($rawSkuInduk) ? strtoupper($rawSkuInduk) : $sku;
+
+                        $categoryId = null;
+                        if ($hasValue($rawCategory)) {
+                            $catKey = strtolower(trim($rawCategory));
+                            if (!$categoriesCache->has($catKey)) {
+                                $newCat = Category::create([
+                                    'tenant_id' => $tenantId,
+                                    'name' => $rawCategory,
+                                    'slug' => \Illuminate\Support\Str::slug($rawCategory),
+                                ]);
+                                $categoriesCache->put($catKey, $newCat);
+                            }
+                            $categoryId = $categoriesCache->get($catKey)->id;
+                        }
+
+                        $brandId = null;
+                        if ($hasValue($rawBrand)) {
+                            $brandKey = strtolower(trim($rawBrand));
+                            if (!$brandsCache->has($brandKey)) {
+                                $newBrand = Brand::create([
+                                    'tenant_id' => $tenantId,
+                                    'name' => $rawBrand,
+                                    'slug' => \Illuminate\Support\Str::slug($rawBrand),
+                                ]);
+                                $brandsCache->put($brandKey, $newBrand);
+                            }
+                            $brandId = $brandsCache->get($brandKey)->id;
+                        }
+
+                        $parsedPrice = $parseNumber($rawPrice);
+                        $parsedReseller = $parseNumber($rawReseller);
+                        $parsedCost = $parseNumber($rawCost);
+                        $parsedStock = $parseNumber($rawStock);
+                        $parsedMinStock = $parseNumber($rawMinStock);
+                        $parsedEstKain = $parseNumber($rawEstKain);
+                        $parsedEstBiaya = $parseNumber($rawEstBiaya);
+
+                        $isBundle = false;
+                        if ($rawIsBundle !== '') {
+                            $lowerBundle = strtolower(trim($rawIsBundle));
+                            $isBundle = in_array($lowerBundle, ['1', 'true', 'yes', 'ya', 'paket', 'bundle']);
+                            if ($isBundle) $hasBundleChanges = true;
+                        }
+
+                        // Otomatis PO untuk produk baru (kecuali eksplisit diset 0 / ready / tidak)
+                        $isPreorder = true;
+                        if ($rawIsPreorder !== '') {
+                            $lowerPo = strtolower(trim($rawIsPreorder));
+                            if (in_array($lowerPo, ['0', 'false', 'tidak', 'no', 'ready', 'bukan po'])) {
+                                $isPreorder = false;
+                            }
+                        }
+
+                        $productData = [
+                            'tenant_id' => $tenantId,
+                            'name' => $productName,
+                            'sku' => $sku,
+                            'sku_induk' => $skuInduk,
+                            'price' => ($parsedPrice !== null && $parsedPrice > 0) ? $parsedPrice : 0,
+                            'reseller_price' => ($parsedReseller !== null && $parsedReseller > 0) ? $parsedReseller : 0,
+                            'cost_price' => ($parsedCost !== null && $parsedCost > 0) ? $parsedCost : 0,
+                            'stock' => ($parsedStock !== null && $parsedStock > 0) ? (int)$parsedStock : 0,
+                            'min_stock' => ($parsedMinStock !== null && $parsedMinStock > 0) ? (int)$parsedMinStock : 5,
+                            'unit' => $hasValue($rawUnit) ? $rawUnit : 'pcs',
+                            'est_kain' => ($parsedEstKain !== null && $parsedEstKain > 0) ? $parsedEstKain : 0,
+                            'est_biaya_produksi' => ($parsedEstBiaya !== null && $parsedEstBiaya > 0) ? $parsedEstBiaya : 0,
+                            'category_id' => $categoryId,
+                            'brand_id' => $brandId,
+                            'is_bundle' => $isBundle,
+                            'is_preorder' => $isPreorder,
+                            'is_active' => true,
+                        ];
+
+                        if ($hasShopeeCol) {
+                            $parsedShopee = $parseNumber($rawShopeePrice);
+                            if ($parsedShopee !== null && $parsedShopee > 0) {
+                                $productData['shopee_price'] = $parsedShopee;
+                            }
+                        }
+                        if ($hasTiktokCol) {
+                            $parsedTiktok = $parseNumber($rawTiktokPrice);
+                            if ($parsedTiktok !== null && $parsedTiktok > 0) {
+                                $productData['tiktok_price'] = $parsedTiktok;
+                            }
+                        }
+                        if ($hasLazadaCol) {
+                            $parsedLazada = $parseNumber($rawLazadaPrice);
+                            if ($parsedLazada !== null && $parsedLazada > 0) {
+                                $productData['lazada_price'] = $parsedLazada;
+                            }
+                        }
+
+                        $created = MasterProduct::create($productData);
+                        $productMap[$sku] = $created;
+                        $insertedCount++;
+                    }
                 }
+                DB::commit();
+            } catch (\Throwable $ex) {
+                DB::rollBack();
+                fclose($handle);
+                return redirect()->back()->with('error', 'Gagal memproses import data: ' . $ex->getMessage());
             }
+
             fclose($handle);
 
-            // Recalculate bundle stocks
-            if (method_exists(MasterProduct::class, 'recalculateAllBundleStocks')) {
-                MasterProduct::recalculateAllBundleStocks($tenantId);
+            // ⚡ Hanya jalankan kalkulasi bundle jika memang ada bundle yang dibuat / diupdate
+            if ($hasBundleChanges && method_exists(MasterProduct::class, 'recalculateAllBundleStocks')) {
+                try {
+                    MasterProduct::recalculateAllBundleStocks($tenantId);
+                } catch (\Throwable $e) {}
             }
         }
 
