@@ -413,4 +413,85 @@ class OrderThermalPrintTest extends TestCase
         $response->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('%PDF', $response->getContent());
     }
+
+    public function test_mass_print_merges_three_tiktok_orders_with_package_id_resolution()
+    {
+        $tenant = Tenant::create([
+            'name' => 'Test Tenant 3',
+            'domain' => 'tiktok3.local',
+        ]);
+
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'role' => 'admin',
+        ]);
+
+        $channel = Channel::create([
+            'code' => 'tiktok',
+            'name' => 'TikTok Shop',
+        ]);
+
+        $store = Store::create([
+            'tenant_id' => $tenant->id,
+            'channel_id' => $channel->id,
+            'store_name' => 'TikTok Official 3',
+            'marketplace_store_id' => '11223355',
+            'shop_cipher' => 'CIPHER_TT_123',
+            'access_token' => 'real_tiktok_access_token_3',
+            'status' => 'active',
+        ]);
+
+        $orders = [];
+        for ($i = 1; $i <= 3; $i++) {
+            $orders[] = Order::create([
+                'tenant_id' => $tenant->id,
+                'store_id' => $store->id,
+                'order_marketplace_id' => "TT-ORDER-00{$i}",
+                'order_date' => now(),
+                'tracking_number' => "RESI-TT-00{$i}",
+                'package_id' => null, // Simulasi package_id belum tersimpan di DB
+                'courier' => 'J&T Express',
+                'buyer_name' => "Buyer {$i}",
+                'total_amount' => 100000 * $i,
+                'order_status' => 'READY_TO_SHIP',
+            ]);
+        }
+
+        $fpdf = new \setasign\Fpdi\Fpdi();
+        $fpdf->AddPage();
+        $fpdf->SetFont('Arial', 'B', 12);
+        $fpdf->Cell(40, 10, 'TikTok Official Resi Label 3 Orders');
+        $validPdf = $fpdf->Output('S');
+
+        $this->mock(\App\Services\TiktokService::class, function ($mock) use ($validPdf) {
+            $mock->shouldReceive('getOrderDetail')
+                ->once()
+                ->andReturn([
+                    'orders' => [
+                        ['id' => 'TT-ORDER-001', 'package_list' => [['package_id' => 'PKG-001']]],
+                        ['id' => 'TT-ORDER-002', 'package_list' => [['package_id' => 'PKG-002']]],
+                        ['id' => 'TT-ORDER-003', 'package_list' => [['package_id' => 'PKG-003']]],
+                    ]
+                ]);
+
+            $mock->shouldReceive('getOfficialShippingLabelPdf')
+                ->times(3)
+                ->andReturn($validPdf);
+        });
+
+        $response = $this->actingAs($user)->post(route('orders.mass_print'), [
+            'order_ids' => collect($orders)->pluck('id')->toArray(),
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+
+        // Pastikan package_id berhasil di-resolve dan disimpan ke database
+        foreach ($orders as $i => $ord) {
+            $num = $i + 1;
+            $this->assertEquals("PKG-00{$num}", $ord->fresh()->package_id);
+            $this->assertTrue((bool) $ord->fresh()->is_printed);
+        }
+    }
 }
