@@ -105,6 +105,12 @@ export default function ScanKemasanPage() {
   const lastScanTimestampRef = useRef(0);
   const orderInputRef = useRef(null);
   const itemInputRef = useRef(null);
+  const isAutoSubmittingRef = useRef(false);
+  const currentOrderRef = useRef(null);
+
+  useEffect(() => {
+    currentOrderRef.current = currentOrder;
+  }, [currentOrder]);
 
   const [toast, setToast] = useState(null);
   const showToast = (text, type = 'success') => {
@@ -230,8 +236,11 @@ export default function ScanKemasanPage() {
   };
 
   const handleCameraScanSuccess = (decodedText, target) => {
+    if (isSubmittingPack || isAutoSubmittingRef.current) return;
+
     const now = Date.now();
     const clean = decodedText ? decodedText.trim() : '';
+    if (!clean) return;
 
     // Debounce scan 1.2 detik agar tidak dobel scan sekaligus
     if (clean === lastScannedTextRef.current && now - lastScanTimestampRef.current < 1200) {
@@ -240,7 +249,9 @@ export default function ScanKemasanPage() {
     lastScannedTextRef.current = clean;
     lastScanTimestampRef.current = now;
 
-    if (target === 'order' || !currentOrder) {
+    // Cek target aktif via ref agar tidak terpengaruh stale closure
+    const activeOrder = currentOrderRef.current || currentOrder;
+    if (!activeOrder) {
       setOrderInput(clean);
       handleFetchOrder(clean);
     } else {
@@ -260,11 +271,13 @@ export default function ScanKemasanPage() {
     }
 
     setIsSearchingOrder(true);
+    isAutoSubmittingRef.current = false;
     try {
       const res = await lookupOnlineOrderForPacking(code);
       if (res && res.success && res.order) {
         if (soundEnabled) playTone('success');
         setCurrentOrder(res.order);
+        currentOrderRef.current = res.order;
 
         // Inisialisasi progress packing
         const initScanned = {};
@@ -272,10 +285,17 @@ export default function ScanKemasanPage() {
           initScanned[it.id] = it.packed_quantity || 0;
         });
         setScannedItems(initScanned);
-        showToast(`Pesanan ${res.order.invoice_number} berhasil dimuat! Lanjut scan barcode barang.`, 'success');
+        showToast(`Pesanan ${res.order.invoice_number} dimuat! Siap scan barcode produk.`, 'success');
 
-        // Pastikan kamera tetap aktif untuk scan item produk
+        // Kamera otomatis beralih ke scan item produk
         setCameraTarget('item');
+
+        // Fokus ke input scan item untuk scanner hardware
+        setTimeout(() => {
+          if (itemInputRef.current) {
+            itemInputRef.current.focus();
+          }
+        }, 200);
       } else {
         if (soundEnabled) playTone('error');
         showToast(res.message || 'Pesanan online tidak ditemukan atau belum Siap Kirim.', 'error');
@@ -292,7 +312,9 @@ export default function ScanKemasanPage() {
   // Step 2: Scan Item Barcode / SKU
   // -------------------------------------------------------------
   const processItemScan = (code) => {
-    if (!currentOrder || !currentOrder.items || currentOrder.items.length === 0) return;
+    const order = currentOrderRef.current || currentOrder;
+    if (!order || !order.items || order.items.length === 0) return;
+    if (isSubmittingPack || isAutoSubmittingRef.current) return;
 
     const rawBarcode = (code || itemInput).trim();
     if (!rawBarcode) return;
@@ -304,7 +326,7 @@ export default function ScanKemasanPage() {
     let matchedItem = null;
 
     // A. Match persis SKU atau Barcode
-    for (const it of currentOrder.items) {
+    for (const it of order.items) {
       const itSku = (it.sku || '').trim().toLowerCase();
       const itBarcode = (it.barcode || '').trim().toLowerCase();
       if ((itSku && itSku === cleanCode) || (itBarcode && itBarcode === cleanCode)) {
@@ -315,7 +337,7 @@ export default function ScanKemasanPage() {
 
     // B. Match parsial jika belum ketemu
     if (!matchedItem) {
-      for (const it of currentOrder.items) {
+      for (const it of order.items) {
         const itSku = (it.sku || '').trim().toLowerCase();
         const itBarcode = (it.barcode || '').trim().toLowerCase();
         if ((itSku && (cleanCode.includes(itSku) || itSku.includes(cleanCode))) ||
@@ -345,15 +367,15 @@ export default function ScanKemasanPage() {
     const newScanned = { ...scannedItems, [matchedItem.id]: nextQty };
     setScannedItems(newScanned);
 
-    if (soundEnabled) {
-      // Cek apakah dengan ini sudah 100% komplit
-      const allDone = checkAllCompleted(currentOrder.items, newScanned);
-      if (allDone) {
-        playTone('fanfare');
-        showToast(`Semua produk pesanan ${currentOrder.invoice_number} lengkap dikemas!`, 'success');
-      } else {
-        playTone('success');
-      }
+    // Cek apakah dengan penambahan ini semua produk pesanan sudah 100% komplit
+    const allDone = checkAllCompleted(order.items, newScanned);
+    if (allDone) {
+      if (soundEnabled) playTone('fanfare');
+      showToast(`Semua produk pesanan ${order.invoice_number} lengkap! Menyimpan otomatis...`, 'success');
+      // Langsung simpan otomatis dan kembali ke scan resi
+      handleSubmitCompletePack(newScanned, order);
+    } else {
+      if (soundEnabled) playTone('success');
     }
   };
 
@@ -365,71 +387,114 @@ export default function ScanKemasanPage() {
 
   // Manual Adjust Qty (+ / -)
   const handleAdjustItemQty = (itemId, delta, maxQty) => {
+    const order = currentOrderRef.current || currentOrder;
+    if (!order || isSubmittingPack || isAutoSubmittingRef.current) return;
+
     const cur = scannedItems[itemId] || 0;
     const next = Math.max(0, Math.min(maxQty, cur + delta));
-    setScannedItems(prev => {
-      const updated = { ...prev, [itemId]: next };
-      if (checkAllCompleted(currentOrder.items, updated)) {
-        if (soundEnabled) playTone('fanfare');
-      }
-      return updated;
-    });
+    const updated = { ...scannedItems, [itemId]: next };
+    setScannedItems(updated);
+
+    if (delta > 0 && checkAllCompleted(order.items, updated)) {
+      if (soundEnabled) playTone('fanfare');
+      showToast(`Semua produk pesanan ${order.invoice_number} lengkap! Menyimpan otomatis...`, 'success');
+      handleSubmitCompletePack(updated, order);
+    }
   };
 
   // Tandai Semua Selesai (Bypass Barcode)
   const handleMarkAllComplete = () => {
-    if (!currentOrder || !currentOrder.items) return;
+    const order = currentOrderRef.current || currentOrder;
+    if (!order || !order.items || isSubmittingPack || isAutoSubmittingRef.current) return;
+
     const all = {};
-    currentOrder.items.forEach(it => {
+    order.items.forEach(it => {
       all[it.id] = it.quantity;
     });
     setScannedItems(all);
     if (soundEnabled) playTone('fanfare');
-    showToast('Semua item ditandai lengkap terpenuhi.', 'success');
+    showToast(`Semua item lengkap! Menyimpan kemasan otomatis...`, 'success');
+    handleSubmitCompletePack(all, order);
   };
 
-  // Reset Scanner State
-  const handleResetScanner = () => {
-    stopCamera();
+  // Reset Scanner State & Kembali ke Mode Scan Resi
+  const resetToScanResi = (keepCamera = true, prevOrder = null) => {
+    isAutoSubmittingRef.current = false;
     setCurrentOrder(null);
+    currentOrderRef.current = null;
     setScannedItems({});
     setOrderInput('');
     setItemInput('');
+    setCameraTarget('order');
+
+    // Mencegah scan ulang resi yang sama jika kamera masih mengarah ke paket yang baru selesai
+    if (prevOrder) {
+      lastScannedTextRef.current = (prevOrder.tracking_number || prevOrder.invoice_number || '').trim();
+      lastScanTimestampRef.current = Date.now();
+    } else {
+      lastScannedTextRef.current = '';
+      lastScanTimestampRef.current = 0;
+    }
+
+    if (!keepCamera) {
+      stopCamera();
+    } else if (!isCameraActive) {
+      startCamera('order');
+    }
+
+    // Auto focus ke input resi agar siap ditembak scanner hardware
+    setTimeout(() => {
+      if (orderInputRef.current) {
+        orderInputRef.current.focus();
+      }
+    }, 200);
+  };
+
+  const handleResetScanner = () => {
+    resetToScanResi(true);
   };
 
   // -------------------------------------------------------------
   // Step 3: Complete Packing & Submit to API
   // -------------------------------------------------------------
-  const handleSubmitCompletePack = async () => {
-    if (!currentOrder) return;
+  const handleSubmitCompletePack = async (overrideScanned = null, targetOrder = null) => {
+    const order = targetOrder || currentOrderRef.current || currentOrder;
+    if (!order || isSubmittingPack || isAutoSubmittingRef.current) return;
 
-    const isComplete = checkAllCompleted(currentOrder.items, scannedItems);
-    if (!isComplete) {
+    const itemsToVerify = overrideScanned || scannedItems;
+    const isComplete = checkAllCompleted(order.items, itemsToVerify);
+    if (!isComplete && !overrideScanned) {
       const confirmPartial = window.confirm(
         'Perhatian: Belum semua item di-scan lengkap. Apakah Anda yakin ingin menyelesaikan kemasan sekarang?'
       );
       if (!confirmPartial) return;
     }
 
+    isAutoSubmittingRef.current = true;
     setIsSubmittingPack(true);
+
     try {
       const res = await completeOnlineOrderPacking({
-        order_id: currentOrder.id,
+        order_id: order.id,
         auto_ship: autoShip ? 1 : 0,
-        packed_items: scannedItems
+        packed_items: itemsToVerify
       });
 
       if (res && res.success) {
         if (soundEnabled) playTone('fanfare');
-        showToast(res.message || 'Verifikasi kemasan berhasil disimpan!', 'success');
+        showToast(res.message || `Pesanan ${order.invoice_number} selesai disimpan! Siap scan resi berikutnya.`, 'success');
+
+        // Jeda sejenak agar user melihat notifikasi sukses, lalu otomatis refresh ganti ke scan resi
         setTimeout(() => {
-          handleResetScanner();
-        }, 1200);
+          resetToScanResi(true, order);
+        }, 700);
       } else {
+        isAutoSubmittingRef.current = false;
         if (soundEnabled) playTone('error');
-        showToast(res.message || 'Gagal menyimpan kemasan.', 'error');
+        showToast(res?.message || 'Gagal menyimpan kemasan.', 'error');
       }
     } catch (err) {
+      isAutoSubmittingRef.current = false;
       if (soundEnabled) playTone('error');
       showToast('Error: ' + err.message, 'error');
     } finally {
