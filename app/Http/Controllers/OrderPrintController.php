@@ -107,7 +107,7 @@ class OrderPrintController extends Controller
                             $orderSns
                         );
                         if (!empty($pdfData)) {
-                            $pdfBuffers[] = $pdfData;
+                            $this->addPdfBuffer($pdfBuffers, $pdfData);
                             $batchSuccess = true;
                         }
                     } catch (\Throwable $e) {
@@ -124,7 +124,7 @@ class OrderPrintController extends Controller
                                     [$singleOrd->order_marketplace_id]
                                 );
                                 if (!empty($singlePdf)) {
-                                    $pdfBuffers[] = $singlePdf;
+                                    $this->addPdfBuffer($pdfBuffers, $singlePdf);
                                 }
                             } catch (\Throwable $singleEx) {
                                 \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Shopee single print PDF failed for order #{$singleOrd->id} ({$singleOrd->order_marketplace_id}): " . $singleEx->getMessage());
@@ -142,7 +142,7 @@ class OrderPrintController extends Controller
                             $order->package_id
                         );
                         if (!empty($pdfData)) {
-                            $pdfBuffers[] = $pdfData;
+                            $this->addPdfBuffer($pdfBuffers, $pdfData);
                             continue;
                         }
                     } catch (\Throwable $e) {
@@ -158,11 +158,11 @@ class OrderPrintController extends Controller
                             $order->package_id
                         );
                         if (!empty($docData['doc_pdf'])) {
-                            $pdfBuffers[] = base64_decode($docData['doc_pdf']);
+                            $this->addPdfBuffer($pdfBuffers, base64_decode($docData['doc_pdf']));
                         } elseif (!empty($docData['doc_url'])) {
                             $dlRes = \Illuminate\Support\Facades\Http::timeout(30)->get($docData['doc_url']);
                             if ($dlRes->successful() && !empty($dlRes->body())) {
-                                $pdfBuffers[] = $dlRes->body();
+                                $this->addPdfBuffer($pdfBuffers, $dlRes->body());
                             }
                         }
                     } catch (\Throwable $e) {
@@ -174,7 +174,7 @@ class OrderPrintController extends Controller
 
         // Jika kita berhasil menarik PDF resmi dari API, tampilkan langsung atau gabungkan
         if (!empty($pdfBuffers)) {
-            // Jika hanya 1 buffer (atau 1 pesanan, atau semua pesanan Shopee sudah digabung 1 batch oleh Shopee API)
+            // Jika hanya 1 buffer (atau 1 pesanan)
             if (count($pdfBuffers) === 1) {
                 $firstOrder = $orders->first();
                 $channelName = strtolower($firstOrder->store->channel->code ?? 'marketplace');
@@ -187,7 +187,7 @@ class OrderPrintController extends Controller
                 ]);
             }
 
-            // Jika lebih dari 1 buffer, gabungkan menggunakan Ghostscript / pdfunite / qpdf / FPDI
+            // Jika lebih dari 1 buffer, coba gabungkan di server menggunakan Ghostscript / pdfunite / qpdf / FPDI
             $mergedPdf = $this->mergePdfBuffers($pdfBuffers);
             if (!empty($mergedPdf)) {
                 return response($mergedPdf, 200, [
@@ -196,11 +196,12 @@ class OrderPrintController extends Controller
                 ]);
             }
 
-            // Jika semua merger gagal menggabungkan, tampilkan buffer pertama sebagai PDF
-            return response($pdfBuffers[0], 200, [
-                'Content-Type'        => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="resi_massal_resmi_' . date('Ymd_His') . '.pdf"',
-            ]);
+            // Jika merger server tidak tersedia (CLI/FPDI limitasi PDF 1.7), gabungkan secara instan di browser dengan pdf-lib
+            $pdfBase64List = array_map(function ($buf) {
+                return base64_encode($buf);
+            }, $pdfBuffers);
+
+            return response()->view('orders.merge_print', compact('pdfBase64List'));
         }
 
         // Jika tidak ada satu pun PDF resmi dari marketplace yang berhasil ditarik
@@ -419,6 +420,45 @@ class OrderPrintController extends Controller
             if (file_exists($f)) {
                 @unlink($f);
             }
+        }
+    }
+
+    /**
+     * Menambahkan buffer PDF dan otomatis mengekstrak file ZIP jika Shopee mengembalikan arsip ZIP.
+     */
+    private function addPdfBuffer(array &$pdfBuffers, ?string $data): void
+    {
+        if (empty($data)) {
+            return;
+        }
+
+        // Cek jika data adalah ZIP archive (Shopee sering mengemas beberapa PDF ke ZIP)
+        if (str_starts_with($data, "\x50\x4b")) {
+            try {
+                $tempZip = tempnam(sys_get_temp_dir(), 'shp_zip_');
+                file_put_contents($tempZip, $data);
+                $zip = new \ZipArchive();
+                if ($zip->open($tempZip) === true) {
+                    for ($i = 0; $i < $zip->numFiles; $i++) {
+                        $stat = $zip->statIndex($i);
+                        if (str_ends_with(strtolower($stat['name'] ?? ''), '.pdf')) {
+                            $extracted = $zip->getFromIndex($i);
+                            if (!empty($extracted) && str_starts_with($extracted, '%PDF')) {
+                                $pdfBuffers[] = $extracted;
+                            }
+                        }
+                    }
+                    $zip->close();
+                }
+                @unlink($tempZip);
+                return;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Unzip buffer failed: " . $e->getMessage());
+            }
+        }
+
+        if (str_starts_with($data, '%PDF')) {
+            $pdfBuffers[] = $data;
         }
     }
 }

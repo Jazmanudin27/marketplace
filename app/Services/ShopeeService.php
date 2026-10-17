@@ -1047,14 +1047,16 @@ class ShopeeService
             }
         }
 
-        // 4. Coba unduh langsung jika resi sebelumnya sudah pernah digenerate oleh Shopee
-        try {
-            $directPdf = $this->downloadShippingDocument($accessToken, $shopId, $orderSns, $activeType);
-            if (!empty($directPdf) && (str_starts_with($directPdf, '%PDF') || str_starts_with($directPdf, "\x50\x4b"))) {
-                return $directPdf;
+        // 4. Coba unduh langsung HANYA JIKA pesanan tunggal (1 order) dan resi sudah pernah digenerate oleh Shopee
+        if (count($orderSns) === 1) {
+            try {
+                $directPdf = $this->downloadShippingDocument($accessToken, $shopId, $orderSns, $activeType);
+                if (!empty($directPdf) && (str_starts_with($directPdf, '%PDF') || str_starts_with($directPdf, "\x50\x4b"))) {
+                    return $directPdf;
+                }
+            } catch (\Throwable $e) {
+                Log::info("[Shopee] direct download before polling failed: " . $e->getMessage());
             }
-        } catch (\Throwable $e) {
-            Log::info("[Shopee] direct download before polling failed: " . $e->getMessage());
         }
 
         // 5. Polling get_shipping_document_result sampai status READY
