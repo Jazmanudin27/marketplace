@@ -485,24 +485,6 @@
 
 <body onload="initPrint()">
 
-    <!-- TOP BAR (SCREEN ONLY) -->
-    <div class="no-print" style="position: sticky; top: 0; background: #1e293b; color: #fff; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 99999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: sans-serif;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 16px; font-weight: 700;"><i class="fas fa-print me-2" style="color:#EE4D2D;"></i>Cetak Resi Massal</span>
-            <span style="background: #EE4D2D; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: bold;">
-                {{ $orders->count() }} Pesanan
-            </span>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <button onclick="window.print()" style="background: #EE4D2D; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
-                <i class="fas fa-print"></i> Cetak Sekarang
-            </button>
-            <button onclick="window.close()" style="background: #475569; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">
-                Tutup
-            </button>
-        </div>
-    </div>
-
 
     <!-- INDIVIDUAL THERMAL WAYBILLS -->
     @foreach ($orders as $index => $order)
