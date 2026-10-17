@@ -81,6 +81,8 @@ class OrderPrintController extends Controller
         $pdfBuffers = [];
         $ordersByStore = $orders->groupBy('store_id');
 
+        $fetchErrors = [];
+
         foreach ($ordersByStore as $storeId => $storeOrders) {
             $store = $storeOrders->first()->store;
             if (!$store || empty($store->access_token)) {
@@ -88,6 +90,10 @@ class OrderPrintController extends Controller
             }
 
             $channelCode = strtolower($store->channel->code ?? '');
+            $cacheDir = storage_path('app/shipping_labels');
+            if (!file_exists($cacheDir)) {
+                @mkdir($cacheDir, 0777, true);
+            }
 
             if ($channelCode === 'shopee') {
                 // Shopee mewajibkan order dalam 1 batch create_shipping_document memiliki kurir yang sama
@@ -111,12 +117,19 @@ class OrderPrintController extends Controller
                             $batchSuccess = true;
                         }
                     } catch (\Throwable $e) {
+                        $fetchErrors[] = "[Shopee Batch] " . $e->getMessage();
                         \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Shopee batch print for courier {$courierKey} failed: " . $e->getMessage() . ". Retrying per order...");
                     }
 
                     // Jika batch gagal, tarik per pesanan agar pesanan yang valid tetap berhasil mendapatkan PDF
                     if (!$batchSuccess) {
                         foreach ($courierOrders as $singleOrd) {
+                            $cacheFile = $cacheDir . '/shopee_' . $singleOrd->order_marketplace_id . '.pdf';
+                            if (file_exists($cacheFile) && filesize($cacheFile) > 500) {
+                                $this->addPdfBuffer($pdfBuffers, file_get_contents($cacheFile));
+                                continue;
+                            }
+
                             try {
                                 $singlePdf = $shopeeService->getOfficialShippingLabelPdf(
                                     $store->getValidAccessToken(),
@@ -124,9 +137,11 @@ class OrderPrintController extends Controller
                                     [$singleOrd->order_marketplace_id]
                                 );
                                 if (!empty($singlePdf)) {
+                                    @file_put_contents($cacheFile, $singlePdf);
                                     $this->addPdfBuffer($pdfBuffers, $singlePdf);
                                 }
                             } catch (\Throwable $singleEx) {
+                                $fetchErrors[] = "[Shopee {$singleOrd->order_marketplace_id}] " . $singleEx->getMessage();
                                 \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Shopee single print PDF failed for order #{$singleOrd->id} ({$singleOrd->order_marketplace_id}): " . $singleEx->getMessage());
                             }
                         }
@@ -175,6 +190,14 @@ class OrderPrintController extends Controller
 
                 // 2. Fetch PDF resmi per pesanan
                 foreach ($storeOrders as $order) {
+                    $cacheFile = $cacheDir . '/tiktok_' . $order->order_marketplace_id . '.pdf';
+
+                    // Gunakan PDF resmi tersimpan jika sebelumnya sudah pernah ditarik (agar tetap bisa dicetak pasca pickup)
+                    if (file_exists($cacheFile) && filesize($cacheFile) > 500) {
+                        $this->addPdfBuffer($pdfBuffers, file_get_contents($cacheFile));
+                        continue;
+                    }
+
                     // Jika masih belum ada package_id, coba arrange shipping lewat OrderTrackingService
                     if (empty($order->package_id)) {
                         try {
@@ -193,6 +216,7 @@ class OrderPrintController extends Controller
                             $order->package_id
                         );
                     } catch (\Throwable $e) {
+                        $fetchErrors[] = "[TikTok {$order->order_marketplace_id}] " . $e->getMessage();
                         \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok getOfficialShippingLabelPdf failed for order #{$order->id}: " . $e->getMessage());
                     }
 
@@ -221,11 +245,13 @@ class OrderPrintController extends Controller
                                 }
                             }
                         } catch (\Throwable $e) {
+                            $fetchErrors[] = "[TikTok {$order->order_marketplace_id} doc] " . $e->getMessage();
                             \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok getShippingDocument fallback failed for order #{$order->id}: " . $e->getMessage());
                         }
                     }
 
                     if (!empty($fetchedPdf)) {
+                        @file_put_contents($cacheFile, $fetchedPdf);
                         $this->addPdfBuffer($pdfBuffers, $fetchedPdf);
                     }
                 }
@@ -264,8 +290,24 @@ class OrderPrintController extends Controller
             return response()->view('orders.merge_print', compact('pdfBase64List'));
         }
 
-        // Fallback jika API PDF marketplace belum siap atau ditolak marketplace (misal: paket sudah di-pickup / dikirim kurir)
-        // Tampilkan format cetak thermal lokal ERP agar resi tetap dapat dicetak
+        // Jika toko terhubung API marketplace tapi PDF resmi gagal diunduh
+        $hasApiStore = $orders->contains(function ($ord) {
+            return !empty($ord->store?->access_token);
+        });
+
+        if ($hasApiStore) {
+            $isPickupError = collect($fetchErrors)->contains(fn($err) => str_contains(strtolower($err), 'pickup') || str_contains(strtolower($err), 'shipped'));
+            
+            $explanation = $isPickupError
+                ? "Pesanan yang dipilih <strong>sudah di-pickup / diserahkan ke kurir</strong>.<br><br>Kebijakan resmi <strong>TikTok Shop Open API</strong> secara permanen mengunci pencetakan dokumen resi setelah kurir melakukan scan pickup (Error: <em>Documents couldn't be printed after the package has been pickup</em>).<br><br><strong>Solusi:</strong> Silakan pilih dan centang pesanan TikTok yang masih berstatus <strong>'Perlu Dikirim' / 'Siap Kirim' (belum di-pickup kurir)</strong> untuk mencetak dokumen resi PDF asli dari marketplace."
+                : "Dokumen PDF resi resmi belum dapat diunduh dari API marketplace. Pastikan pesanan sudah diproses dan resi sudah terbit di Seller Center.";
+
+            $errorDetails = !empty($fetchErrors) ? '<div style="margin-top:15px;padding:12px;background:#fef2f2;border-radius:6px;font-family:monospace;font-size:12px;color:#991b1b;word-break:break-all;border:1px solid #fecaca;">' . implode('<br>', array_map('htmlspecialchars', array_unique($fetchErrors))) . '</div>' : '';
+
+            return response("<!DOCTYPE html><html><head><title>Gagal Unduh Resi Resmi Marketplace</title><meta name='viewport' content='width=device-width, initial-scale=1.0'></head><body style='margin:0;padding:20px;background:#f8fafc;font-family:system-ui,-apple-system,sans-serif;'><div style='max-width:640px;margin:50px auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.08);border:1px solid #fee2e2;'><div style='width:52px;height:52px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;margin-bottom:20px;'><svg width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='#dc2626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><line x1='12' y1='8' x2='12' y2='12'></line><line x1='12' y1='16' x2='12.01' y2='16'></line></svg></div><h2 style='margin:0 0 12px;color:#991b1b;font-size:20px;'>Gagal Mengunduh Resi Resmi Marketplace</h2><p style='color:#334155;line-height:1.6;font-size:14px;margin:0 0 16px;'>{$explanation}</p>{$errorDetails}<div style='margin-top:24px;display:flex;gap:12px;'><button onclick='window.close()' style='padding:10px 20px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;'>Tutup Halaman</button><button onclick='history.back()' style='padding:10px 20px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;'>Kembali ke Daftar Pesanan</button></div></div></body></html>", 400)->header('Content-Type', 'text/html');
+        }
+
+        // Jika toko manual/offline tanpa API marketplace sama sekali, gunakan format thermal lokal ERP
         return view('orders.mass_print', compact('orders'));
     }
 
@@ -286,6 +328,19 @@ class OrderPrintController extends Controller
 
         $channelCode = strtolower($store->channel->code ?? '');
 
+        $cacheDir = storage_path('app/shipping_labels');
+        if (!file_exists($cacheDir)) {
+            @mkdir($cacheDir, 0777, true);
+        }
+        $cacheFile = $cacheDir . '/' . $channelCode . '_' . $order->order_marketplace_id . '.pdf';
+
+        if (file_exists($cacheFile) && filesize($cacheFile) > 500) {
+            return response(file_get_contents($cacheFile), 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="resi_' . $channelCode . '_' . $order->order_marketplace_id . '.pdf"',
+            ]);
+        }
+
         try {
             if ($channelCode === 'shopee' && !empty($store->access_token)) {
                 try {
@@ -296,6 +351,7 @@ class OrderPrintController extends Controller
                     );
 
                     if (!empty($pdfData)) {
+                        @file_put_contents($cacheFile, $pdfData);
                         return response($pdfData, 200, [
                             'Content-Type' => 'application/pdf',
                             'Content-Disposition' => 'inline; filename="resi_shopee_' . $order->order_marketplace_id . '.pdf"',
@@ -342,6 +398,7 @@ class OrderPrintController extends Controller
                 );
 
                 if (!empty($pdfData)) {
+                    @file_put_contents($cacheFile, $pdfData);
                     return response($pdfData, 200, [
                         'Content-Type' => 'application/pdf',
                         'Content-Disposition' => 'inline; filename="resi_tiktok_' . $order->order_marketplace_id . '.pdf"',
@@ -360,7 +417,9 @@ class OrderPrintController extends Controller
                 }
 
                 if (!empty($docData['doc_pdf'])) {
-                    return response(base64_decode($docData['doc_pdf']), 200, [
+                    $decoded = base64_decode($docData['doc_pdf']);
+                    @file_put_contents($cacheFile, $decoded);
+                    return response($decoded, 200, [
                         'Content-Type' => 'application/pdf',
                         'Content-Disposition' => 'inline; filename="resi_tiktok_' . $order->order_marketplace_id . '.pdf"',
                     ]);

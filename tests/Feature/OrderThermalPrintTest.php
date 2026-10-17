@@ -368,12 +368,13 @@ class OrderThermalPrintTest extends TestCase
             'status' => 'active',
         ]);
 
+        $prefix = 'TT-TEST-' . uniqid() . '-';
         $order1 = Order::create([
             'tenant_id' => $tenant->id,
             'store_id' => $store->id,
-            'order_marketplace_id' => 'TT-ORDER-001',
+            'order_marketplace_id' => "{$prefix}001",
             'order_date' => now(),
-            'tracking_number' => 'RESI-TT-001',
+            'tracking_number' => "RESI-{$prefix}001",
             'courier' => 'J&T Express',
             'buyer_name' => 'Ani TikTok',
             'total_amount' => 100000,
@@ -383,9 +384,9 @@ class OrderThermalPrintTest extends TestCase
         $order2 = Order::create([
             'tenant_id' => $tenant->id,
             'store_id' => $store->id,
-            'order_marketplace_id' => 'TT-ORDER-002',
+            'order_marketplace_id' => "{$prefix}002",
             'order_date' => now(),
-            'tracking_number' => 'RESI-TT-002',
+            'tracking_number' => "RESI-{$prefix}002",
             'courier' => 'J&T Express',
             'buyer_name' => 'Budi TikTok',
             'total_amount' => 150000,
@@ -442,13 +443,14 @@ class OrderThermalPrintTest extends TestCase
         ]);
 
         $orders = [];
+        $prefix = 'TT-ORD-' . uniqid() . '-';
         for ($i = 1; $i <= 3; $i++) {
             $orders[] = Order::create([
                 'tenant_id' => $tenant->id,
                 'store_id' => $store->id,
-                'order_marketplace_id' => "TT-ORDER-00{$i}",
+                'order_marketplace_id' => "{$prefix}{$i}",
                 'order_date' => now(),
-                'tracking_number' => "RESI-TT-00{$i}",
+                'tracking_number' => "RESI-{$prefix}{$i}",
                 'package_id' => null, // Simulasi package_id belum tersimpan di DB
                 'courier' => 'J&T Express',
                 'buyer_name' => "Buyer {$i}",
@@ -463,14 +465,14 @@ class OrderThermalPrintTest extends TestCase
         $fpdf->Cell(40, 10, 'TikTok Official Resi Label 3 Orders');
         $validPdf = $fpdf->Output('S');
 
-        $this->mock(\App\Services\TiktokService::class, function ($mock) use ($validPdf) {
+        $this->mock(\App\Services\TiktokService::class, function ($mock) use ($validPdf, $prefix) {
             $mock->shouldReceive('getOrderDetail')
                 ->once()
                 ->andReturn([
                     'orders' => [
-                        ['id' => 'TT-ORDER-001', 'package_list' => [['package_id' => 'PKG-001']]],
-                        ['id' => 'TT-ORDER-002', 'package_list' => [['package_id' => 'PKG-002']]],
-                        ['id' => 'TT-ORDER-003', 'package_list' => [['package_id' => 'PKG-003']]],
+                        ['id' => "{$prefix}1", 'package_list' => [['package_id' => 'PKG-001']]],
+                        ['id' => "{$prefix}2", 'package_list' => [['package_id' => 'PKG-002']]],
+                        ['id' => "{$prefix}3", 'package_list' => [['package_id' => 'PKG-003']]],
                     ]
                 ]);
 
