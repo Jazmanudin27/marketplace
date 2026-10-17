@@ -18,8 +18,13 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         #viewer { width: 100%; height: 100%; border: none; display: none; }
     </style>
-    <!-- pdf-lib for client-side multi-page PDF combining -->
-    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.9/dist/pdf-lib.min.js"></script>
+    <!-- pdf-lib: Local bundle first with CDN fallbacks -->
+    <script src="{{ asset('pdf-lib.min.js') }}"></script>
+    <script>
+        if (!window.PDFLib) {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"><\/script>');
+        }
+    </script>
 </head>
 <body>
     <div id="loading">
@@ -97,7 +102,17 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', mergeAndDisplayPdfs);
+        async function initMerge() {
+            // Beri waktu sejenak jika script fallback sedang loading
+            let retries = 0;
+            while (!window.PDFLib && retries < 20) {
+                await new Promise(r => setTimeout(r, 150));
+                retries++;
+            }
+            await mergeAndDisplayPdfs();
+        }
+
+        window.addEventListener('load', initMerge);
     </script>
 </body>
 </html>
