@@ -503,38 +503,6 @@
         </div>
     </div>
 
-    <!-- PICK LIST SUMMARY SECTION -->
-    @if (!empty($pickList))
-        <div class="pick-list-page page-break" style="padding: 15px; font-family: Arial, sans-serif; background: #fff;">
-            <div class="pick-list-header" style="border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div class="pick-list-title" style="font-size: 16px; font-weight: 800; text-transform: uppercase;">PICK LIST / REKAP PENGAMBILAN BARANG</div>
-                    <div style="font-size: 11px; color: #333;">Tanggal Cetak: {{ now()->format('d/m/Y H:i') }} | Total Pesanan: {{ $orders->count() }}</div>
-                </div>
-            </div>
-            <table class="pick-list-table" style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                <thead>
-                    <tr style="background: #f0f0f0;">
-                        <th style="border: 1px solid #000; padding: 6px 8px; text-align: center; width: 40px;">No</th>
-                        <th style="border: 1px solid #000; padding: 6px 8px; text-align: left;">SKU / Kode Barang</th>
-                        <th style="border: 1px solid #000; padding: 6px 8px; text-align: left;">Nama Produk</th>
-                        <th style="border: 1px solid #000; padding: 6px 8px; text-align: center; width: 70px;">Total Qty</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php $no = 1; @endphp
-                    @foreach ($pickList as $sku => $itemData)
-                        <tr>
-                            <td style="border: 1px solid #000; padding: 6px 8px; text-align: center;">{{ $no++ }}</td>
-                            <td style="border: 1px solid #000; padding: 6px 8px; font-family: monospace; font-weight: bold;">{{ $sku }}</td>
-                            <td style="border: 1px solid #000; padding: 6px 8px;">{{ $itemData['name'] }}</td>
-                            <td style="border: 1px solid #000; padding: 6px 8px; text-align: center; font-weight: 900; font-size: 13px;">{{ $itemData['qty'] }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    @endif
 
     <!-- INDIVIDUAL THERMAL WAYBILLS -->
     @foreach ($orders as $index => $order)

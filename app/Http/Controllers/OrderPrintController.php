@@ -143,9 +143,30 @@ class OrderPrintController extends Controller
                         );
                         if (!empty($pdfData)) {
                             $pdfBuffers[] = $pdfData;
+                            continue;
                         }
                     } catch (\Throwable $e) {
-                        \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok print PDF fetch failed for order #{$order->id}: " . $e->getMessage());
+                        \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok getOfficialShippingLabelPdf failed for order #{$order->id}: " . $e->getMessage());
+                    }
+
+                    // Fallback jika URL/PDF base64 dari getShippingDocument
+                    try {
+                        $docData = $tiktokService->getShippingDocument(
+                            $store->getValidAccessToken(),
+                            $store->shop_cipher ?: $store->marketplace_store_id,
+                            $order->order_marketplace_id,
+                            $order->package_id
+                        );
+                        if (!empty($docData['doc_pdf'])) {
+                            $pdfBuffers[] = base64_decode($docData['doc_pdf']);
+                        } elseif (!empty($docData['doc_url'])) {
+                            $dlRes = \Illuminate\Support\Facades\Http::timeout(30)->get($docData['doc_url']);
+                            if ($dlRes->successful() && !empty($dlRes->body())) {
+                                $pdfBuffers[] = $dlRes->body();
+                            }
+                        }
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok getShippingDocument fallback failed for order #{$order->id}: " . $e->getMessage());
                     }
                 }
             }
@@ -162,22 +183,12 @@ class OrderPrintController extends Controller
             }
         }
 
-        // Fallback: Generate Pick List data (Summary of all items to pick) jika API PDF tidak tersedia
-        $pickList = [];
-        foreach ($orders as $order) {
-            foreach ($order->items as $item) {
-                $sku = $item->sku ?? 'NO-SKU';
-                if (!isset($pickList[$sku])) {
-                    $pickList[$sku] = [
-                        'name' => $item->product_name,
-                        'qty' => 0
-                    ];
-                }
-                $pickList[$sku]['qty'] += $item->quantity;
-            }
-        }
-
-        return view('orders.mass_print', compact('orders', 'pickList'));
+        // Jika tidak ada satu pun PDF resmi dari marketplace yang berhasil ditarik:
+        // Kembalikan ke halaman sebelumnya dengan pesan error jelas atau tampilkan tampilan resi thermal saja (tanpa pick list)
+        return view('orders.mass_print', [
+            'orders'   => $orders,
+            'pickList' => [],
+        ]);
     }
 
     /**
