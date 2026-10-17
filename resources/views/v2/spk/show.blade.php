@@ -2089,13 +2089,18 @@
                                                             {{ $isLunas ? 'disabled' : '' }}>
                                                     </td>
                                                 </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="6" class="text-center text-muted py-3">Belum ada data ongkos
-                                                        jasa yang disetting pada SPK ini.</td>
-                                                </tr>
                                             @endforelse
                                         </tbody>
+                                        @if(count($laborBreakdown) > 0)
+                                            <tfoot class="table-light border-top">
+                                                <tr class="fw-bold" style="font-size: 11.5px;">
+                                                    <td colspan="3" class="text-end text-muted py-2">TOTAL RINCIAN JASA:</td>
+                                                    <td class="text-end text-dark py-2 font-monospace">Rp {{ number_format($totalSpkLaborCost, 0, ',', '.') }}</td>
+                                                    <td class="text-end text-danger py-2 font-monospace">Rp {{ number_format($totalSpkLaborUnpaid, 0, ',', '.') }}</td>
+                                                    <td></td>
+                                                </tr>
+                                            </tfoot>
+                                        @endif
                                     </table>
                                 </div>
 

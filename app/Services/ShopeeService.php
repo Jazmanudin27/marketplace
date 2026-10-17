@@ -827,7 +827,19 @@ class ShopeeService
         $data = $response->json();
         if (!empty($data['error']) && $data['error'] !== '' && $data['error'] !== 'OK') {
             Log::warning("[Shopee] createShippingDocument full response: " . json_encode($data));
-            throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+            $detailMsg = $data['message'] ?? '';
+            if (!empty($data['response']['result_list'])) {
+                $fails = [];
+                foreach ($data['response']['result_list'] as $resItem) {
+                    if (!empty($resItem['fail_error']) || !empty($resItem['fail_message'])) {
+                        $fails[] = ($resItem['order_sn'] ?? '') . ': ' . ($resItem['fail_error'] ?? '') . ' (' . ($resItem['fail_message'] ?? '') . ')';
+                    }
+                }
+                if (!empty($fails)) {
+                    $detailMsg .= ' [' . implode(', ', $fails) . ']';
+                }
+            }
+            throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . $detailMsg);
         }
 
         return $data['response'] ?? [];
@@ -925,6 +937,28 @@ class ShopeeService
             $created = true;
         } catch (\Throwable $e) {
             Log::warning("[Shopee] createShippingDocument warning: " . $e->getMessage());
+
+            // Jika error karena resi belum digenerate / belum di-ship di Shopee (tracking_number_invalid / should print first)
+            $errText = $e->getMessage();
+            if (str_contains($errText, 'tracking_number_invalid') || str_contains($errText, 'batch_api_all_failed')) {
+                foreach ($orderSns as $sn) {
+                    try {
+                        Log::info("[Shopee] Auto-trigger shipOrder for {$sn} because tracking number not ready yet");
+                        $this->shipOrder($accessToken, $shopId, (string)$sn);
+                    } catch (\Throwable $shipEx) {
+                        Log::warning("[Shopee] Auto-trigger shipOrder for {$sn} note: " . $shipEx->getMessage());
+                    }
+                }
+
+                // Coba panggil createShippingDocument kembali setelah shipOrder
+                try {
+                    usleep(500000); // 0.5 detik
+                    $this->createShippingDocument($accessToken, $shopId, $orderSns, $documentType);
+                    $created = true;
+                } catch (\Throwable $retryE) {
+                    Log::warning("[Shopee] createShippingDocument retry warning: " . $retryE->getMessage());
+                }
+            }
         }
 
         // Coba unduh langsung jika resi sebelumnya sudah pernah digenerate oleh Shopee
