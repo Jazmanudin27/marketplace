@@ -797,17 +797,60 @@ class ShopeeService
     }
 
     /**
-     * Buat dokumen pengiriman (Airwaybill/Label Thermal) di Shopee.
-     * Endpoint: POST /api/v2/logistics/create_shipping_document
+     * Dapatkan parameter dokumen pengiriman resmi (selectable & suggested types) dari Shopee.
+     * Endpoint: POST /api/v2/logistics/get_shipping_document_parameter
      */
-    public function createShippingDocument(string $accessToken, int $shopId, array $orderSns, string $documentType = 'THERMAL_AIR_WAYBILL'): array
+    public function getShippingDocumentParameter(string $accessToken, int $shopId, array $orderSns): array
     {
-        $path = '/api/v2/logistics/create_shipping_document';
+        $path = '/api/v2/logistics/get_shipping_document_parameter';
         $timestamp = time();
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
         $orderList = array_map(function ($sn) {
             return ['order_sn' => (string)$sn];
+        }, $orderSns);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+        ];
+
+        try {
+            $response = Http::asJson()->timeout(15)->post($this->baseUrl . $path . '?' . http_build_query($queryParams), [
+                'order_list' => $orderList,
+            ]);
+
+            if ($response->failed()) {
+                return [];
+            }
+
+            $data = $response->json();
+            return $data['response']['result_list'] ?? [];
+        } catch (\Throwable $e) {
+            Log::warning("[Shopee] getShippingDocumentParameter warning: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Buat dokumen pengiriman (Airwaybill/Label Thermal) di Shopee.
+     * Endpoint: POST /api/v2/logistics/create_shipping_document
+     */
+    public function createShippingDocument(string $accessToken, int $shopId, array $orderSns, string $documentType = 'THERMAL_AIR_WAYBILL', array $trackingMap = []): array
+    {
+        $path = '/api/v2/logistics/create_shipping_document';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $orderList = array_map(function ($sn) use ($trackingMap) {
+            $item = ['order_sn' => (string)$sn];
+            if (!empty($trackingMap[$sn])) {
+                $item['tracking_number'] = (string)$trackingMap[$sn];
+            }
+            return $item;
         }, $orderSns);
 
         $queryParams = [
@@ -934,39 +977,79 @@ class ShopeeService
      */
     public function getOfficialShippingLabelPdf(string $accessToken, int $shopId, array $orderSns, string $documentType = 'THERMAL_AIR_WAYBILL'): string
     {
-        $created = false;
-        try {
-            $this->createShippingDocument($accessToken, $shopId, $orderSns, $documentType);
-            $created = true;
-        } catch (\Throwable $e) {
-            Log::warning("[Shopee] createShippingDocument warning: " . $e->getMessage());
-
-            // Jika error karena resi belum digenerate / belum di-ship di Shopee (tracking_number_invalid / should print first)
-            $errText = $e->getMessage();
-            if (str_contains($errText, 'tracking_number_invalid') || str_contains($errText, 'batch_api_all_failed')) {
-                foreach ($orderSns as $sn) {
-                    try {
-                        Log::info("[Shopee] Auto-trigger shipOrder for {$sn} because tracking number not ready yet");
-                        $this->shipOrder($accessToken, $shopId, (string)$sn);
-                    } catch (\Throwable $shipEx) {
-                        Log::warning("[Shopee] Auto-trigger shipOrder for {$sn} note: " . $shipEx->getMessage());
-                    }
+        // 1. Ambil nomor resi / tracking number resmi via get_tracking_number terlebih dahulu
+        $trackingMap = [];
+        foreach ($orderSns as $sn) {
+            try {
+                $trackRes = $this->getTrackingNumber($accessToken, $shopId, (string)$sn);
+                if (!empty($trackRes['tracking_number'])) {
+                    $trackingMap[$sn] = $trackRes['tracking_number'];
                 }
+            } catch (\Throwable $e) {
+                Log::info("[Shopee] getTrackingNumber note for {$sn}: " . $e->getMessage());
+            }
+        }
 
-                // Coba panggil createShippingDocument kembali setelah shipOrder
-                try {
-                    usleep(500000); // 0.5 detik
-                    $this->createShippingDocument($accessToken, $shopId, $orderSns, $documentType);
-                    $created = true;
-                } catch (\Throwable $retryE) {
-                    Log::warning("[Shopee] createShippingDocument retry warning: " . $retryE->getMessage());
+        // 2. Cek parameter dan format dokumen resmi yang didukung Shopee untuk order ini
+        $suggestedType = $documentType;
+        try {
+            $docParams = $this->getShippingDocumentParameter($accessToken, $shopId, $orderSns);
+            if (!empty($docParams[0]['suggest_shipping_document_type'])) {
+                $suggestedType = $docParams[0]['suggest_shipping_document_type'];
+            }
+        } catch (\Throwable $e) {
+            // Abaikan jika tidak didukung
+        }
+
+        // 3. Buat dokumen dengan format terpilih (atau fallback jika perlu)
+        $typesToTry = array_unique([$suggestedType, $documentType, 'THERMAL_AIR_WAYBILL', 'NORMAL_AIR_WAYBILL']);
+        $created = false;
+        $activeType = $suggestedType;
+
+        foreach ($typesToTry as $typeCandidate) {
+            try {
+                // Percobaan create dokumen dengan menyertakan tracking_number jika tersedia
+                $this->createShippingDocument($accessToken, $shopId, $orderSns, $typeCandidate, $trackingMap);
+                $created = true;
+                $activeType = $typeCandidate;
+                break;
+            } catch (\Throwable $e) {
+                Log::warning("[Shopee] createShippingDocument ({$typeCandidate}) warning: " . $e->getMessage());
+
+                // Jika error karena resi belum digenerate / belum di-ship di Shopee
+                $errText = $e->getMessage();
+                if (str_contains($errText, 'tracking_number_invalid') || str_contains($errText, 'batch_api_all_failed')) {
+                    foreach ($orderSns as $sn) {
+                        try {
+                            Log::info("[Shopee] Auto-trigger shipOrder for {$sn} because tracking number not ready yet");
+                            $this->shipOrder($accessToken, $shopId, (string)$sn);
+                            // Ambil tracking number setelah ship
+                            $trackRes = $this->getTrackingNumber($accessToken, $shopId, (string)$sn);
+                            if (!empty($trackRes['tracking_number'])) {
+                                $trackingMap[$sn] = $trackRes['tracking_number'];
+                            }
+                        } catch (\Throwable $shipEx) {
+                            Log::warning("[Shopee] Auto-trigger shipOrder for {$sn} note: " . $shipEx->getMessage());
+                        }
+                    }
+
+                    // Coba panggil createShippingDocument kembali setelah shipOrder
+                    try {
+                        usleep(600000); // 0.6 detik
+                        $this->createShippingDocument($accessToken, $shopId, $orderSns, $typeCandidate, $trackingMap);
+                        $created = true;
+                        $activeType = $typeCandidate;
+                        break;
+                    } catch (\Throwable $retryE) {
+                        Log::warning("[Shopee] createShippingDocument retry ({$typeCandidate}) warning: " . $retryE->getMessage());
+                    }
                 }
             }
         }
 
-        // Coba unduh langsung jika resi sebelumnya sudah pernah digenerate oleh Shopee
+        // 4. Coba unduh langsung jika resi sebelumnya sudah pernah digenerate oleh Shopee
         try {
-            $directPdf = $this->downloadShippingDocument($accessToken, $shopId, $orderSns, $documentType);
+            $directPdf = $this->downloadShippingDocument($accessToken, $shopId, $orderSns, $activeType);
             if (!empty($directPdf) && (str_starts_with($directPdf, '%PDF') || str_starts_with($directPdf, "\x50\x4b"))) {
                 return $directPdf;
             }
@@ -974,12 +1057,12 @@ class ShopeeService
             Log::info("[Shopee] direct download before polling failed: " . $e->getMessage());
         }
 
-        // Polling get_shipping_document_result sampai status READY
+        // 5. Polling get_shipping_document_result sampai status READY
         $isReady = false;
-        for ($poll = 1; $poll <= 5; $poll++) {
-            usleep(800000); // 0.8 detik jeda
+        for ($poll = 1; $poll <= 6; $poll++) {
+            usleep(900000); // 0.9 detik jeda
             try {
-                $statusRes = $this->getShippingDocumentResult($accessToken, $shopId, $orderSns, $documentType);
+                $statusRes = $this->getShippingDocumentResult($accessToken, $shopId, $orderSns, $activeType);
                 $resultList = $statusRes['result_list'] ?? [];
                 
                 if (!empty($resultList)) {
@@ -1007,10 +1090,11 @@ class ShopeeService
             }
         }
 
+        // 6. Download dokumen final
         $lastException = null;
         for ($attempt = 1; $attempt <= 3; $attempt++) {
             try {
-                $pdfData = $this->downloadShippingDocument($accessToken, $shopId, $orderSns, $documentType);
+                $pdfData = $this->downloadShippingDocument($accessToken, $shopId, $orderSns, $activeType);
                 if (!empty($pdfData) && (str_starts_with($pdfData, '%PDF') || str_starts_with($pdfData, "\x50\x4b"))) {
                     return $pdfData;
                 }
