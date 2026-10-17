@@ -826,6 +826,7 @@ class ShopeeService
 
         $data = $response->json();
         if (!empty($data['error']) && $data['error'] !== '' && $data['error'] !== 'OK') {
+            Log::warning("[Shopee] createShippingDocument full response: " . json_encode($data));
             throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
         }
 
@@ -918,10 +919,22 @@ class ShopeeService
      */
     public function getOfficialShippingLabelPdf(string $accessToken, int $shopId, array $orderSns, string $documentType = 'THERMAL_AIR_WAYBILL'): string
     {
+        $created = false;
         try {
             $this->createShippingDocument($accessToken, $shopId, $orderSns, $documentType);
+            $created = true;
         } catch (\Throwable $e) {
             Log::warning("[Shopee] createShippingDocument warning: " . $e->getMessage());
+        }
+
+        // Coba unduh langsung jika resi sebelumnya sudah pernah digenerate oleh Shopee
+        try {
+            $directPdf = $this->downloadShippingDocument($accessToken, $shopId, $orderSns, $documentType);
+            if (!empty($directPdf) && (str_starts_with($directPdf, '%PDF') || str_starts_with($directPdf, "\x50\x4b"))) {
+                return $directPdf;
+            }
+        } catch (\Throwable $e) {
+            Log::info("[Shopee] direct download before polling failed: " . $e->getMessage());
         }
 
         // Polling get_shipping_document_result sampai status READY
