@@ -797,7 +797,7 @@ export default function PenjualanOfflinePage({ onOpenScanKemasan, onOpenScanSpk 
                       }}
                     >
                       <Package size={15} />
-                      <span>Scan Kemasan</span>
+                      <span>Kemas Offline</span>
                     </button>
                   )}
                 </div>

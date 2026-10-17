@@ -46,7 +46,7 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
         { id: 'kartu_stok', title: 'Kartu Stok Gudang Jadi', desc: 'Monitoring stok barang jadi & kartu mutasi', icon: Layers, color: '#2563eb' },
         { id: 'warehouse', title: 'Mutasi Masuk & Keluar', desc: 'Pergerakan stok gudang jadi', icon: Boxes, color: '#7c3aed' },
         { id: 'stock_opname', title: 'Opname Stok Jadi', desc: 'Pengecekan fisik stok akhir', icon: ShieldCheck, color: '#6366f1' },
-        { id: 'scan_kemasan', title: 'Scan & Kemasan', desc: 'Scan barcode produk, update stok & request produksi', icon: ScanLine, color: '#06b6d4' },
+        { id: 'scan_kemasan', title: 'Scan Kemas Online', desc: 'Verifikasi resi marketplace, barcode SKU & packing V2', icon: ScanLine, color: '#06b6d4' },
       ]
     },
     {

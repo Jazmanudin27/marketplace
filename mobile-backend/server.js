@@ -3214,7 +3214,343 @@ app.post('/api/v2/owner/retur/:id/qc', async (req, res) => {
   }
 });
 
-// ─── 11. SCAN KEMASAN PRODUK ────────────────────────────────────────────────
+// ─── 11. SCAN KEMASAN ONLINE (MARKETPLACE ORDER PACKING V2) ─────────────────
+
+// 11.1 Lookup Online Order by tracking_number, invoice_number, order_marketplace_id, package_id
+app.get('/api/v2/owner/scan-kemasan/order-lookup', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const code = (req.query.code || '').trim();
+
+    if (!code) {
+      return res.status(400).json({ success: false, message: 'Masukkan nomor resi, invoice, atau order ID.' });
+    }
+
+    // Cari Order Online (bukan offline_sale)
+    let [order] = await query(
+      `SELECT o.*, s.store_name, c.name as channel_name, c.code as channel_code
+       FROM orders o
+       LEFT JOIN stores s ON s.id = o.store_id
+       LEFT JOIN channels c ON c.id = s.channel_id
+       WHERE o.tenant_id = ?
+         AND (o.tracking_number = ? OR o.invoice_number = ? OR o.order_marketplace_id = ? OR o.package_id = ?)
+       LIMIT 1`,
+      [tenantId, code, code, code, code]
+    );
+
+    // Fallback LIKE jika belum ketemu
+    if (!order) {
+      [order] = await query(
+        `SELECT o.*, s.store_name, c.name as channel_name, c.code as channel_code
+         FROM orders o
+         LEFT JOIN stores s ON s.id = o.store_id
+         LEFT JOIN channels c ON c.id = s.channel_id
+         WHERE o.tenant_id = ?
+           AND (o.tracking_number LIKE ? OR o.invoice_number LIKE ? OR o.order_marketplace_id LIKE ?)
+         LIMIT 1`,
+        [tenantId, `%${code}%`, `%${code}%`, `%${code}%`]
+      );
+    }
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: `Pesanan online dengan kode / resi '${code}' tidak ditemukan.`
+      });
+    }
+
+    // Validasi Status Ready To Ship
+    const statusUpper = (order.order_status || '').toUpperCase();
+    if (statusUpper !== 'READY_TO_SHIP') {
+      return res.status(400).json({
+        success: false,
+        message: `Pesanan '${order.invoice_number}' tidak dalam status SIAP KIRIM (Status saat ini: ${statusUpper}).`
+      });
+    }
+
+    // Tandai status packing jika masih pending
+    if (order.packing_status === 'pending' || !order.packing_status) {
+      await query(`UPDATE orders SET packing_status = 'packing', updated_at = NOW() WHERE id = ?`, [order.id]);
+      order.packing_status = 'packing';
+    }
+
+    // Ambil order items + master product + marketplace product
+    const orderItems = await query(
+      `SELECT oi.*, 
+              mp.id as master_id, mp.sku as master_sku, mp.name as master_name, 
+              mp.barcode as master_barcode, mp.stock as gudang_stock, mp.image_url as master_image,
+              mpp.image_url as mpp_image, mpp.marketplace_sku
+       FROM order_items oi
+       LEFT JOIN master_products mp ON mp.id = oi.master_product_id
+       LEFT JOIN marketplace_products mpp ON mpp.id = oi.marketplace_product_id
+       WHERE oi.order_id = ?
+       ORDER BY oi.id ASC`,
+      [order.id]
+    );
+
+    // Format items
+    const items = [];
+    for (const item of orderItems) {
+      const sku = item.sku || item.master_sku || item.marketplace_sku || '';
+      const name = item.product_name || item.master_name || 'Produk';
+      const barcode = item.master_barcode || null;
+      const image = item.product_image || item.master_image || item.mpp_image || '/assets/img/products/product1.jpg';
+      const qty = parseInt(item.quantity, 10) || 1;
+      const packedQty = parseInt(item.packed_quantity, 10) || 0;
+
+      // Ambil active consignments jika master product ada
+      let activeConsignments = [];
+      if (item.master_id) {
+        try {
+          const cItems = await query(
+            `SELECT sci.id as consignment_item_id, sci.supplier_consignment_id,
+                    sc.reference_number, s.name as supplier_name,
+                    GREATEST(0, sci.qty_received - COALESCE(sci.qty_sold, 0)) as sisa_stok
+             FROM supplier_consignment_items sci
+             JOIN supplier_consignments sc ON sc.id = sci.supplier_consignment_id
+             LEFT JOIN suppliers s ON s.id = sc.supplier_id
+             WHERE sci.master_product_id = ? AND sc.tenant_id = ? AND sc.status = 'approved'
+             HAVING sisa_stok > 0`,
+            [item.master_id, tenantId]
+          );
+          activeConsignments = cItems;
+        } catch (_) {}
+      }
+
+      const totalTitipan = activeConsignments.reduce((acc, c) => acc + (parseInt(c.sisa_stok, 10) || 0), 0);
+
+      items.push({
+        id: item.id,
+        order_item_id: item.id,
+        master_product_id: item.master_id,
+        sku,
+        barcode,
+        name,
+        image,
+        quantity: qty,
+        packed_quantity: packedQty,
+        gudang_stock: parseInt(item.gudang_stock, 10) || 0,
+        total_titipan_stock: totalTitipan,
+        active_consignments: activeConsignments,
+        is_substituted: Boolean(item.is_substituted),
+        original_sku: item.original_sku,
+        original_product_name: item.original_product_name
+      });
+    }
+
+    return res.json({
+      success: true,
+      order: {
+        id: order.id,
+        invoice_number: order.invoice_number,
+        order_marketplace_id: order.order_marketplace_id,
+        tracking_number: order.tracking_number,
+        buyer_name: order.buyer_name || order.customer_name || 'Pembeli Marketplace',
+        store_name: order.store_name || 'Toko Marketplace',
+        channel_name: order.channel_name || 'Marketplace',
+        channel_code: (order.channel_code || 'general').toLowerCase(),
+        courier: order.shipping_provider || order.courier || '-',
+        packing_status: order.packing_status || 'packing',
+        items
+      }
+    });
+  } catch (err) {
+    console.error('[Node-API] Scan Kemasan order lookup error:', err);
+    return res.status(500).json({ success: false, message: 'Gagal mencari pesanan: ' + err.message });
+  }
+});
+
+// 11.2 Complete Online Order Packing
+app.post('/api/v2/owner/scan-kemasan/order-complete', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const authUser = getAuthUser(req);
+    const { order_id, auto_ship, packed_items, item_sources } = req.body;
+
+    if (!order_id) {
+      return res.status(400).json({ success: false, message: 'Order ID wajib diisi.' });
+    }
+
+    const [order] = await query(
+      `SELECT o.*, s.store_name, s.shipping_handover_method, s.marketplace_store_id, s.shop_cipher,
+              c.code as channel_code, c.name as channel_name
+       FROM orders o
+       LEFT JOIN stores s ON s.id = o.store_id
+       LEFT JOIN channels c ON c.id = s.channel_id
+       WHERE o.id = ? AND o.tenant_id = ? LIMIT 1`,
+      [order_id, tenantId]
+    );
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Pesanan online tidak ditemukan.' });
+    }
+
+    const userId = authUser?.id || null;
+
+    // Update status order menjadi verified kemas
+    await query(
+      `UPDATE orders 
+       SET packing_status = 'verified', 
+           packed_at = NOW(),
+           packed_by = COALESCE(?, packed_by),
+           updated_at = NOW()
+       WHERE id = ?`,
+      [userId, order.id]
+    );
+
+    // Update per-item packed_quantity & kurangi stok
+    const items = await query(
+      `SELECT oi.*, mp.stock as current_master_stock
+       FROM order_items oi
+       LEFT JOIN master_products mp ON mp.id = oi.master_product_id
+       WHERE oi.order_id = ?`,
+      [order.id]
+    );
+
+    for (const it of items) {
+      const scannedQty = (packed_items && packed_items[it.id]) !== undefined 
+        ? parseInt(packed_items[it.id], 10) 
+        : parseInt(it.quantity, 10);
+
+      await query(
+        `UPDATE order_items SET packed_quantity = ?, updated_at = NOW() WHERE id = ?`,
+        [scannedQty, it.id]
+      );
+
+      // Kurangi stok master product jika ada dan belum berkurang
+      if (it.master_product_id) {
+        const qtyToDeduct = parseInt(it.quantity, 10) || 1;
+        try {
+          await query(
+            `UPDATE master_products SET stock = GREATEST(0, stock - ?), updated_at = NOW() WHERE id = ?`,
+            [qtyToToDeduct = qtyToDeduct, it.master_product_id]
+          );
+
+          const [refreshed] = await query(`SELECT stock FROM master_products WHERE id = ?`, [it.master_product_id]);
+          const balanceAfter = refreshed ? refreshed.stock : 0;
+
+          await query(
+            `INSERT INTO stock_movements (tenant_id, master_product_id, user_id, type, quantity, reference, balance_after, created_at, updated_at)
+             VALUES (?, ?, ?, 'out', ?, ?, ?, NOW(), NOW())`,
+            [tenantId, it.master_product_id, userId, qtyToDeduct, `Packing Online: Order #${order.invoice_number}`, balanceAfter]
+          );
+        } catch (e) {
+          console.warn('[Node-API] Stock deduct warning:', e.message);
+        }
+      }
+    }
+
+    // Auto-Ship logic jika diminta
+    let shipped = false;
+    let message = `Kemasan pesanan '${order.invoice_number}' sukses diverifikasi dan disimpan!`;
+
+    if (auto_ship) {
+      message = `Kemasan '${order.invoice_number}' sukses diverifikasi! (Status dikemas & disiapkan)`;
+    }
+
+    return res.json({
+      success: true,
+      shipped,
+      message
+    });
+  } catch (err) {
+    console.error('[Node-API] Scan Kemasan order-complete error:', err);
+    return res.status(500).json({ success: false, message: 'Gagal menyelesaikan kemasan: ' + err.message });
+  }
+});
+
+// 11.3 Pencarian Produk Pengganti (Substitusi V2)
+app.get('/api/v2/owner/scan-kemasan/substitute-search', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const q = (req.query.q || '').trim();
+
+    let sql = `SELECT id, sku, name, stock, barcode, image_url 
+               FROM master_products 
+               WHERE tenant_id = ? AND is_active = 1`;
+    const params = [tenantId];
+
+    if (q) {
+      sql += ` AND (name LIKE ? OR sku LIKE ? OR barcode LIKE ?)`;
+      params.push(`%${q}%`, `%${q}%`, `%${q}%`);
+    }
+
+    sql += ` ORDER BY name ASC LIMIT 25`;
+    const products = await query(sql, params);
+
+    return res.json({ success: true, products });
+  } catch (err) {
+    console.error('[Node-API] Substitute search error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 11.4 Terapkan Substitusi Produk
+app.post('/api/v2/owner/scan-kemasan/substitute-item', async (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const { order_item_id, new_master_product_id, note } = req.body;
+
+    if (!order_item_id || !new_master_product_id) {
+      return res.status(400).json({ success: false, message: 'Item dan produk pengganti wajib diisi.' });
+    }
+
+    const [orderItem] = await query(
+      `SELECT oi.*, o.tenant_id 
+       FROM order_items oi
+       JOIN orders o ON o.id = oi.order_id
+       WHERE oi.id = ? AND o.tenant_id = ? LIMIT 1`,
+      [order_item_id, tenantId]
+    );
+
+    if (!orderItem) {
+      return res.status(404).json({ success: false, message: 'Item pesanan tidak ditemukan.' });
+    }
+
+    const [newProduct] = await query(
+      `SELECT id, sku, name, barcode, stock FROM master_products WHERE id = ? AND tenant_id = ? LIMIT 1`,
+      [new_master_product_id, tenantId]
+    );
+
+    if (!newProduct) {
+      return res.status(404).json({ success: false, message: 'Produk baru tidak ditemukan.' });
+    }
+
+    const origSku = orderItem.original_sku || orderItem.sku;
+    const origName = orderItem.original_product_name || orderItem.product_name;
+
+    await query(
+      `UPDATE order_items 
+       SET master_product_id = ?,
+           sku = ?,
+           product_name = ?,
+           is_substituted = 1,
+           original_sku = ?,
+           original_product_name = ?,
+           substitution_note = ?,
+           updated_at = NOW()
+       WHERE id = ?`,
+      [newProduct.id, newProduct.sku, newProduct.name, origSku, origName, note || 'Ditukar via Mobile Scan Kemasan', order_item_id]
+    );
+
+    return res.json({
+      success: true,
+      message: `Produk berhasil ditukar menjadi '${newProduct.name}' [SKU: ${newProduct.sku}].`,
+      item: {
+        id: order_item_id,
+        sku: newProduct.sku,
+        barcode: newProduct.barcode,
+        name: newProduct.name,
+        gudang_stock: newProduct.stock
+      }
+    });
+  } catch (err) {
+    console.error('[Node-API] Substitute item error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── 11.5 SCAN MASTER PRODUK LAMA (INVENTORY STOCK ADJUST) ──────────────────
 app.get('/api/v2/owner/scan-kemasan/search', async (req, res) => {
   try {
     const tenantId = getTenantId(req);

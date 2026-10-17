@@ -62,7 +62,7 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
     },
     {
       id: 'scan_kemasan',
-      title: 'Scan Kemasan',
+      title: 'Kemas Online',
       category: 'Gudang',
       icon: ScanLine,
       gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)'

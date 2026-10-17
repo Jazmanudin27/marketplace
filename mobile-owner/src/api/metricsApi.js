@@ -465,8 +465,101 @@ export async function submitReturQc(returnId, data) {
   }
 }
 
-// ─── SCAN KEMASAN API ────────────────────────────────────────────────────────
+// ─── SCAN KEMASAN ONLINE (MARKETPLACE V2 PACKING) ────────────────────────────
 
+export async function lookupOnlineOrderForPacking(code = '') {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const url = `${API_BASE_URL}/api/v2/owner/scan-kemasan/order-lookup?code=${encodeURIComponent(code)}`;
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] lookupOnlineOrderForPacking error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function completeOnlineOrderPacking(data) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/scan-kemasan/order-complete`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] completeOnlineOrderPacking error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function searchSubstituteProducts(query = '') {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const url = `${API_BASE_URL}/api/v2/owner/scan-kemasan/substitute-search?q=${encodeURIComponent(query)}`;
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      }
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] searchSubstituteProducts error:', error.message);
+    return { success: false, products: [] };
+  }
+}
+
+export async function substituteOrderItem(data) {
+  try {
+    const token = localStorage.getItem('owner_token') || '';
+    const userStr = localStorage.getItem('owner_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const tenantHeader = user?.tenant_id ? { 'X-Tenant-Id': String(user.tenant_id) } : {};
+
+    const response = await fetch(`${API_BASE_URL}/api/v2/owner/scan-kemasan/substitute-item`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...tenantHeader,
+      },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('[MetricsApi] substituteOrderItem error:', error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+// ─── SCAN KEMASAN PRODUK (INVENTORY ADJUST) ──────────────────────────────────
 export async function searchScanKemasan(code = '') {
   try {
     const token = localStorage.getItem('owner_token') || '';

@@ -1,36 +1,60 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   ScanLine, Search, Package, Plus, Minus, Check, RefreshCw, 
-  ArrowDownRight, ArrowUpRight, Hammer, AlertCircle, CheckCircle2, 
-  Store, History, Layers, Camera, CameraOff, SwitchCamera, 
-  Volume2, VolumeX, Zap
+  AlertCircle, CheckCircle2, Store, History, Camera, CameraOff, 
+  SwitchCamera, Volume2, VolumeX, Send, ArrowRight, X, ArrowLeftRight,
+  ShieldCheck, AlertTriangle, Truck, User, Info, CheckCheck
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { formatRupiah } from '../utils/formatters';
 import { 
-  searchScanKemasan, 
-  adjustScanKemasanStock, 
-  requestScanKemasanProduction 
+  lookupOnlineOrderForPacking, 
+  completeOnlineOrderPacking,
+  searchSubstituteProducts,
+  substituteOrderItem 
 } from '../api/metricsApi';
 
-// Synthesize beep sound for hardware scanner feel
-function playBeep(success = true) {
+// Synthesizer Audio Web (Zero asset dependency)
+function playTone(type = 'success') {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+    if (ctx.state === 'suspended') ctx.resume();
 
-    if (success) {
+    if (type === 'success') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
       osc.type = 'sine';
       osc.frequency.setValueAtTime(880, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.12);
-      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
       osc.start();
       osc.stop(ctx.currentTime + 0.12);
+    } else if (type === 'fanfare') {
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        setTimeout(() => {
+          try {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+            gain.gain.setValueAtTime(0.25, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+          } catch (_) {}
+        }, idx * 120);
+      });
     } else {
+      // buzzer
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(220, ctx.currentTime);
       gain.gain.setValueAtTime(0.3, ctx.currentTime);
@@ -41,135 +65,119 @@ function playBeep(success = true) {
   } catch (_) {}
 
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    navigator.vibrate(success ? [60] : [100, 50, 100]);
+    if (type === 'success') navigator.vibrate(60);
+    else if (type === 'fanfare') navigator.vibrate([80, 50, 80, 50, 120]);
+    else navigator.vibrate([120, 60, 120]);
   }
 }
 
 export default function ScanKemasanPage() {
-  const [codeInput, setCodeInput] = useState('');
-  const [activeCode, setActiveCode] = useState('');
-  const [matchedProduct, setMatchedProduct] = useState(null);
-  const [suggestions, setSuggestions] = useState([]);
-  const [recentMovements, setRecentMovements] = useState([]);
-  const [marketplaceListings, setMarketplaceListings] = useState([]);
-  const [quickProducts, setQuickProducts] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  // Mode: 'scan_order' (Step 1) | 'pack_items' (Step 2)
+  const [orderInput, setOrderInput] = useState('');
+  const [isSearchingOrder, setIsSearchingOrder] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState(null);
+
+  // Packing tracking
+  const [scannedItems, setScannedItems] = useState({}); // { [order_item_id]: qty }
+  const [autoShip, setAutoShip] = useState(false);
+  const [isSubmittingPack, setIsSubmittingPack] = useState(false);
+
+  // Item Barcode Scan (Step 2)
+  const [itemInput, setItemInput] = useState('');
 
   // Phone Camera Scanner State
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
   const [cameraFacing, setCameraFacing] = useState('environment'); // 'environment' | 'user'
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [cameraTarget, setCameraTarget] = useState('order'); // 'order' | 'item'
+
+  // Substitusi Item Modal State
+  const [substituteItemTarget, setSubstituteItemTarget] = useState(null);
+  const [substituteQuery, setSubstituteQuery] = useState('');
+  const [substituteResults, setSubstituteResults] = useState([]);
+  const [substituteLoading, setSubstituteLoading] = useState(false);
+  const [substituteNote, setSubstituteNote] = useState('');
+  const [isSubmittingSubstitute, setIsSubmittingSubstitute] = useState(false);
 
   const qrCodeScannerRef = useRef(null);
   const lastScannedTextRef = useRef('');
   const lastScanTimestampRef = useRef(0);
-
-  // Operation Tab: 'adjust' | 'produce'
-  const [opTab, setOpTab] = useState('adjust');
-
-  // Adjust Form State
-  const [adjustType, setAdjustType] = useState('in'); // 'in' | 'out' | 'adj'
-  const [adjustQty, setAdjustQty] = useState(1);
-  const [adjustRef, setAdjustRef] = useState('');
-  const [isSubmittingAdjust, setIsSubmittingAdjust] = useState(false);
-
-  // Production Form State
-  const [produceQty, setProduceQty] = useState(50);
-  const [produceNotes, setProduceNotes] = useState('');
-  const [isSubmittingProduce, setIsSubmittingProduce] = useState(false);
+  const orderInputRef = useRef(null);
+  const itemInputRef = useRef(null);
 
   const [toast, setToast] = useState(null);
-  const inputRef = useRef(null);
-
   const showToast = (text, type = 'success') => {
     setToast({ text, type });
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Battery saving & unmount cleanup: turn off camera on background / leave page
+  // Turn off camera when page loses focus / hides
   useEffect(() => {
     const handleVisibility = () => {
-      if (document.hidden) {
-        stopCamera();
-      }
+      if (document.hidden) stopCamera();
     };
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('pagehide', stopCamera);
     window.addEventListener('beforeunload', stopCamera);
 
     return () => {
-      stopCamera();
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('pagehide', stopCamera);
       window.removeEventListener('beforeunload', stopCamera);
+      stopCamera();
     };
   }, []);
 
-  // ── CAMERA CONTROLS (HTML5-QRCode) ──
-  const startCamera = async (facing = cameraFacing) => {
+  // Auto focus input
+  useEffect(() => {
+    if (!currentOrder && orderInputRef.current) {
+      orderInputRef.current.focus();
+    } else if (currentOrder && itemInputRef.current) {
+      itemInputRef.current.focus();
+    }
+  }, [currentOrder]);
+
+  // -------------------------------------------------------------
+  // Camera Barcode Scanner
+  // -------------------------------------------------------------
+  const startCamera = async (target = 'order') => {
+    setCameraTarget(target);
     setCameraLoading(true);
+    setIsCameraActive(true);
+
     try {
-      await stopCamera();
-
-      // Show container immediately so DOM has valid computed dimensions
-      setIsCameraActive(true);
-      await new Promise(r => setTimeout(r, 100));
-
-      const readerElem = document.getElementById('kemasan-camera-reader');
-      if (!readerElem) {
-        setIsCameraActive(false);
-        setCameraLoading(false);
-        return;
+      if (qrCodeScannerRef.current) {
+        try {
+          await qrCodeScannerRef.current.stop();
+        } catch (_) {}
       }
 
-      const html5QrCode = new Html5Qrcode('kemasan-camera-reader');
-      qrCodeScannerRef.current = html5QrCode;
+      await new Promise((r) => setTimeout(r, 200));
 
-      // Safe config with dimension bounds >= 120px to avoid Html5Qrcode < 50px exception
+      const scanner = new Html5Qrcode('mobile-camera-viewfinder');
+      qrCodeScannerRef.current = scanner;
+
       const config = {
-        fps: 10,
-        qrbox: (viewfinderWidth, viewfinderHeight) => {
-          const vw = Number(viewfinderWidth) || 300;
-          const vh = Number(viewfinderHeight) || 280;
-          const minEdge = Math.min(vw, vh);
-          const boxSize = Math.max(Math.floor(minEdge * 0.72), 160);
-          return {
-            width: Math.max(Math.min(boxSize, vw - 20), 120),
-            height: Math.max(Math.min(Math.floor(boxSize * 0.7), vh - 20), 100)
-          };
-        },
+        fps: 15,
+        qrbox: { width: 260, height: 160 },
         aspectRatio: 1.0,
       };
 
-      await html5QrCode.start(
-        { facingMode: facing },
+      await scanner.start(
+        { facingMode: cameraFacing },
         config,
         (decodedText) => {
-          const now = Date.now();
-          // Debounce same text within 2.5s
-          if (decodedText === lastScannedTextRef.current && (now - lastScanTimestampRef.current) < 2500) {
-            return;
-          }
-          // Debounce consecutive scan within 1s
-          if ((now - lastScanTimestampRef.current) < 1000) {
-            return;
-          }
-          lastScannedTextRef.current = decodedText;
-          lastScanTimestampRef.current = now;
-
-          if (soundEnabled) playBeep(true);
-          setCodeInput(decodedText);
-          handleSearch(decodedText);
+          handleCameraScanSuccess(decodedText, target);
         },
         () => {}
       );
-    } catch (err) {
-      console.warn('Kemasan camera activation failed:', err);
-      await stopCamera();
-      showToast('Gagal membuka kamera HP: ' + (err?.message || 'Pastikan izin kamera diizinkan.'), 'error');
-    } finally {
       setCameraLoading(false);
+    } catch (err) {
+      console.error('Camera scanner error:', err);
+      setCameraLoading(false);
+      setIsCameraActive(false);
+      showToast('Gagal membuka kamera: ' + (err.message || 'Izin kamera ditolak.'), 'error');
     }
   };
 
@@ -177,794 +185,981 @@ export default function ScanKemasanPage() {
     if (qrCodeScannerRef.current) {
       try {
         await qrCodeScannerRef.current.stop();
-      } catch (_) {}
-      try {
-        await qrCodeScannerRef.current.clear();
+        qrCodeScannerRef.current.clear();
       } catch (_) {}
       qrCodeScannerRef.current = null;
     }
-
-    // Forcefully stop any running hardware camera tracks to save battery
-    try {
-      const videoElem = document.querySelector('#kemasan-camera-reader video');
-      if (videoElem && videoElem.srcObject) {
-        const stream = videoElem.srcObject;
-        if (typeof stream.getTracks === 'function') {
-          stream.getTracks().forEach(track => {
-            try { track.stop(); } catch (_) {}
-          });
-        }
-        videoElem.srcObject = null;
-      }
-    } catch (_) {}
-
     setIsCameraActive(false);
+    setCameraLoading(false);
   };
 
-  const toggleCameraFacing = async () => {
+  const switchCameraFacing = async () => {
     const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
     setCameraFacing(nextFacing);
     if (isCameraActive) {
-      await startCamera(nextFacing);
+      await stopCamera();
+      setTimeout(() => startCamera(cameraTarget), 250);
     }
   };
 
-  // Initial load: fetch suggestions / quick products
-  useEffect(() => {
-    (async () => {
-      setIsSearching(true);
-      const res = await searchScanKemasan('');
-      if (res?.success && res.products) {
-        setQuickProducts(res.products);
-      }
-      setIsSearching(false);
-    })();
-  }, []);
+  const handleCameraScanSuccess = (decodedText, target) => {
+    const now = Date.now();
+    const clean = decodedText ? decodedText.trim() : '';
 
-  const handleSearch = async (codeToSearch) => {
-    const code = (codeToSearch !== undefined ? codeToSearch : codeInput).trim();
-    if (!code) return;
-    setActiveCode(code);
-    setIsSearching(true);
+    // Debounce scan
+    if (clean === lastScannedTextRef.current && now - lastScanTimestampRef.current < 1500) {
+      return;
+    }
+    lastScannedTextRef.current = clean;
+    lastScanTimestampRef.current = now;
 
-    const res = await searchScanKemasan(code);
-    setIsSearching(false);
+    if (soundEnabled) playTone('success');
 
-    if (res?.success) {
-      if (res.matched) {
-        setMatchedProduct(res.matched);
-        setSuggestions([]);
-        setRecentMovements(res.recentMovements || []);
-        setMarketplaceListings(res.marketplaceListings || []);
-        setAdjustQty(1);
-        setAdjustRef(`Scan Kemasan (${code})`);
+    if (target === 'order' || !currentOrder) {
+      setOrderInput(clean);
+      stopCamera();
+      handleFetchOrder(clean);
+    } else {
+      setItemInput('');
+      processItemScan(clean);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // Step 1: Lookup Online Order
+  // -------------------------------------------------------------
+  const handleFetchOrder = async (searchCode) => {
+    const code = (searchCode || orderInput).trim();
+    if (!code) {
+      showToast('Ketik atau scan nomor resi / invoice / Order ID.', 'error');
+      return;
+    }
+
+    setIsSearchingOrder(true);
+    try {
+      const res = await lookupOnlineOrderForPacking(code);
+      if (res && res.success && res.order) {
+        if (soundEnabled) playTone('success');
+        setCurrentOrder(res.order);
+
+        // Inisialisasi progress packing
+        const initScanned = {};
+        (res.order.items || []).forEach(it => {
+          initScanned[it.id] = it.packed_quantity || 0;
+        });
+        setScannedItems(initScanned);
+        showToast(`Pesanan ${res.order.invoice_number} berhasil dimuat!`, 'success');
       } else {
-        setMatchedProduct(null);
-        setSuggestions(res.suggestions || []);
-        setRecentMovements([]);
-        setMarketplaceListings([]);
-        if ((res.suggestions || []).length === 0) {
-          showToast(`Produk dengan SKU / Barcode "${code}" tidak ditemukan.`, 'error');
+        if (soundEnabled) playTone('error');
+        showToast(res.message || 'Pesanan online tidak ditemukan atau belum Siap Kirim.', 'error');
+      }
+    } catch (err) {
+      if (soundEnabled) playTone('error');
+      showToast('Gagal memuat pesanan online: ' + err.message, 'error');
+    } finally {
+      setIsSearchingOrder(false);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // Step 2: Scan Item Barcode / SKU
+  // -------------------------------------------------------------
+  const processItemScan = (code) => {
+    if (!currentOrder || !currentOrder.items || currentOrder.items.length === 0) return;
+
+    const rawBarcode = (code || itemInput).trim();
+    if (!rawBarcode) return;
+
+    setItemInput('');
+    const cleanCode = rawBarcode.toLowerCase();
+
+    // 1. Cari Item yang Cocok
+    let matchedItem = null;
+
+    // A. Match persis SKU atau Barcode
+    for (const it of currentOrder.items) {
+      const itSku = (it.sku || '').trim().toLowerCase();
+      const itBarcode = (it.barcode || '').trim().toLowerCase();
+      if ((itSku && itSku === cleanCode) || (itBarcode && itBarcode === cleanCode)) {
+        matchedItem = it;
+        break;
+      }
+    }
+
+    // B. Match parsial jika belum ketemu
+    if (!matchedItem) {
+      for (const it of currentOrder.items) {
+        const itSku = (it.sku || '').trim().toLowerCase();
+        const itBarcode = (it.barcode || '').trim().toLowerCase();
+        if ((itSku && (cleanCode.includes(itSku) || itSku.includes(cleanCode))) ||
+            (itBarcode && (cleanCode.includes(itBarcode) || itBarcode.includes(cleanCode)))) {
+          matchedItem = it;
+          break;
         }
       }
-    } else {
-      showToast('Gagal memindai produk.', 'error');
+    }
+
+    if (!matchedItem) {
+      if (soundEnabled) playTone('error');
+      showToast(`Item '${rawBarcode}' TIDAK ADA dalam pesanan ini!`, 'error');
+      return;
+    }
+
+    // Cek batas kuantitas
+    const currentQty = scannedItems[matchedItem.id] || 0;
+    if (currentQty >= matchedItem.quantity) {
+      if (soundEnabled) playTone('error');
+      showToast(`Item '${matchedItem.name}' sudah lengkap (${matchedItem.quantity} pcs)!`, 'error');
+      return;
+    }
+
+    // Tambah 1 pcs
+    const nextQty = currentQty + 1;
+    const newScanned = { ...scannedItems, [matchedItem.id]: nextQty };
+    setScannedItems(newScanned);
+
+    if (soundEnabled) {
+      // Cek apakah dengan ini sudah 100% komplit
+      const allDone = checkAllCompleted(currentOrder.items, newScanned);
+      if (allDone) {
+        playTone('fanfare');
+        showToast(`Semua produk pesanan ${currentOrder.invoice_number} lengkap dikemas!`, 'success');
+      } else {
+        playTone('success');
+      }
     }
   };
 
-  const handleSelectProduct = (prod) => {
-    setCodeInput(prod.sku || prod.barcode || '');
-    handleSearch(prod.sku || prod.barcode || '');
+  // Helper check all items complete
+  const checkAllCompleted = (items, scannedMap) => {
+    if (!items || items.length === 0) return false;
+    return items.every(it => (scannedMap[it.id] || 0) >= it.quantity);
   };
 
-  const handleExecuteAdjust = async () => {
-    if (!matchedProduct) return;
-    setIsSubmittingAdjust(true);
-
-    const res = await adjustScanKemasanStock({
-      product_id: matchedProduct.id,
-      type: adjustType,
-      quantity: adjustQty,
-      reference: adjustRef || `Scan Kemasan: ${adjustType.toUpperCase()}`
+  // Manual Adjust Qty (+ / -)
+  const handleAdjustItemQty = (itemId, delta, maxQty) => {
+    const cur = scannedItems[itemId] || 0;
+    const next = Math.max(0, Math.min(maxQty, cur + delta));
+    setScannedItems(prev => {
+      const updated = { ...prev, [itemId]: next };
+      if (checkAllCompleted(currentOrder.items, updated)) {
+        if (soundEnabled) playTone('fanfare');
+      }
+      return updated;
     });
+  };
 
-    setIsSubmittingAdjust(false);
-    if (res?.success) {
-      showToast(res.message);
-      // Update local product stock
-      setMatchedProduct(prev => ({
-        ...prev,
-        stock: res.newStock !== undefined ? res.newStock : prev.stock
-      }));
-      // Refresh details
-      handleSearch(matchedProduct.sku);
-    } else {
-      showToast(res?.message || 'Gagal update stok.', 'error');
+  // Tandai Semua Selesai (Bypass Barcode)
+  const handleMarkAllComplete = () => {
+    if (!currentOrder || !currentOrder.items) return;
+    const all = {};
+    currentOrder.items.forEach(it => {
+      all[it.id] = it.quantity;
+    });
+    setScannedItems(all);
+    if (soundEnabled) playTone('fanfare');
+    showToast('Semua item ditandai lengkap terpenuhi.', 'success');
+  };
+
+  // Reset Scanner State
+  const handleResetScanner = () => {
+    stopCamera();
+    setCurrentOrder(null);
+    setScannedItems({});
+    setOrderInput('');
+    setItemInput('');
+  };
+
+  // -------------------------------------------------------------
+  // Step 3: Complete Packing & Submit to API
+  // -------------------------------------------------------------
+  const handleSubmitCompletePack = async () => {
+    if (!currentOrder) return;
+
+    const isComplete = checkAllCompleted(currentOrder.items, scannedItems);
+    if (!isComplete) {
+      const confirmPartial = window.confirm(
+        'Perhatian: Belum semua item di-scan lengkap. Apakah Anda yakin ingin menyelesaikan kemasan sekarang?'
+      );
+      if (!confirmPartial) return;
+    }
+
+    setIsSubmittingPack(true);
+    try {
+      const res = await completeOnlineOrderPacking({
+        order_id: currentOrder.id,
+        auto_ship: autoShip ? 1 : 0,
+        packed_items: scannedItems
+      });
+
+      if (res && res.success) {
+        if (soundEnabled) playTone('fanfare');
+        showToast(res.message || 'Verifikasi kemasan berhasil disimpan!', 'success');
+        setTimeout(() => {
+          handleResetScanner();
+        }, 1200);
+      } else {
+        if (soundEnabled) playTone('error');
+        showToast(res.message || 'Gagal menyimpan kemasan.', 'error');
+      }
+    } catch (err) {
+      if (soundEnabled) playTone('error');
+      showToast('Error: ' + err.message, 'error');
+    } finally {
+      setIsSubmittingPack(false);
     }
   };
 
-  const handleExecuteProduce = async () => {
-    if (!matchedProduct) return;
-    setIsSubmittingProduce(true);
+  // -------------------------------------------------------------
+  // Substitusi Produk Modal
+  // -------------------------------------------------------------
+  const handleOpenSubstituteModal = (item) => {
+    setSubstituteItemTarget(item);
+    setSubstituteQuery('');
+    setSubstituteResults([]);
+    setSubstituteNote('');
+    fetchSubstituteList('');
+  };
 
-    const res = await requestScanKemasanProduction({
-      product_id: matchedProduct.id,
-      quantity: produceQty,
-      notes: produceNotes
-    });
+  const fetchSubstituteList = async (q) => {
+    setSubstituteLoading(true);
+    try {
+      const res = await searchSubstituteProducts(q);
+      if (res && res.success) {
+        setSubstituteResults(res.products || []);
+      }
+    } catch (_) {}
+    setSubstituteLoading(false);
+  };
 
-    setIsSubmittingProduce(false);
-    if (res?.success) {
-      showToast(res.message);
-      setProduceNotes('');
-      setProduceQty(50);
-    } else {
-      showToast(res?.message || 'Gagal kirim order produksi.', 'error');
+  const handleApplySubstitute = async (newProduct) => {
+    if (!substituteItemTarget) return;
+
+    setIsSubmittingSubstitute(true);
+    try {
+      const res = await substituteOrderItem({
+        order_item_id: substituteItemTarget.id,
+        new_master_product_id: newProduct.id,
+        note: substituteNote || 'Ditukar via Mobile Scan Kemasan'
+      });
+
+      if (res && res.success) {
+        if (soundEnabled) playTone('success');
+        showToast(res.message, 'success');
+
+        // Update item di memory
+        setCurrentOrder(prev => {
+          if (!prev) return prev;
+          const updatedItems = prev.items.map(it => {
+            if (it.id === substituteItemTarget.id) {
+              return {
+                ...it,
+                sku: newProduct.sku,
+                barcode: newProduct.barcode,
+                name: newProduct.name,
+                is_substituted: true,
+                original_sku: it.original_sku || it.sku,
+                original_product_name: it.original_product_name || it.name,
+                gudang_stock: newProduct.stock
+              };
+            }
+            return it;
+          });
+          return { ...prev, items: updatedItems };
+        });
+
+        setSubstituteItemTarget(null);
+      } else {
+        showToast(res.message || 'Gagal menukar produk.', 'error');
+      }
+    } catch (err) {
+      showToast('Gagal: ' + err.message, 'error');
+    } finally {
+      setIsSubmittingSubstitute(false);
     }
+  };
+
+  // Hitung persentase progress
+  const totalRequired = currentOrder?.items?.reduce((acc, it) => acc + it.quantity, 0) || 0;
+  const totalScanned = currentOrder?.items?.reduce((acc, it) => acc + (scannedItems[it.id] || 0), 0) || 0;
+  const progressPercent = totalRequired > 0 ? Math.round((totalScanned / totalRequired) * 100) : 0;
+  const isAllReady = progressPercent >= 100 && totalRequired > 0;
+
+  // Channel badge colors
+  const getChannelBadge = (code) => {
+    const c = (code || '').toLowerCase();
+    if (c === 'shopee') return { bg: '#ee4d2d', text: '#fff', label: 'Shopee' };
+    if (c === 'tiktok') return { bg: '#000000', text: '#25f4ee', label: 'TikTok Shop' };
+    if (c === 'tokopedia') return { bg: '#03ac0e', text: '#fff', label: 'Tokopedia' };
+    if (c === 'lazada') return { bg: '#0f146d', text: '#fff', label: 'Lazada' };
+    return { bg: '#475569', text: '#fff', label: 'Marketplace' };
   };
 
   return (
-    <div className="mobile-body-content" style={{ paddingTop: '14px', paddingBottom: '90px' }}>
-      {/* Toast */}
+    <div style={{ padding: '14px 16px 120px 16px', maxWidth: '640px', margin: '0 auto' }}>
+      {/* Toast Alert */}
       {toast && (
         <div style={{
-          position: 'fixed', top: '16px', left: '16px', right: '16px', zIndex: 99999,
-          background: toast.type === 'error' ? '#ef4444' : '#10b981',
-          color: '#fff', padding: '12px 16px', borderRadius: '12px', fontSize: '12.5px',
-          fontWeight: '600', boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-          display: 'flex', alignItems: 'center', gap: '8px'
+          position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9999, background: toast.type === 'error' ? '#ef4444' : '#10b981',
+          color: '#fff', padding: '10px 18px', borderRadius: '12px', fontSize: '13px',
+          fontWeight: '700', boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '90%'
         }}>
           {toast.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
           <span>{toast.text}</span>
         </div>
       )}
 
-      {/* CSS untuk HTML5-QRCode Scanner Feed */}
-      <style>{`
-        #kemasan-camera-reader video {
-          width: 100% !important;
-          height: 100% !important;
-          object-fit: cover !important;
-          border-radius: 12px;
-        }
-        #kemasan-camera-reader {
-          border: none !important;
-        }
-        #kemasan-camera-reader img {
-          display: none !important;
-        }
-      `}</style>
-
-      {/* Card Kamera Scanner HP & Form Input */}
+      {/* Header Station */}
       <div style={{
-        background: '#fff', border: '1px solid #e2e8f0', borderRadius: '18px',
-        padding: '14px', marginBottom: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+        borderRadius: '18px', padding: '16px 18px', color: '#fff',
+        boxShadow: '0 4px 20px rgba(15, 23, 42, 0.25)', marginBottom: '14px'
       }}>
-        {/* Header Kamera & Kontrol */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{
-              width: '8px', height: '8px', borderRadius: '999px',
-              background: isCameraActive ? '#10b981' : '#94a3b8',
-              boxShadow: isCameraActive ? '0 0 8px #10b981' : 'none'
-            }} />
-            <span style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a' }}>
-              {isCameraActive ? 'Kamera HP Aktif' : 'Kamera HP Siap Digunakan'}
-            </span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(6,182,212,0.4)'
+            }}>
+              <ScanLine size={22} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: '800', letterSpacing: '-0.2px' }}>
+                Scan Kemas Online
+              </div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                Packing Verifikasi Resi Marketplace V2
+              </div>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '6px' }}>
-            {isCameraActive && (
-              <button
-                type="button"
-                onClick={toggleCameraFacing}
-                title="Ganti Kamera Depan/Belakang"
-                style={{
-                  padding: '5px 8px', borderRadius: '8px', border: '1px solid #cbd5e1',
-                  background: '#f8fafc', color: '#475569', fontSize: '11px', fontWeight: '700',
-                  display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer'
-                }}
-              >
-                <SwitchCamera size={14} /> Ganti
-              </button>
-            )}
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               type="button"
               onClick={() => setSoundEnabled(!soundEnabled)}
-              title={soundEnabled ? 'Suara Beep Aktif' : 'Suara Beep Mati'}
               style={{
-                padding: '5px 8px', borderRadius: '8px', border: '1px solid #cbd5e1',
-                background: soundEnabled ? '#e0f2fe' : '#f8fafc',
-                color: soundEnabled ? '#0284c7' : '#94a3b8',
-                display: 'flex', alignItems: 'center', cursor: 'pointer'
+                background: soundEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid ' + (soundEnabled ? '#10b981' : 'rgba(255, 255, 255, 0.2)'),
+                color: soundEnabled ? '#10b981' : '#cbd5e1',
+                padding: '6px 10px', borderRadius: '10px', fontSize: '11px',
+                fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
               }}
             >
-              {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+              {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+              <span>{soundEnabled ? 'Suara' : 'Mute'}</span>
             </button>
+            {currentOrder && (
+              <button
+                type="button"
+                onClick={handleResetScanner}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444',
+                  color: '#ef4444', padding: '6px 10px', borderRadius: '10px',
+                  fontSize: '11px', fontWeight: '700', cursor: 'pointer'
+                }}
+              >
+                Ganti Resi
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Area Viewfinder Kamera Video Feed */}
+        {/* Info pembeda Penjualan Offline */}
         <div style={{
-          background: '#0f172a', borderRadius: '16px', overflow: 'hidden',
-          position: 'relative', minHeight: isCameraActive ? '280px' : '200px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
+          marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.1)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#cbd5e1'
         }}>
-          {/* HTML5-QRCode Reader Element */}
-          <div 
-            id="kemasan-camera-reader" 
-            style={{ 
-              width: '100%', 
-              minHeight: isCameraActive ? '260px' : '0px',
-              display: isCameraActive ? 'block' : 'none'
-            }} 
-          />
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <ShieldCheck size={13} color="#06b6d4" /> Khusus Order Online Siap Kirim
+          </span>
+          <span style={{ color: '#94a3b8' }}>
+            Offline POS di menu: <strong style={{ color: '#38bdf8' }}>Jual Offline</strong>
+          </span>
+        </div>
+      </div>
 
-          {/* Viewfinder Placeholder saat Kamera Mati */}
-          {!isCameraActive && (
-            <div style={{ textAlign: 'center', padding: '24px 16px', color: '#94a3b8' }}>
-              <div style={{
-                width: '54px', height: '54px', borderRadius: '16px', background: 'rgba(255,255,255,0.1)',
-                color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 12px'
-              }}>
-                <Camera size={28} />
-              </div>
-              <div style={{ fontSize: '13px', fontWeight: '800', color: '#fff' }}>
-                Scan Kemasan Pakai Kamera HP
-              </div>
-              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px', marginBottom: '14px' }}>
-                Arahkan kamera ke stiker barcode / QR pada kemasan produk
-              </div>
-
+      {/* Camera Viewfinder (Expandable) */}
+      {isCameraActive && (
+        <div style={{
+          background: '#000', borderRadius: '18px', padding: '12px',
+          marginBottom: '14px', border: '2px solid #06b6d4', position: 'relative'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', color: '#fff' }}>
+            <span style={{ fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Camera size={14} color="#06b6d4" /> Kamera Scanner ({cameraTarget === 'order' ? 'Resi' : 'SKU'})
+            </span>
+            <div style={{ display: 'flex', gap: '6px' }}>
               <button
                 type="button"
-                onClick={() => startCamera()}
-                disabled={cameraLoading}
+                onClick={switchCameraFacing}
                 style={{
-                  padding: '10px 20px', borderRadius: '12px', border: 'none',
-                  background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                  color: '#fff', fontSize: '13px', fontWeight: '800', cursor: 'pointer',
-                  display: 'inline-flex', alignItems: 'center', gap: '8px',
-                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+                  background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
+                  borderRadius: '8px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '4px'
                 }}
               >
-                {cameraLoading ? (
-                  <>
-                    <RefreshCw size={15} className="spin-animate" /> Membuka Kamera...
-                  </>
-                ) : (
-                  <>
-                    <Camera size={16} /> Buka Kamera HP Sekarang
-                  </>
-                )}
+                <SwitchCamera size={12} /> Balik
               </button>
-            </div>
-          )}
-
-          {/* Visual Scanner Overlay when camera is active */}
-          {isCameraActive && (
-            <div style={{
-              position: 'absolute', inset: 0, pointerEvents: 'none',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
-              padding: '14px'
-            }}>
-              <div style={{
-                background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)',
-                color: '#fff', padding: '4px 12px', borderRadius: '999px', fontSize: '11px',
-                fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px'
-              }}>
-                <Zap size={12} color="#38bdf8" /> Arahkan ke Barcode / QR Kemasan
-              </div>
-
-              {/* Corner Targets */}
-              <div style={{
-                width: '210px', height: '210px', border: '2px solid rgba(56, 189, 248, 0.6)',
-                borderRadius: '16px', position: 'relative', boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.3)'
-              }}>
-                {/* Laser line animation */}
-                <div style={{
-                  position: 'absolute', left: 0, right: 0, top: '50%', height: '2px',
-                  background: 'linear-gradient(90deg, transparent, #38bdf8, #0284c7, transparent)',
-                  boxShadow: '0 0 8px #38bdf8', animation: 'pulse 1.5s infinite'
-                }} />
-              </div>
-
               <button
                 type="button"
                 onClick={stopCamera}
                 style={{
-                  pointerEvents: 'auto', background: 'rgba(239, 68, 68, 0.9)',
-                  color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '999px',
-                  fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px',
-                  cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                  background: 'rgba(239,68,68,0.8)', border: 'none', color: '#fff',
+                  borderRadius: '8px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '4px'
                 }}
               >
-                <CameraOff size={13} /> Tutup Kamera
+                <CameraOff size={12} /> Tutup
               </button>
             </div>
+          </div>
+
+          <div
+            id="mobile-camera-viewfinder"
+            style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', minHeight: '180px', background: '#111' }}
+          />
+
+          {cameraLoading && (
+            <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12px', padding: '16px' }}>
+              Menghubungkan kamera perangkat...
+            </div>
           )}
-        </div>
-
-        {/* Input & Search Button */}
-        <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-          <div style={{
-            flex: 1, display: 'flex', alignItems: 'center', gap: '8px',
-            background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px',
-            padding: '8px 12px'
-          }}>
-            <Search size={16} color="#94a3b8" />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Scan barcode / ketik SKU..."
-              value={codeInput}
-              onChange={(e) => setCodeInput(e.target.value)}
-              style={{
-                border: 'none', outline: 'none', background: 'transparent',
-                width: '100%', fontSize: '13px', fontWeight: '600', color: '#0f172a'
-              }}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={isSearching}
-            style={{
-              padding: '0 16px', borderRadius: '12px', border: 'none',
-              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-              color: '#fff', fontSize: '12.5px', fontWeight: '700',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
-            }}
-          >
-            {isSearching ? <RefreshCw size={14} className="spin-animate" /> : 'Cari'}
-          </button>
-        </form>
-      </div>
-
-      {/* Suggestions if multi-match */}
-      {suggestions.length > 0 && !matchedProduct && (
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '12px', marginBottom: '14px' }}>
-          <div style={{ fontSize: '11.5px', fontWeight: '700', color: '#64748b', marginBottom: '8px' }}>
-            Pilih Produk yang Cocok ({suggestions.length}):
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {suggestions.map(s => (
-              <div
-                key={s.id}
-                onClick={() => handleSelectProduct(s)}
-                style={{
-                  padding: '9px 12px', borderRadius: '10px', background: '#f8fafc',
-                  border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between',
-                  alignItems: 'center', cursor: 'pointer'
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: '700', color: '#0f172a' }}>{s.name}</div>
-                  <div style={{ fontSize: '10.5px', color: '#64748b' }}>SKU: {s.sku}</div>
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: '700', color: '#0284c7' }}>
-                  Stok: {s.stock} pcs
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
-      {/* Matched Product Card */}
-      {matchedProduct ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* Main Info */}
-          <div style={{
-            background: '#fff', border: '1px solid #e2e8f0', borderRadius: '18px',
-            padding: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-          }}>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-              {matchedProduct.image_url ? (
-                <img
-                  src={matchedProduct.image_url}
-                  alt=""
-                  style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', border: '1px solid #e2e8f0' }}
-                />
-              ) : (
-                <div style={{
-                  width: '60px', height: '60px', borderRadius: '12px', background: '#f1f5f9',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0'
-                }}>
-                  <Package size={26} color="#94a3b8" />
-                </div>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={{
-                  fontSize: '10px', fontWeight: '800', background: '#e0f2fe', color: '#0369a1',
-                  padding: '2px 8px', borderRadius: '999px', display: 'inline-block', marginBottom: '4px'
-                }}>
-                  SKU: {matchedProduct.sku}
-                </span>
-                <div style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', lineHeight: '1.3' }}>
-                  {matchedProduct.name}
-                </div>
-                {matchedProduct.barcode && (
-                  <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
-                    Barcode: <strong style={{ color: '#334155' }}>{matchedProduct.barcode}</strong>
-                  </div>
-                )}
-              </div>
+      {/* ─── STEP 1: SCAN RESI / INVOICE PESANAN ─── */}
+      {!currentOrder ? (
+        <div style={{
+          background: '#fff', border: '2px solid #3b82f6', borderRadius: '18px',
+          padding: '16px', boxShadow: '0 4px 16px rgba(59,130,246,0.1)', marginBottom: '14px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{
+                background: '#3b82f6', color: '#fff', width: '22px', height: '22px',
+                borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11.5px'
+              }}>1</span>
+              <span>Scan Barcode Resi / Invoice</span>
             </div>
+            <button
+              type="button"
+              onClick={() => startCamera('order')}
+              style={{
+                background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: '#fff',
+                border: 'none', padding: '6px 12px', borderRadius: '10px', fontSize: '11px',
+                fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+              }}
+            >
+              <Camera size={13} /> Scan Kamera
+            </button>
+          </div>
 
-            {/* Quick Numbers Bar */}
+          <form onSubmit={(e) => { e.preventDefault(); handleFetchOrder(); }}>
             <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px',
-              marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', textAlign: 'center'
+              display: 'flex', alignItems: 'center', gap: '8px',
+              border: '2px solid #cbd5e1', borderRadius: '14px', padding: '8px 12px', background: '#f8fafc'
             }}>
-              <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '10px', color: '#64748b' }}>Stok Gudang</div>
-                <div style={{ fontSize: '16px', fontWeight: '800', color: matchedProduct.stock <= (matchedProduct.min_stock || 5) ? '#dc2626' : '#059669' }}>
-                  {matchedProduct.stock} pcs
-                </div>
-              </div>
-              <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '10px', color: '#64748b' }}>Harga HPP</div>
-                <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#0f172a' }}>
-                  {formatRupiah(matchedProduct.cost_price)}
-                </div>
-              </div>
-              <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '10px', color: '#64748b' }}>Harga Jual</div>
-                <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#0284c7' }}>
-                  {formatRupiah(matchedProduct.price)}
-                </div>
-              </div>
-            </div>
-
-            {/* Marketplace Sync info */}
-            {marketplaceListings.length > 0 && (
-              <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
-                <div style={{ fontSize: '10.5px', fontWeight: '700', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
-                  <Store size={12} /> Terhubung di {marketplaceListings.length} Listing Marketplace:
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {marketplaceListings.map((ml, idx) => (
-                    <span key={idx} style={{
-                      fontSize: '10px', background: '#f1f5f9', color: '#334155',
-                      padding: '3px 7px', borderRadius: '6px', border: '1px solid #e2e8f0'
-                    }}>
-                      {ml.store_name} ({ml.stock} pcs)
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Quick Operation Tabs */}
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '18px', padding: '14px' }}>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-              <button
-                type="button"
-                onClick={() => setOpTab('adjust')}
+              <ScanLine size={20} color="#64748b" />
+              <input
+                ref={orderInputRef}
+                type="text"
+                placeholder="Scan / ketik nomor resi (SPX..., J&T, No Invoice)..."
+                value={orderInput}
+                onChange={(e) => setOrderInput(e.target.value)}
                 style={{
-                  flex: 1, padding: '9px', borderRadius: '10px', fontSize: '12px', fontWeight: '700',
-                  border: opTab === 'adjust' ? 'none' : '1px solid #e2e8f0',
-                  background: opTab === 'adjust' ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#f8fafc',
-                  color: opTab === 'adjust' ? '#fff' : '#475569', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
+                  border: 'none', outline: 'none', background: 'transparent',
+                  width: '100%', fontSize: '13px', fontWeight: '700', color: '#0f172a'
                 }}
-              >
-                <Layers size={14} /> Update Stok Fisik
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setOpTab('produce')}
-                style={{
-                  flex: 1, padding: '9px', borderRadius: '10px', fontSize: '12px', fontWeight: '700',
-                  border: opTab === 'produce' ? 'none' : '1px solid #e2e8f0',
-                  background: opTab === 'produce' ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : '#f8fafc',
-                  color: opTab === 'produce' ? '#fff' : '#475569', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
-                }}
-              >
-                <Hammer size={14} /> Order Produksi
-              </button>
-            </div>
-
-            {/* TAB 1: ADJUST STOCK */}
-            {opTab === 'adjust' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {/* Mode Select */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                  {[
-                    { id: 'in', label: '+ Tambah', icon: ArrowUpRight, color: '#059669', bg: '#ecfdf5' },
-                    { id: 'out', label: '- Kurang', icon: ArrowDownRight, color: '#dc2626', bg: '#fef2f2' },
-                    { id: 'adj', label: '= Setel Fisik', icon: RefreshCw, color: '#0284c7', bg: '#f0f9ff' },
-                  ].map(m => {
-                    const active = adjustType === m.id;
-                    const Icon = m.icon;
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => setAdjustType(m.id)}
-                        style={{
-                          padding: '8px 4px', borderRadius: '10px', fontSize: '11px', fontWeight: '700',
-                          border: active ? `2px solid ${m.color}` : '1px solid #e2e8f0',
-                          background: active ? m.bg : '#fff', color: active ? m.color : '#64748b',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
-                        }}
-                      >
-                        <Icon size={12} /> {m.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Qty Stepper */}
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                    {adjustType === 'adj' ? 'Jumlah Stok Fisik Riil:' : 'Jumlah Kuantitas:'}
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <button
-                      type="button"
-                      onClick={() => setAdjustQty(q => Math.max(1, q - 1))}
-                      style={{ width: '38px', height: '38px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '16px', fontWeight: '700', cursor: 'pointer' }}
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      value={adjustQty}
-                      onChange={(e) => setAdjustQty(parseInt(e.target.value || '1', 10))}
-                      style={{
-                        flex: 1, height: '38px', textAlign: 'center', borderRadius: '10px',
-                        border: '1px solid #cbd5e1', fontSize: '15px', fontWeight: '800', color: '#0f172a'
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setAdjustQty(q => q + 1)}
-                      style={{ width: '38px', height: '38px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '16px', fontWeight: '700', cursor: 'pointer' }}
-                    >
-                      +
-                    </button>
-                  </div>
-                  {/* Quick Preset Buttons */}
-                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-                    {[1, 5, 10, 20, 50].map(n => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setAdjustQty(n)}
-                        style={{
-                          flex: 1, padding: '4px 0', borderRadius: '6px', border: '1px solid #e2e8f0',
-                          background: adjustQty === n ? '#e0f2fe' : '#f8fafc',
-                          color: adjustQty === n ? '#0369a1' : '#64748b',
-                          fontSize: '10.5px', fontWeight: '700', cursor: 'pointer'
-                        }}
-                      >
-                        +{n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Referensi / Catatan */}
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                    Referensi / Keterangan:
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Scan kemasan fisik / retur supplier"
-                    value={adjustRef}
-                    onChange={(e) => setAdjustRef(e.target.value)}
-                    style={{
-                      width: '100%', padding: '8px 10px', borderRadius: '10px',
-                      border: '1px solid #cbd5e1', fontSize: '12px', outline: 'none'
-                    }}
-                  />
-                </div>
-
-                {/* Submit Adjust Button */}
+              />
+              {orderInput && (
                 <button
                   type="button"
-                  onClick={handleExecuteAdjust}
-                  disabled={isSubmittingAdjust}
-                  style={{
-                    marginTop: '4px', padding: '11px', borderRadius: '12px', border: 'none',
-                    background: isSubmittingAdjust ? '#94a3b8' : 'linear-gradient(135deg, #0284c7, #0369a1)',
-                    color: '#fff', fontSize: '13px', fontWeight: '800', cursor: isSubmittingAdjust ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    boxShadow: '0 2px 8px rgba(2,132,199,0.3)'
-                  }}
+                  onClick={() => setOrderInput('')}
+                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
                 >
-                  {isSubmittingAdjust ? (
-                    <>
-                      <RefreshCw size={15} className="spin-animate" /> Menyimpan...
-                    </>
-                  ) : (
-                    <>
-                      <Check size={16} /> Simpan Penyesuaian Stok
-                    </>
-                  )}
+                  <X size={16} />
                 </button>
-              </div>
-            )}
-
-            {/* TAB 2: REQUEST PRODUKSI */}
-            {opTab === 'produce' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '10px', padding: '8px 12px', fontSize: '11px', color: '#6d28d9' }}>
-                  <Hammer size={13} style={{ display: 'inline', marginRight: '4px' }} />
-                  Order ini akan masuk ke antrian produksi/konveksi untuk diproses SPK.
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                    Jumlah Target Produksi (Pcs):
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <button
-                      type="button"
-                      onClick={() => setProduceQty(q => Math.max(1, q - 10))}
-                      style={{ width: '38px', height: '38px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '16px', fontWeight: '700', cursor: 'pointer' }}
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      value={produceQty}
-                      onChange={(e) => setProduceQty(parseInt(e.target.value || '1', 10))}
-                      style={{
-                        flex: 1, height: '38px', textAlign: 'center', borderRadius: '10px',
-                        border: '1px solid #cbd5e1', fontSize: '15px', fontWeight: '800', color: '#0f172a'
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setProduceQty(q => q + 10)}
-                      style={{ width: '38px', height: '38px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '16px', fontWeight: '700', cursor: 'pointer' }}
-                    >
-                      +
-                    </button>
-                  </div>
-                  {/* Preset Produksi */}
-                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-                    {[20, 50, 100, 200, 500].map(n => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setProduceQty(n)}
-                        style={{
-                          flex: 1, padding: '4px 0', borderRadius: '6px', border: '1px solid #e2e8f0',
-                          background: produceQty === n ? '#ede9fe' : '#f8fafc',
-                          color: produceQty === n ? '#6d28d9' : '#64748b',
-                          fontSize: '10.5px', fontWeight: '700', cursor: 'pointer'
-                        }}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                    Catatan Khusus Produksi (Opsional):
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="Contoh: Jahitan rapi, prioritaskan variasi warna hitam..."
-                    value={produceNotes}
-                    onChange={(e) => setProduceNotes(e.target.value)}
-                    style={{
-                      width: '100%', padding: '8px 10px', borderRadius: '10px',
-                      border: '1px solid #cbd5e1', fontSize: '12px', outline: 'none',
-                      resize: 'none', fontFamily: 'inherit'
-                    }}
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleExecuteProduce}
-                  disabled={isSubmittingProduce}
-                  style={{
-                    marginTop: '4px', padding: '11px', borderRadius: '12px', border: 'none',
-                    background: isSubmittingProduce ? '#94a3b8' : 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                    color: '#fff', fontSize: '13px', fontWeight: '800', cursor: isSubmittingProduce ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    boxShadow: '0 2px 8px rgba(139,92,246,0.3)'
-                  }}
-                >
-                  {isSubmittingProduce ? (
-                    <>
-                      <RefreshCw size={15} className="spin-animate" /> Mengirim...
-                    </>
-                  ) : (
-                    <>
-                      <Hammer size={16} /> Kirim Permintaan Produksi
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Riwayat Mutasi Stok Terakhir */}
-          {recentMovements.length > 0 && (
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '18px', padding: '14px' }}>
-              <div style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-                <History size={14} color="#64748b" /> Riwayat Mutasi Stok Produk Ini:
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {recentMovements.map((m, idx) => {
-                  const isIn = m.type === 'in' || m.quantity > 0;
-                  return (
-                    <div key={idx} style={{
-                      padding: '8px 10px', borderRadius: '10px', background: '#f8fafc',
-                      border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between',
-                      alignItems: 'center', fontSize: '11px'
-                    }}>
-                      <div>
-                        <div style={{ fontWeight: '700', color: '#0f172a' }}>{m.reference || m.type}</div>
-                        <div style={{ color: '#94a3b8', fontSize: '10px' }}>{m.dateFormatted}</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontWeight: '800', color: isIn ? '#059669' : '#dc2626' }}>
-                          {isIn ? '+' : ''}{m.quantity} pcs
-                        </span>
-                        <div style={{ fontSize: '9.5px', color: '#64748b' }}>Sisa: {m.balanceAfter}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              )}
             </div>
-          )}
+
+            <button
+              type="submit"
+              disabled={isSearchingOrder}
+              style={{
+                width: '100%', marginTop: '10px', padding: '12px',
+                borderRadius: '12px', border: 'none',
+                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                color: '#fff', fontSize: '13px', fontWeight: '800',
+                cursor: isSearchingOrder ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
+              }}
+            >
+              {isSearchingOrder ? (
+                <>
+                  <RefreshCw size={15} className="spin-animate" /> Memuat Data Pesanan...
+                </>
+              ) : (
+                <>
+                  <Search size={16} /> Cari & Buka Pengemasan
+                </>
+              )}
+            </button>
+          </form>
+
+          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '10px', textAlign: 'center' }}>
+            Tip: Arahkan barcode scanner hardware langsung ke form input ini.
+          </div>
         </div>
       ) : (
-        /* Quick Products suggestion grid if no product scanned yet */
-        quickProducts.length > 0 && (
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '18px', padding: '14px' }}>
-            <div style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a', marginBottom: '10px' }}>
-              📦 Produk Cepat / Sering Dicari:
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {quickProducts.map(p => (
-                <div
-                  key={p.id}
-                  onClick={() => handleSelectProduct(p)}
-                  style={{
-                    padding: '8px 10px', borderRadius: '10px', background: '#f8fafc',
-                    border: '1px solid #f1f5f9', display: 'flex', gap: '10px', alignItems: 'center',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div style={{
-                    width: '32px', height: '32px', borderRadius: '8px', background: '#e2e8f0',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                  }}>
-                    <Package size={15} color="#64748b" />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '11.5px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {p.name}
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#64748b' }}>SKU: {p.sku}</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '800', color: p.stock <= (p.min_stock || 5) ? '#dc2626' : '#059669' }}>
-                      {p.stock} pcs
-                    </span>
-                  </div>
+        /* ─── STEP 2: VERIFIKASI BARANG PESANAN AKTIF ─── */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Summary Box Pesanan Terbuka */}
+          <div style={{
+            background: '#fff', border: '1px solid #e2e8f0', borderRadius: '18px',
+            padding: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.04)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                  {(() => {
+                    const badge = getChannelBadge(currentOrder.channel_code);
+                    return (
+                      <span style={{
+                        background: badge.bg, color: badge.text, fontSize: '10px',
+                        fontWeight: '800', padding: '2px 8px', borderRadius: '6px'
+                      }}>
+                        {badge.label}
+                      </span>
+                    );
+                  })()}
+                  <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#475569' }}>
+                    {currentOrder.store_name}
+                  </span>
                 </div>
-              ))}
+                <div style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
+                  {currentOrder.invoice_number}
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'right' }}>
+                <span style={{
+                  fontSize: '11px', fontWeight: '800', color: '#16a34a',
+                  background: '#dcfce7', padding: '3px 8px', borderRadius: '8px'
+                }}>
+                  {currentOrder.packing_status?.toUpperCase() || 'PACKING'}
+                </span>
+                <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '3px' }}>
+                  {currentOrder.courier}
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px',
+              paddingTop: '8px', borderTop: '1px solid #f1f5f9', fontSize: '11px', color: '#475569'
+            }}>
+              <div>
+                <span style={{ color: '#94a3b8' }}>Resi: </span>
+                <strong style={{ color: '#0f172a' }}>{currentOrder.tracking_number || '-'}</strong>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ color: '#94a3b8' }}>Pembeli: </span>
+                <strong style={{ color: '#0f172a' }}>{currentOrder.buyer_name}</strong>
+              </div>
             </div>
           </div>
-        )
+
+          {/* Progress Kemasan Bar */}
+          <div style={{
+            background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px',
+            padding: '12px 14px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>
+                Kemajuan Pengemasan:
+              </span>
+              <span style={{
+                fontSize: '13px', fontWeight: '800',
+                color: isAllReady ? '#16a34a' : '#2563eb'
+              }}>
+                {totalScanned} / {totalRequired} pcs ({progressPercent}%)
+              </span>
+            </div>
+
+            <div style={{
+              width: '100%', height: '10px', background: '#e2e8f0',
+              borderRadius: '999px', overflow: 'hidden'
+            }}>
+              <div style={{
+                width: `${progressPercent}%`, height: '100%',
+                background: isAllReady ? 'linear-gradient(90deg, #10b981, #059669)' : 'linear-gradient(90deg, #3b82f6, #1d4ed8)',
+                transition: 'width 0.3s ease'
+              }} />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={handleMarkAllComplete}
+                style={{
+                  background: 'none', border: 'none', color: '#0284c7',
+                  fontSize: '11px', fontWeight: '700', cursor: 'pointer', padding: 0,
+                  display: 'flex', alignItems: 'center', gap: '3px'
+                }}
+              >
+                <CheckCheck size={14} /> Tandai Semua Lengkap
+              </button>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: '700', color: '#334155', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={autoShip}
+                  onChange={(e) => setAutoShip(e.target.checked)}
+                />
+                <span>Auto-Ship Marketplace</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Input Scan Barcode Item / SKU */}
+          <div style={{
+            background: '#fff', border: '2px solid #06b6d4', borderRadius: '16px',
+            padding: '12px 14px', boxShadow: '0 2px 10px rgba(6,182,212,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{
+                  background: '#06b6d4', color: '#fff', width: '20px', height: '20px',
+                  borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px'
+                }}>2</span>
+                Scan Barcode Produk / SKU
+              </span>
+
+              <button
+                type="button"
+                onClick={() => startCamera('item')}
+                style={{
+                  background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd',
+                  padding: '4px 8px', borderRadius: '8px', fontSize: '10.5px', fontWeight: '700',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                }}
+              >
+                <Camera size={12} /> Scan Kamera
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); processItemScan(); }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                border: '1.5px solid #cbd5e1', borderRadius: '12px', padding: '6px 10px', background: '#f8fafc'
+              }}>
+                <ScanLine size={18} color="#0891b2" />
+                <input
+                  ref={itemInputRef}
+                  type="text"
+                  placeholder="Scan barcode item / ketik SKU lalu Enter..."
+                  value={itemInput}
+                  onChange={(e) => setItemInput(e.target.value)}
+                  style={{
+                    border: 'none', outline: 'none', background: 'transparent',
+                    width: '100%', fontSize: '12.5px', fontWeight: '700', color: '#0f172a'
+                  }}
+                />
+                <button
+                  type="submit"
+                  style={{
+                    padding: '6px 12px', borderRadius: '8px', border: 'none',
+                    background: '#06b6d4', color: '#fff', fontSize: '11px',
+                    fontWeight: '700', cursor: 'pointer'
+                  }}
+                >
+                  Scan
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Checklist Item Pesanan */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#0f172a' }}>
+              Daftar Produk Pesanan ({currentOrder.items?.length || 0} SKU):
+            </div>
+
+            {currentOrder.items?.map((item) => {
+              const scannedQty = scannedItems[item.id] || 0;
+              const isItemComplete = scannedQty >= item.quantity;
+              const isPartial = scannedQty > 0 && !isItemComplete;
+
+              return (
+                <div
+                  key={item.id}
+                  style={{
+                    background: isItemComplete ? '#f0fdf4' : isPartial ? '#fffbeb' : '#fff',
+                    border: `1.5px solid ${isItemComplete ? '#10b981' : isPartial ? '#f59e0b' : '#e2e8f0'}`,
+                    borderLeft: `6px solid ${isItemComplete ? '#10b981' : isPartial ? '#f59e0b' : '#94a3b8'}`,
+                    borderRadius: '14px', padding: '12px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <img
+                      src={item.image || '/assets/img/products/product1.jpg'}
+                      alt=""
+                      style={{
+                        width: '50px', height: '50px', borderRadius: '10px',
+                        objectFit: 'cover', border: '1px solid #e2e8f0'
+                      }}
+                      onError={(e) => { e.target.src = '/assets/img/products/product1.jpg'; }}
+                    />
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {item.is_substituted && (
+                        <span style={{
+                          fontSize: '9.5px', fontWeight: '800', background: '#fef3c7',
+                          color: '#d97706', padding: '2px 6px', borderRadius: '6px',
+                          display: 'inline-block', marginBottom: '3px'
+                        }}>
+                          Substitusi: {item.original_product_name || item.original_sku}
+                        </span>
+                      )}
+                      <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#0f172a', lineHeight: '1.3' }}>
+                        {item.name}
+                      </div>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginTop: '4px' }}>
+                        <span style={{
+                          fontSize: '10.5px', fontWeight: '700', background: '#f1f5f9',
+                          color: '#334155', padding: '1px 6px', borderRadius: '6px'
+                        }}>
+                          SKU: {item.sku}
+                        </span>
+                        {item.barcode && (
+                          <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                            Barcode: {item.barcode}
+                          </span>
+                        )}
+                        <span style={{ fontSize: '10.5px', color: '#0284c7', fontWeight: '700' }}>
+                          Stok: {item.gudang_stock} pcs
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Badge Counter */}
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{
+                        fontSize: '12px', fontWeight: '800',
+                        padding: '4px 10px', borderRadius: '999px',
+                        background: isItemComplete ? '#10b981' : isPartial ? '#f59e0b' : '#64748b',
+                        color: '#fff'
+                      }}>
+                        {scannedQty} / {item.quantity} pcs
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bottom Counter & Substitusi */}
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(0,0,0,0.06)'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenSubstituteModal(item)}
+                      style={{
+                        background: 'none', border: '1px solid #cbd5e1',
+                        borderRadius: '8px', padding: '3px 8px', fontSize: '10.5px',
+                        fontWeight: '700', color: '#d97706', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '4px'
+                      }}
+                    >
+                      <ArrowLeftRight size={12} /> Tukar Produk
+                    </button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleAdjustItemQty(item.id, -1, item.quantity)}
+                        disabled={scannedQty <= 0}
+                        style={{
+                          width: '26px', height: '26px', borderRadius: '6px',
+                          border: '1px solid #cbd5e1', background: '#fff',
+                          color: '#475569', fontSize: '13px', fontWeight: '800',
+                          cursor: scannedQty <= 0 ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        -
+                      </button>
+                      <span style={{ fontSize: '12px', fontWeight: '800', minWidth: '18px', textAlign: 'center' }}>
+                        {scannedQty}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleAdjustItemQty(item.id, 1, item.quantity)}
+                        disabled={scannedQty >= item.quantity}
+                        style={{
+                          width: '26px', height: '26px', borderRadius: '6px',
+                          border: '1px solid #cbd5e1', background: '#fff',
+                          color: '#475569', fontSize: '13px', fontWeight: '800',
+                          cursor: scannedQty >= item.quantity ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Selesai & Simpan Kemasan Button */}
+          <button
+            type="button"
+            onClick={handleSubmitCompletePack}
+            disabled={isSubmittingPack}
+            style={{
+              width: '100%', padding: '14px', borderRadius: '14px', border: 'none',
+              background: isAllReady
+                ? 'linear-gradient(135deg, #10b981, #059669)'
+                : 'linear-gradient(135deg, #64748b, #475569)',
+              color: '#fff', fontSize: '14px', fontWeight: '800',
+              cursor: isSubmittingPack ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              boxShadow: isAllReady ? '0 4px 16px rgba(16,185,129,0.35)' : 'none',
+              marginTop: '8px'
+            }}
+          >
+            {isSubmittingPack ? (
+              <>
+                <RefreshCw size={16} className="spin-animate" /> Menyimpan Kemasan...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={18} /> Selesai & Simpan Kemasan
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* ─── MODAL TUKAR PRODUK (SUBSTITUSI ITEM) ─── */}
+      {substituteItemTarget && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.6)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '18px', width: '100%',
+            maxWidth: '480px', maxHeight: '85vh', overflowY: 'auto',
+            padding: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.25)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ArrowLeftRight size={16} color="#d97706" /> Tukar Produk Pengganti
+              </div>
+              <button
+                type="button"
+                onClick={() => setSubstituteItemTarget(null)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{
+              background: '#f8fafc', padding: '10px', borderRadius: '10px',
+              border: '1px solid #e2e8f0', marginBottom: '12px', fontSize: '11.5px'
+            }}>
+              <span style={{ color: '#64748b' }}>Barang yang akan ditukar:</span>
+              <div style={{ fontWeight: '800', color: '#0f172a' }}>{substituteItemTarget.name}</div>
+              <div style={{ color: '#475569', fontSize: '10.5px' }}>SKU: {substituteItemTarget.sku}</div>
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '4px' }}>
+                Cari Produk Pengganti (Nama / SKU):
+              </label>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <input
+                  type="text"
+                  placeholder="Ketik nama atau SKU produk..."
+                  value={substituteQuery}
+                  onChange={(e) => setSubstituteQuery(e.target.value)}
+                  style={{
+                    flex: 1, padding: '8px 10px', borderRadius: '10px',
+                    border: '1px solid #cbd5e1', fontSize: '12px', outline: 'none'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fetchSubstituteList(substituteQuery)}
+                  style={{
+                    padding: '8px 12px', borderRadius: '10px', border: 'none',
+                    background: '#0284c7', color: '#fff', fontSize: '11px', fontWeight: '700'
+                  }}
+                >
+                  Cari
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '4px' }}>
+                Catatan Alasan Penukaran:
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: Stok warna habis / fisik rusak"
+                value={substituteNote}
+                onChange={(e) => setSubstituteNote(e.target.value)}
+                style={{
+                  width: '100%', padding: '8px 10px', borderRadius: '10px',
+                  border: '1px solid #cbd5e1', fontSize: '12px', outline: 'none'
+                }}
+              />
+            </div>
+
+            {/* List Hasil Pencarian Produk Pengganti */}
+            <div style={{ maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {substituteLoading ? (
+                <div style={{ textAlign: 'center', padding: '16px', color: '#94a3b8', fontSize: '12px' }}>
+                  Memuat data produk...
+                </div>
+              ) : substituteResults.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '16px', color: '#94a3b8', fontSize: '12px' }}>
+                  Tidak ada produk ditemukan.
+                </div>
+              ) : (
+                substituteResults.map(p => (
+                  <div
+                    key={p.id}
+                    onClick={() => handleApplySubstitute(p)}
+                    style={{
+                      padding: '8px 10px', borderRadius: '10px', background: '#f8fafc',
+                      border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between',
+                      alignItems: 'center', cursor: 'pointer'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: '800', color: '#0f172a' }}>{p.name}</div>
+                      <div style={{ fontSize: '10.5px', color: '#64748b' }}>SKU: {p.sku}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '800', color: p.stock > 0 ? '#16a34a' : '#dc2626' }}>
+                        Stok: {p.stock}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
