@@ -207,9 +207,8 @@ class OrderPrintController extends Controller
             return response()->view('orders.merge_print', compact('pdfBase64List'));
         }
 
-        // Jika tidak ada satu pun PDF resmi dari marketplace yang berhasil ditarik
-        $msg = 'Gagal mengunduh file PDF resi resmi dari marketplace API. Pastikan pesanan sudah diproses dan resi sudah terbit di Seller Center.';
-        return response("<div style='font-family:system-ui,sans-serif;padding:30px;max-width:600px;margin:40px auto;border:1px solid #fee2e2;border-radius:10px;background:#fef2f2;color:#991b1b;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);'><h3 style='margin-top:0;'>Gagal Mengunduh Resi Resmi Marketplace</h3><p>{$msg}</p><button onclick='window.close()' style='padding:8px 16px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;'>Tutup Tab</button></div>", 400)->header('Content-Type', 'text/html');
+        // Fallback jika API PDF marketplace belum siap/tidak tersedia: tampilkan format cetak thermal lokal ERP (mass_print)
+        return view('orders.mass_print', compact('orders'));
     }
 
     /**
