@@ -514,7 +514,7 @@
         }
 
         // District Boxes for Shopee (Kabupaten, Kecamatan, Desa)
-        $shopeeKab = 'KAB. BEKASI';
+        $shopeeKab = '';
         if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $cleanShopeeAddress, $mKb)) {
             $shopeeKab = 'KAB. ' . strtoupper(trim($mKb[1]));
         }
@@ -522,15 +522,25 @@
         $shopeeKec = '';
         if (preg_match('/(?:KECAMATAN|KEC\.)\s+([^,]+)/i', $cleanShopeeAddress, $mKc)) {
             $shopeeKec = strtoupper(trim($mKc[1]));
-        } elseif (preg_match('/,\s*([A-Za-z\s]+),\s*(?:JAWA|DKI|BANTEN|BALI|SUMATERA|SULAWESI)/i', $cleanShopeeAddress, $mKc2)) {
+        } elseif (preg_match('/,\s*([A-Za-z\s]+),\s*(?:JAWA|DKI|BANTEN|BALI|SUMATERA|SULAWESI|LAMPUNG|KALIMANTAN|PAPUA)/i', $cleanShopeeAddress, $mKc2)) {
             $shopeeKec = strtoupper(trim($mKc2[1]));
         }
 
         $shopeeDesa = '';
         if (preg_match('/(?:DESA|KELURAHAN|KEL\.|DS\.)\s+([^,]+)/i', $cleanShopeeAddress, $mDs)) {
             $shopeeDesa = ucfirst(strtolower(trim($mDs[1])));
-        } elseif (preg_match('/Pancawati/i', $cleanShopeeAddress)) {
-            $shopeeDesa = 'Pancawati';
+        }
+
+        // Jika salah satu kosong, ekstrak dari potongan koma alamat
+        if (empty($shopeeKab) || empty($shopeeKec)) {
+            $cleanAddrTokens = array_values(array_filter(array_map('trim', explode(',', $cleanShopeeAddress))));
+            foreach ($cleanAddrTokens as $token) {
+                if (empty($shopeeKab) && preg_match('/^(?:KABUPATEN|KAB\.|KOTA)\b/i', $token)) {
+                    $shopeeKab = strtoupper($token);
+                } elseif (empty($shopeeKec) && preg_match('/^(?:KECAMATAN|KEC\.)\b/i', $token)) {
+                    $shopeeKec = strtoupper($token);
+                }
+            }
         }
 
         // Format Phone Numbers
@@ -1103,6 +1113,11 @@
                     console.error("Error generating TikTok barcodes", e);
                 }
             @endif
+
+            // Auto-trigger native print dialog after barcodes render
+            setTimeout(function() {
+                window.print();
+            }, 600);
         }
     </script>
 </body>

@@ -773,12 +773,15 @@ class ShopeeService
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
         try {
-            $response = Http::get($this->baseUrl . $path, [
-                'partner_id' => $this->partnerId,
-                'timestamp' => $timestamp,
-                'sign' => $sign,
+            $queryParams = [
+                'partner_id'   => $this->partnerId,
+                'timestamp'    => $timestamp,
+                'sign'         => $sign,
                 'access_token' => $accessToken,
-                'shop_id' => $shopId,
+                'shop_id'      => $shopId,
+            ];
+
+            $response = Http::asJson()->timeout(15)->post($this->baseUrl . $path . '?' . http_build_query($queryParams), [
                 'order_sn' => $orderSn,
             ]);
 
