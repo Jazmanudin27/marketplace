@@ -134,39 +134,42 @@ class OrderPrintController extends Controller
                 }
             } elseif (in_array($channelCode, ['tiktok', 'tokopedia'])) {
                 foreach ($storeOrders as $order) {
+                    $fetchedPdf = null;
                     try {
-                        $pdfData = $tiktokService->getOfficialShippingLabelPdf(
+                        $fetchedPdf = $tiktokService->getOfficialShippingLabelPdf(
                             $store->getValidAccessToken(),
                             $store->shop_cipher ?: $store->marketplace_store_id,
                             $order->order_marketplace_id,
                             $order->package_id
                         );
-                        if (!empty($pdfData)) {
-                            $this->addPdfBuffer($pdfBuffers, $pdfData);
-                            continue;
-                        }
                     } catch (\Throwable $e) {
                         \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok getOfficialShippingLabelPdf failed for order #{$order->id}: " . $e->getMessage());
                     }
 
                     // Fallback jika URL/PDF base64 dari getShippingDocument
-                    try {
-                        $docData = $tiktokService->getShippingDocument(
-                            $store->getValidAccessToken(),
-                            $store->shop_cipher ?: $store->marketplace_store_id,
-                            $order->order_marketplace_id,
-                            $order->package_id
-                        );
-                        if (!empty($docData['doc_pdf'])) {
-                            $this->addPdfBuffer($pdfBuffers, base64_decode($docData['doc_pdf']));
-                        } elseif (!empty($docData['doc_url'])) {
-                            $dlRes = \Illuminate\Support\Facades\Http::timeout(30)->get($docData['doc_url']);
-                            if ($dlRes->successful() && !empty($dlRes->body())) {
-                                $this->addPdfBuffer($pdfBuffers, $dlRes->body());
+                    if (empty($fetchedPdf)) {
+                        try {
+                            $docData = $tiktokService->getShippingDocument(
+                                $store->getValidAccessToken(),
+                                $store->shop_cipher ?: $store->marketplace_store_id,
+                                $order->order_marketplace_id,
+                                $order->package_id
+                            );
+                            if (!empty($docData['doc_pdf'])) {
+                                $fetchedPdf = base64_decode($docData['doc_pdf']);
+                            } elseif (!empty($docData['doc_url'])) {
+                                $dlRes = \Illuminate\Support\Facades\Http::withoutVerifying()->timeout(30)->get($docData['doc_url']);
+                                if ($dlRes->successful() && !empty($dlRes->body())) {
+                                    $fetchedPdf = $dlRes->body();
+                                }
                             }
+                        } catch (\Throwable $e) {
+                            \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok getShippingDocument fallback failed for order #{$order->id}: " . $e->getMessage());
                         }
-                    } catch (\Throwable $e) {
-                        \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok getShippingDocument fallback failed for order #{$order->id}: " . $e->getMessage());
+                    }
+
+                    if (!empty($fetchedPdf)) {
+                        $this->addPdfBuffer($pdfBuffers, $fetchedPdf);
                     }
                 }
             }

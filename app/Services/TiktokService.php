@@ -796,6 +796,31 @@ class TiktokService
      */
     public function getShippingDocument(string $accessToken, string $shopCipher, string $orderId, ?string $packageId = null)
     {
+        // 1. Jika package_id belum ada di database lokal, fetch otomatis dari TikTok getOrderDetail
+        if (empty($packageId)) {
+            try {
+                $orderData = $this->getOrderDetail($accessToken, $shopCipher, [$orderId]);
+                $orders = $orderData['orders'] ?? $orderData['order_list'] ?? [];
+                if (!empty($orders[0])) {
+                    $firstOrder = $orders[0];
+                    if (!empty($firstOrder['packages'])) {
+                        foreach ($firstOrder['packages'] as $pkg) {
+                            $pId = $pkg['id'] ?? $pkg['package_id'] ?? null;
+                            if (!empty($pId)) {
+                                $packageId = (string) $pId;
+                                break;
+                            }
+                        }
+                    }
+                    if (empty($packageId)) {
+                        $packageId = (string) ($firstOrder['package_id'] ?? '');
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning("[TikTokService] Gagal fetch order detail untuk package_id resi {$orderId}: " . $e->getMessage());
+            }
+        }
+
         $paths = [];
         if (!empty($packageId)) {
             $paths[] = '/fulfillment/202309/packages/' . $packageId . '/shipping_documents';
@@ -813,6 +838,7 @@ class TiktokService
                 'shop_cipher' => $shopCipher,
                 'document_type' => 'SHIPPING_LABEL',
                 'document_size' => 'A6',
+                'document_format' => 'PDF',
             ];
             if ($path === '/fulfillment/202309/documents') {
                 $queryParams['order_id'] = $orderId;
@@ -835,12 +861,14 @@ class TiktokService
             $msg = $data['message'] ?? 'Unknown Error';
             $code = $data['code'] ?? -1;
 
+            Log::warning("[TikTokService] getShippingDocument error on {$path} (code: {$code}): {$msg}");
+
             if (str_contains(strtolower($msg), 'invalid path') || $code === 105001) {
                 $lastException = new \RuntimeException('TikTok API Error: ' . $msg);
                 continue;
             }
 
-            throw new \RuntimeException('TikTok API Error: ' . $msg);
+            $lastException = new \RuntimeException('TikTok API Error: ' . $msg);
         }
 
         return [];
