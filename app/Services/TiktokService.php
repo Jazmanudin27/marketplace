@@ -649,17 +649,27 @@ class TiktokService
                 $orders = $orderData['orders'] ?? $orderData['order_list'] ?? [];
                 if (!empty($orders[0])) {
                     $firstOrder = $orders[0];
-                    if (!empty($firstOrder['packages'])) {
-                        foreach ($firstOrder['packages'] as $pkg) {
-                            $pId = $pkg['id'] ?? $pkg['package_id'] ?? null;
-                            if (!empty($pId)) {
-                                $packageId = (string) $pId;
+                    $pkgs = array_merge(
+                        $firstOrder['package_list'] ?? [],
+                        $firstOrder['packages'] ?? []
+                    );
+                    foreach ($pkgs as $pkg) {
+                        $pId = $pkg['package_id'] ?? $pkg['id'] ?? null;
+                        if (!empty($pId)) {
+                            $packageId = (string) $pId;
+                            break;
+                        }
+                    }
+                    if (empty($packageId)) {
+                        foreach (($firstOrder['line_items'] ?? $firstOrder['item_list'] ?? []) as $it) {
+                            if (!empty($it['package_id'])) {
+                                $packageId = (string) $it['package_id'];
                                 break;
                             }
                         }
                     }
-                    if (empty($packageId)) {
-                        $packageId = (string) ($firstOrder['package_id'] ?? '');
+                    if (empty($packageId) && !empty($firstOrder['package_id'])) {
+                        $packageId = (string) $firstOrder['package_id'];
                     }
                 }
             } catch (\Exception $e) {
@@ -814,6 +824,14 @@ class TiktokService
                             break;
                         }
                     }
+                    if (empty($packageId)) {
+                        foreach (($firstOrder['line_items'] ?? $firstOrder['item_list'] ?? []) as $it) {
+                            if (!empty($it['package_id'])) {
+                                $packageId = (string) $it['package_id'];
+                                break;
+                            }
+                        }
+                    }
                     if (empty($packageId) && !empty($firstOrder['package_id'])) {
                         $packageId = (string) $firstOrder['package_id'];
                     }
@@ -942,13 +960,13 @@ class TiktokService
             if ($res->successful() && !empty($res->body())) {
                 $body = $res->body();
                 // Jika binary PDF langsung
-                if (str_contains(substr($body, 0, 128), '%PDF')) {
+                if (str_contains(substr($body, 0, 2048), '%PDF')) {
                     $pos = strpos($body, '%PDF');
                     return $pos > 0 ? substr($body, $pos) : $body;
                 }
                 // Jika base64 encoded
                 $decoded = base64_decode($body, true);
-                if ($decoded && str_contains(substr($decoded, 0, 128), '%PDF')) {
+                if ($decoded && str_contains(substr($decoded, 0, 2048), '%PDF')) {
                     $pos = strpos($decoded, '%PDF');
                     return $pos > 0 ? substr($decoded, $pos) : $decoded;
                 }
@@ -958,7 +976,7 @@ class TiktokService
 
         if (!empty($docData['doc_pdf'])) {
             $pdfDecoded = base64_decode($docData['doc_pdf'], true);
-            if ($pdfDecoded && str_contains(substr($pdfDecoded, 0, 128), '%PDF')) {
+            if ($pdfDecoded && str_contains(substr($pdfDecoded, 0, 2048), '%PDF')) {
                 $pos = strpos($pdfDecoded, '%PDF');
                 return $pos > 0 ? substr($pdfDecoded, $pos) : $pdfDecoded;
             }

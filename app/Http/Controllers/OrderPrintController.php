@@ -134,11 +134,66 @@ class OrderPrintController extends Controller
                 }
             } elseif (in_array($channelCode, ['tiktok', 'tokopedia'])) {
                 $shopCipher = $store->getValidShopCipher();
+                $accessToken = $store->getValidAccessToken();
+
+                // Batch fetch order detail untuk mengisi package_id semua order TikTok yang belum memilikinya
+                $missingPackageOrders = $storeOrders->filter(fn($o) => empty($o->package_id));
+                if ($missingPackageOrders->isNotEmpty()) {
+                    try {
+                        $orderIdsToFetch = $missingPackageOrders->pluck('order_marketplace_id')->filter()->values()->toArray();
+                        if (!empty($orderIdsToFetch)) {
+                            $chunkedIds = array_chunk($orderIdsToFetch, 50);
+                            foreach ($chunkedIds as $idChunk) {
+                                $batchDetail = $tiktokService->getOrderDetail($accessToken, $shopCipher, $idChunk);
+                                $ordersList = $batchDetail['orders'] ?? $batchDetail['order_list'] ?? [];
+                                foreach ($ordersList as $tOrd) {
+                                    $tId = (string) ($tOrd['id'] ?? $tOrd['order_id'] ?? '');
+                                    if ($tId === '') continue;
+
+                                    $foundPackageId = null;
+                                    $pkgs = array_merge($tOrd['package_list'] ?? [], $tOrd['packages'] ?? []);
+                                    foreach ($pkgs as $pkg) {
+                                        $pId = $pkg['package_id'] ?? $pkg['id'] ?? null;
+                                        if (!empty($pId)) {
+                                            $foundPackageId = (string) $pId;
+                                            break;
+                                        }
+                                    }
+                                    if (empty($foundPackageId)) {
+                                        foreach (($tOrd['line_items'] ?? $tOrd['item_list'] ?? []) as $it) {
+                                            if (!empty($it['package_id'])) {
+                                                $foundPackageId = (string) $it['package_id'];
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (empty($foundPackageId) && !empty($tOrd['package_id'])) {
+                                        $foundPackageId = (string) $tOrd['package_id'];
+                                    }
+
+                                    if (!empty($foundPackageId)) {
+                                        Order::where('tenant_id', Auth::user()->tenant_id)
+                                            ->where('order_marketplace_id', $tId)
+                                            ->update(['package_id' => $foundPackageId]);
+
+                                        $matchedOrd = $storeOrders->firstWhere('order_marketplace_id', $tId);
+                                        if ($matchedOrd) {
+                                            $matchedOrd->package_id = $foundPackageId;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (\Throwable $batchEx) {
+                        \Illuminate\Support\Facades\Log::warning("[OrderPrintController] TikTok batch getOrderDetail package_id failed: " . $batchEx->getMessage());
+                    }
+                }
+
                 foreach ($storeOrders as $order) {
                     $fetchedPdf = null;
                     try {
                         $fetchedPdf = $tiktokService->getOfficialShippingLabelPdf(
-                            $store->getValidAccessToken(),
+                            $accessToken,
                             $shopCipher,
                             $order->order_marketplace_id,
                             $order->package_id
@@ -151,7 +206,7 @@ class OrderPrintController extends Controller
                     if (empty($fetchedPdf)) {
                         try {
                             $docData = $tiktokService->getShippingDocument(
-                                $store->getValidAccessToken(),
+                                $accessToken,
                                 $shopCipher,
                                 $order->order_marketplace_id,
                                 $order->package_id
@@ -469,7 +524,7 @@ class OrderPrintController extends Controller
             }
         }
 
-        if (str_contains(substr($data, 0, 128), '%PDF')) {
+        if (str_contains(substr($data, 0, 2048), '%PDF')) {
             $pos = strpos($data, '%PDF');
             $pdfBuffers[] = $pos > 0 ? substr($data, $pos) : $data;
         }

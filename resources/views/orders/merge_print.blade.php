@@ -17,6 +17,20 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         #viewer { width: 100%; height: 100%; border: none; display: none; }
+        #topbar {
+            position: fixed; top: 0; left: 0; right: 0; height: 48px; background: #0f172a;
+            color: #f8fafc; display: none; align-items: center; justify-content: space-between;
+            padding: 0 18px; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+        }
+        .tb-btn {
+            display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+            border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;
+            cursor: pointer; border: none; transition: all 0.15s ease;
+        }
+        .tb-btn-primary { background: #2563eb; color: #fff; }
+        .tb-btn-primary:hover { background: #1d4ed8; }
+        .tb-btn-ghost { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+        .tb-btn-ghost:hover { background: rgba(255,255,255,0.2); }
     </style>
     <!-- pdf-lib: Local bundle first with CDN fallbacks -->
     <script src="{{ asset('pdf-lib.min.js') }}"></script>
@@ -27,6 +41,27 @@
     </script>
 </head>
 <body>
+    <div id="topbar">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:16px;">📄</span>
+            <span style="font-weight:700; font-size:14px;">Resi Massal Resmi Marketplace</span>
+            <span style="background:#334155; color:#38bdf8; font-size:11.5px; padding:2px 8px; border-radius:12px; font-weight:600;">
+                {{ count($pdfBase64List) }} Pesanan
+            </span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <button class="tb-btn tb-btn-primary" onclick="printPdf()">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Cetak Semua Resi
+            </button>
+            <a id="btn-download" class="tb-btn tb-btn-ghost" href="#" download="resi_massal_resmi_{{ date('Ymd_His') }}.pdf">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                Download PDF
+            </a>
+            <button class="tb-btn tb-btn-ghost" onclick="window.close()" title="Tutup Tab">✕</button>
+        </div>
+    </div>
+
     <div id="loading">
         <div class="spinner"></div>
         <p style="margin-top:18px; font-size:16px; font-weight:600;">Menggabungkan {{ count($pdfBase64List) }} resi pesanan...</p>
@@ -37,6 +72,7 @@
 
     <script>
         const pdfBase64List = @json($pdfBase64List);
+        let activeBlobUrl = null;
 
         function base64ToUint8Array(base64) {
             const binaryString = window.atob(base64);
@@ -46,6 +82,22 @@
                 bytes[i] = binaryString.charCodeAt(i);
             }
             return bytes;
+        }
+
+        function printPdf() {
+            const viewer = document.getElementById('viewer');
+            try {
+                if (viewer && viewer.contentWindow) {
+                    viewer.contentWindow.focus();
+                    viewer.contentWindow.print();
+                    return;
+                }
+            } catch (e) {
+                console.warn("Direct iframe print failed:", e);
+            }
+            if (activeBlobUrl) {
+                window.open(activeBlobUrl, '_blank');
+            }
         }
 
         async function mergeAndDisplayPdfs() {
@@ -79,14 +131,31 @@
 
                 const mergedBytes = await mergedPdf.save();
                 const blob = new Blob([mergedBytes], { type: 'application/pdf' });
-                const blobUrl = URL.createObjectURL(blob);
+                activeBlobUrl = URL.createObjectURL(blob);
+
+                const dlBtn = document.getElementById('btn-download');
+                if (dlBtn) dlBtn.href = activeBlobUrl;
+
+                const topbar = document.getElementById('topbar');
+                if (topbar) topbar.style.display = 'flex';
 
                 const viewer = document.getElementById('viewer');
-                viewer.src = blobUrl;
+                viewer.src = activeBlobUrl;
                 viewer.style.display = 'block';
+                viewer.style.height = 'calc(100% - 48px)';
+                viewer.style.marginTop = '48px';
 
                 const loading = document.getElementById('loading');
                 if (loading) loading.style.display = 'none';
+
+                // Auto trigger print setelah render
+                setTimeout(() => {
+                    try {
+                        if (viewer.contentWindow) {
+                            viewer.contentWindow.focus();
+                        }
+                    } catch (e) {}
+                }, 500);
             } catch (err) {
                 console.error("Gagal menggabungkan PDF:", err);
                 const loading = document.getElementById('loading');
