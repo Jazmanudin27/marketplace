@@ -384,6 +384,9 @@
             @endif
         </div>
         <div class="d-flex gap-2">
+            <button type="submit" form="mass-print-form" class="psr-btn psr-btn-primary" id="btn-mass-print" style="font-size:0.72rem; height:28px; padding:0 12px;">
+                <i class="bi bi-printer"></i> Cetak Resi Massal (PDF Resmi)
+            </button>
             <button type="button" class="psr-btn psr-btn-ghost" id="btn-mass-ship" style="font-size:0.72rem; height:28px; padding:0 10px;">
                 <i class="bi bi-truck"></i> Pengiriman Massal
             </button>
