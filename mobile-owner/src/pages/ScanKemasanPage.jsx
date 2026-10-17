@@ -12,6 +12,7 @@ import {
   searchSubstituteProducts,
   substituteOrderItem 
 } from '../api/metricsApi';
+import Swal, { showToast as swalToast, showAlert, showConfirm } from '../utils/alerts';
 
 // Synthesizer Audio Web (Zero asset dependency)
 function playTone(type = 'success') {
@@ -114,8 +115,7 @@ export default function ScanKemasanPage() {
 
   const [toast, setToast] = useState(null);
   const showToast = (text, type = 'success') => {
-    setToast({ text, type });
-    setTimeout(() => setToast(null), 3500);
+    swalToast(type, text);
   };
 
   // Auto start camera on page mount or mode transition
@@ -464,14 +464,29 @@ export default function ScanKemasanPage() {
     const itemsToVerify = overrideScanned || scannedItems;
     const isComplete = checkAllCompleted(order.items, itemsToVerify);
     if (!isComplete && !overrideScanned) {
-      const confirmPartial = window.confirm(
-        'Perhatian: Belum semua item di-scan lengkap. Apakah Anda yakin ingin menyelesaikan kemasan sekarang?'
-      );
-      if (!confirmPartial) return;
+      const confirmPartial = await showConfirm({
+        icon: 'warning',
+        title: 'Belum Semua Di-scan',
+        text: 'Belum semua item di-scan lengkap. Apakah Anda yakin ingin menyelesaikan kemasan sekarang?',
+        confirmButtonText: 'Ya, Selesaikan',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#10b981'
+      });
+      if (!confirmPartial.isConfirmed) return;
     }
 
     isAutoSubmittingRef.current = true;
     setIsSubmittingPack(true);
+
+    Swal.fire({
+      title: 'Menyimpan Kemasan...',
+      text: `Memverifikasi pesanan ${order.invoice_number || ''}`,
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
 
     try {
       const res = await completeOnlineOrderPacking({
@@ -482,21 +497,56 @@ export default function ScanKemasanPage() {
 
       if (res && res.success) {
         if (soundEnabled) playTone('fanfare');
-        showToast(res.message || `Pesanan ${order.invoice_number} selesai disimpan! Siap scan resi berikutnya.`, 'success');
 
-        // Jeda sejenak agar user melihat notifikasi sukses, lalu otomatis refresh ganti ke scan resi
-        setTimeout(() => {
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil Kemas!',
+          text: res.message || `Pesanan ${order.invoice_number || ''} selesai disimpan! Siap scan resi berikutnya.`,
+          timer: 1800,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          background: '#ffffff',
+          customClass: {
+            popup: 'swal2-mobile-popup',
+            title: 'swal2-mobile-title',
+            htmlContainer: 'swal2-mobile-text'
+          }
+        }).then(() => {
           resetToScanResi(true, order);
-        }, 700);
+        });
       } else {
         isAutoSubmittingRef.current = false;
         if (soundEnabled) playTone('error');
-        showToast(res?.message || 'Gagal menyimpan kemasan.', 'error');
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Menyimpan',
+          text: res?.message || 'Gagal menyimpan kemasan.',
+          confirmButtonText: 'Tutup',
+          confirmButtonColor: '#ef4444',
+          customClass: {
+            popup: 'swal2-mobile-popup',
+            title: 'swal2-mobile-title',
+            htmlContainer: 'swal2-mobile-text',
+            confirmButton: 'swal2-mobile-btn'
+          }
+        });
       }
     } catch (err) {
       isAutoSubmittingRef.current = false;
       if (soundEnabled) playTone('error');
-      showToast('Error: ' + err.message, 'error');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error Server',
+        text: err.message || 'Terjadi kesalahan koneksi server.',
+        confirmButtonText: 'Tutup',
+        confirmButtonColor: '#ef4444',
+        customClass: {
+          popup: 'swal2-mobile-popup',
+          title: 'swal2-mobile-title',
+          htmlContainer: 'swal2-mobile-text',
+          confirmButton: 'swal2-mobile-btn'
+        }
+      });
     } finally {
       setIsSubmittingPack(false);
     }
@@ -589,19 +639,6 @@ export default function ScanKemasanPage() {
 
   return (
     <div style={{ padding: '14px 16px 120px 16px', maxWidth: '640px', margin: '0 auto' }}>
-      {/* Toast Alert */}
-      {toast && (
-        <div style={{
-          position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)',
-          zIndex: 9999, background: toast.type === 'error' ? '#ef4444' : '#10b981',
-          color: '#fff', padding: '10px 18px', borderRadius: '12px', fontSize: '13px',
-          fontWeight: '700', boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-          display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '90%'
-        }}>
-          {toast.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
-          <span>{toast.text}</span>
-        </div>
-      )}
 
       {/* Header Station */}
       <div style={{
