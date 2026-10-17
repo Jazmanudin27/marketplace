@@ -83,7 +83,7 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
     },
     {
       id: 'laporan_penjualan',
-      title: 'Lap Penjualan',
+      title: 'Lap Order',
       category: 'Transaksi',
       icon: FileText,
       gradient: 'linear-gradient(135deg, #4f46e5, #4338ca)'

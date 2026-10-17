@@ -35,7 +35,7 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
         { id: 'orders', title: 'Order', desc: 'Daftar transaksi marketplace & POS', icon: ShoppingBag, color: '#2563eb' },
         { id: 'penjualan_offline', title: 'PO (Penjualan Offline & PO)', desc: 'Transaksi toko fisik, piutang & pre-order SPK', icon: Store, color: '#0284c7' },
         { id: 'returns', title: 'Retur', desc: 'Komplain pembeli & QC retur barang', icon: RotateCcw, color: '#ef4444' },
-        { id: 'laporan_penjualan', title: 'Laporan Penjualan', desc: 'Rekap omset, HPP, fee & margin', icon: FileText, color: '#4f46e5' },
+        { id: 'laporan_penjualan', title: 'Lap Order (Laporan Penjualan)', desc: 'Rekap omset, HPP, fee & margin', icon: FileText, color: '#4f46e5' },
         { id: 'target', title: 'Komisi (Target Marketing)', desc: 'Realisasi omset & komisi tim', icon: Target, color: '#0ea5e9' },
         { id: 'scan_spk', title: 'Scan SPK Produksi', desc: 'Scan penerimaan karung & kuota SPK', icon: QrCode, color: '#8b5cf6' },
       ]
