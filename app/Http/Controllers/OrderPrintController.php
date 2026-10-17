@@ -90,18 +90,47 @@ class OrderPrintController extends Controller
             $channelCode = strtolower($store->channel->code ?? '');
 
             if ($channelCode === 'shopee') {
-                try {
-                    $orderSns = $storeOrders->pluck('order_marketplace_id')->filter()->values()->toArray();
-                    $pdfData = $shopeeService->getOfficialShippingLabelPdf(
-                        $store->getValidAccessToken(),
-                        (int) $store->marketplace_store_id,
-                        $orderSns
-                    );
-                    if (!empty($pdfData)) {
-                        $pdfBuffers[] = $pdfData;
+                // Shopee mewajibkan order dalam 1 batch create_shipping_document memiliki kurir yang sama
+                $ordersByCourier = $storeOrders->groupBy(function ($ord) {
+                    return strtoupper(trim($ord->courier ?: 'SPX'));
+                });
+
+                foreach ($ordersByCourier as $courierKey => $courierOrders) {
+                    $orderSns = $courierOrders->pluck('order_marketplace_id')->filter()->values()->toArray();
+                    
+                    // Coba batch per kurir terlebih dahulu
+                    $batchSuccess = false;
+                    try {
+                        $pdfData = $shopeeService->getOfficialShippingLabelPdf(
+                            $store->getValidAccessToken(),
+                            (int) $store->marketplace_store_id,
+                            $orderSns
+                        );
+                        if (!empty($pdfData)) {
+                            $pdfBuffers[] = $pdfData;
+                            $batchSuccess = true;
+                        }
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Shopee batch print for courier {$courierKey} failed: " . $e->getMessage() . ". Retrying per order...");
                     }
-                } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Shopee mass print PDF fetch failed for store #{$storeId}: " . $e->getMessage());
+
+                    // Jika batch gagal, tarik per pesanan agar pesanan yang valid tetap berhasil mendapatkan PDF
+                    if (!$batchSuccess) {
+                        foreach ($courierOrders as $singleOrd) {
+                            try {
+                                $singlePdf = $shopeeService->getOfficialShippingLabelPdf(
+                                    $store->getValidAccessToken(),
+                                    (int) $store->marketplace_store_id,
+                                    [$singleOrd->order_marketplace_id]
+                                );
+                                if (!empty($singlePdf)) {
+                                    $pdfBuffers[] = $singlePdf;
+                                }
+                            } catch (\Throwable $singleEx) {
+                                \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Shopee single print PDF failed for order #{$singleOrd->id} ({$singleOrd->order_marketplace_id}): " . $singleEx->getMessage());
+                            }
+                        }
+                    }
                 }
             } elseif (in_array($channelCode, ['tiktok', 'tokopedia'])) {
                 foreach ($storeOrders as $order) {
