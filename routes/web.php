@@ -833,6 +833,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/spks-payments', [\App\Http\Controllers\Inventory\SpkController::class, 'paymentsIndex'])->name('spks.payments.index');
         Route::post('/spks/{spk}/payments', [\App\Http\Controllers\Inventory\SpkController::class, 'storePayment'])->name('spks.payments.store');
         Route::delete('/spks/{spk}/payments/{payment}', [\App\Http\Controllers\Inventory\SpkController::class, 'destroyPayment'])->name('spks.payments.destroy');
+        Route::post('/spks/{spk}/update-biaya-produksi', [\App\Http\Controllers\Inventory\SpkController::class, 'updateBiayaProduksiDirect'])->name('spks.update_biaya_produksi_direct');
 
         // Stock Sync Redirect to Laporan Stok
         Route::get('/stock-sync', fn() => redirect()->route('reports.stock'))->name('inventory.stock_sync');

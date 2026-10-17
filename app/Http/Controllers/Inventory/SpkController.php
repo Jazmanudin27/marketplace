@@ -1127,6 +1127,7 @@ class SpkController extends Controller
         }
 
         $spkPayments = $spk->payments()->with(['user', 'bankAccount', 'expense'])->get();
+        $totalSpkQty = max(1, (int)$spk->items->sum('quantity'));
 
         return view('inventory.spks.show', compact(
             'spk', 'grouped', 'statusOptions', 'sizesHeader', 'progresMap',
@@ -1135,7 +1136,7 @@ class SpkController extends Controller
             'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList',
             'siblingSpks', 'bankAccounts', 'totalSpkLaborCost', 'totalSpkLaborPaid', 'totalSpkLaborUnpaid',
             'laborBreakdown', 'spkExpenses', 'spkPayments',
-            'spkBahanData', 'existingBiayaProduksi', 'existingBiayaTambahan', 'existingKetTambahan'
+            'spkBahanData', 'existingBiayaProduksi', 'existingBiayaTambahan', 'existingKetTambahan', 'totalSpkQty'
         ));
     }
 
@@ -1706,6 +1707,30 @@ class SpkController extends Controller
             // 5. Update HPP dan distribusikan SpkItemExtra ke masing-masing item
             $firstItem = $spk->items->first();
 
+            // Mapping tarif est_biaya_produksi spesifik per produk jika diinput di tabel rincian
+            $itemBiayaMap = [];
+            $rincianBlocks = $request->input('rincian', []);
+            if (!empty($rincianBlocks) && is_array($rincianBlocks)) {
+                foreach ($rincianBlocks as $rBlock) {
+                    $prodRows = $rBlock['produk'] ?? [];
+                    foreach ($prodRows as $pRow) {
+                        $skuP = trim($pRow['sku_produk'] ?? ($pRow['sku'] ?? ''));
+                        $namaP = trim($pRow['nama_produk'] ?? '');
+                        $ukP = trim($pRow['ukuran'] ?? '');
+                        $bRow = isset($pRow['est_biaya_produksi']) ? (float)$pRow['est_biaya_produksi'] : 0;
+                        if ($bRow > 0) {
+                            if (!empty($skuP)) {
+                                $itemBiayaMap['sku:' . strtolower($skuP)] = $bRow;
+                            }
+                            if (!empty($namaP)) {
+                                $itemBiayaMap['name:' . strtolower($namaP) . ':' . strtolower($ukP)] = $bRow;
+                                $itemBiayaMap['name:' . strtolower($namaP)] = $bRow;
+                            }
+                        }
+                    }
+                }
+            }
+
             // Clear old extras for all items in this SPK
             SpkItemExtra::whereIn('spk_item_id', $spk->items->pluck('id'))->delete();
 
@@ -1732,8 +1757,29 @@ class SpkController extends Controller
 
                 // B. Extras Biaya Produksi
                 if ($biayaProduksiNominal > 0) {
-                    $itemLaborNominal = round($biayaProduksiNominal * $ratio, 2);
-                    $bpUnit = round($biayaProduksiNominal / $totalSpkQty);
+                    $itemSkuKey = 'sku:' . strtolower(trim($item->sku ?? ''));
+                    $itemNameUkKey = 'name:' . strtolower(trim($item->nama_produk ?? '')) . ':' . strtolower(trim($item->ukuran ?? ''));
+                    $itemNameKey = 'name:' . strtolower(trim($item->nama_produk ?? ''));
+
+                    $specificBpUnit = 0;
+                    if (isset($itemBiayaMap[$itemSkuKey])) {
+                        $specificBpUnit = $itemBiayaMap[$itemSkuKey];
+                    } elseif (isset($itemBiayaMap[$itemNameUkKey])) {
+                        $specificBpUnit = $itemBiayaMap[$itemNameUkKey];
+                    } elseif (isset($itemBiayaMap[$itemNameKey])) {
+                        $specificBpUnit = $itemBiayaMap[$itemNameKey];
+                    } elseif ($item->masterProduct && (float)$item->masterProduct->est_biaya_produksi > 0) {
+                        $specificBpUnit = (float)$item->masterProduct->est_biaya_produksi;
+                    }
+
+                    if ($specificBpUnit > 0) {
+                        $bpUnit = round($specificBpUnit);
+                        $itemLaborNominal = round($bpUnit * $itemQty, 2);
+                    } else {
+                        $bpUnit = round($biayaProduksiNominal / $totalSpkQty);
+                        $itemLaborNominal = round($biayaProduksiNominal * $ratio, 2);
+                    }
+
                     SpkItemExtra::create([
                         'spk_item_id' => $item->id,
                         'keterangan'  => "Biaya Produksi ({$itemQty} pcs @ Rp " . number_format($bpUnit, 0, ',', '.') . ")",
@@ -3383,6 +3429,107 @@ class SpkController extends Controller
         });
 
         return back()->with('success', "✅ Pembayaran cicilan ({$payment->payment_number}) sebesar Rp " . number_format($amount, 0, ',', '.') . " berhasil dihapus dan saldo telah dikembalikan.");
+    }
+
+    /**
+     * Update Cepat Tarif Biaya Produksi Langsung dari Modal Pembayaran / Rincian SPK
+     */
+    public function updateBiayaProduksiDirect(Request $request, Spk $spk)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($spk->tenant_id === $tenantId, 403);
+
+        $unitRateRaw = str_replace(['.', ',', ' '], '', (string)$request->input('unit_rate', '0'));
+        $unitRate = (float) $unitRateRaw;
+
+        $totalCostRaw = str_replace(['.', ',', ' '], '', (string)$request->input('total_cost', '0'));
+        $totalCost = (float) $totalCostRaw;
+
+        $totalSpkQty = max(1, (int)$spk->items->sum('quantity'));
+
+        if ($unitRate <= 0 && $totalCost > 0) {
+            $unitRate = $totalCost / $totalSpkQty;
+        } elseif ($unitRate > 0 && $totalCost <= 0) {
+            $totalCost = $unitRate * $totalSpkQty;
+        }
+
+        if ($unitRate <= 0) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['status' => 'error', 'message' => 'Tarif biaya produksi harus lebih besar dari 0.'], 422);
+            }
+            return back()->with('error', 'Tarif biaya produksi harus lebih besar dari 0.');
+        }
+
+        $roundedRate = round($unitRate);
+
+        DB::transaction(function () use ($spk, $roundedRate, $totalSpkQty) {
+            // Re-sync all items' Biaya Produksi extras
+            foreach ($spk->items as $item) {
+                $itemQty = max(1, (int) $item->quantity);
+                $itemLaborNominal = round($roundedRate * $itemQty, 2);
+
+                // Find existing Biaya Produksi extra
+                $extra = SpkItemExtra::where('spk_item_id', $item->id)
+                    ->where(function ($q) {
+                        $q->where('keterangan', 'LIKE', 'Biaya Produksi%')
+                          ->orWhere('keterangan', 'LIKE', 'Ongkos Jahit%');
+                    })
+                    ->first();
+
+                if ($extra) {
+                    $extra->update([
+                        'keterangan' => "Biaya Produksi ({$itemQty} pcs @ Rp " . number_format($roundedRate, 0, ',', '.') . ")",
+                        'nominal'    => $itemLaborNominal,
+                    ]);
+                } else {
+                    SpkItemExtra::create([
+                        'spk_item_id' => $item->id,
+                        'keterangan'  => "Biaya Produksi ({$itemQty} pcs @ Rp " . number_format($roundedRate, 0, ',', '.') . ")",
+                        'nominal'     => $itemLaborNominal,
+                    ]);
+                }
+
+                // Update masterProduct est_biaya_produksi if linked
+                if ($item->master_product_id) {
+                    \App\Models\MasterProduct::where('id', $item->master_product_id)
+                        ->update(['est_biaya_produksi' => $roundedRate]);
+                }
+            }
+
+            // Recalculate HPP per unit for items
+            $totalBahan = 0;
+            $totalTambahan = 0;
+            foreach ($spk->items()->with('extras')->get() as $item) {
+                foreach ($item->extras as $ext) {
+                    $k = $ext->keterangan;
+                    if (str_contains($k, 'Bahan:') || str_contains($k, 'Kain:')) {
+                        $totalBahan += (float) $ext->nominal;
+                    } elseif (str_contains($k, 'Biaya Tambahan:') || str_contains($k, 'Tambahan:')) {
+                        $totalTambahan += (float) $ext->nominal;
+                    }
+                }
+            }
+            $grandTotalCost = $totalBahan + ($roundedRate * $totalSpkQty) + $totalTambahan;
+            $hppPerUnit = round($grandTotalCost / $totalSpkQty, 2);
+            foreach ($spk->items as $item) {
+                $item->update(['hpp' => $hppPerUnit]);
+            }
+        });
+
+        $spkCode = $spk->no_produksi ?: $spk->no_spk;
+        $totalNominal = $roundedRate * $totalSpkQty;
+        $msg = "✅ Biaya produksi SPK #{$spkCode} berhasil disesuaikan menjadi @ Rp " . number_format($roundedRate, 0, ',', '.') . " / pcs (Total: Rp " . number_format($totalNominal, 0, ',', '.') . ")!";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => $msg,
+                'unit_rate' => $roundedRate,
+                'total_cost' => $totalNominal,
+            ]);
+        }
+
+        return back()->with('success', $msg);
     }
 
     /**

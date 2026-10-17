@@ -970,14 +970,30 @@
                                                     if ($item->masterProduct && (float)$item->masterProduct->est_biaya_produksi > 0) {
                                                         $itemEstBiayaProduksi = (float) $item->masterProduct->est_biaya_produksi;
                                                     }
+                                                    if ($itemEstBiayaProduksi <= 0 && $item->extras) {
+                                                        $bpExtra = $item->extras->first(function ($ex) {
+                                                            return str_contains($ex->keterangan, 'Biaya Produksi') || str_contains($ex->keterangan, 'Ongkos Jahit');
+                                                        });
+                                                        if ($bpExtra) {
+                                                            if (preg_match('/@\s*Rp\s*([\d\.]+)/', $bpExtra->keterangan, $m)) {
+                                                                $itemEstBiayaProduksi = (float) str_replace('.', '', $m[1]);
+                                                            } elseif ((int)$item->quantity > 0) {
+                                                                $itemEstBiayaProduksi = round((float)$bpExtra->nominal / (int)$item->quantity);
+                                                            }
+                                                        }
+                                                    }
+                                                    if ($itemEstBiayaProduksi <= 0 && $totalSpkQty > 0 && ($existingBiayaProduksi ?? 0) > 0) {
+                                                        $itemEstBiayaProduksi = round(($existingBiayaProduksi ?? 0) / $totalSpkQty);
+                                                    }
                                                 @endphp
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text bg-light text-muted px-1" style="font-size: 10px;">Rp</span>
-                                                    <input type="number" step="any"
+                                                    <input type="text"
                                                         name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][est_biaya_produksi]"
-                                                        class="form-control text-end row-est-biaya-produksi"
+                                                        class="form-control text-end row-est-biaya-produksi numeric-dot-format font-monospace"
                                                         placeholder="0"
-                                                        value="{{ $itemEstBiayaProduksi > 0 ? (float) $itemEstBiayaProduksi : '' }}">
+                                                        oninput="updateSpkBiayaFromRow(this)"
+                                                        value="{{ $itemEstBiayaProduksi > 0 ? number_format($itemEstBiayaProduksi, 0, ',', '.') : '' }}">
                                                 </div>
                                             </td>
                                             <td class="text-center">
@@ -1183,15 +1199,31 @@
                                                     Jasa / Ongkos
                                                 </span>
                                             </div>
-                                            <label class="form-label text-muted small mb-1" style="font-size: 11px;">
-                                                Total Ongkos Jasa Produksi (Potong, Jahit, Sablon, Bordir, Finishing, dll.):
-                                            </label>
-                                            <div class="input-group input-group-sm mb-2">
-                                                <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
-                                                <input type="text" name="spk_biaya_produksi" id="spk_biaya_produksi"
-                                                       class="form-control form-control-sm text-end fw-bold fs-6 numeric-dot-format input-spk-biaya-produksi"
-                                                       placeholder="0"
-                                                       value="{{ number_format($existingBiayaProduksi ?? 0, 0, ',', '.') }}">
+                                            <div class="row g-2 mb-2">
+                                                <div class="col-sm-5">
+                                                    <label class="form-label text-muted small mb-1" style="font-size: 11px;">
+                                                        Tarif / Pcs ({{ $totalSpkQty }} pcs):
+                                                    </label>
+                                                    <div class="input-group input-group-sm">
+                                                        <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
+                                                        <input type="text" id="spk_biaya_produksi_satuan"
+                                                               class="form-control form-control-sm text-end fw-bold numeric-dot-format font-monospace"
+                                                               placeholder="16.500"
+                                                               value="{{ number_format($totalSpkQty > 0 ? round(($existingBiayaProduksi ?? 0) / $totalSpkQty) : 0, 0, ',', '.') }}">
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-7">
+                                                    <label class="form-label text-muted small mb-1" style="font-size: 11px;">
+                                                        Total Ongkos Jasa SPK:
+                                                    </label>
+                                                    <div class="input-group input-group-sm">
+                                                        <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
+                                                        <input type="text" name="spk_biaya_produksi" id="spk_biaya_produksi"
+                                                               class="form-control form-control-sm text-end fw-bold fs-6 numeric-dot-format font-monospace input-spk-biaya-produksi"
+                                                               placeholder="0"
+                                                               value="{{ number_format($existingBiayaProduksi ?? 0, 0, ',', '.') }}">
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div class="mt-2 p-2 bg-light rounded border">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
@@ -1814,6 +1846,30 @@
                                 <span class="fw-extrabold text-danger fs-6 font-monospace">Rp {{ number_format($spk->remaining_production_cost, 0, ',', '.') }}</span>
                             </div>
                         </div>
+                    </div>
+
+                    {{-- QUICK RATE ADJUSTMENT STRIP --}}
+                    <div class="p-2.5 mb-3 bg-white rounded-3 border d-flex align-items-center justify-content-between flex-wrap gap-2 shadow-2xs">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-warning text-dark font-monospace fw-bold" style="font-size: 11px;">
+                                Total: {{ $totalSpkQty }} pcs
+                            </span>
+                            <span class="text-muted small" style="font-size: 11.5px;">
+                                Rata-rata saat ini: <strong class="text-dark font-monospace">@ Rp {{ number_format($totalSpkQty > 0 ? round($spk->total_biaya_produksi / $totalSpkQty) : 0, 0, ',', '.') }}</strong>
+                            </span>
+                        </div>
+                        <form action="{{ route('spks.update_biaya_produksi_direct', $spk) }}" method="POST" class="d-flex align-items-center gap-1.5 ms-auto" onsubmit="return confirm('Terapkan tarif biaya produksi ini ke seluruh rincian item SPK?')">
+                            @csrf
+                            <label class="small text-secondary mb-0 fw-semibold" style="font-size: 11px;">Ubah Tarif / Pcs:</label>
+                            <div class="input-group input-group-sm" style="width: 140px;">
+                                <span class="input-group-text py-0 px-1.5 bg-light fw-bold text-muted" style="font-size: 11px;">Rp</span>
+                                <input type="text" name="unit_rate" class="form-control form-control-sm text-end fw-extrabold numeric-dot-format font-monospace py-0 px-2"
+                                       value="{{ number_format(16500, 0, ',', '.') }}" placeholder="16.500" style="font-size: 11.5px;" required>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-primary py-1 px-2.5 fw-bold" style="font-size: 11px;">
+                                <i class="fas fa-check-circle me-1"></i> Terapkan
+                            </button>
+                        </form>
                     </div>
 
                     {{-- NAV TABS: CICILAN UMUM VS PER RINCIAN JASA --}}
@@ -3510,6 +3566,72 @@
                     }
                 }
             });
+
+            // Two-way synchronization between Tarif Jasa Satuan and Total Biaya Produksi
+            const inpBiayaSatuan = document.getElementById('spk_biaya_produksi_satuan');
+            const inpBiayaTotal = document.getElementById('spk_biaya_produksi');
+
+            function getSpkTotalQty() {
+                let grandQty = 0;
+                document.querySelectorAll('.row-qty-produksi').forEach(input => {
+                    grandQty += parseInt(input.value) || 0;
+                });
+                return grandQty > 0 ? grandQty : {{ $totalSpkQty }};
+            }
+
+            if (inpBiayaSatuan) {
+                inpBiayaSatuan.addEventListener('input', function() {
+                    const satuan = cleanNumberFromDots(this.value);
+                    const qty = getSpkTotalQty();
+                    if (inpBiayaTotal) {
+                        inpBiayaTotal.value = formatNumberWithDots(Math.round(satuan * qty));
+                    }
+                    document.querySelectorAll('.row-est-biaya-produksi').forEach(inp => {
+                        inp.value = formatNumberWithDots(satuan);
+                    });
+                    if (window.recalculateSpkCosts) {
+                        window.recalculateSpkCosts();
+                    }
+                });
+            }
+
+            if (inpBiayaTotal) {
+                inpBiayaTotal.addEventListener('input', function() {
+                    const total = cleanNumberFromDots(this.value);
+                    const qty = getSpkTotalQty();
+                    if (inpBiayaSatuan && qty > 0) {
+                        inpBiayaSatuan.value = formatNumberWithDots(Math.round(total / qty));
+                    }
+                    if (qty > 0) {
+                        const sat = Math.round(total / qty);
+                        document.querySelectorAll('.row-est-biaya-produksi').forEach(inp => {
+                            inp.value = formatNumberWithDots(sat);
+                        });
+                    }
+                    if (window.recalculateSpkCosts) {
+                        window.recalculateSpkCosts();
+                    }
+                });
+            }
+
+            window.updateSpkBiayaFromRow = function(el) {
+                let sumCost = 0;
+                document.querySelectorAll('tr[id^="product-row-"]').forEach(tr => {
+                    const qInp = tr.querySelector('.row-qty-produksi');
+                    const bInp = tr.querySelector('.row-est-biaya-produksi');
+                    if (qInp && bInp) {
+                        const q = parseInt(qInp.value) || 0;
+                        const b = cleanNumberFromDots(bInp.value);
+                        sumCost += (q * b);
+                    }
+                });
+                if (sumCost > 0) {
+                    if (inpBiayaTotal) inpBiayaTotal.value = formatNumberWithDots(sumCost);
+                    const qty = getSpkTotalQty();
+                    if (inpBiayaSatuan && qty > 0) inpBiayaSatuan.value = formatNumberWithDots(Math.round(sumCost / qty));
+                    if (window.recalculateSpkCosts) window.recalculateSpkCosts();
+                }
+            };
 
             // Live calculation on any SPK cost / qty input
             document.addEventListener('input', function(e) {
