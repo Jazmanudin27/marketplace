@@ -2036,6 +2036,10 @@
                                                             {{ $isLunas ? 'disabled' : '' }}>
                                                     </td>
                                                 </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-muted py-3">Belum ada data ongkos jasa yang disetting pada SPK ini.</td>
+                                                </tr>
                                             @endforelse
                                         </tbody>
                                         @if(count($laborBreakdown) > 0)
