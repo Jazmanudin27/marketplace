@@ -27,28 +27,28 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
   const mainMenus = [
     {
       id: 'orders',
-      title: 'Pesanan Masuk',
+      title: 'Order',
       category: 'Transaksi',
       icon: ShoppingBag,
       gradient: 'linear-gradient(135deg, #2563eb, #1d4ed8)'
     },
     {
       id: 'penjualan_offline',
-      title: 'Jual Offline',
+      title: 'PO',
       category: 'Transaksi',
       icon: Store,
       gradient: 'linear-gradient(135deg, #0284c7, #0369a1)'
     },
     {
       id: 'returns',
-      title: 'Retur Masuk',
+      title: 'Retur',
       category: 'Transaksi',
       icon: RotateCcw,
       gradient: 'linear-gradient(135deg, #ef4444, #dc2626)'
     },
     {
       id: 'target',
-      title: 'Target Komisi',
+      title: 'Komisi',
       category: 'Marketing',
       icon: Target,
       gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)'
@@ -62,7 +62,7 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
     },
     {
       id: 'scan_kemasan',
-      title: 'Kemas Online',
+      title: 'Scan Online',
       category: 'Gudang',
       icon: ScanLine,
       gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)'
@@ -104,7 +104,7 @@ export default function OwnerMenuGrid({ onSelectMenu, onOpenAllModules }) {
     },
     {
       id: 'titipan_barang',
-      title: 'Titipan Brg',
+      title: 'Titipan',
       category: 'Konsinyasi',
       icon: Boxes,
       gradient: 'linear-gradient(135deg, #f59e0b, #d97706)'

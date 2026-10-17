@@ -32,11 +32,11 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
     {
       group: 'Transaksi & Penjualan',
       items: [
-        { id: 'orders', title: 'Pesanan Masuk', desc: 'Daftar transaksi marketplace & POS', icon: ShoppingBag, color: '#2563eb' },
-        { id: 'penjualan_offline', title: 'Penjualan Offline (POS & PO)', desc: 'Transaksi toko fisik, piutang & pre-order SPK', icon: Store, color: '#0284c7' },
-        { id: 'returns', title: 'Retur Masuk', desc: 'Komplain pembeli & QC retur barang', icon: RotateCcw, color: '#ef4444' },
+        { id: 'orders', title: 'Order', desc: 'Daftar transaksi marketplace & POS', icon: ShoppingBag, color: '#2563eb' },
+        { id: 'penjualan_offline', title: 'PO (Penjualan Offline & PO)', desc: 'Transaksi toko fisik, piutang & pre-order SPK', icon: Store, color: '#0284c7' },
+        { id: 'returns', title: 'Retur', desc: 'Komplain pembeli & QC retur barang', icon: RotateCcw, color: '#ef4444' },
         { id: 'laporan_penjualan', title: 'Laporan Penjualan', desc: 'Rekap omset, HPP, fee & margin', icon: FileText, color: '#4f46e5' },
-        { id: 'target', title: 'Target Marketing', desc: 'Realisasi omset & komisi tim', icon: Target, color: '#0ea5e9' },
+        { id: 'target', title: 'Komisi (Target Marketing)', desc: 'Realisasi omset & komisi tim', icon: Target, color: '#0ea5e9' },
         { id: 'scan_spk', title: 'Scan SPK Produksi', desc: 'Scan penerimaan karung & kuota SPK', icon: QrCode, color: '#8b5cf6' },
       ]
     },
@@ -46,13 +46,13 @@ export default function AllModulesModal({ isOpen, onClose, onSelectAction }) {
         { id: 'kartu_stok', title: 'Kartu Stok Gudang Jadi', desc: 'Monitoring stok barang jadi & kartu mutasi', icon: Layers, color: '#2563eb' },
         { id: 'warehouse', title: 'Mutasi Masuk & Keluar', desc: 'Pergerakan stok gudang jadi', icon: Boxes, color: '#7c3aed' },
         { id: 'stock_opname', title: 'Opname Stok Jadi', desc: 'Pengecekan fisik stok akhir', icon: ShieldCheck, color: '#6366f1' },
-        { id: 'scan_kemasan', title: 'Scan Kemas Online', desc: 'Verifikasi resi marketplace, barcode SKU & packing V2', icon: ScanLine, color: '#06b6d4' },
+        { id: 'scan_kemasan', title: 'Scan Online', desc: 'Verifikasi resi marketplace, barcode SKU & packing V2', icon: ScanLine, color: '#06b6d4' },
       ]
     },
     {
       group: 'Konsinyasi & Titipan Supplier',
       items: [
-        { id: 'titipan_barang', title: 'Titipan Barang (Konsinyasi)', desc: 'Barang titipan supplier, stok & HPP', icon: Boxes, color: '#f59e0b' },
+        { id: 'titipan_barang', title: 'Titipan (Konsinyasi)', desc: 'Barang titipan supplier, stok & HPP', icon: Boxes, color: '#f59e0b' },
         { id: 'pembayaran_titipan', title: 'Histori Pembayaran Titipan', desc: 'Rekap pelunasan transfer hasil penjualan', icon: HandCoins, color: '#059669' },
         { id: 'penjualan_titipan', title: 'Histori Penjualan Titipan', desc: 'Barang titipan laku terjual via pesanan', icon: ShoppingBag, color: '#2563eb' },
       ]
