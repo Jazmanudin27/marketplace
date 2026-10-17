@@ -134,11 +134,8 @@ export default function PenjualanOfflinePage({ onOpenScanKemasan, onOpenScanSpk 
       <div style={{ padding: '16px 18px 8px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
           <div>
-            <span style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '0.8px', color: '#0284c7', textTransform: 'uppercase' }}>
-              POS TOKO FISIK & PRE-ORDER
-            </span>
-            <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: '2px 0 0' }}>
-              Penjualan Offline
+            <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: '0' }}>
+              PO
             </h2>
           </div>
           <button

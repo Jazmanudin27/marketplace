@@ -555,11 +555,8 @@ export default function ScanKemasanPage() {
               <ScanLine size={22} color="#fff" />
             </div>
             <div>
-              <div style={{ fontSize: '15px', fontWeight: '800', letterSpacing: '-0.2px' }}>
+              <div style={{ fontSize: '16px', fontWeight: '800', letterSpacing: '-0.2px' }}>
                 Scan Online
-              </div>
-              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                Packing Verifikasi Resi Marketplace V2
               </div>
             </div>
           </div>

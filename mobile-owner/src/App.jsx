@@ -312,104 +312,87 @@ export default function App() {
           />
         ) : activeTab === 'orders' ? (
           <SubPageHeader 
-            title="Pesanan Masuk" 
-            subtitle="Monitor & kelola semua pesanan marketplace real-time"
+            title="Order" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'analytics' ? (
           <SubPageHeader 
-            title="Grafik & Analisis" 
-            subtitle="Performa omset, margin & channel"
+            title="Grafik" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'finance' ? (
           <SubPageHeader 
-            title="Mutasi Keuangan" 
-            subtitle="Buku mutasi kas masuk, keluar & transfer dana"
+            title="Mutasi Kas" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'target_komisi' ? (
           <SubPageHeader 
-            title="Target & Komisi Penjualan V2" 
-            subtitle="Target margin & realisasi komisi tim marketing ERP"
+            title="Komisi" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'laba_rugi' ? (
           <SubPageHeader 
             title="Laba Rugi" 
-            subtitle="Laporan keuangan & profitabilitas real ERP"
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'mutasi_keuangan' ? (
           <SubPageHeader 
-            title="Mutasi Keuangan" 
-            subtitle="Buku mutasi kas masuk, keluar & transfer dana"
+            title="Mutasi Kas" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'saldo_marketplace' ? (
           <SubPageHeader 
-            title="Saldo Marketplace" 
-            subtitle="Saldo dompet, tertahan (escrow) & mutasi dompet toko"
+            title="Saldo MP" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'penjualan_offline' ? (
           <SubPageHeader 
-            title="Penjualan Offline" 
-            subtitle="Transaksi kasir POS toko fisik & pre-order SPK"
+            title="PO" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'laporan_penjualan' ? (
           <SubPageHeader 
-            title="Laporan Penjualan" 
-            subtitle="Rekap omset, HPP, fee marketplace & margin bersih"
+            title="Lap Order" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'retur_masuk' ? (
           <SubPageHeader 
-            title="Retur Masuk" 
-            subtitle="Data retur marketplace & QC gudang V2"
+            title="Retur" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'scan_kemasan' ? (
           <SubPageHeader 
-            title="Scan & Kemasan" 
-            subtitle="Pemindai barcode kemasan, update stok & request produksi"
+            title="Scan Online" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'scan_spk' ? (
           <SubPageHeader 
-            title="Scan SPK Produksi" 
-            subtitle="Pemindai QR SPK & penerimaan hasil jahit gudang"
+            title="Scan SPK" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'titipan_barang' ? (
           <SubPageHeader 
-            title="Titipan Barang (Konsinyasi)" 
-            subtitle="Penerimaan barang konsinyasi supplier & stok master gudang"
+            title="Titipan" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'kartu_stok' ? (
           <SubPageHeader 
-            title="Kartu Stok Gudang Jadi" 
-            subtitle="Monitoring stok fisik barang jadi & riwayat mutasi gudang"
+            title="Kartu Stok" 
             onBack={() => handleTabChange('home')} 
           />
         ) : activeTab === 'pembayaran_titipan' ? (
           <SubPageHeader 
-            title="Histori Pembayaran Titipan" 
-            subtitle="Rekapitulasi transfer & pelunasan hasil penjualan titipan"
+            title="Pembayaran Titipan" 
             onBack={() => handleTabChange('titipan_barang')} 
           />
         ) : activeTab === 'penjualan_titipan' ? (
           <SubPageHeader 
-            title="Histori Penjualan Titipan" 
-            subtitle="Rincian pesanan marketplace dari barang titipan konsinyasi"
+            title="Penjualan Titipan" 
             onBack={() => handleTabChange('titipan_barang')} 
           />
         ) : activeTab === 'profile' ? (
           <SubPageHeader 
             title="Profile" 
-            subtitle="Pengaturan akun & kredensial login"
             onBack={() => handleTabChange('home')} 
           />
         ) : null}
