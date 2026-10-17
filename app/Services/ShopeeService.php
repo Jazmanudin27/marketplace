@@ -875,7 +875,46 @@ class ShopeeService
     }
 
     /**
-     * Mengambil file PDF resi resmi Shopee (memicu pembuatannya lalu mengunduhnya).
+     * Cek status pembuatan dokumen pengiriman Shopee.
+     * Endpoint: POST /api/v2/logistics/get_shipping_document_result
+     */
+    public function getShippingDocumentResult(string $accessToken, int $shopId, array $orderSns, string $documentType = 'THERMAL_AIR_WAYBILL'): array
+    {
+        $path = '/api/v2/logistics/get_shipping_document_result';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $orderList = array_map(function ($sn) {
+            return ['order_sn' => (string)$sn];
+        }, $orderSns);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+        ];
+
+        $response = Http::asJson()->timeout(30)->post($this->baseUrl . $path . '?' . http_build_query($queryParams), [
+            'order_list' => $orderList,
+            'shipping_document_type' => $documentType,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal cek status resi Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+        if (!empty($data['error']) && $data['error'] !== '' && $data['error'] !== 'OK') {
+            throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    /**
+     * Mengambil file PDF resi resmi Shopee (memicu pembuatannya, polling status READY, lalu mengunduhnya).
      */
     public function getOfficialShippingLabelPdf(string $accessToken, int $shopId, array $orderSns, string $documentType = 'THERMAL_AIR_WAYBILL'): string
     {
@@ -885,7 +924,38 @@ class ShopeeService
             Log::warning("[Shopee] createShippingDocument warning: " . $e->getMessage());
         }
 
-        usleep(500000);
+        // Polling get_shipping_document_result sampai status READY
+        $isReady = false;
+        for ($poll = 1; $poll <= 5; $poll++) {
+            usleep(800000); // 0.8 detik jeda
+            try {
+                $statusRes = $this->getShippingDocumentResult($accessToken, $shopId, $orderSns, $documentType);
+                $resultList = $statusRes['result_list'] ?? [];
+                
+                if (!empty($resultList)) {
+                    $allReady = true;
+                    foreach ($resultList as $item) {
+                        $st = strtoupper($item['status'] ?? '');
+                        if ($st === 'FAILED') {
+                            throw new \RuntimeException('Pembuatan resi Shopee gagal: ' . ($item['fail_message'] ?? $item['fail_error'] ?? 'Unknown error'));
+                        }
+                        if ($st !== 'READY') {
+                            $allReady = false;
+                            break;
+                        }
+                    }
+                    if ($allReady) {
+                        $isReady = true;
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                if (str_contains($e->getMessage(), 'gagal')) {
+                    throw $e;
+                }
+                Log::info("[Shopee] polling document result attempt {$poll}: " . $e->getMessage());
+            }
+        }
 
         $lastException = null;
         for ($attempt = 1; $attempt <= 3; $attempt++) {
