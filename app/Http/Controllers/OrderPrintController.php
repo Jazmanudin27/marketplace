@@ -264,18 +264,9 @@ class OrderPrintController extends Controller
             return response()->view('orders.merge_print', compact('pdfBase64List'));
         }
 
-        // Jika tidak ada toko dengan API marketplace aktif, gunakan template thermal lokal ERP
-        $hasApiStore = $orders->contains(function ($ord) {
-            return !empty($ord->store?->access_token);
-        });
-
-        if (!$hasApiStore) {
-            return view('orders.mass_print', compact('orders'));
-        }
-
-        // Jika toko terhubung API tapi PDF resmi marketplace belum siap / gagal diunduh
-        $msg = 'Gagal mengunduh file PDF resi resmi dari marketplace API. Pastikan pesanan sudah diproses dan resi sudah terbit di Seller Center.';
-        return response("<div style='font-family:system-ui,sans-serif;padding:30px;max-width:600px;margin:40px auto;border:1px solid #fee2e2;border-radius:10px;background:#fef2f2;color:#991b1b;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);'><h3 style='margin-top:0;'>Gagal Mengunduh Resi Resmi Marketplace</h3><p>{$msg}</p><button onclick='window.close()' style='padding:8px 16px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;'>Tutup Tab</button></div>", 400)->header('Content-Type', 'text/html');
+        // Fallback jika API PDF marketplace belum siap atau ditolak marketplace (misal: paket sudah di-pickup / dikirim kurir)
+        // Tampilkan format cetak thermal lokal ERP agar resi tetap dapat dicetak
+        return view('orders.mass_print', compact('orders'));
     }
 
     /**
@@ -475,7 +466,11 @@ class OrderPrintController extends Controller
     private function mergePdfWithFpdi(array $pdfBuffers): string
     {
         try {
-            $pdf = new \setasign\Fpdi\Fpdi();
+            if (!class_exists('\setasign\Fpdi\Fpdi') && !class_exists('\Setasign\Fpdi\Fpdi')) {
+                return '';
+            }
+            $className = class_exists('\setasign\Fpdi\Fpdi') ? '\setasign\Fpdi\Fpdi' : '\Setasign\Fpdi\Fpdi';
+            $pdf = new $className();
             $hasPages = false;
 
             foreach ($pdfBuffers as $buffer) {
