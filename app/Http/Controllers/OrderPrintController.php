@@ -172,23 +172,40 @@ class OrderPrintController extends Controller
             }
         }
 
-        // Jika kita berhasil menarik PDF resmi dari API, gabungkan menggunakan FPDI dan tampilkan langsung sebagai PDF
+        // Jika kita berhasil menarik PDF resmi dari API, tampilkan langsung atau gabungkan
         if (!empty($pdfBuffers)) {
+            // Jika hanya 1 buffer (atau 1 pesanan, atau semua pesanan Shopee sudah digabung 1 batch oleh Shopee API)
+            if (count($pdfBuffers) === 1) {
+                $firstOrder = $orders->first();
+                $channelName = strtolower($firstOrder->store->channel->code ?? 'marketplace');
+                $orderCode = $firstOrder->order_marketplace_id ?: $firstOrder->id;
+                $filename = "resi_{$channelName}_{$orderCode}.pdf";
+
+                return response($pdfBuffers[0], 200, [
+                    'Content-Type'        => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="' . $filename . '"',
+                ]);
+            }
+
+            // Jika lebih dari 1 buffer, gabungkan menggunakan Ghostscript / pdfunite / qpdf / FPDI
             $mergedPdf = $this->mergePdfBuffers($pdfBuffers);
             if (!empty($mergedPdf)) {
                 return response($mergedPdf, 200, [
-                    'Content-Type' => 'application/pdf',
-                    'Content-Disposition' => 'inline; filename="resi_massal_resmi.pdf"',
+                    'Content-Type'        => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="resi_massal_resmi_' . date('Ymd_His') . '.pdf"',
                 ]);
             }
+
+            // Jika semua merger gagal menggabungkan, tampilkan buffer pertama sebagai PDF
+            return response($pdfBuffers[0], 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="resi_massal_resmi_' . date('Ymd_His') . '.pdf"',
+            ]);
         }
 
-        // Jika tidak ada satu pun PDF resmi dari marketplace yang berhasil ditarik:
-        // Kembalikan ke halaman sebelumnya dengan pesan error jelas atau tampilkan tampilan resi thermal saja (tanpa pick list)
-        return view('orders.mass_print', [
-            'orders'   => $orders,
-            'pickList' => [],
-        ]);
+        // Jika tidak ada satu pun PDF resmi dari marketplace yang berhasil ditarik
+        $msg = 'Gagal mengunduh file PDF resi resmi dari marketplace API. Pastikan pesanan sudah diproses dan resi sudah terbit di Seller Center.';
+        return response("<div style='font-family:system-ui,sans-serif;padding:30px;max-width:600px;margin:40px auto;border:1px solid #fee2e2;border-radius:10px;background:#fef2f2;color:#991b1b;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);'><h3 style='margin-top:0;'>Gagal Mengunduh Resi Resmi Marketplace</h3><p>{$msg}</p><button onclick='window.close()' style='padding:8px 16px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;'>Tutup Tab</button></div>", 400)->header('Content-Type', 'text/html');
     }
 
     /**
@@ -268,9 +285,95 @@ class OrderPrintController extends Controller
     }
 
     /**
-     * Penggabung (Merger) PDF resmi marketplace menggunakan FPDI.
+     * Penggabung (Merger) PDF resmi marketplace menggunakan Ghostscript / pdfunite / qpdf / FPDI.
      */
     private function mergePdfBuffers(array $pdfBuffers): string
+    {
+        if (empty($pdfBuffers)) {
+            return '';
+        }
+
+        if (count($pdfBuffers) === 1) {
+            return reset($pdfBuffers);
+        }
+
+        // 1. Coba CLI tools terlebih dahulu (mendukung PDF 1.5 - 2.0 tanpa batasan parser)
+        $cliMerged = $this->mergePdfWithCli($pdfBuffers);
+        if (!empty($cliMerged)) {
+            return $cliMerged;
+        }
+
+        // 2. Fallback ke FPDI jika PDF mendukung versi standar
+        return $this->mergePdfWithFpdi($pdfBuffers);
+    }
+
+    /**
+     * Merge multiple PDF buffers using available Linux CLI tools (gs, pdfunite, qpdf).
+     */
+    private function mergePdfWithCli(array $pdfBuffers): string
+    {
+        $tempDir = storage_path('app/temp_pdf');
+        if (!file_exists($tempDir)) {
+            @mkdir($tempDir, 0777, true);
+        }
+
+        $tempFiles = [];
+        foreach ($pdfBuffers as $i => $buffer) {
+            if (!is_string($buffer) || strlen($buffer) < 10) {
+                continue;
+            }
+            $file = $tempDir . '/tmp_in_' . uniqid() . '_' . $i . '.pdf';
+            file_put_contents($file, $buffer);
+            $tempFiles[] = $file;
+        }
+
+        if (count($tempFiles) === 0) {
+            return '';
+        }
+
+        if (count($tempFiles) === 1) {
+            $content = file_get_contents($tempFiles[0]);
+            $this->cleanupFiles($tempFiles);
+            return $content;
+        }
+
+        $outputFile = $tempDir . '/tmp_out_' . uniqid() . '.pdf';
+        $escapedInputs = implode(' ', array_map('escapeshellarg', $tempFiles));
+        $escapedOutput = escapeshellarg($outputFile);
+
+        // CLI commands ordered by prevalence and robustness
+        $commands = [
+            // Ghostscript
+            "gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile={$escapedOutput} {$escapedInputs} 2>&1",
+            "/usr/bin/gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile={$escapedOutput} {$escapedInputs} 2>&1",
+            // pdfunite (poppler-utils)
+            "pdfunite {$escapedInputs} {$escapedOutput} 2>&1",
+            "/usr/bin/pdfunite {$escapedInputs} {$escapedOutput} 2>&1",
+            // qpdf
+            "qpdf --empty --pages {$escapedInputs} -- {$escapedOutput} 2>&1",
+            "/usr/bin/qpdf --empty --pages {$escapedInputs} -- {$escapedOutput} 2>&1",
+        ];
+
+        foreach ($commands as $cmd) {
+            $output = [];
+            $returnVar = 1;
+            @exec($cmd, $output, $returnVar);
+
+            if ($returnVar === 0 && file_exists($outputFile) && filesize($outputFile) > 100) {
+                $mergedContent = file_get_contents($outputFile);
+                $this->cleanupFiles(array_merge($tempFiles, [$outputFile]));
+                return $mergedContent;
+            }
+        }
+
+        $this->cleanupFiles(array_merge($tempFiles, [$outputFile]));
+        return '';
+    }
+
+    /**
+     * Merge multiple PDF buffers using FPDI PHP library.
+     */
+    private function mergePdfWithFpdi(array $pdfBuffers): string
     {
         try {
             $pdf = new \setasign\Fpdi\Fpdi();
@@ -295,7 +398,7 @@ class OrderPrintController extends Controller
                         $hasPages = true;
                     }
                 } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::warning("[OrderPrintController] mergePdfBuffers inner page exception: " . $e->getMessage());
+                    \Illuminate\Support\Facades\Log::warning("[OrderPrintController] mergePdfWithFpdi page error: " . $e->getMessage());
                 }
             }
 
@@ -305,8 +408,17 @@ class OrderPrintController extends Controller
 
             return $pdf->Output('S');
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error("[OrderPrintController] mergePdfBuffers error: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error("[OrderPrintController] mergePdfWithFpdi error: " . $e->getMessage());
             return '';
+        }
+    }
+
+    private function cleanupFiles(array $files): void
+    {
+        foreach ($files as $f) {
+            if (file_exists($f)) {
+                @unlink($f);
+            }
         }
     }
 }

@@ -855,7 +855,9 @@ class TiktokService
 
         $docUrl = $docData['doc_url'] ?? $docData['url'] ?? null;
         if (!empty($docUrl)) {
-            $res = Http::timeout(30)->get($docUrl);
+            $res = Http::withoutVerifying()->timeout(30)->withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            ])->get($docUrl);
             if ($res->successful() && !empty($res->body())) {
                 return $res->body();
             }
