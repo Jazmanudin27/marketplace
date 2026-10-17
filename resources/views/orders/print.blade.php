@@ -1113,11 +1113,6 @@
                     console.error("Error generating TikTok barcodes", e);
                 }
             @endif
-
-            // Auto-trigger native print dialog after barcodes render
-            setTimeout(function() {
-                window.print();
-            }, 600);
         }
     </script>
 </body>

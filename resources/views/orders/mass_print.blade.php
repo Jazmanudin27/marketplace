@@ -1217,10 +1217,6 @@
                     console.error("Error generating barcodes for order {{ $order->id }}", e);
                 }
             @endforeach
-
-            setTimeout(function() {
-                window.print();
-            }, 500);
         }
     </script>
 </body>
