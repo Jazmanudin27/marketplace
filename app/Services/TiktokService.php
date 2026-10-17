@@ -792,28 +792,30 @@ class TiktokService
     }
 
     /**
-     * Mengambil dokumen pengiriman (PDF / HTML Resi)
+     * Mengambil dokumen pengiriman resmi (PDF / Resi Resmi) dari TikTok Shop Open API v202309
      */
     public function getShippingDocument(string $accessToken, string $shopCipher, string $orderId, ?string $packageId = null)
     {
-        // 1. Jika package_id belum ada di database lokal, fetch otomatis dari TikTok getOrderDetail
+        // 1. Jika package_id belum ada, fetch otomatis dari TikTok getOrderDetail
         if (empty($packageId)) {
             try {
                 $orderData = $this->getOrderDetail($accessToken, $shopCipher, [$orderId]);
                 $orders = $orderData['orders'] ?? $orderData['order_list'] ?? [];
                 if (!empty($orders[0])) {
                     $firstOrder = $orders[0];
-                    if (!empty($firstOrder['packages'])) {
-                        foreach ($firstOrder['packages'] as $pkg) {
-                            $pId = $pkg['id'] ?? $pkg['package_id'] ?? null;
-                            if (!empty($pId)) {
-                                $packageId = (string) $pId;
-                                break;
-                            }
+                    $pkgs = array_merge(
+                        $firstOrder['package_list'] ?? [],
+                        $firstOrder['packages'] ?? []
+                    );
+                    foreach ($pkgs as $pkg) {
+                        $pId = $pkg['package_id'] ?? $pkg['id'] ?? null;
+                        if (!empty($pId)) {
+                            $packageId = (string) $pId;
+                            break;
                         }
                     }
-                    if (empty($packageId)) {
-                        $packageId = (string) ($firstOrder['package_id'] ?? '');
+                    if (empty($packageId) && !empty($firstOrder['package_id'])) {
+                        $packageId = (string) $firstOrder['package_id'];
                     }
                 }
             } catch (\Throwable $e) {
@@ -821,57 +823,102 @@ class TiktokService
             }
         }
 
-        $paths = [];
+        // 2. Jika masih kosong, coba createPackage otomatis di TikTok (API v202309)
+        if (empty($packageId)) {
+            try {
+                $pkgData = $this->createPackage($accessToken, $shopCipher, $orderId);
+                $packageId = (string) ($pkgData['package_id'] ?? $pkgData['id'] ?? ($pkgData['packages'][0]['id'] ?? ''));
+                if (!empty($packageId)) {
+                    Log::info("[TikTokService] createPackage berhasil membuat package {$packageId} untuk order {$orderId}");
+                }
+            } catch (\Throwable $e) {
+                Log::warning("[TikTokService] createPackage attempt untuk order {$orderId}: " . $e->getMessage());
+            }
+        }
+
+        // Simpan package_id ke tabel orders jika ada
         if (!empty($packageId)) {
-            $paths[] = '/fulfillment/202309/packages/' . $packageId . '/shipping_documents';
-        }
-        $paths[] = '/fulfillment/202309/orders/' . $orderId . '/documents';
-        $paths[] = '/logistics/202309/orders/' . $orderId . '/documents';
-        $paths[] = '/fulfillment/202309/documents';
-
-        $lastException = null;
-
-        foreach ($paths as $path) {
-            $queryParams = [
-                'app_key' => $this->appKey,
-                'timestamp' => time(),
-                'shop_cipher' => $shopCipher,
-                'document_type' => 'SHIPPING_LABEL',
-                'document_size' => 'A6',
-                'document_format' => 'PDF',
-            ];
-            if ($path === '/fulfillment/202309/documents') {
-                $queryParams['order_id'] = $orderId;
-            }
-
-            $sign = $this->generateSignature($path, $queryParams);
-            $queryParams['sign'] = $sign;
-            $queryParams['access_token'] = $accessToken;
-
-            $response = Http::timeout(15)->withHeaders([
-                'x-tts-access-token' => $accessToken,
-            ])->get($this->baseUrl . $path, $queryParams);
-
-            $data = $response->json();
-
-            if (isset($data['code']) && $data['code'] === 0) {
-                return $data['data'] ?? [];
-            }
-
-            $msg = $data['message'] ?? 'Unknown Error';
-            $code = $data['code'] ?? -1;
-
-            Log::warning("[TikTokService] getShippingDocument error on {$path} (code: {$code}): {$msg}");
-
-            if (str_contains(strtolower($msg), 'invalid path') || $code === 105001) {
-                $lastException = new \RuntimeException('TikTok API Error: ' . $msg);
-                continue;
-            }
-
-            $lastException = new \RuntimeException('TikTok API Error: ' . $msg);
+            try {
+                \App\Models\Order::where('order_marketplace_id', $orderId)->update(['package_id' => $packageId]);
+            } catch (\Throwable $dbE) {}
         }
 
-        return [];
+        if (empty($packageId)) {
+            throw new \RuntimeException("ID Paket (package_id) untuk pesanan TikTok #{$orderId} belum tersedia dari TikTok Shop.");
+        }
+
+        $path = '/fulfillment/202309/packages/' . $packageId . '/shipping_documents';
+
+        $queryParams = [
+            'app_key'         => $this->appKey,
+            'timestamp'       => time(),
+            'shop_cipher'     => $shopCipher,
+            'document_type'   => 'SHIPPING_LABEL',
+            'document_size'   => 'A6',
+            'document_format' => 'PDF',
+        ];
+
+        $sign = $this->generateSignature($path, $queryParams);
+        $queryParams['sign'] = $sign;
+        $queryParams['access_token'] = $accessToken;
+
+        $response = Http::timeout(20)->withHeaders([
+            'x-tts-access-token' => $accessToken,
+        ])->get($this->baseUrl . $path, $queryParams);
+
+        $data = $response->json();
+
+        if (isset($data['code']) && $data['code'] === 0) {
+            return $data['data'] ?? [];
+        }
+
+        $msg = $data['message'] ?? 'Unknown Error';
+        $code = $data['code'] ?? -1;
+        $lowerMsg = strtolower($msg);
+
+        Log::warning("[TikTokService] getShippingDocument error on {$path} (code: {$code}): {$msg}");
+
+        // Prerequisite TikTok: Jika status belum di-ship (arrange shipment), lakukan shipOrder otomatis lalu coba lagi
+        if (
+            str_contains($lowerMsg, 'status') ||
+            str_contains($lowerMsg, 'not allow') ||
+            str_contains($lowerMsg, 'ship') ||
+            str_contains($lowerMsg, 'ready') ||
+            $code === 36001004
+        ) {
+            Log::info("[TikTokService] Auto-trigger shipOrder untuk order {$orderId} package {$packageId} karena: {$msg}");
+            try {
+                $this->shipOrder($accessToken, $shopCipher, $orderId, 'DROP_OFF', $packageId);
+                sleep(1);
+
+                $retryParams = [
+                    'app_key'         => $this->appKey,
+                    'timestamp'       => time(),
+                    'shop_cipher'     => $shopCipher,
+                    'document_type'   => 'SHIPPING_LABEL',
+                    'document_size'   => 'A6',
+                    'document_format' => 'PDF',
+                ];
+                $retryParams['sign'] = $this->generateSignature($path, $retryParams);
+                $retryParams['access_token'] = $accessToken;
+
+                $retryRes = Http::timeout(20)->withHeaders([
+                    'x-tts-access-token' => $accessToken,
+                ])->get($this->baseUrl . $path, $retryParams);
+
+                $retryData = $retryRes->json();
+                if (isset($retryData['code']) && $retryData['code'] === 0) {
+                    return $retryData['data'] ?? [];
+                }
+
+                $retryMsg = $retryData['message'] ?? 'Unknown retry error';
+                Log::warning("[TikTokService] getShippingDocument retry pasca ship error: {$retryMsg}");
+            } catch (\Throwable $shipEx) {
+                Log::warning("[TikTokService] Auto shipOrder retry failed: " . $shipEx->getMessage());
+            }
+        }
+
+        throw new \RuntimeException('TikTok API Error: ' . $msg);
     }
 
     /**
@@ -883,19 +930,41 @@ class TiktokService
 
         $docUrl = $docData['doc_url'] ?? $docData['url'] ?? null;
         if (!empty($docUrl)) {
-            $res = Http::withoutVerifying()->timeout(30)->withHeaders([
+            $docUrl = html_entity_decode($docUrl);
+            $res = Http::withOptions([
+                'verify'          => false,
+                'allow_redirects' => true,
+                'timeout'         => 30,
+            ])->withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             ])->get($docUrl);
+
             if ($res->successful() && !empty($res->body())) {
-                return $res->body();
+                $body = $res->body();
+                // Jika binary PDF langsung
+                if (str_contains(substr($body, 0, 128), '%PDF')) {
+                    $pos = strpos($body, '%PDF');
+                    return $pos > 0 ? substr($body, $pos) : $body;
+                }
+                // Jika base64 encoded
+                $decoded = base64_decode($body, true);
+                if ($decoded && str_contains(substr($decoded, 0, 128), '%PDF')) {
+                    $pos = strpos($decoded, '%PDF');
+                    return $pos > 0 ? substr($decoded, $pos) : $decoded;
+                }
+                return $body;
             }
         }
 
         if (!empty($docData['doc_pdf'])) {
-            return base64_decode($docData['doc_pdf']);
+            $pdfDecoded = base64_decode($docData['doc_pdf'], true);
+            if ($pdfDecoded && str_contains(substr($pdfDecoded, 0, 128), '%PDF')) {
+                $pos = strpos($pdfDecoded, '%PDF');
+                return $pos > 0 ? substr($pdfDecoded, $pos) : $pdfDecoded;
+            }
         }
 
-        throw new \RuntimeException('Dokumen resi TikTok tidak dapat diunduh dari API TikTok Shop.');
+        throw new \RuntimeException('Dokumen resi TikTok tidak dapat diunduh dari API TikTok Shop (URL resi kosong atau kadaluarsa).');
     }
 
     /**

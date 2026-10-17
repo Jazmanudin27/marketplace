@@ -196,4 +196,31 @@ class Store extends Model
 
         return $this->access_token;
     }
+
+    public function getValidShopCipher(): string
+    {
+        if (!empty($this->shop_cipher)) {
+            return $this->shop_cipher;
+        }
+
+        if (in_array(strtolower($this->channel->code ?? ''), ['tiktok', 'tokopedia'])) {
+            try {
+                $accessToken = $this->getValidAccessToken();
+                $tiktok = app(\App\Services\TiktokService::class);
+                $shopInfo = $tiktok->getShopInfo($accessToken);
+                $shops = $shopInfo['shops'] ?? (is_array($shopInfo) ? $shopInfo : []);
+                foreach ($shops as $s) {
+                    $c = $s['cipher'] ?? $s['shop_cipher'] ?? null;
+                    if (!empty($c)) {
+                        $this->update(['shop_cipher' => $c]);
+                        return $c;
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("[Store] Auto-fetch shop_cipher failed: " . $e->getMessage());
+            }
+        }
+
+        return (string) ($this->shop_cipher ?: $this->marketplace_store_id);
+    }
 }

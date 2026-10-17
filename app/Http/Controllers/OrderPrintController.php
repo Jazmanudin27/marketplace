@@ -133,12 +133,13 @@ class OrderPrintController extends Controller
                     }
                 }
             } elseif (in_array($channelCode, ['tiktok', 'tokopedia'])) {
+                $shopCipher = $store->getValidShopCipher();
                 foreach ($storeOrders as $order) {
                     $fetchedPdf = null;
                     try {
                         $fetchedPdf = $tiktokService->getOfficialShippingLabelPdf(
                             $store->getValidAccessToken(),
-                            $store->shop_cipher ?: $store->marketplace_store_id,
+                            $shopCipher,
                             $order->order_marketplace_id,
                             $order->package_id
                         );
@@ -151,14 +152,21 @@ class OrderPrintController extends Controller
                         try {
                             $docData = $tiktokService->getShippingDocument(
                                 $store->getValidAccessToken(),
-                                $store->shop_cipher ?: $store->marketplace_store_id,
+                                $shopCipher,
                                 $order->order_marketplace_id,
                                 $order->package_id
                             );
                             if (!empty($docData['doc_pdf'])) {
-                                $fetchedPdf = base64_decode($docData['doc_pdf']);
+                                $fetchedPdf = base64_decode($docData['doc_pdf'], true);
                             } elseif (!empty($docData['doc_url'])) {
-                                $dlRes = \Illuminate\Support\Facades\Http::withoutVerifying()->timeout(30)->get($docData['doc_url']);
+                                $docUrl = html_entity_decode($docData['doc_url']);
+                                $dlRes = \Illuminate\Support\Facades\Http::withOptions([
+                                    'verify'          => false,
+                                    'allow_redirects' => true,
+                                    'timeout'         => 30,
+                                ])->withHeaders([
+                                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                                ])->get($docUrl);
                                 if ($dlRes->successful() && !empty($dlRes->body())) {
                                     $fetchedPdf = $dlRes->body();
                                 }
@@ -247,9 +255,10 @@ class OrderPrintController extends Controller
                     \Illuminate\Support\Facades\Log::warning("[OrderPrintController] Shopee PDF fetch failed: " . $e->getMessage());
                 }
             } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
+                $shopCipher = $store->getValidShopCipher();
                 $pdfData = $tiktokService->getOfficialShippingLabelPdf(
                     $store->getValidAccessToken(),
-                    $store->shop_cipher ?: $store->marketplace_store_id,
+                    $shopCipher,
                     $order->order_marketplace_id,
                     $order->package_id
                 );
@@ -263,7 +272,7 @@ class OrderPrintController extends Controller
 
                 $docData = $tiktokService->getShippingDocument(
                     $store->getValidAccessToken(),
-                    $store->shop_cipher ?: $store->marketplace_store_id,
+                    $shopCipher,
                     $order->order_marketplace_id,
                     $order->package_id
                 );
@@ -445,8 +454,9 @@ class OrderPrintController extends Controller
                         $stat = $zip->statIndex($i);
                         if (str_ends_with(strtolower($stat['name'] ?? ''), '.pdf')) {
                             $extracted = $zip->getFromIndex($i);
-                            if (!empty($extracted) && str_starts_with($extracted, '%PDF')) {
-                                $pdfBuffers[] = $extracted;
+                            if (!empty($extracted) && str_contains(substr($extracted, 0, 128), '%PDF')) {
+                                $pos = strpos($extracted, '%PDF');
+                                $pdfBuffers[] = $pos > 0 ? substr($extracted, $pos) : $extracted;
                             }
                         }
                     }
@@ -459,8 +469,9 @@ class OrderPrintController extends Controller
             }
         }
 
-        if (str_starts_with($data, '%PDF')) {
-            $pdfBuffers[] = $data;
+        if (str_contains(substr($data, 0, 128), '%PDF')) {
+            $pos = strpos($data, '%PDF');
+            $pdfBuffers[] = $pos > 0 ? substr($data, $pos) : $data;
         }
     }
 }

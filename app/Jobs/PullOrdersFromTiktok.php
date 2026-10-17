@@ -411,7 +411,7 @@ class PullOrdersFromTiktok implements ShouldQueue
             'buyer_email' => $tiktokOrder['buyer_email'] ?? null,
             'buyer_message' => $tiktokOrder['buyer_message'] ?? null,
             'seller_note' => $tiktokOrder['seller_note'] ?? null,
-            'package_id' => $tiktokOrder['packages'][0]['id'] ?? $tiktokOrder['package_id'] ?? null,
+            'package_id' => $tiktokOrder['package_list'][0]['package_id'] ?? $tiktokOrder['package_list'][0]['id'] ?? $tiktokOrder['packages'][0]['id'] ?? $tiktokOrder['packages'][0]['package_id'] ?? $tiktokOrder['package_id'] ?? null,
             'tiktok_creator_name' => $tiktokCreatorName,
             'tiktok_creator_id' => $tiktokCreatorId,
             'affiliate_commission' => $affiliateCommission,

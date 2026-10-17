@@ -893,9 +893,10 @@ class OrderController extends Controller
                     \Illuminate\Support\Facades\Log::warning("[OrderController] Shopee doc info fetch failed: " . $e->getMessage());
                 }
             } elseif (in_array($channelCode, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
+                $shopCipher = $store->getValidShopCipher();
                 $pdfData = $tiktokService->getOfficialShippingLabelPdf(
                     $store->getValidAccessToken(),
-                    $store->shop_cipher ?: $store->marketplace_store_id,
+                    $shopCipher,
                     $order->order_marketplace_id,
                     $order->package_id
                 );
@@ -909,7 +910,7 @@ class OrderController extends Controller
 
                 $docData = $tiktokService->getShippingDocument(
                     $store->getValidAccessToken(),
-                    $store->shop_cipher ?: $store->marketplace_store_id,
+                    $shopCipher,
                     $order->order_marketplace_id,
                     $order->package_id
                 );

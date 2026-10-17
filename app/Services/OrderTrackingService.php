@@ -147,28 +147,7 @@ class OrderTrackingService
 
             } elseif (in_array($channelCode, ['tiktok', 'tokopedia'])) {
                 $accessToken = $store->getValidAccessToken();
-                $shopCipher = $store->shop_cipher;
-
-                // Self-healing jika shop_cipher belum tersimpan di DB
-                if (empty($shopCipher)) {
-                    try {
-                        $shopsData = $this->tiktokService->getShopInfo($accessToken);
-                        $shopsList = $shopsData['shops'] ?? (is_array($shopsData) ? $shopsData : []);
-                        foreach ($shopsList as $s) {
-                            $c = $s['cipher'] ?? $s['shop_cipher'] ?? null;
-                            if ($c) {
-                                $shopCipher = $c;
-                                $store->shop_cipher = $c;
-                                $store->save();
-                                break;
-                            }
-                        }
-                    } catch (\Throwable $e) {}
-                }
-
-                if (empty($shopCipher)) {
-                    $shopCipher = $store->marketplace_store_id;
-                }
+                $shopCipher = $store->getValidShopCipher();
 
                 // 1. Cek detail order TikTok untuk tracking_number yang ada
                 try {
@@ -182,8 +161,9 @@ class OrderTrackingService
                     if (!empty($tOrders[0])) {
                         $tOrder = $tOrders[0];
                         $trackingNo = $tOrder['tracking_number'] ?? $tOrder['tracking_no'] ?? $tOrder['express_tracking_number'] ?? null;
-                        if (empty($trackingNo) && !empty($tOrder['packages'])) {
-                            foreach ($tOrder['packages'] as $pkg) {
+                        $pkgs = array_merge($tOrder['package_list'] ?? [], $tOrder['packages'] ?? []);
+                        if (empty($trackingNo) && !empty($pkgs)) {
+                            foreach ($pkgs as $pkg) {
                                 $t = $pkg['tracking_number'] ?? $pkg['tracking_no'] ?? $pkg['express_tracking_number'] ?? null;
                                 if (!empty($t)) {
                                     $trackingNo = $t;
@@ -191,8 +171,17 @@ class OrderTrackingService
                                 }
                             }
                         }
-                        if (empty($order->package_id) && !empty($tOrder['packages'][0]['id'])) {
-                            $order->package_id = (string) $tOrder['packages'][0]['id'];
+                        if (empty($order->package_id)) {
+                            foreach ($pkgs as $pkg) {
+                                $pId = $pkg['package_id'] ?? $pkg['id'] ?? null;
+                                if (!empty($pId)) {
+                                    $order->package_id = (string) $pId;
+                                    break;
+                                }
+                            }
+                            if (empty($order->package_id) && !empty($tOrder['package_id'])) {
+                                $order->package_id = (string) $tOrder['package_id'];
+                            }
                         }
                     }
                 } catch (\Throwable $e) {
@@ -234,15 +223,19 @@ class OrderTrackingService
                             if (!empty($tOrders[0])) {
                                 $tOrder = $tOrders[0];
                                 $trackingNo = $tOrder['tracking_number'] ?? $tOrder['tracking_no'] ?? $tOrder['express_tracking_number'] ?? null;
-                                if (empty($trackingNo) && !empty($tOrder['packages'])) {
-                                    foreach ($tOrder['packages'] as $pkg) {
+                                $pkgs = array_merge($tOrder['package_list'] ?? [], $tOrder['packages'] ?? []);
+                                if (empty($trackingNo) && !empty($pkgs)) {
+                                    foreach ($pkgs as $pkg) {
                                         $t = $pkg['tracking_number'] ?? $pkg['tracking_no'] ?? $pkg['express_tracking_number'] ?? null;
                                         if (!empty($t)) {
                                             $trackingNo = $t;
                                             break;
                                         }
-                                        if (empty($order->package_id) && !empty($pkg['id'])) {
-                                            $order->package_id = (string) $pkg['id'];
+                                        if (empty($order->package_id)) {
+                                            $pId = $pkg['package_id'] ?? $pkg['id'] ?? null;
+                                            if (!empty($pId)) {
+                                                $order->package_id = (string) $pId;
+                                            }
                                         }
                                     }
                                 }
