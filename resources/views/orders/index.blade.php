@@ -919,6 +919,9 @@
                     @endif
                 </div>
                 <div class="d-flex gap-2">
+                    <button type="submit" form="mass-print-form" class="btn-shopee-primary" id="btn-mass-print">
+                        <i class="fas fa-print"></i> Cetak Resi Massal (PDF Resmi)
+                    </button>
                     <button type="button" class="btn-shopee-ghost" id="btn-mass-ship">
                         <i class="fas fa-truck-loading"></i> Pengiriman Massal
                     </button>
