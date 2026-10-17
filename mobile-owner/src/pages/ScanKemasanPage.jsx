@@ -112,16 +112,25 @@ export default function ScanKemasanPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Turn off camera when page loses focus / hides
+  // Auto start camera on page mount or mode transition
   useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) stopCamera();
+      else if (!isCameraActive) {
+        startCamera(currentOrder ? 'item' : 'order');
+      }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('pagehide', stopCamera);
     window.addEventListener('beforeunload', stopCamera);
 
+    // Otomatis nyalakan kamera saat masuk ke halaman
+    const timer = setTimeout(() => {
+      startCamera(currentOrder ? 'item' : 'order');
+    }, 400);
+
     return () => {
+      clearTimeout(timer);
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('pagehide', stopCamera);
       window.removeEventListener('beforeunload', stopCamera);
@@ -129,12 +138,10 @@ export default function ScanKemasanPage() {
     };
   }, []);
 
-  // Auto focus input
+  // Saat berpindah antara Step 1 (Scan Resi) dan Step 2 (Scan Item), sesuaikan target kamera
   useEffect(() => {
-    if (!currentOrder && orderInputRef.current) {
-      orderInputRef.current.focus();
-    } else if (currentOrder && itemInputRef.current) {
-      itemInputRef.current.focus();
+    if (isCameraActive) {
+      setCameraTarget(currentOrder ? 'item' : 'order');
     }
   }, [currentOrder]);
 
@@ -160,7 +167,16 @@ export default function ScanKemasanPage() {
 
       const config = {
         fps: 15,
-        qrbox: { width: 260, height: 160 },
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const vw = Number(viewfinderWidth) || 300;
+          const vh = Number(viewfinderHeight) || 240;
+          const minEdge = Math.min(vw, vh);
+          const boxSize = Math.max(Math.floor(minEdge * 0.75), 180);
+          return {
+            width: Math.max(Math.min(boxSize, vw - 20), 140),
+            height: Math.max(Math.min(Math.floor(boxSize * 0.65), vh - 20), 110)
+          };
+        },
         aspectRatio: 1.0,
       };
 
@@ -174,10 +190,9 @@ export default function ScanKemasanPage() {
       );
       setCameraLoading(false);
     } catch (err) {
-      console.error('Camera scanner error:', err);
+      console.warn('Camera scanner error:', err);
       setCameraLoading(false);
-      setIsCameraActive(false);
-      showToast('Gagal membuka kamera: ' + (err.message || 'Izin kamera ditolak.'), 'error');
+      showToast('Kamera HP belum aktif: ' + (err.message || 'Izin kamera diperlukan.'), 'error');
     }
   };
 
@@ -189,6 +204,20 @@ export default function ScanKemasanPage() {
       } catch (_) {}
       qrCodeScannerRef.current = null;
     }
+
+    try {
+      const videoElem = document.querySelector('#mobile-camera-viewfinder video');
+      if (videoElem && videoElem.srcObject) {
+        const stream = videoElem.srcObject;
+        if (typeof stream.getTracks === 'function') {
+          stream.getTracks().forEach(track => {
+            try { track.stop(); } catch (_) {}
+          });
+        }
+        videoElem.srcObject = null;
+      }
+    } catch (_) {}
+
     setIsCameraActive(false);
     setCameraLoading(false);
   };
@@ -196,28 +225,23 @@ export default function ScanKemasanPage() {
   const switchCameraFacing = async () => {
     const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
     setCameraFacing(nextFacing);
-    if (isCameraActive) {
-      await stopCamera();
-      setTimeout(() => startCamera(cameraTarget), 250);
-    }
+    await stopCamera();
+    setTimeout(() => startCamera(cameraTarget), 250);
   };
 
   const handleCameraScanSuccess = (decodedText, target) => {
     const now = Date.now();
     const clean = decodedText ? decodedText.trim() : '';
 
-    // Debounce scan
-    if (clean === lastScannedTextRef.current && now - lastScanTimestampRef.current < 1500) {
+    // Debounce scan 1.2 detik agar tidak dobel scan sekaligus
+    if (clean === lastScannedTextRef.current && now - lastScanTimestampRef.current < 1200) {
       return;
     }
     lastScannedTextRef.current = clean;
     lastScanTimestampRef.current = now;
 
-    if (soundEnabled) playTone('success');
-
     if (target === 'order' || !currentOrder) {
       setOrderInput(clean);
-      stopCamera();
       handleFetchOrder(clean);
     } else {
       setItemInput('');
@@ -248,7 +272,10 @@ export default function ScanKemasanPage() {
           initScanned[it.id] = it.packed_quantity || 0;
         });
         setScannedItems(initScanned);
-        showToast(`Pesanan ${res.order.invoice_number} berhasil dimuat!`, 'success');
+        showToast(`Pesanan ${res.order.invoice_number} berhasil dimuat! Lanjut scan barcode barang.`, 'success');
+
+        // Pastikan kamera tetap aktif untuk scan item produk
+        setCameraTarget('item');
       } else {
         if (soundEnabled) playTone('error');
         showToast(res.message || 'Pesanan online tidak ditemukan atau belum Siap Kirim.', 'error');
@@ -582,54 +609,87 @@ export default function ScanKemasanPage() {
         </div>
       </div>
 
-      {/* Camera Viewfinder (Expandable) */}
-      {isCameraActive && (
-        <div style={{
-          background: '#000', borderRadius: '18px', padding: '12px',
-          marginBottom: '14px', border: '2px solid #06b6d4', position: 'relative'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', color: '#fff' }}>
-            <span style={{ fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Camera size={14} color="#06b6d4" /> Kamera Scanner ({cameraTarget === 'order' ? 'Resi' : 'SKU'})
+      {/* Camera Viewfinder (Always Mounted for Instant Scanner) */}
+      <div style={{
+        background: '#090d16', borderRadius: '18px', padding: '12px',
+        marginBottom: '14px', border: isCameraActive ? '2px solid #06b6d4' : '1px solid #334155',
+        position: 'relative', boxShadow: '0 4px 16px rgba(0,0,0,0.3)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', color: '#fff' }}>
+          <span style={{ fontSize: '12px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Camera size={15} color={isCameraActive ? '#06b6d4' : '#94a3b8'} />
+            <span>Kamera Scanner HP</span>
+            <span style={{
+              background: isCameraActive ? '#0284c7' : '#475569',
+              color: '#fff', fontSize: '10px', padding: '2px 7px', borderRadius: '6px', fontWeight: '800'
+            }}>
+              {cameraTarget === 'order' || !currentOrder ? 'SCAN RESI / INVOICE' : 'SCAN BARCODE BARANG'}
             </span>
-            <div style={{ display: 'flex', gap: '6px' }}>
+          </span>
+
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {isCameraActive && (
               <button
                 type="button"
                 onClick={switchCameraFacing}
                 style={{
                   background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
-                  borderRadius: '8px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer',
+                  borderRadius: '8px', padding: '5px 9px', fontSize: '11px', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: '4px'
                 }}
               >
                 <SwitchCamera size={12} /> Balik
               </button>
-              <button
-                type="button"
-                onClick={stopCamera}
-                style={{
-                  background: 'rgba(239,68,68,0.8)', border: 'none', color: '#fff',
-                  borderRadius: '8px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '4px'
-                }}
-              >
-                <CameraOff size={12} /> Tutup
-              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => isCameraActive ? stopCamera() : startCamera(currentOrder ? 'item' : 'order')}
+              style={{
+                background: isCameraActive ? 'rgba(239,68,68,0.85)' : 'linear-gradient(135deg, #0284c7, #0369a1)',
+                border: 'none', color: '#fff', borderRadius: '8px', padding: '5px 10px',
+                fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+              }}
+            >
+              {isCameraActive ? <><CameraOff size={12} /> Matikan</> : <><Camera size={12} /> Buka Kamera</>}
+            </button>
+          </div>
+        </div>
+
+        {/* Viewfinder Video Frame */}
+        <div
+          id="mobile-camera-viewfinder"
+          style={{
+            width: '100%', borderRadius: '12px', overflow: 'hidden',
+            minHeight: isCameraActive ? '220px' : '60px',
+            background: '#000', display: isCameraActive ? 'block' : 'none'
+          }}
+        />
+
+        {!isCameraActive && (
+          <div
+            onClick={() => startCamera(currentOrder ? 'item' : 'order')}
+            style={{
+              padding: '24px 16px', textAlign: 'center', background: '#111827',
+              borderRadius: '12px', cursor: 'pointer', border: '1px dashed #475569'
+            }}
+          >
+            <Camera size={32} color="#06b6d4" style={{ margin: '0 auto 8px auto', display: 'block' }} />
+            <div style={{ color: '#f1f5f9', fontSize: '13px', fontWeight: '700' }}>
+              Ketuk untuk Mengaktifkan Kamera Pemindai
+            </div>
+            <div style={{ color: '#94a3b8', fontSize: '11px', marginTop: '2px' }}>
+              Arahkan kamera ke resi pengiriman atau barcode produk
             </div>
           </div>
+        )}
 
-          <div
-            id="mobile-camera-viewfinder"
-            style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', minHeight: '180px', background: '#111' }}
-          />
-
-          {cameraLoading && (
-            <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12px', padding: '16px' }}>
-              Menghubungkan kamera perangkat...
-            </div>
-          )}
-        </div>
-      )}
+        {cameraLoading && (
+          <div style={{ textAlign: 'center', color: '#38bdf8', fontSize: '12px', padding: '14px' }}>
+            <RefreshCw size={14} className="spin-animate" style={{ display: 'inline', marginRight: '6px' }} />
+            Menghubungkan kamera HP...
+          </div>
+        )}
+      </div>
 
       {/* ─── STEP 1: SCAN RESI / INVOICE PESANAN ─── */}
       {!currentOrder ? (
@@ -643,19 +703,8 @@ export default function ScanKemasanPage() {
                 background: '#3b82f6', color: '#fff', width: '22px', height: '22px',
                 borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11.5px'
               }}>1</span>
-              <span>Scan Barcode Resi / Invoice</span>
+              <span>Input / Scan Resi Marketplace</span>
             </div>
-            <button
-              type="button"
-              onClick={() => startCamera('order')}
-              style={{
-                background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: '#fff',
-                border: 'none', padding: '6px 12px', borderRadius: '10px', fontSize: '11px',
-                fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
-              }}
-            >
-              <Camera size={13} /> Scan Kamera
-            </button>
           </div>
 
           <form onSubmit={(e) => { e.preventDefault(); handleFetchOrder(); }}>
@@ -837,20 +886,21 @@ export default function ScanKemasanPage() {
                   background: '#06b6d4', color: '#fff', width: '20px', height: '20px',
                   borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px'
                 }}>2</span>
-                Scan Barcode Produk / SKU
+                Tembak Barcode Barang (Kamera / Manual)
               </span>
 
-              <button
-                type="button"
-                onClick={() => startCamera('item')}
-                style={{
-                  background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd',
-                  padding: '4px 8px', borderRadius: '8px', fontSize: '10.5px', fontWeight: '700',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
-                }}
-              >
-                <Camera size={12} /> Scan Kamera
-              </button>
+              <span style={{
+                background: isCameraActive ? '#dcfce7' : '#f1f5f9',
+                color: isCameraActive ? '#166534' : '#64748b',
+                padding: '3px 8px', borderRadius: '8px', fontSize: '10px', fontWeight: '800',
+                display: 'flex', alignItems: 'center', gap: '4px'
+              }}>
+                <span style={{
+                  width: '6px', height: '6px', borderRadius: '50%',
+                  background: isCameraActive ? '#22c55e' : '#94a3b8'
+                }} />
+                {isCameraActive ? 'Kamera Aktif' : 'Kamera Mati'}
+              </span>
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); processItemScan(); }}>
