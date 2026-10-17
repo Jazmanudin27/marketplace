@@ -972,6 +972,34 @@ export default function ScanKemasanPage() {
                 <span>Auto-Ship Marketplace</span>
               </label>
             </div>
+
+            {/* Quick Selesai & Simpan Kemasan (Di Atas Tanpa Scroll) */}
+            <button
+              type="button"
+              onClick={handleSubmitCompletePack}
+              disabled={isSubmittingPack}
+              style={{
+                width: '100%', padding: '10px 14px', borderRadius: '12px', border: 'none',
+                background: isAllReady
+                  ? 'linear-gradient(135deg, #10b981, #059669)'
+                  : 'linear-gradient(135deg, #0284c7, #0369a1)',
+                color: '#fff', fontSize: '13px', fontWeight: '800',
+                cursor: isSubmittingPack ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                boxShadow: isAllReady ? '0 4px 14px rgba(16,185,129,0.35)' : '0 2px 8px rgba(2,132,199,0.25)',
+                marginTop: '10px'
+              }}
+            >
+              {isSubmittingPack ? (
+                <>
+                  <RefreshCw size={15} className="spin-animate" /> Menyimpan Kemasan...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={16} /> Selesai & Simpan Kemasan
+                </>
+              )}
+            </button>
           </div>
 
           {/* Input Scan Barcode Item / SKU */}

@@ -1060,7 +1060,7 @@
                                         <i class="bi bi-volume-up-fill text-info me-1"></i> Suara Scanner
                                     </label>
                                 </div>
-                                <div class="d-flex align-items-center gap-1.5">
+                                <div class="d-flex align-items-center gap-1.5 flex-wrap">
                                     <button type="button" class="btn btn-xs btn-outline-success fw-semibold px-2.5 py-1"
                                         id="btnModalMarkAllDone" style="font-size: 0.75rem;">
                                         <i class="bi bi-check-all me-1"></i> Tandai Semua Selesai
@@ -1068,6 +1068,10 @@
                                     <button type="button" class="btn btn-xs btn-outline-danger fw-semibold px-2.5 py-1"
                                         id="btnModalResetProgress" style="font-size: 0.75rem;">
                                         <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Progres
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-success fw-bold px-3 py-1 shadow-sm btn-trigger-save-kemas ms-1"
+                                        style="font-size: 0.8rem;">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Selesai & Simpan Kemasan
                                     </button>
                                 </div>
                             </div>
@@ -1556,7 +1560,7 @@
                         // -------------------------------------------------------------
                         // Simpan Kemasan ke Server
                         // -------------------------------------------------------------
-                        $('#btnModalSaveKemas').on('click', function() {
+                        $(document).on('click', '#btnModalSaveKemas, .btn-trigger-save-kemas', function() {
                             const packedItemsPayload = {};
                             Object.values(itemsState).forEach(it => {
                                 packedItemsPayload[it.id] = it.packed;

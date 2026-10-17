@@ -581,6 +581,64 @@ export default function PenjualanOfflinePage({ onOpenScanKemasan, onOpenScanSpk 
                   ) : null}
                 </div>
 
+                {/* Top Quick Actions (Tanpa Scroll) */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                  {onOpenScanKemasan && (
+                    <button
+                      onClick={() => {
+                        handleCloseDetail();
+                        onOpenScanKemasan();
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                        color: '#ffffff',
+                        fontSize: '12.5px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 8px rgba(2, 132, 199, 0.25)'
+                      }}
+                    >
+                      <Package size={16} />
+                      <span>Kemas Offline</span>
+                    </button>
+                  )}
+                  {saleDetail.is_po && onOpenScanSpk && (
+                    <button
+                      onClick={() => {
+                        handleCloseDetail();
+                        onOpenScanSpk();
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                        color: '#ffffff',
+                        fontSize: '12.5px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 8px rgba(124, 58, 237, 0.25)'
+                      }}
+                    >
+                      <QrCode size={16} />
+                      <span>Scan SPK</span>
+                    </button>
+                  )}
+                </div>
+
                 {/* Customer & Nota Info Card */}
                 <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', border: '1px solid #e2e8f0' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', fontSize: '11.5px' }}>
