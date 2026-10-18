@@ -36,9 +36,8 @@
             </div>
         </div>
 
-        {{-- SPK PRODUCTION STATUS TABS & FILTER CARD (PESANAN STYLE) --}}
         {{-- SPK PRODUCTION STATUS & FILTER CARD --}}
-        <div class="card border border-light-subtle shadow-sm rounded-3 bg-white mb-4 overflow-hidden">
+        <div class="card border border-light-subtle shadow-sm rounded-3 bg-white mb-4">
             @php
                 $currentStage = request('urgent') == '1' ? 'urgent' : request('stage', '');
                 $currTipe = request('tipe_spk', '');
@@ -72,7 +71,7 @@
                         {{-- Select Stage (Dropdown pengganti tab) --}}
                         <div class="col-12 col-md-5">
                             <label class="form-label fw-bold text-dark"><i class="bi bi-funnel text-primary me-1"></i>Tahap / Status SPK</label>
-                            <select name="stage_select" id="stage_select" class="form-select form-control" style="cursor: pointer;"
+                            <select name="stage_select" id="stage_select" class="form-select no-select2 fw-medium text-dark bg-white border-light-subtle shadow-2xs" style="cursor: pointer; height: 35px;"
                                 onchange="handleStageSelectChange(this.value)">
                                 @foreach($stageOptions as $stKey => $stInfo)
                                     @php
@@ -91,7 +90,7 @@
                         {{-- Select Tipe SPK --}}
                         <div class="col-6 col-md-3">
                             <label class="form-label fw-bold text-dark"><i class="bi bi-box-seam me-1"></i>Tipe SPK</label>
-                            <select name="tipe_spk" class="form-select form-control" style="cursor: pointer;" onchange="this.form.submit()">
+                            <select name="tipe_spk" class="form-select no-select2 fw-medium text-dark bg-white border-light-subtle shadow-2xs" style="cursor: pointer; height: 35px;" onchange="this.form.submit()">
                                 <option value="" {{ empty($currTipe) ? 'selected' : '' }}>Semua Tipe</option>
                                 <option value="pesanan_pelanggan" {{ $currTipe === 'pesanan_pelanggan' ? 'selected' : '' }}>🛒 Pesanan Pelanggan</option>
                                 <option value="stok_gudang" {{ $currTipe === 'stok_gudang' ? 'selected' : '' }}>🏬 Stok Gudang</option>
@@ -101,7 +100,7 @@
                         {{-- Select Deadline --}}
                         <div class="col-6 col-md-4">
                             <label class="form-label fw-bold text-dark"><i class="bi bi-clock-history me-1"></i>Filter Deadline</label>
-                            <select name="deadline_filter" class="form-select form-control" style="cursor: pointer;" onchange="this.form.submit()">
+                            <select name="deadline_filter" class="form-select no-select2 fw-medium text-dark bg-white border-light-subtle shadow-2xs" style="cursor: pointer; height: 35px;" onchange="this.form.submit()">
                                 <option value="" {{ empty($currDeadline) ? 'selected' : '' }}>Semua Deadline</option>
                                 <option value="overdue" {{ $currDeadline === 'overdue' ? 'selected' : '' }}>🔥 Lewat Deadline</option>
                                 <option value="near" {{ $currDeadline === 'near' ? 'selected' : '' }}>⚡ Mendekati (≤ 3 Hari)</option>
