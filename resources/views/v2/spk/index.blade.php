@@ -37,118 +37,79 @@
         </div>
 
         {{-- SPK PRODUCTION STATUS TABS & FILTER CARD (PESANAN STYLE) --}}
+        {{-- SPK PRODUCTION STATUS & FILTER CARD --}}
         <div class="card border border-light-subtle shadow-sm rounded-3 bg-white mb-4 overflow-hidden">
-            {{-- Horizontal Stage Tabs --}}
             @php
                 $currentStage = request('urgent') == '1' ? 'urgent' : request('stage', '');
-                $tabStages = [
-                    ''              => ['label' => 'Semua', 'icon' => 'bi bi-grid-fill', 'countKey' => '__all__'],
-                    'urgent'        => ['label' => 'Urgent ⚡', 'icon' => 'bi bi-lightning-charge-fill text-danger', 'countKey' => 'urgent'],
-                    'in_progress'   => ['label' => 'Sedang Diproses', 'icon' => 'bi bi-gear-wide-connected text-primary', 'countKey' => 'in_progress'],
-                    'potong'        => ['label' => 'Potong', 'icon' => 'bi bi-scissors text-danger', 'countKey' => 'potong'],
-                    'sablon_bordir' => ['label' => 'Sablon/Bordir', 'icon' => 'bi bi-palette text-warning', 'countKey' => 'sablon_bordir'],
-                    'jahit'         => ['label' => 'Jahit', 'icon' => 'bi bi-pin-angle text-primary', 'countKey' => 'jahit'],
-                    'lkpk'          => ['label' => 'LKPK', 'icon' => 'bi bi-disc text-secondary', 'countKey' => 'lkpk'],
-                    'qc'            => ['label' => 'QC', 'icon' => 'bi bi-search text-info', 'countKey' => 'qc'],
-                    'packing'       => ['label' => 'Packing', 'icon' => 'bi bi-box-seam text-dark', 'countKey' => 'packing'],
-                    'desain'        => ['label' => 'Desain', 'icon' => 'bi bi-brush text-indigo', 'countKey' => 'desain'],
-                    'pesanan_baru'  => ['label' => 'Pesanan Baru', 'icon' => 'bi bi-clipboard-check text-success', 'countKey' => 'pesanan_baru'],
-                    'sampling'      => ['label' => 'Sampling', 'icon' => 'bi bi-hourglass-split text-muted', 'countKey' => 'sampling'],
-                    'draft'         => ['label' => 'Draft', 'icon' => 'bi bi-file-earmark-text text-secondary', 'countKey' => 'draft'],
-                    'selesai'       => ['label' => 'Selesai', 'icon' => 'bi bi-check-circle-fill text-success', 'countKey' => 'selesai'],
-                    'dikirim'       => ['label' => 'Dikirim', 'icon' => 'bi bi-truck text-info', 'countKey' => 'dikirim'],
-                    'batal'         => ['label' => 'Dibatalkan', 'icon' => 'bi bi-x-circle-fill text-danger', 'countKey' => 'batal'],
-                ];
-            @endphp
-            <div class="spk-tab-bar" role="tablist">
-                @foreach($tabStages as $tabKey => $tabInfo)
-                    @php
-                        $tabUrl = route('v2.spk.index', array_merge(
-                            request()->except(['stage', 'urgent', 'page']),
-                            $tabKey === 'urgent' ? ['urgent' => '1'] : ($tabKey !== '' ? ['stage' => $tabKey] : [])
-                        ));
-                        $isActive = $currentStage === $tabKey;
-                        $count = $tabCounts[$tabInfo['countKey']] ?? 0;
-                    @endphp
-                    <a class="spk-tab {{ $isActive ? 'active' : '' }}" href="{{ $tabUrl }}" role="tab">
-                        <i class="{{ $tabInfo['icon'] }}" style="font-size: .8rem;"></i>
-                        <span>{{ $tabInfo['label'] }}</span>
-                        @if($count > 0)
-                            <span class="tab-badge {{ $tabKey === 'urgent' ? 'badge-urgent' : '' }}">{{ $count > 999 ? '999+' : $count }}</span>
-                        @endif
-                    </a>
-                @endforeach
-            </div>
-
-            {{-- Process & Category Sub-Bar --}}
-            @php
                 $currTipe = request('tipe_spk', '');
                 $currDeadline = request('deadline_filter', '');
+                $stageOptions = [
+                    ''              => ['label' => 'Semua Status SPK', 'countKey' => '__all__'],
+                    'urgent'        => ['label' => '⚡ Urgent', 'countKey' => 'urgent'],
+                    'in_progress'   => ['label' => '⚙️ Sedang Diproses', 'countKey' => 'in_progress'],
+                    'potong'        => ['label' => '✂️ Potong', 'countKey' => 'potong'],
+                    'sablon_bordir' => ['label' => '🎨 Sablon/Bordir', 'countKey' => 'sablon_bordir'],
+                    'jahit'         => ['label' => '🪡 Jahit', 'countKey' => 'jahit'],
+                    'lkpk'          => ['label' => '💿 LKPK (Kancing)', 'countKey' => 'lkpk'],
+                    'qc'            => ['label' => '🔍 QC', 'countKey' => 'qc'],
+                    'packing'       => ['label' => '📦 Packing', 'countKey' => 'packing'],
+                    'desain'        => ['label' => '🖌️ Desain & Mockup', 'countKey' => 'desain'],
+                    'pesanan_baru'  => ['label' => '📋 Pesanan Baru / Rencana', 'countKey' => 'pesanan_baru'],
+                    'sampling'      => ['label' => '⏳ Sampling', 'countKey' => 'sampling'],
+                    'draft'         => ['label' => '📝 Draft (Belum Deal)', 'countKey' => 'draft'],
+                    'selesai'       => ['label' => '✅ Selesai (Finished)', 'countKey' => 'selesai'],
+                    'dikirim'       => ['label' => '🚚 Dikirim (Shipped)', 'countKey' => 'dikirim'],
+                    'batal'         => ['label' => '❌ Dibatalkan (Batal)', 'countKey' => 'batal'],
+                ];
+                $hasActiveExtra = request()->filled('search') || request()->filled('date_from') || request()->filled('date_to') || !empty($currentStage) || request()->filled('tipe_spk') || request()->filled('deadline_filter');
             @endphp
-            <div class="spk-sub-bar">
-                <span class="spk-sub-label"><i class="bi bi-funnel me-1"></i>Tipe SPK:</span>
-                @php
-                    $tipeOptions = [
-                        '' => 'Semua Tipe',
-                        'pesanan_pelanggan' => '🛒 Pesanan Pelanggan',
-                        'stok_gudang' => '🏬 Stok Gudang',
-                    ];
-                @endphp
-                @foreach($tipeOptions as $tpKey => $tpLabel)
-                    @php
-                        $tpUrl = route('v2.spk.index', array_merge(
-                            request()->except(['tipe_spk', 'page']),
-                            $tpKey !== '' ? ['tipe_spk' => $tpKey] : []
-                        ));
-                        $isTpActive = $currTipe === $tpKey;
-                    @endphp
-                    <a href="{{ $tpUrl }}" class="spk-sub-pill {{ $isTpActive ? 'active' : '' }}">
-                        {{ $tpLabel }}
-                    </a>
-                @endforeach
 
-                <span class="spk-sub-label ms-md-3"><i class="bi bi-clock-history me-1"></i>Deadline:</span>
-                @php
-                    $deadlineOptions = [
-                        '' => 'Semua Deadline',
-                        'overdue' => '🔥 Lewat Deadline',
-                        'near' => '⚡ Mendekati (≤ 3 Hari)',
-                    ];
-                @endphp
-                @foreach($deadlineOptions as $dlKey => $dlLabel)
-                    @php
-                        $dlUrl = route('v2.spk.index', array_merge(
-                            request()->except(['deadline_filter', 'page']),
-                            $dlKey !== '' ? ['deadline_filter' => $dlKey] : []
-                        ));
-                        $isDlActive = $currDeadline === $dlKey;
-                    @endphp
-                    <a href="{{ $dlUrl }}" class="spk-sub-pill {{ $isDlActive ? 'active' : '' }}">
-                        {{ $dlLabel }}
-                    </a>
-                @endforeach
-            </div>
-
-            {{-- Search & Additional Filter Inputs Bar --}}
-            <div class="spk-filter-bar">
+            {{-- Filter Form --}}
+            <div class="spk-filter-bar p-3">
                 <form action="{{ route('v2.spk.index') }}" method="GET" class="m-0" id="spk-filter-form">
-                    @if(request('stage'))
-                        <input type="hidden" name="stage" value="{{ request('stage') }}">
-                    @endif
-                    @if(request('urgent') == '1')
-                        <input type="hidden" name="urgent" value="1">
-                    @endif
-                    @if(request('tipe_spk'))
-                        <input type="hidden" name="tipe_spk" value="{{ request('tipe_spk') }}">
-                    @endif
-                    @if(request('deadline_filter'))
-                        <input type="hidden" name="deadline_filter" value="{{ request('deadline_filter') }}">
-                    @endif
+                    {{-- Row 1: Status Tahap, Tipe SPK, Deadline --}}
+                    <div class="row g-2 align-items-end mb-2">
+                        {{-- Select Stage (Dropdown pengganti tab) --}}
+                        <div class="col-12 col-md-5">
+                            <label class="form-label fw-bold text-dark"><i class="bi bi-funnel text-primary me-1"></i>Tahap / Status SPK</label>
+                            <select name="stage_select" id="stage_select" class="form-select form-control" style="cursor: pointer;"
+                                onchange="handleStageSelectChange(this.value)">
+                                @foreach($stageOptions as $stKey => $stInfo)
+                                    @php
+                                        $cnt = $tabCounts[$stInfo['countKey']] ?? 0;
+                                        $isSelected = $currentStage === $stKey;
+                                    @endphp
+                                    <option value="{{ $stKey }}" {{ $isSelected ? 'selected' : '' }}>
+                                        {{ $stInfo['label'] }} ({{ $cnt }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <input type="hidden" name="stage" id="filter_stage_hidden" value="{{ $currentStage !== 'urgent' ? $currentStage : '' }}">
+                            <input type="hidden" name="urgent" id="filter_urgent_hidden" value="{{ $currentStage === 'urgent' ? '1' : '' }}">
+                        </div>
 
-                    @php
-                        $hasActiveExtra = request()->filled('search') || request()->filled('date_from') || request()->filled('date_to') || !empty($currentStage) || request()->filled('tipe_spk') || request()->filled('deadline_filter');
-                    @endphp
+                        {{-- Select Tipe SPK --}}
+                        <div class="col-6 col-md-3">
+                            <label class="form-label fw-bold text-dark"><i class="bi bi-box-seam me-1"></i>Tipe SPK</label>
+                            <select name="tipe_spk" class="form-select form-control" style="cursor: pointer;" onchange="this.form.submit()">
+                                <option value="" {{ empty($currTipe) ? 'selected' : '' }}>Semua Tipe</option>
+                                <option value="pesanan_pelanggan" {{ $currTipe === 'pesanan_pelanggan' ? 'selected' : '' }}>🛒 Pesanan Pelanggan</option>
+                                <option value="stok_gudang" {{ $currTipe === 'stok_gudang' ? 'selected' : '' }}>🏬 Stok Gudang</option>
+                            </select>
+                        </div>
 
+                        {{-- Select Deadline --}}
+                        <div class="col-6 col-md-4">
+                            <label class="form-label fw-bold text-dark"><i class="bi bi-clock-history me-1"></i>Filter Deadline</label>
+                            <select name="deadline_filter" class="form-select form-control" style="cursor: pointer;" onchange="this.form.submit()">
+                                <option value="" {{ empty($currDeadline) ? 'selected' : '' }}>Semua Deadline</option>
+                                <option value="overdue" {{ $currDeadline === 'overdue' ? 'selected' : '' }}>🔥 Lewat Deadline</option>
+                                <option value="near" {{ $currDeadline === 'near' ? 'selected' : '' }}>⚡ Mendekati (≤ 3 Hari)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Row 2: Pencarian Cepat, Tanggal SPK, Deadline Hingga, Tombol Filter --}}
                     <div class="row g-2 align-items-end">
                         {{-- Search Input (col-4) --}}
                         <div class="col-12 col-md-4">
@@ -192,15 +153,27 @@
                     <span>Menampilkan <strong class="text-dark">{{ $spks->total() }}</strong> kelompok produksi</span>
                     @if(!empty($currentStage))
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2">
-                            Filter Tahap: {{ $tabStages[$currentStage]['label'] ?? ucfirst($currentStage) }}
+                            Filter Tahap: {{ $stageOptions[$currentStage]['label'] ?? ucfirst($currentStage) }}
                         </span>
                     @endif
                 </div>
-                <div class="d-none d-sm-flex align-items-center gap-3">
-                    <span class="small text-muted"><i class="bi bi-info-circle me-1"></i>Klik tab proses di atas untuk melihat SPK yang sedang berjalan</span>
-                </div>
             </div>
         </div>
+
+        <script>
+            function handleStageSelectChange(val) {
+                const stageInp = document.getElementById('filter_stage_hidden');
+                const urgentInp = document.getElementById('filter_urgent_hidden');
+                if (val === 'urgent') {
+                    stageInp.value = '';
+                    urgentInp.value = '1';
+                } else {
+                    stageInp.value = val;
+                    urgentInp.value = '';
+                }
+                document.getElementById('spk-filter-form').submit();
+            }
+        </script>
 
         {{-- SPK PRODUCTION GROUP CARDS GRID --}}
         <div class="row g-3.5 mb-4">
