@@ -86,11 +86,22 @@ class SpkController extends BaseSpkController
 
         // Helper to match stage
         $matchStage = function ($spkGroup, $stage) {
+            if ($stage === 'batal') {
+                return $spkGroup->contains(function ($s) {
+                    return (bool) ($s->is_batal ?? false) || strtolower($s->tahap_saat_ini ?? '') === 'batal' || str_contains(strtolower($s->current_stage_name ?? ''), 'batal');
+                });
+            }
+
+            // Tahapan produksi aktif mengabaikan SPK yang sudah dibatalkan
+            $activeSpks = $spkGroup->filter(function ($s) {
+                return !((bool) ($s->is_batal ?? false) || strtolower($s->tahap_saat_ini ?? '') === 'batal' || str_contains(strtolower($s->current_stage_name ?? ''), 'batal'));
+            });
+
             if ($stage === 'urgent') {
-                return $spkGroup->contains('is_urgent', true);
+                return $activeSpks->contains('is_urgent', true);
             }
             if ($stage === 'in_progress') {
-                return $spkGroup->contains(function ($s) {
+                return $activeSpks->contains(function ($s) {
                     $curr = strtolower($s->current_stage_name ?? '');
                     return str_contains($curr, 'potong') || str_contains($curr, 'pemotongan') ||
                            str_contains($curr, 'sablon') || str_contains($curr, 'bordir') ||
@@ -102,7 +113,7 @@ class SpkController extends BaseSpkController
                 });
             }
 
-            return $spkGroup->contains(function ($s) use ($stage) {
+            return $activeSpks->contains(function ($s) use ($stage) {
                 $currName = strtolower($s->current_stage_name ?? '');
                 $tahap = strtolower($s->tahap_saat_ini ?? '');
 
@@ -139,7 +150,7 @@ class SpkController extends BaseSpkController
         $definedStages = [
             'urgent', 'in_progress', 'potong', 'sablon_bordir', 'jahit',
             'lkpk', 'qc', 'packing', 'desain', 'pesanan_baru',
-            'sampling', 'draft', 'selesai', 'dikirim'
+            'sampling', 'draft', 'selesai', 'dikirim', 'batal'
         ];
 
         $tabCounts = ['__all__' => $allGroupedSpks->count()];

@@ -323,6 +323,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/spk/payments', [\App\Http\Controllers\V2\SpkController::class, 'paymentsIndex'])->name('spk.payments');
         Route::get('/spk/{spk}', [\App\Http\Controllers\V2\SpkController::class, 'show'])->name('spk.show');
         Route::put('/spk/{spk}', [\App\Http\Controllers\V2\SpkController::class, 'update'])->name('spk.update');
+        Route::post('/spk/{spk}/batal', [\App\Http\Controllers\V2\SpkController::class, 'batal'])->name('spk.batal');
         Route::delete('/spk/{spk}', [\App\Http\Controllers\V2\SpkController::class, 'destroy'])->name('spk.destroy');
         Route::get('/spk/{spk}/scan-pickup', [\App\Http\Controllers\V2\SpkController::class, 'scanPickupPage'])->name('spk.scan_pickup');
         Route::post('/spk/{spk}/scan-pickup', [\App\Http\Controllers\V2\SpkController::class, 'processScanPickup'])->name('spk.process_scan_pickup');
@@ -820,6 +821,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/spks/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'show'])->name('spks.show');
         Route::put('/spks/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'update'])->name('spks.update');
         Route::get('/spks/{spk}/print', [\App\Http\Controllers\Inventory\SpkController::class, 'print'])->name('spks.print');
+        Route::post('/spks/{spk}/batal', [\App\Http\Controllers\Inventory\SpkController::class, 'batal'])->name('spks.batal');
         Route::delete('/spks/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'destroy'])->name('spks.destroy');
         Route::post('/spks/{spk}/update-tambahan', [\App\Http\Controllers\Inventory\SpkController::class, 'updateTambahan'])->name('spks.update_tambahan');
         Route::post('/spks/{spk}/update-global-costs', [\App\Http\Controllers\Inventory\SpkController::class, 'updateGlobalCosts'])->name('spks.update_global_costs');

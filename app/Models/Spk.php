@@ -18,6 +18,10 @@ class Spk extends Model
         'kategori',
         'is_urgent',
         'tahap_saat_ini',
+        'is_batal',
+        'alasan_batal',
+        'batal_at',
+        'batal_by',
         'tanggal',
         'deadline',
         'pemesan',
@@ -37,6 +41,8 @@ class Spk extends Model
         'tanggal' => 'date',
         'deadline' => 'date',
         'is_urgent' => 'boolean',
+        'is_batal' => 'boolean',
+        'batal_at' => 'datetime',
     ];
 
     /** List of available production stages */
@@ -51,10 +57,15 @@ class Spk extends Model
         'Quality Control'         => ['label' => 'Quality Control',              'emoji' => '🔍', 'color' => 'success'],
         'Packing / Finishing'     => ['label' => 'Packing / Finishing',          'emoji' => '📦', 'color' => 'warning'],
         'Selesai (Finished Good)' => ['label' => 'Selesai (Finished Good)',      'emoji' => '✅', 'color' => 'success'],
+        'Batal'                   => ['label' => 'Dibatalkan',                  'emoji' => '❌', 'color' => 'danger'],
     ];
 
     public function getCurrentStageNameAttribute(): string
     {
+        if ($this->is_batal || strtolower((string) $this->tahap_saat_ini) === 'batal') {
+            return 'DIBATALKAN';
+        }
+
         if (!empty($this->tahap_saat_ini)) {
             return strtoupper($this->tahap_saat_ini);
         }
@@ -339,6 +350,11 @@ class Spk extends Model
         }
 
         return $prefix . sprintf('%03d', $next);
+    }
+
+    public function dibatalkanOleh(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'batal_by');
     }
 
     protected static function booted(): void

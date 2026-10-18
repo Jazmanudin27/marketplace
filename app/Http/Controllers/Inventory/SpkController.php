@@ -1819,33 +1819,41 @@ class SpkController extends Controller
             ->with('success', 'Perubahan SPK #' . $spk->no_spk . ' berhasil disimpan.');
     }
 
-    public function destroy(Spk $spk)
+    public function batal(Request $request, Spk $spk)
     {
         $tenantId = Auth::user()->tenant_id;
         abort_unless($spk->tenant_id === $tenantId, 403);
 
-        DB::transaction(function () use ($spk, $tenantId) {
+        $request->validate([
+            'alasan_batal' => 'required|string|min:3|max:1000',
+        ], [
+            'alasan_batal.required' => 'Mohon sertakan alasan pembatalan SPK.',
+            'alasan_batal.min' => 'Alasan pembatalan minimal 3 karakter.',
+        ]);
+
+        DB::transaction(function () use ($spk, $request, $tenantId) {
             $noPesanan = $spk->no_pesanan;
 
-            // Restore stock and delete associated WarehouseMutation
+            // Kembalikan alokasi bahan / mutasi gudang agar stok tidak tertahan
             $this->syncSpkWarehouseMutation($spk, []);
 
-            foreach ($spk->items as $item) {
-                SpkItemExtra::where('spk_item_id', $item->id)->delete();
-                SpkItemProgres::where('spk_item_id', $item->id)->delete();
-                \App\Models\SpkItemPickup::where('spk_item_id', $item->id)->delete();
-                $item->delete();
-            }
-            SpkProses::where('spk_id', $spk->id)->delete();
-            $spk->delete();
+            // Set status SPK menjadi Batal tanpa menghapus data historis
+            $spk->update([
+                'is_batal' => true,
+                'tahap_saat_ini' => 'BATAL',
+                'alasan_batal' => $request->alasan_batal,
+                'batal_at' => now(),
+                'batal_by' => Auth::id(),
+            ]);
 
-            // Sync kembali status Penjualan Offline jika seluruh SPK terkait telah dihapus
+            // Sync kembali status Penjualan Offline jika seluruh SPK aktif terkait telah dibatalkan
             if (!empty($noPesanan)) {
-                $remainingSpkCount = Spk::where('tenant_id', $tenantId)
+                $remainingActiveSpkCount = Spk::where('tenant_id', $tenantId)
                     ->where('no_pesanan', $noPesanan)
+                    ->where('is_batal', false)
                     ->count();
 
-                if ($remainingSpkCount === 0) {
+                if ($remainingActiveSpkCount === 0) {
                     $offlineSale = \App\Models\OfflineSale::where('tenant_id', $tenantId)
                         ->where('sale_number', $noPesanan)
                         ->first();
@@ -1863,8 +1871,31 @@ class SpkController extends Controller
             }
         });
 
-        return redirect()->route('spks.index')
-            ->with('success', 'SPK #' . $spk->no_spk . ' berhasil dihapus.');
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'SPK #' . $spk->no_spk . ' berhasil dibatalkan.',
+            ]);
+        }
+
+        $redirectUrl = (request()->has('from_v2') || request()->routeIs('spk.*'))
+            ? (Route::has('v2.spk.index') ? route('v2.spk.index') : route('spk.index'))
+            : (Route::has('v2.spk.index') ? route('v2.spk.index') : route('spks.index'));
+
+        return redirect($redirectUrl)
+            ->with('success', 'SPK #' . $spk->no_spk . ' berhasil dibatalkan.');
+    }
+
+    public function destroy(Spk $spk)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($spk->tenant_id === $tenantId, 403);
+
+        // Jangan hapus data secara permanen, arahkan ke pembatalan SPK
+        $alasan = request('alasan_batal', 'Dibatalkan oleh pengguna via aksi hapus SPK.');
+        request()->merge(['alasan_batal' => $alasan]);
+
+        return $this->batal(request(), $spk);
     }
 
     /**

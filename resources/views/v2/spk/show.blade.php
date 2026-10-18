@@ -406,6 +406,28 @@
             <option value="Topi & Aksesoris"></option>
         </datalist>
 
+        {{-- ── NOTIFIKASI SPK DIBATALKAN ── --}}
+        @if ($spk->is_batal || strtolower($spk->tahap_saat_ini ?? '') === 'batal')
+            <div class="alert alert-danger rounded-4 border-danger shadow-sm d-flex align-items-center justify-content-between p-3 mb-3 bg-danger bg-opacity-10 text-danger">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="fas fa-ban fa-2x text-danger"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1 text-danger">SPK INI TELAH DIBATALKAN</h6>
+                        <div class="small text-dark">
+                            <strong>Alasan Pembatalan:</strong> {{ $spk->alasan_batal ?: 'Tidak ada alasan dicatat.' }}
+                            @if($spk->batal_at)
+                                &bull; <span class="text-muted">{{ $spk->batal_at->format('d M Y H:i') }}</span>
+                            @endif
+                            @if($spk->dibatalkanOleh)
+                                &bull; <span class="text-muted">oleh {{ $spk->dibatalkanOleh->name }}</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                <span class="badge bg-danger fs-6 px-3 py-1.5 rounded-pill">DIBATALKAN</span>
+            </div>
+        @endif
+
         {{-- ── PAGE HEADER (PURE BOOTSTRAP 5) ── --}}
         <div class="card border shadow-sm mb-3">
             <div class="card-body py-3 px-3">
@@ -514,14 +536,16 @@
                                     <hr class="dropdown-divider my-1">
                                 </li>
                                 <li>
-                                    <form action="{{ route('spks.destroy', $spk) }}" method="POST" class="m-0"
-                                        onsubmit="return confirm('Apakah Anda yakin ingin menghapus data SPK ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="dropdown-item py-2 small fw-semibold text-danger">
-                                            <i class="fas fa-trash-alt me-2"></i> Hapus SPK
+                                    @if ($spk->is_batal || strtolower($spk->tahap_saat_ini ?? '') === 'batal')
+                                        <button type="button" class="dropdown-item py-2 small fw-semibold text-muted" disabled>
+                                            <i class="fas fa-ban me-2 text-muted"></i> SPK Sudah Dibatalkan
                                         </button>
-                                    </form>
+                                    @else
+                                        <button type="button" class="dropdown-item py-2 small fw-semibold text-danger"
+                                            data-bs-toggle="modal" data-bs-target="#modalBatalSpk">
+                                            <i class="fas fa-ban me-2"></i> Batalkan SPK
+                                        </button>
+                                    @endif
                                 </li>
                             </ul>
                         </div>
@@ -2300,6 +2324,47 @@
         <option value="3XL">
         <option value="ALL SIZE">
     </datalist>
+
+    {{-- Modal Batalkan SPK --}}
+    @if (!$spk->is_batal && strtolower($spk->tahap_saat_ini ?? '') !== 'batal')
+        <div class="modal fade" id="modalBatalSpk" tabindex="-1" aria-labelledby="modalBatalSpkLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg rounded-4">
+                    <form action="{{ route('spk.batal', $spk) }}" method="POST">
+                        @csrf
+                        <div class="modal-header border-0 pb-0">
+                            <h5 class="modal-title fw-bold text-danger d-flex align-items-center gap-2" id="modalBatalSpkLabel">
+                                <i class="fas fa-exclamation-triangle"></i> Konfirmasi Batalkan SPK
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-3">
+                            <p class="text-secondary small mb-3">
+                                Anda akan membatalkan SPK <strong>#{{ $spk->no_spk }}</strong>. 
+                                Data SPK dan riwayat proses tidak akan dihapus permanen, namun status SPK akan ditandai sebagai 
+                                <span class="badge bg-danger">DIBATALKAN</span> dan alokasi stok bahan baku akan dikembalikan.
+                            </p>
+                            <div class="mb-3">
+                                <label for="alasan_batal" class="form-label small fw-bold text-dark">
+                                    Alasan Pembatalan <span class="text-danger">*</span>
+                                </label>
+                                <textarea name="alasan_batal" id="alasan_batal" class="form-control" rows="3" 
+                                    placeholder="Contoh: Klien membatalkan pesanan, kesalahan spesifikasi bahan, salah input Qty..." required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="btn btn-sm btn-light border fw-semibold px-3" data-bs-dismiss="modal">
+                                Batal
+                            </button>
+                            <button type="submit" class="btn btn-sm btn-danger fw-bold px-3">
+                                <i class="fas fa-ban me-1"></i> Ya, Batalkan SPK
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
 @endsection
 
 @push('scripts')
