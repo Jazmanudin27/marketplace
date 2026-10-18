@@ -983,14 +983,22 @@
                                     };
 
                                     $buyerInitial = strtoupper(substr($order->buyer_name ?? 'U', 0, 1));
+                                    $canPrint = in_array($orderStatusUp, [
+                                        'READY_TO_SHIP', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES',
+                                        'RETRY_SHIP', 'TO_RETRY_LOGISTICS', 'SIAP_KIRIM', 'PERLU_DIKIRIM', 'CONFIRMED'
+                                    ]);
                                 @endphp
                                 <tr>
                                     {{-- Checkbox --}}
                                     <td style="text-align:center;">
-                                        <input type="checkbox" name="order_ids[]" value="{{ $order->id }}"
-                                            class="order-checkbox form-check-input" style="cursor:pointer;"
-                                            data-order-number="{{ $order->invoice_number ?? ($order->order_marketplace_id ?? '#' . $order->id) }}"
-                                            data-tracking="{{ $order->tracking_number ?? '' }}">
+                                        @if ($canPrint)
+                                            <input type="checkbox" name="order_ids[]" value="{{ $order->id }}"
+                                                class="order-checkbox form-check-input" style="cursor:pointer;"
+                                                data-order-number="{{ $order->invoice_number ?? ($order->order_marketplace_id ?? '#' . $order->id) }}"
+                                                data-tracking="{{ $order->tracking_number ?? '' }}">
+                                        @else
+                                            <span class="text-muted" style="font-size:0.75rem;" title="Hanya pesanan Perlu Dikirim yang dapat dicetak resi">—</span>
+                                        @endif
                                     </td>
 
                                     {{-- Produk & Pesanan --}}
@@ -1209,26 +1217,17 @@
                                     {{-- Aksi --}}
                                     <td style="text-align:center;">
                                         <div class="d-flex flex-column align-items-center gap-1">
-                                            @if (!in_array($orderStatusUp, ['UNPAID', 'PENDING', 'CANCELLED', 'BATAL', 'IN_CANCEL']))
+                                            @if ($canPrint)
                                                 <a href="{{ route('orders.print', $order->id) }}" target="_blank"
                                                     class="btn-tbl btn-tbl-outline" title="Cetak Resi / Label Pengiriman">
                                                     <i class="fas fa-print"></i> Cetak Resi
                                                 </a>
-                                            @endif
-                                            @if (in_array($orderStatusUp, ['SHIPPED', 'DELIVERED', 'COMPLETED', 'FINISHED', 'SELESAI']))
+                                            @elseif (in_array($orderStatusUp, ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'DELIVERED', 'COMPLETED', 'FINISHED', 'SELESAI']))
                                                 <span class="meta-badge"
                                                     style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0; padding:4px 8px;">
                                                     <i class="fas fa-check-circle me-1"></i>Sudah Kirim
                                                 </span>
-                                            {{-- Tombol Kirim di-hide sementara sesuai instruksi --}}
-                                            {{-- @elseif (!in_array($orderStatusUp, ['CANCELLED', 'BATAL', 'IN_CANCEL']))
-                                                <button type="button"
-                                                    class="btn-tbl btn-tbl-primary btn-ship-single-order"
-                                                    data-order-id="{{ $order->id }}"
-                                                    title="Kirim Pesanan ke Marketplace">
-                                                    <i class="fas fa-paper-plane"></i> Kirim
-                                                </button> --}}
-                                            @elseif (in_array($orderStatusUp, ['UNPAID', 'PENDING', 'CANCELLED', 'BATAL', 'IN_CANCEL']))
+                                            @else
                                                 <span class="text-muted small">—</span>
                                             @endif
                                         </div>
