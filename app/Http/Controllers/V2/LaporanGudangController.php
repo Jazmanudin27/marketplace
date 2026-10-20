@@ -14,21 +14,27 @@ class LaporanGudangController extends Controller
 {
     public function index(Request $request)
     {
-        $tenantId = Auth::user()->tenant_id;
+        $tenantId  = Auth::user()->tenant_id;
+        $activeTab = $request->get('tab', 'rekap');
+        $dateFrom  = $request->get('date_from', Carbon::now()->startOfMonth()->toDateString());
+        $dateTo    = $request->get('date_to', Carbon::now()->toDateString());
 
-        $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
-        $brands     = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $categories = collect();
+        $brands     = collect();
+        $products   = collect();
 
-        // Limit default produk awal agar tidak dump ribuan baris bikin CPU 100%
-        $products   = MasterProduct::where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->limit(50)
-            ->get(['id', 'name', 'sku', 'is_bundle', 'stock']);
-
-        $activeTab  = $request->get('tab', 'rekap');
-        $dateFrom   = $request->get('date_from', Carbon::now()->startOfMonth()->toDateString());
-        $dateTo     = $request->get('date_to', Carbon::now()->toDateString());
+        if ($activeTab === 'rekap') {
+            $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
+            $brands     = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
+        } elseif ($activeTab === 'kartu_stok') {
+            // Limit produk awal untuk placeholder Select2 (pencarian utama via AJAX endpoint)
+            $products   = MasterProduct::where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->limit(20)
+                ->get(['id', 'name', 'sku', 'is_bundle', 'stock']);
+        }
+        // tab perputaran tidak membutuhkan query produk/kategori/brand awal (hemat CPU & instan load)
 
         return view('v2.laporan_gudang.index', compact(
             'activeTab',

@@ -881,8 +881,31 @@ class ReportController extends Controller
         $dateTo   = $request->get('date_to', now()->toDateString());
 
         $daysInPeriod = max(1, (int) abs(\Carbon\Carbon::parse($dateFrom)->diffInDays(\Carbon\Carbon::parse($dateTo))));
+        $startDateTime = \Carbon\Carbon::parse($dateFrom)->startOfDay();
+        $endDateTime   = \Carbon\Carbon::parse($dateTo)->endOfDay();
 
-        $products = \App\Models\MasterProduct::where('tenant_id', $tenantId)->get();
+        // 1. Ambil master product hanya kolom yang diperlukan (hemat memory)
+        $products = \App\Models\MasterProduct::where('tenant_id', $tenantId)
+            ->select(['id', 'sku', 'name', 'stock', 'cost_price'])
+            ->get();
+
+        // 2. Agregasi mutasi stok selama periode dalam 1 query saja (hilangkan N+1 loop)
+        $periodMovements = \App\Models\StockMovement::where('tenant_id', $tenantId)
+            ->where('created_at', '>=', $startDateTime)
+            ->where('created_at', '<=', $endDateTime)
+            ->selectRaw('master_product_id, 
+                SUM(CASE WHEN quantity > 0 THEN quantity ELSE 0 END) as in_qty, 
+                SUM(CASE WHEN quantity < 0 THEN ABS(quantity) ELSE 0 END) as out_qty')
+            ->groupBy('master_product_id')
+            ->get()
+            ->keyBy('master_product_id');
+
+        // 3. Agregasi mutasi stok setelah periode dalam 1 query saja
+        $movementsAfterMap = \App\Models\StockMovement::where('tenant_id', $tenantId)
+            ->where('created_at', '>', $endDateTime)
+            ->selectRaw('master_product_id, SUM(quantity) as total_qty')
+            ->groupBy('master_product_id')
+            ->pluck('total_qty', 'master_product_id');
 
         $turnoverData = [];
         $totalCogsValue = 0.0;
@@ -891,44 +914,36 @@ class ReportController extends Controller
         foreach ($products as $product) {
             $costPrice = (float) ($product->cost_price ?: 0.0);
 
-            $movements = \App\Models\StockMovement::where('master_product_id', $product->id)
-                ->where('tenant_id', $tenantId)
-                ->whereDate('created_at', '>=', $dateFrom)
-                ->whereDate('created_at', '<=', $dateTo)
-                ->get();
+            $m = $periodMovements->get($product->id);
+            $inQty  = $m ? (int) $m->in_qty : 0;
+            $outQty = $m ? (int) $m->out_qty : 0;
 
-            $inQty = (int) $movements->filter(fn($m) => $m->quantity > 0)->sum('quantity');
-            $outQty = (int) abs($movements->filter(fn($m) => $m->quantity < 0)->sum('quantity'));
+            $movementsAfter = (int) ($movementsAfterMap[$product->id] ?? 0);
 
-            $movementsAfter = \App\Models\StockMovement::where('master_product_id', $product->id)
-                ->where('tenant_id', $tenantId)
-                ->whereDate('created_at', '>', $dateTo)
-                ->sum('quantity');
-                
-            $endingStock = max(0, $product->stock - $movementsAfter);
+            $endingStock   = max(0, (int) $product->stock - $movementsAfter);
             $startingStock = max(0, $endingStock - $inQty + $outQty);
-            $avgStock = ($startingStock + $endingStock) / 2.0;
+            $avgStock      = ($startingStock + $endingStock) / 2.0;
 
             $avgStockValue = $avgStock * $costPrice;
-            $cogs = $outQty * $costPrice;
+            $cogs          = $outQty * $costPrice;
 
             $turnoverRatio = $avgStockValue > 0 ? $cogs / $avgStockValue : 0.0;
-            $dsi = $turnoverRatio > 0 ? $daysInPeriod / $turnoverRatio : 999.0;
+            $dsi           = $turnoverRatio > 0 ? $daysInPeriod / $turnoverRatio : 999.0;
 
             $totalCogsValue += $cogs;
             $totalAvgStockValue += $avgStockValue;
 
             $turnoverData[] = [
-                'sku' => $product->sku,
-                'name' => $product->name,
-                'cost_price' => $costPrice,
+                'sku'            => $product->sku,
+                'name'           => $product->name,
+                'cost_price'     => $costPrice,
                 'starting_stock' => $startingStock,
-                'ending_stock' => $endingStock,
-                'avg_stock' => $avgStock,
-                'qty_sold' => $outQty,
-                'cogs' => $cogs,
-                'ratio' => $turnoverRatio,
-                'dsi' => $dsi,
+                'ending_stock'   => $endingStock,
+                'avg_stock'      => $avgStock,
+                'qty_sold'       => $outQty,
+                'cogs'           => $cogs,
+                'ratio'          => $turnoverRatio,
+                'dsi'            => $dsi,
             ];
         }
 
