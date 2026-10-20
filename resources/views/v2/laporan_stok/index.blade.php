@@ -383,6 +383,7 @@
             @if(request('tab'))
                 <input type="hidden" name="tab" value="{{ request('tab') }}">
             @endif
+            {{-- Baris 1: Kolom Input Filter --}}
             <div class="row g-2 align-items-end">
                 {{-- Nama Produk --}}
                 <div class="col-12 col-sm-6 col-md-4 col-xl-3">
@@ -392,14 +393,14 @@
                            value="{{ request('name') }}">
                 </div>
                 {{-- SKU --}}
-                <div class="col-6 col-sm-6 col-md-3 col-xl-2">
+                <div class="col-6 col-sm-6 col-md-4 col-xl-2">
                     <label class="form-label"><i class="bi bi-upc-scan me-1"></i>SKU / Induk</label>
                     <input type="text" name="sku" class="form-control font-monospace"
                            placeholder="Cari SKU / Induk..."
                            value="{{ request('sku') }}">
                 </div>
                 {{-- Kategori --}}
-                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
+                <div class="col-6 col-sm-4 col-md-4 col-xl-2">
                     <label class="form-label"><i class="bi bi-tags me-1"></i>Kategori</label>
                     <select name="category_id" class="form-select no-select2">
                         <option value="">Semua Kategori</option>
@@ -411,7 +412,7 @@
                     </select>
                 </div>
                 {{-- Channel --}}
-                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                <div class="col-6 col-sm-4 col-md-6 col-xl-2">
                     <label class="form-label"><i class="bi bi-shop me-1"></i>Channel</label>
                     <select name="channel_id" class="form-select no-select2">
                         <option value="">Semua Channel</option>
@@ -423,10 +424,10 @@
                     </select>
                 </div>
                 {{-- Toko --}}
-                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
-                    <label class="form-label"><i class="bi bi-building me-1"></i>Toko</label>
+                <div class="col-6 col-sm-4 col-md-6 col-xl-3">
+                    <label class="form-label"><i class="bi bi-building me-1"></i>Toko Marketplace</label>
                     <select name="store_id" class="form-select no-select2">
-                        <option value="">Semua Toko</option>
+                        <option value="">Semua Toko Marketplace</option>
                         @foreach($allStores as $st)
                             @php $chName = $st->channel->name ?? 'MP'; @endphp
                             <option value="{{ $st->id }}" {{ request('store_id') == $st->id ? 'selected' : '' }}>
@@ -435,39 +436,42 @@
                         @endforeach
                     </select>
                 </div>
-                {{-- Tombol Filter & Reset --}}
-                <div class="col-12 col-md-3 col-xl-1 d-flex gap-1.5 align-items-center">
-                    <button type="submit" class="btn btn-primary btn-sm flex-fill d-inline-flex align-items-center justify-content-center" style="height:31px;" title="Cari / Terapkan Filter">
-                        <i class="bi bi-search me-1"></i> Cari
+            </div>
+
+            {{-- Baris 2: Checkbox Toggles di Kiri & Tombol Aksi di Kanan --}}
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2 pt-2 border-top border-light">
+                <div class="d-flex align-items-center flex-wrap gap-3">
+                    <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
+                        <input class="form-check-input no-select2" type="checkbox" name="hide_zero_stock" value="1" id="filterHideZero" {{ request('hide_zero_stock') ? 'checked' : '' }} onchange="document.getElementById('psr-filter-form').submit();">
+                        <label class="form-check-label fw-semibold text-secondary" for="filterHideZero">
+                            Sembunyikan Stok 0
+                        </label>
+                    </div>
+                    <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
+                        <input class="form-check-input no-select2" type="checkbox" name="only_diff" value="1" id="filterOnlyDiff" {{ request('only_diff') || request('only_different') || $currentTab === 'diff' ? 'checked' : '' }} onchange="document.getElementById('psr-filter-form').submit();">
+                        <label class="form-check-label fw-semibold text-danger" for="filterOnlyDiff">
+                            Hanya Tampilkan Selisih Stok
+                        </label>
+                    </div>
+                    <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
+                        <input class="form-check-input no-select2" type="checkbox" name="low_stock" value="1" id="filterLowStock" {{ request('low_stock') || $currentTab === 'low' ? 'checked' : '' }} onchange="if(this.checked){ window.location='{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'low'])) }}'; } else { window.location='{{ route('v2.reports.stock', $baseParams) }}'; }">
+                        <label class="form-check-label fw-semibold text-warning-emphasis" for="filterLowStock">
+                            Hanya Stok &lt; 10 PCS
+                        </label>
+                    </div>
+                </div>
+
+                {{-- Tombol Filter di Kanan Bawah --}}
+                <div class="d-flex align-items-center gap-1.5 ms-auto">
+                    <button type="submit" class="btn btn-sm btn-primary px-3 fw-semibold d-inline-flex align-items-center gap-1" style="height:31px;" title="Terapkan Filter">
+                        <i class="bi bi-funnel-fill"></i> Terapkan Filter
                     </button>
                     @if(request()->anyFilled(['name', 'sku', 'category_id', 'channel_id', 'store_id', 'is_bundle', 'is_preorder', 'hide_zero_stock', 'only_diff', 'only_different']))
                         <a href="{{ route('v2.reports.stock', request('tab') ? ['tab' => request('tab')] : []) }}"
-                           class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center px-2" style="height:31px;" title="Reset Filter">
-                            <i class="bi bi-x-lg"></i>
+                           class="btn btn-sm btn-outline-secondary px-2.5 fw-semibold d-inline-flex align-items-center gap-1" style="height:31px;" title="Reset Filter">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
                         </a>
                     @endif
-                </div>
-            </div>
-
-            {{-- Checkbox Toggles --}}
-            <div class="d-flex align-items-center gap-4 mt-2 pt-1 border-top border-light">
-                <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
-                    <input class="form-check-input no-select2" type="checkbox" name="hide_zero_stock" value="1" id="filterHideZero" {{ request('hide_zero_stock') ? 'checked' : '' }} onchange="document.getElementById('psr-filter-form').submit();">
-                    <label class="form-check-label fw-semibold text-secondary" for="filterHideZero">
-                        Sembunyikan Stok 0
-                    </label>
-                </div>
-                <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
-                    <input class="form-check-input no-select2" type="checkbox" name="only_diff" value="1" id="filterOnlyDiff" {{ request('only_diff') || request('only_different') || $currentTab === 'diff' ? 'checked' : '' }} onchange="document.getElementById('psr-filter-form').submit();">
-                    <label class="form-check-label fw-semibold text-danger" for="filterOnlyDiff">
-                        Hanya Tampilkan Selisih Stok
-                    </label>
-                </div>
-                <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
-                    <input class="form-check-input no-select2" type="checkbox" name="low_stock" value="1" id="filterLowStock" {{ request('low_stock') || $currentTab === 'low' ? 'checked' : '' }} onchange="if(this.checked){ window.location='{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'low'])) }}'; } else { window.location='{{ route('v2.reports.stock', $baseParams) }}'; }">
-                    <label class="form-check-label fw-semibold text-warning-emphasis" for="filterLowStock">
-                        Hanya Stok &lt; 10 PCS
-                    </label>
                 </div>
             </div>
         </form>
@@ -499,8 +503,8 @@
 
     {{-- Table Persis Master Produk --}}
     <div class="v2-card-body p-0">
-        <div class="v2-table-responsive">
-            <table class="v2-table align-middle">
+        <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+            <table class="table v2-table align-middle mb-0" style="min-width: 980px;">
                 <thead>
                     <tr>
                         <th style="width: 35px;" class="text-center">#</th>
