@@ -1002,6 +1002,83 @@ class TitipanBarangController extends Controller
         $this->ensureDeductionsColumnsExist();
         $tenantId = Auth::user()->tenant_id;
 
+        // 1. Dukung batch items dari keranjang scanner
+        if ($request->has('items') && is_array($request->items) && count($request->items) > 0) {
+            $request->validate([
+                'items'                        => 'required|array|min:1',
+                'items.*.supplier_consignment_item_id' => 'required|exists:supplier_consignment_items,id',
+                'items.*.quantity'             => 'required|integer|min:1',
+                'reason'                       => 'required|in:unscanned_order,manual_adjustment,return_supplier,damaged,direct_sale,other',
+                'deduction_date'               => 'nullable|date',
+                'notes'                        => 'nullable|string|max:1000',
+                'deduct_master_stock'          => 'nullable|boolean',
+            ]);
+
+            $deductMasterStock = $request->boolean('deduct_master_stock');
+            $deductionDate = $request->filled('deduction_date') ? $request->deduction_date : now();
+            $totalProcessedQty = 0;
+
+            try {
+                DB::transaction(function () use ($request, $tenantId, $deductMasterStock, $deductionDate, &$totalProcessedQty) {
+                    foreach ($request->items as $row) {
+                        $qty = (int) $row['quantity'];
+                        if ($qty <= 0) continue;
+
+                        $consItem = SupplierConsignmentItem::with(['consignment', 'masterProduct'])
+                            ->where('id', $row['supplier_consignment_item_id'])
+                            ->whereHas('consignment', fn($q) => $q->where('tenant_id', $tenantId))
+                            ->firstOrFail();
+
+                        if ($consItem->sisa_stok < $qty) {
+                            $prodName = $consItem->masterProduct ? $consItem->masterProduct->name : 'Produk';
+                            throw new \Exception("Stok titipan {$prodName} tidak mencukupi! Sisa: {$consItem->sisa_stok} pcs, diminta: {$qty} pcs.");
+                        }
+
+                        $consItem->increment('qty_sold', $qty);
+
+                        if ($deductMasterStock && $consItem->masterProduct) {
+                            $consItem->masterProduct->decrement('stock', $qty);
+                        }
+
+                        $deduction = SupplierConsignmentDeduction::create([
+                            'tenant_id'                    => $tenantId,
+                            'supplier_consignment_item_id' => $consItem->id,
+                            'order_id'                     => null,
+                            'order_item_id'                => null,
+                            'quantity'                     => $qty,
+                            'reason'                       => $request->reason,
+                            'reference_no'                 => null,
+                            'notes'                        => $request->notes,
+                            'deduction_date'               => $deductionDate,
+                            'deduct_master_stock'          => $deductMasterStock,
+                            'user_id'                      => Auth::id(),
+                            'scanned_barcode'              => 'SCAN-CART',
+                        ]);
+
+                        $refNote = "Pengeluaran Titipan ({$consItem->consignment->reference_number}) - " . $deduction->reason_label . ($request->notes ? " ({$request->notes})" : '');
+
+                        StockMovement::create([
+                            'tenant_id'         => $tenantId,
+                            'master_product_id' => $consItem->master_product_id,
+                            'user_id'           => Auth::id(),
+                            'type'              => 'out',
+                            'quantity'          => $qty,
+                            'balance_after'     => $consItem->masterProduct ? $consItem->masterProduct->stock : 0,
+                            'reference'         => $refNote,
+                        ]);
+
+                        $totalProcessedQty += $qty;
+                    }
+                });
+
+                return redirect()->route('v2.titipan_barang.deductions.index')
+                    ->with('success', "Berhasil mencatat pengeluaran titipan untuk " . count($request->items) . " item produk (Total {$totalProcessedQty} PCS).");
+            } catch (\Throwable $e) {
+                return back()->withInput()->with('error', $e->getMessage());
+            }
+        }
+
+        // 2. Fallback single-item
         $request->validate([
             'supplier_consignment_item_id' => 'required|exists:supplier_consignment_items,id',
             'quantity'                     => 'required|integer|min:1',
