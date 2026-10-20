@@ -139,20 +139,16 @@
                             <select id="manual_select_item" class="form-select form-select-sm select2">
                                 <option value="">-- Atau Pilih Manual dari Daftar Batch Titipan --</option>
                                 @foreach($availableItems as $item)
-                                    @php
-                                        $p = $item->masterProduct;
-                                        $c = $item->consignment;
-                                        $s = $c ? $c->supplier : null;
-                                    @endphp
-                                    <option value="{{ $item->id }}"
-                                        data-supplier-id="{{ $c ? $c->supplier_id : '' }}"
-                                        data-supplier-name="{{ $s ? $s->name : '-' }}"
-                                        data-batch="{{ $c ? $c->reference_number : '-' }}"
-                                        data-product-name="{{ $p ? $p->name : 'Produk' }}"
-                                        data-sku="{{ $p ? $p->sku : '-' }}"
-                                        data-sisa="{{ $item->sisa_stok }}"
-                                        data-hpp="{{ (float)$item->unit_cost_price }}">
-                                        [{{ $c ? $c->reference_number : '-' }}] {{ $p ? $p->name : '-' }} (SKU: {{ $p ? $p->sku : '-' }}) — Sisa: {{ $item->sisa_stok }} pcs ({{ $s ? $s->name : '-' }})
+                                    <option value="{{ $item['id'] }}"
+                                        data-supplier-id="{{ $item['supplier_id'] }}"
+                                        data-supplier-name="{{ $item['supplier_name'] }}"
+                                        data-batch="{{ $item['batch_ref'] }}"
+                                        data-product-name="{{ $item['product_name'] }}"
+                                        data-sku="{{ $item['sku'] }}"
+                                        data-barcode="{{ $item['barcode'] }}"
+                                        data-sisa="{{ $item['sisa_stok'] }}"
+                                        data-hpp="{{ $item['hpp'] }}">
+                                        [{{ $item['batch_ref'] }}] {{ $item['product_name'] }} (SKU: {{ $item['sku'] }}) — Sisa: {{ $item['sisa_stok'] }} pcs ({{ $item['supplier_name'] }})
                                     </option>
                                 @endforeach
                             </select>
