@@ -269,7 +269,7 @@
                 </h6>
             </div>
             <div class="p-3.5" style="padding: 16px 18px;">
-                <form action="{{ route('reports.inventory_turnover') }}" method="GET">
+                <form action="{{ route('reports.inventory_turnover') }}" method="GET" target="_blank">
                     {{-- Deskripsi --}}
                     <div class="alert alert-warning py-2 px-3 small mb-3 border-0" style="background:#fef3c7; border-radius:8px; color:#92400e;">
                         <i class="bi bi-lightbulb-fill me-1"></i> Menghitung Total HPP Keluar (COGS), Nilai Rata-rata Persediaan, Rasio Inventory Turnover, dan Days Sales in Inventory (DSI).
@@ -294,7 +294,7 @@
                     {{-- Action Button --}}
                     <div class="d-flex justify-content-end align-items-center pt-2.5 border-top">
                         <button type="submit" class="btn btn-sm btn-warning fw-bold px-3 py-1.5 text-dark" style="background:#f59e0b; border:none;">
-                            <i class="bi bi-calculator me-1"></i> Hitung Laju Perputaran
+                            <i class="bi bi-printer-fill me-1"></i> Cetak Laporan Perputaran Stok
                         </button>
                     </div>
                 </form>
