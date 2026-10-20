@@ -374,23 +374,7 @@
 @push('scripts')
 <script>
 // Dataset Available Consignment Items dari Backend
-const availableConsignmentItems = @json($availableItems->map(function($it) {
-    $p = $it->masterProduct;
-    $c = $it->consignment;
-    $s = $c ? $c->supplier : null;
-    return [
-        'id'            => $it->id,
-        'supplier_id'   => $c ? (string)$c->supplier_id : '',
-        'supplier_name' => $s ? $s->name : '-',
-        'batch_ref'     => $c ? $c->reference_number : '-',
-        'product_id'    => $it->master_product_id,
-        'product_name'  => $p ? $p->name : 'Produk',
-        'sku'           => $p ? $p->sku : '-',
-        'barcode'       => $p ? ($p->barcode ?: '') : '',
-        'sisa_stok'     => (int)$it->sisa_stok,
-        'hpp'           => (float)$it->unit_cost_price,
-    ];
-}));
+const availableConsignmentItems = @json($availableItems);
 
 // State Keranjang: Map by consignment_item_id => { item, quantity }
 let cart = new Map();

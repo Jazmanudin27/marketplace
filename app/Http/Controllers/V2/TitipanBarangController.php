@@ -976,13 +976,31 @@ class TitipanBarangController extends Controller
         $preselectedOrder   = $preselectedOrderId ? Order::with(['store', 'items.masterProduct'])->where('tenant_id', $tenantId)->find($preselectedOrderId) : null;
 
         // Ambil item titipan yang masih ada sisa stok
-        $availableItems = SupplierConsignmentItem::with(['consignment.supplier', 'masterProduct'])
+        $availableItemsRaw = SupplierConsignmentItem::with(['consignment.supplier', 'masterProduct'])
             ->whereHas('consignment', function ($q) use ($tenantId) {
                 $q->where('tenant_id', $tenantId)->where('status', 'approved');
             })
             ->get()
             ->filter(fn($it) => $it->sisa_stok > 0)
             ->values();
+
+        $availableItems = $availableItemsRaw->map(function ($it) {
+            $p = $it->masterProduct;
+            $c = $it->consignment;
+            $s = $c ? $c->supplier : null;
+            return [
+                'id'            => $it->id,
+                'supplier_id'   => $c ? (string) $c->supplier_id : '',
+                'supplier_name' => $s ? $s->name : '-',
+                'batch_ref'     => $c ? $c->reference_number : '-',
+                'product_id'    => $it->master_product_id,
+                'product_name'  => $p ? $p->name : 'Produk',
+                'sku'           => $p ? $p->sku : '-',
+                'barcode'       => $p ? ($p->barcode ?: '') : '',
+                'sisa_stok'     => (int) $it->sisa_stok,
+                'hpp'           => (float) $it->unit_cost_price,
+            ];
+        })->values();
 
         return view('v2.titipan_barang.deductions.create', compact(
             'suppliers',
