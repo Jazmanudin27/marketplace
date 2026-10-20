@@ -7,55 +7,64 @@
 /* ─── Pesanan/Produk-style Tab, Filter & Summary Bar ─── */
 .psr-tab-bar {
     display: flex;
-    overflow-x: auto;
-    scrollbar-width: none;
+    flex-wrap: wrap;
     background: #fff;
     border-bottom: 1px solid #e5e7eb;
-    gap: 0;
+    gap: 4px;
+    padding: 6px 10px;
 }
 .psr-tab-bar::-webkit-scrollbar { display: none; }
 
 .psr-tab {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 18px;
-    font-size: 0.8rem;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
     font-weight: 500;
-    color: #6b7280;
+    color: #4b5563;
     white-space: nowrap;
     text-decoration: none;
-    border-bottom: 2px solid transparent;
-    transition: color .15s, border-color .15s;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #f9fafb;
+    transition: all .15s;
     position: relative;
 }
 .psr-tab i {
-    font-size: 0.85rem;
-    margin-right: 3px;
+    font-size: 0.82rem;
 }
-.psr-tab:hover { color: #3b82f6; text-decoration: none; }
-.psr-tab.active {
-    color: #3b82f6;
-    border-bottom-color: #3b82f6;
-    font-weight: 600;
+.psr-tab:hover {
+    color: #2563eb;
+    border-color: #93c5fd;
     background: #eff6ff;
+    text-decoration: none;
+}
+.psr-tab.active {
+    color: #ffffff;
+    background: #2563eb;
+    border-color: #2563eb;
+    font-weight: 600;
 }
 .psr-tab .tab-badge {
     font-size: 0.65rem;
     font-weight: 700;
     border-radius: 999px;
-    padding: 1px 6px;
-    background: #3b82f6;
+    padding: 0 5px;
+    background: #2563eb;
     color: #fff;
-    min-width: 18px;
+    min-width: 16px;
     text-align: center;
-    line-height: 1.5;
+    line-height: 1.4;
 }
 .psr-tab:not(.active) .tab-badge {
     background: #e5e7eb;
-    color: #6b7280;
+    color: #4b5563;
 }
-.psr-tab.active .tab-badge { background: #2563eb; }
+.psr-tab.active .tab-badge {
+    background: #ffffff;
+    color: #2563eb;
+}
 .psr-tab .tab-badge.badge-danger-tab {
     background: #ef4444 !important;
     color: #fff !important;
@@ -245,9 +254,10 @@
     </div>
 @endif
 
-<!-- Header Summary Widgets (KPI Cards Persis Master Produk) -->
-<div class="row g-2 mb-3">
-    <div class="col-12 col-sm-6 col-md-4 col-xl">
+<!-- Header Summary Widgets (Dibagi 2 Baris agar Luwes & Tidak Terpotong) -->
+<div class="row g-2 mb-2">
+    {{-- Baris 1: 4 Widget Utama --}}
+    <div class="col-6 col-md-3">
         <a href="{{ route('v2.reports.stock', $baseParams) }}" class="v2-stat-link {{ $currentTab === '' ? 'active' : '' }}" title="Total Master">
             <div class="v2-stat-widget widget-blue">
                 <div class="v2-stat-icon-wrapper blue">
@@ -260,7 +270,7 @@
             </div>
         </a>
     </div>
-    <div class="col-12 col-sm-6 col-md-4 col-xl">
+    <div class="col-6 col-md-3">
         <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'single'])) }}" class="v2-stat-link {{ $currentTab === 'single' ? 'active' : '' }}" title="Single Utama">
             <div class="v2-stat-widget widget-green">
                 <div class="v2-stat-icon-wrapper green">
@@ -273,7 +283,7 @@
             </div>
         </a>
     </div>
-    <div class="col-12 col-sm-6 col-md-4 col-xl">
+    <div class="col-6 col-md-3">
         <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'bundle'])) }}" class="v2-stat-link {{ $currentTab === 'bundle' ? 'active' : '' }}" title="Paket Bundle">
             <div class="v2-stat-widget widget-purple">
                 <div class="v2-stat-icon-wrapper purple">
@@ -286,7 +296,7 @@
             </div>
         </a>
     </div>
-    <div class="col-12 col-sm-6 col-md-4 col-xl">
+    <div class="col-6 col-md-3">
         <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'ready'])) }}" class="v2-stat-link {{ $currentTab === 'ready' ? 'active' : '' }}" title="Stock Ready">
             <div class="v2-stat-widget widget-blue">
                 <div class="v2-stat-icon-wrapper blue">
@@ -299,7 +309,11 @@
             </div>
         </a>
     </div>
-    <div class="col-12 col-sm-6 col-md-4 col-xl">
+</div>
+
+<div class="row g-2 mb-3">
+    {{-- Baris 2: 3 Widget Tambahan (PO, Selisih, Stok Menipis) --}}
+    <div class="col-12 col-md-4">
         <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'po'])) }}" class="v2-stat-link {{ $currentTab === 'po' ? 'active' : '' }}" title="Pre-Order (PO)">
             <div class="v2-stat-widget widget-amber">
                 <div class="v2-stat-icon-wrapper amber">
@@ -312,7 +326,7 @@
             </div>
         </a>
     </div>
-    <div class="col-12 col-sm-6 col-md-4 col-xl">
+    <div class="col-6 col-md-4">
         <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'diff'])) }}" class="v2-stat-link {{ $currentTab === 'diff' ? 'active' : '' }}" title="Selisih Stok">
             <div class="v2-stat-widget red-theme">
                 <div class="v2-stat-icon-wrapper amber" style="background-color: #fee2e2; color: #ef4444;">
@@ -320,12 +334,12 @@
                 </div>
                 <div class="v2-stat-info">
                     <span class="v2-stat-num" style="color: #ef4444;">{{ number_format($counts['diff'] ?? 0) }}</span>
-                    <span class="v2-stat-lbl">Selisih Stok</span>
+                    <span class="v2-stat-lbl">Selisih Stok Marketplace</span>
                 </div>
             </div>
         </a>
     </div>
-    <div class="col-12 col-sm-6 col-md-4 col-xl">
+    <div class="col-6 col-md-4">
         <a href="{{ route('v2.reports.stock', array_merge($baseParams, ['tab' => 'low'])) }}" class="v2-stat-link {{ $currentTab === 'low' ? 'active' : '' }}" title="Stok Gudang < 10 PCS">
             <div class="v2-stat-widget" style="background: {{ ($counts['low'] ?? 0) > 0 ? '#fffbeb' : '#fff' }}; border-color: {{ ($counts['low'] ?? 0) > 0 ? '#fde68a' : '#e5e7eb' }};">
                 <div class="v2-stat-icon-wrapper amber" style="background-color: #fef3c7; color: #d97706;">
@@ -333,7 +347,7 @@
                 </div>
                 <div class="v2-stat-info">
                     <span class="v2-stat-num" style="color: #d97706;">{{ number_format($counts['low'] ?? 0) }}</span>
-                    <span class="v2-stat-lbl">Stok &lt; 10 PCS</span>
+                    <span class="v2-stat-lbl">Stok Menipis (&lt; 10 PCS)</span>
                 </div>
             </div>
         </a>
