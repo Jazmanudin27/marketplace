@@ -455,7 +455,10 @@ class ReportController extends Controller
             ];
         }
 
-        return view('reports.print_summary', compact('reportData', 'startDate', 'endDate'));
+        $selectedCategory = $request->filled('category_id') ? \App\Models\Category::where('tenant_id', $tenantId)->find($request->category_id) : null;
+        $selectedBrand    = $request->filled('brand_id') ? \App\Models\Brand::where('tenant_id', $tenantId)->find($request->brand_id) : null;
+
+        return view('reports.print_summary', compact('reportData', 'startDate', 'endDate', 'selectedCategory', 'selectedBrand'));
     }
 
     public function inventoryAnalytics(Request $request)
