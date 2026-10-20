@@ -478,9 +478,13 @@
                                     @endif
 
                                     @if($prod->is_preorder)
-                                        <span class="badge bg-secondary-subtle text-secondary border px-1.5 py-0.5" style="font-size: 0.6rem;">PO</span>
+                                        <span class="badge bg-warning text-dark border border-warning px-1.5 py-0.5 fw-bold shadow-sm" style="font-size: 0.65rem;" title="Status: Pre-Order (PO)">
+                                            <i class="bi bi-clock-history me-0.5"></i>PO
+                                        </span>
                                     @else
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-1.5 py-0.5" style="font-size: 0.6rem;">Ready</span>
+                                        <span class="badge bg-success text-white border border-success px-1.5 py-0.5 fw-bold shadow-sm" style="font-size: 0.65rem;" title="Status: Ready Stock">
+                                            <i class="bi bi-check2-circle me-0.5"></i>Ready
+                                        </span>
                                     @endif
                                 </div>
                             </td>

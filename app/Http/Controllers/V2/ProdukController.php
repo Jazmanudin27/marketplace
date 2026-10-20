@@ -886,18 +886,26 @@ class ProdukController extends Controller
             ], 422);
         }
 
-        $count = MasterProduct::where('tenant_id', $tenantId)
+        // Update master products
+        $updatedRows = MasterProduct::where('tenant_id', $tenantId)
             ->whereIn('id', $ids)
             ->update([
                 'is_preorder' => $isPreorder,
             ]);
 
+        // Sinkronkan juga status is_pre_order di produk marketplace yang terhubung
+        \App\Models\MarketplaceProduct::whereIn('master_product_id', $ids)
+            ->update([
+                'is_pre_order' => $isPreorder,
+            ]);
+
+        $totalAffected = count($ids);
         $statusText = $isPreorder ? 'Pre-Order (PO)' : 'Ready Stock';
 
         return response()->json([
             'success' => true,
-            'message' => "{$count} master produk berhasil diubah menjadi {$statusText}!",
-            'updated_count' => $count,
+            'message' => "{$totalAffected} produk berhasil diatur menjadi {$statusText}!",
+            'updated_count' => $totalAffected,
         ]);
     }
 
