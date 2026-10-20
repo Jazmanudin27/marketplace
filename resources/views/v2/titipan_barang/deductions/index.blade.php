@@ -179,7 +179,7 @@
                         <th class="py-2">PRODUK & TITIPAN</th>
                         <th class="py-2">ALASAN & TERKAIT PESANAN</th>
                         <th class="text-center py-2" style="width: 120px;">QTY KELUAR</th>
-                        <th class="text-center pe-3 py-2" style="width: 90px;">AKSI</th>
+                        <th class="text-center pe-3 py-2" style="width: 110px;">AKSI</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -280,16 +280,16 @@
                             {{-- 5. AKSI (Detail, Edit, Hapus) --}}
                             <td class="text-center pe-3 py-2">
                                 <div class="d-inline-flex align-items-center gap-1">
-                                    <a href="{{ route('v2.titipan_barang.deductions.show', $ded->id) }}" class="btn btn-sm btn-light border p-1 px-1.5 text-secondary" title="Detail" style="border-radius:4px; font-size:0.75rem;">
+                                    <a href="{{ route('v2.titipan_barang.deductions.show', $ded->id) }}" class="btn btn-sm btn-info text-white py-1 px-2 shadow-sm" title="Detail Pengeluaran" style="border-radius:6px; font-size:0.75rem;">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a href="{{ route('v2.titipan_barang.deductions.edit', $ded->id) }}" class="btn btn-sm btn-light border p-1 px-1.5 text-primary" title="Edit" style="border-radius:4px; font-size:0.75rem;">
-                                        <i class="bi bi-pencil"></i>
+                                    <a href="{{ route('v2.titipan_barang.deductions.edit', $ded->id) }}" class="btn btn-sm btn-warning text-white py-1 px-2 shadow-sm" title="Edit Pengeluaran" style="border-radius:6px; font-size:0.75rem;">
+                                        <i class="bi bi-pencil-square"></i>
                                     </a>
                                     <form action="{{ route('v2.titipan_barang.deductions.destroy', $ded->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Batalkan pengeluaran ini? Stok titipan akan dikembalikan sebanyak {{ $ded->quantity }} pcs.')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-light border p-1 px-1.5 text-danger" title="Batalkan / Hapus" style="border-radius:4px; font-size:0.75rem;">
+                                        <button type="submit" class="btn btn-sm btn-danger text-white py-1 px-2 shadow-sm" title="Batalkan / Hapus" style="border-radius:6px; font-size:0.75rem;">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
