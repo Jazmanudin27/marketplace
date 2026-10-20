@@ -147,8 +147,20 @@
                     <select name="role" id="filterRole" class="form-select form-select-sm" style="font-size: 0.78rem;">
                         <option value="">-- Semua Role --</option>
                         @foreach($roleNames as $rn)
+                            @php
+                                $rnLower = strtolower($rn);
+                                $rnLabel = match(true) {
+                                    $rnLower === 'super-admin' => 'Super Admin',
+                                    in_array($rnLower, ['admin', 'owner']) => 'Admin (Owner)',
+                                    in_array($rnLower, ['warehouse', 'admin-gudang', 'gudang']) => 'Staf Gudang',
+                                    in_array($rnLower, ['finance', 'admin-keuangan', 'keuangan']) => 'Staf Keuangan',
+                                    in_array($rnLower, ['admin-produksi', 'produksi']) => 'Staf Produksi',
+                                    in_array($rnLower, ['admin-penjualan', 'penjualan']) => 'Staf Penjualan',
+                                    default => ucwords(str_replace(['-', '_'], ' ', $rn)),
+                                };
+                            @endphp
                             <option value="{{ $rn }}" {{ request('role') === $rn ? 'selected' : '' }}>
-                                {{ $rn === 'admin' ? 'Admin (Owner)' : ($rn === 'warehouse' ? 'Staf Gudang' : ($rn === 'finance' ? 'Staf Keuangan' : ucfirst($rn))) }}
+                                {{ $rnLabel }} ({{ $rn }})
                             </option>
                         @endforeach
                     </select>
@@ -231,22 +243,37 @@
                             </td>
                             <td>
                                 @if($u->roles->first())
-                                    @php $roleName = $u->roles->first()->name; @endphp
-                                    @if(in_array($roleName, ['admin', 'owner']))
+                                    @php
+                                        $roleName = $u->roles->first()->name;
+                                        $rLower = strtolower($roleName);
+                                    @endphp
+                                    @if($rLower === 'super-admin')
+                                        <span class="badge bg-dark-subtle text-dark border border-dark-subtle px-2 py-1" style="font-size: 0.72rem;">
+                                            <i class="bi bi-shield-shaded me-1 text-primary"></i>Super Admin
+                                        </span>
+                                    @elseif(in_array($rLower, ['admin', 'owner']))
                                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1" style="font-size: 0.72rem;">
                                             <i class="bi bi-shield-fill-check me-1"></i>Admin (Owner)
                                         </span>
-                                    @elseif($roleName === 'warehouse')
+                                    @elseif(in_array($rLower, ['warehouse', 'admin-gudang', 'gudang']))
                                         <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1" style="font-size: 0.72rem;">
                                             <i class="bi bi-box-seam me-1"></i>Staf Gudang
                                         </span>
-                                    @elseif($roleName === 'finance')
+                                    @elseif(in_array($rLower, ['finance', 'admin-keuangan', 'keuangan']))
                                         <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.72rem;">
                                             <i class="bi bi-cash-stack me-1"></i>Staf Keuangan
                                         </span>
+                                    @elseif(in_array($rLower, ['admin-produksi', 'produksi']))
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1" style="font-size: 0.72rem;">
+                                            <i class="bi bi-gear-wide-connected me-1"></i>Staf Produksi
+                                        </span>
+                                    @elseif(in_array($rLower, ['admin-penjualan', 'penjualan', 'sales']))
+                                        <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-2 py-1" style="font-size: 0.72rem; color: #6d28d9; background-color: #ede9fe; border-color: #ddd6fe !important;">
+                                            <i class="bi bi-cart-check me-1"></i>Staf Penjualan
+                                        </span>
                                     @else
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 text-capitalize" style="font-size: 0.72rem;">
-                                            {{ $roleName }}
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1" style="font-size: 0.72rem;">
+                                            <i class="bi bi-person-badge me-1"></i>{{ ucwords(str_replace(['-', '_'], ' ', $roleName)) }}
                                         </span>
                                     @endif
                                 @else
@@ -375,8 +402,13 @@
                             <span class="text-danger" id="pwdRequiredStar">*</span>
                             <small id="pwdHint" class="text-muted fw-normal"></small>
                         </label>
-                        <input type="password" name="password" id="inputPassword" class="form-control form-control-sm" required
-                            placeholder="Minimal 8 karakter" style="font-size: 0.8rem;">
+                        <div class="input-group input-group-sm">
+                            <input type="password" name="password" id="inputPassword" class="form-control" required
+                                placeholder="Minimal 8 karakter" style="font-size: 0.8rem;">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePasswordBtn" title="Lihat/Sembunyikan Password">
+                                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="mb-2">
@@ -385,8 +417,20 @@
                         </label>
                         <select name="role_id" id="inputRole" class="form-select form-select-sm" required style="font-size: 0.8rem;">
                             @foreach($roles as $role)
+                                @php
+                                    $rLower = strtolower($role->name);
+                                    $roleTitle = match(true) {
+                                        $rLower === 'super-admin' => 'Super Admin (Akses Sistem)',
+                                        in_array($rLower, ['admin', 'owner']) => 'Admin / Owner (Akses Penuh)',
+                                        in_array($rLower, ['warehouse', 'admin-gudang', 'gudang']) => 'Staf Gudang',
+                                        in_array($rLower, ['finance', 'admin-keuangan', 'keuangan']) => 'Staf Keuangan',
+                                        in_array($rLower, ['admin-produksi', 'produksi']) => 'Staf Produksi',
+                                        in_array($rLower, ['admin-penjualan', 'penjualan', 'sales']) => 'Staf Penjualan',
+                                        default => ucwords(str_replace(['-', '_'], ' ', $role->name)),
+                                    };
+                                @endphp
                                 <option value="{{ $role->id }}">
-                                    {{ $role->name === 'admin' ? 'Admin (Akses Penuh)' : ($role->name === 'owner' ? 'Owner (Akses Penuh)' : ($role->name === 'warehouse' ? 'Staf Gudang' : ($role->name === 'finance' ? 'Staf Keuangan' : ucfirst($role->name)))) }}
+                                    {{ $roleTitle }} ({{ $role->name }})
                                 </option>
                             @endforeach
                         </select>
@@ -443,7 +487,25 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Reset modal saat ditutup
+    // Toggle Password Visibility
+    const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+    if (togglePasswordBtn) {
+        togglePasswordBtn.addEventListener('click', function () {
+            const pwdInput = document.getElementById('inputPassword');
+            const icon = document.getElementById('togglePasswordIcon');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                pwdInput.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        });
+    }
+
+    // Reset password toggle when modal closed
     const userModalEl = document.getElementById('userModal');
     if (userModalEl) {
         userModalEl.addEventListener('hidden.bs.modal', function () {
@@ -458,19 +520,45 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('inputRole').value = firstRole;
             }
 
-            document.getElementById('inputPassword').value = '';
-            document.getElementById('inputPassword').setAttribute('required', 'required');
+            const pwdInput = document.getElementById('inputPassword');
+            pwdInput.value = '';
+            pwdInput.type = 'password';
+            pwdInput.setAttribute('required', 'required');
+            const icon = document.getElementById('togglePasswordIcon');
+            if (icon) {
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
             document.getElementById('pwdRequiredStar').style.display = 'inline';
             document.getElementById('pwdHint').textContent = '';
         });
     }
 
-    // Confirm delete handler
+    // Confirm delete handler (SweetAlert2 with fallback)
     document.querySelectorAll('.confirm-delete').forEach(function (form) {
         form.addEventListener('submit', function (e) {
-            const msg = this.getAttribute('data-message') || 'Apakah Anda yakin ingin menghapus data ini?';
-            if (!confirm(msg)) {
-                e.preventDefault();
+            e.preventDefault();
+            const msg = this.getAttribute('data-message') || 'Apakah Anda yakin ingin menghapus pengguna ini?';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Konfirmasi Hapus Akun',
+                    text: msg,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: '<i class="bi bi-trash me-1"></i> Ya, Hapus',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            } else {
+                if (confirm(msg)) {
+                    form.submit();
+                }
             }
         });
     });

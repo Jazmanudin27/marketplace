@@ -63,9 +63,9 @@ class UserController extends Controller
         $users = $query->orderBy('name')->get();
 
         if ($tenantId) {
-            $roles = Role::where('tenant_id', $tenantId)->get();
+            $roles = Role::where('tenant_id', $tenantId)->orderBy('name')->get();
         } else {
-            $roles = collect();
+            $roles = Role::whereNotNull('tenant_id')->where('tenant_id', '!=', 1)->orderBy('name')->get()->unique('name');
         }
 
         $roleNames = Role::whereNotNull('tenant_id')
@@ -76,9 +76,9 @@ class UserController extends Controller
 
         // Calculate role breakdown stats
         $totalUsers = $users->count();
-        $adminCount = $users->filter(fn($u) => $u->roles->contains(fn($r) => in_array($r->name, ['admin', 'owner'])))->count();
-        $warehouseCount = $users->filter(fn($u) => $u->roles->contains('name', 'warehouse'))->count();
-        $financeCount = $users->filter(fn($u) => $u->roles->contains('name', 'finance'))->count();
+        $adminCount = $users->filter(fn($u) => $u->roles->contains(fn($r) => in_array($r->name, ['admin', 'owner', 'super-admin'])))->count();
+        $warehouseCount = $users->filter(fn($u) => $u->roles->contains(fn($r) => in_array($r->name, ['warehouse', 'admin-gudang'])))->count();
+        $financeCount = $users->filter(fn($u) => $u->roles->contains(fn($r) => in_array($r->name, ['finance', 'admin-keuangan'])))->count();
 
         return view('v2.users.index', compact(
             'users',

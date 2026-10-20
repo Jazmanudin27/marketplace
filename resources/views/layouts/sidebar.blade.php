@@ -277,8 +277,8 @@
                                 class="nav-link py-1 {{ request()->routeIs('production-stages.*') ? 'active text-white' : 'text-secondary' }}">Tahapan Produksi</a>
                         @endcan
                         @can('users.index')
-                            <a href="{{ route('users.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('users.*') ? 'active text-white' : 'text-secondary' }}">Pengguna</a>
+                            <a href="{{ route('v2.users.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('users.*') || request()->routeIs('v2.users.*') ? 'active text-white' : 'text-secondary' }}">Pengguna</a>
                             <a href="{{ route('roles.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('roles.*') ? 'active text-white' : 'text-secondary' }}">Hak
                                 Akses</a>
