@@ -314,8 +314,37 @@
                 theme: 'bootstrap-5',
                 placeholder: '-- Cari & Pilih Produk (SKU / Nama) --',
                 allowClear: true,
-                width: '100%'
+                width: '100%',
+                templateResult: formatProductOption,
+                templateSelection: formatProductSelection
             });
+        }
+
+        function formatProductOption(state) {
+            if (!state.id) return state.text;
+            var text = state.text.trim();
+            // Match [SKU] Name (Stok: X)
+            var match = text.match(/^\[(.*?)\]\s*(.*?)\s*\(Stok:\s*(\d+)\)(.*)$/);
+            if (match) {
+                var sku = match[1];
+                var name = match[2];
+                var stock = match[3];
+                var extra = match[4];
+                return $(
+                    '<div class="d-flex align-items-center justify-content-between py-1">' +
+                        '<div class="d-flex flex-column" style="max-width: 80%;">' +
+                            '<span class="fw-semibold text-dark text-truncate" style="font-size: 0.8rem;">' + name + (extra ? ' <span class="badge bg-warning-subtle text-warning border border-warning-subtle py-0 px-1" style="font-size:0.65rem;">BUNDLE</span>' : '') + '</span>' +
+                            '<span class="font-monospace text-muted" style="font-size: 0.72rem;"><i class="bi bi-upc me-1 opacity-50"></i>' + sku + '</span>' +
+                        '</div>' +
+                        '<span class="badge bg-light text-secondary border px-2 py-1 font-monospace" style="font-size: 0.72rem;">Stok: ' + stock + '</span>' +
+                    '</div>'
+                );
+            }
+            return state.text;
+        }
+
+        function formatProductSelection(state) {
+            return state.text;
         }
     });
 </script>

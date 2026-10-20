@@ -832,80 +832,102 @@ body.sidebar-collapsed .v2-main-content {
     display: block !important;
 }
 
-.select2-wrapper .select2-container {
+.select2-wrapper .select2-container,
+.select2-container--bootstrap-5 {
     width: 100% !important;
+    max-width: 100% !important;
     display: block !important;
 }
 
 .select2-container--bootstrap-5 .select2-selection {
-    min-height: 29px !important;
-    padding: 0.18rem 0.45rem !important;
-    font-size: 0.72rem !important;
-    border-color: var(--v2-border) !important;
+    min-height: 34px !important;
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.8rem !important;
+    border: 1px solid #cbd5e1 !important;
     border-radius: 6px !important;
-    background-color: var(--v2-bg-surface) !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+.select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.select2-container--bootstrap-5.select2-container--open .select2-selection {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
 }
 
 .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
     padding-left: 0 !important;
-    line-height: 1.4 !important;
-    color: var(--v2-text-main) !important;
-    font-size: 0.72rem !important;
+    line-height: 1.5 !important;
+    color: #1e293b !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
 }
 
-/* Open dropdown container locks 2px below selection trigger */
-.select2-wrapper .select2-container--open {
-    position: absolute !important;
-    left: 0 !important;
-    width: 100% !important;
-    margin-top: 2px !important;
-    padding: 0 !important;
-    z-index: 9999 !important;
-    display: block !important;
-}
-
-.select2-wrapper .select2-dropdown,
-.select2-dropdown {
-    position: relative !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
-    font-size: 0.72rem !important;
-    background-color: #ffffff !important;
+/* Dropdown Container */
+.select2-container--open .select2-dropdown {
     border: 1px solid #cbd5e1 !important;
-    border-radius: 6px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-    z-index: 9999 !important;
-    box-sizing: border-box !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+    background-color: #ffffff !important;
+    z-index: 1055 !important;
     overflow: hidden !important;
+    margin-top: 4px !important;
 }
 
-.select2-wrapper .select2-search--dropdown,
+.select2-container--open.select2-container--above .select2-dropdown {
+    margin-top: 0 !important;
+    margin-bottom: 4px !important;
+}
+
 .select2-search--dropdown {
-    padding: 0.35rem !important;
+    padding: 8px !important;
     background-color: #f8fafc !important;
     border-bottom: 1px solid #e2e8f0 !important;
-    display: block !important;
 }
 
-.select2-wrapper .select2-search__field,
-.select2-search__field {
+.select2-search--dropdown .select2-search__field {
     width: 100% !important;
-    height: 28px !important;
-    font-size: 0.72rem !important;
-    padding: 0.2rem 0.5rem !important;
+    height: 32px !important;
+    font-size: 0.8rem !important;
+    padding: 0.35rem 0.65rem !important;
     border: 1px solid #cbd5e1 !important;
-    border-radius: 4px !important;
+    border-radius: 6px !important;
     background-color: #ffffff !important;
     box-sizing: border-box !important;
+    outline: none !important;
 }
 
-.select2-wrapper .select2-results__option,
+.select2-search--dropdown .select2-search__field:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
+}
+
+.select2-results__options {
+    max-height: 240px !important;
+    overflow-y: auto !important;
+    padding: 4px !important;
+}
+
 .select2-results__option {
-    padding: 0.35rem 0.65rem !important;
-    font-size: 0.72rem !important;
+    padding: 6px 10px !important;
+    font-size: 0.78rem !important;
+    line-height: 1.35 !important;
+    border-radius: 5px !important;
+    margin-bottom: 2px !important;
+    color: #334155 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+}
+
+.select2-results__option--highlighted[aria-selected] {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+.select2-results__option[aria-selected="true"] {
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+    font-weight: 600 !important;
 }
 
 /* Stat Mini Cards for Master Data Header */
@@ -1257,46 +1279,7 @@ select option {
     max-width: 100% !important;
 }
 
-.select2-wrapper .select2-dropdown,
-.select2-container--bootstrap-5 .select2-dropdown,
-.select2-dropdown {
-    position: absolute !important;
-    top: 100% !important;
-    left: 0 !important;
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    z-index: 9999 !important;
-    margin-top: 2px !important;
-    background-color: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 6px !important;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
-}
 
-.select2-results__option {
-    white-space: normal !important;
-    word-break: break-word !important;
-    word-wrap: break-word !important;
-    font-size: 0.78rem !important;
-    padding: 6px 10px !important;
-    line-height: 1.35 !important;
-}
-
-.select2-container--bootstrap-5 .select2-selection--single {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-
-.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    max-width: 100% !important;
-}
 
 /* ==========================================================================
    Full Window Coverage Modal Backdrop Fix (For Zoom & Display Scaling)

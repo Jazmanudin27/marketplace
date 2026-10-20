@@ -196,28 +196,28 @@
             $('#realtimeClock').text(timeStr);
         }, 1000);
 
-        // Global Select2 Initializer with tight wrapper for 100% position & width accuracy
+        // Global Select2 Initializer with Clean Native Popper & Modal Support
         window.initV2Select2 = function(context) {
             var $target = context ? 
-                $(context).find('select.form-select, select.form-select-sm, select.select2, select.v2-select2') : 
-                $('select.form-select, select.form-select-sm, select.select2, select.v2-select2');
+                $(context).find('select.select2, select.v2-select2') : 
+                $('select.select2, select.v2-select2');
 
             $target.not('.no-select2').each(function() {
                 var $select = $(this);
                 if ($select.hasClass('select2-hidden-accessible')) {
                     return; // Already initialized
                 }
-                if (!$select.parent().hasClass('select2-wrapper')) {
-                    $select.wrap('<div class="select2-wrapper position-relative d-block w-100" style="max-width: 100%;"></div>');
-                }
-                var $wrapper = $select.parent();
+
+                // If inside modal, attach to modal to prevent z-index backdrop clipping
+                var $modal = $select.closest('.modal');
+                var dropdownParent = $modal.length ? $modal : null;
 
                 $select.select2({
                     theme: 'bootstrap-5',
                     width: '100%',
-                    placeholder: $select.data('placeholder') || '-- Pilih --',
+                    placeholder: $select.data('placeholder') || $select.find('option:first').text() || '-- Pilih --',
                     allowClear: true,
-                    dropdownParent: $wrapper
+                    dropdownParent: dropdownParent
                 });
             });
         };
