@@ -933,6 +933,17 @@ class TitipanBarangController extends Controller
             });
         }
 
+        // Filter Sumber Stok (Hanya Titipan Supplier vs Potong Gudang Master Juga)
+        if ($request->filled('stock_source') && $hasDeductMasterStock) {
+            if ($request->stock_source === 'gudang') {
+                $query->where('deduct_master_stock', 1);
+            } elseif ($request->stock_source === 'supplier') {
+                $query->where(function ($q) {
+                    $q->where('deduct_master_stock', 0)->orWhereNull('deduct_master_stock');
+                });
+            }
+        }
+
         // KPI Metrik dari dataset terfilter
         $metricsQuery = clone $query;
         $allFiltered = $metricsQuery->get();
@@ -944,6 +955,21 @@ class TitipanBarangController extends Controller
         });
         $totalUnscannedOrders = $allFiltered->where('reason', 'unscanned_order')->count();
         $totalManualCorrections = $allFiltered->where('reason', '!=', 'unscanned_order')->count();
+
+        // Rekap Sumber Stok: Berapa Qty hanya Titipan Supplier vs Ikut Potong Gudang Master
+        $qtyPotongGudang = (int) $allFiltered->where('deduct_master_stock', 1)->sum('quantity');
+        $qtyHanyaTitipan = (int) $allFiltered->where('deduct_master_stock', '!=', 1)->sum('quantity');
+
+        // Rekap per Supplier (Nama Supplier => Total Qty)
+        $rekapPerSupplier = $allFiltered->groupBy(function ($d) {
+            $c = $d->consignmentItem ? $d->consignmentItem->consignment : null;
+            $s = $c ? $c->supplier : null;
+            return $s ? $s->name : 'Supplier Tidak Diketahui';
+        })->map(fn($group) => [
+            'count' => $group->count(),
+            'qty'   => (int) $group->sum('quantity'),
+            'hpp'   => (float) $group->sum(fn($d) => $d->quantity * ($d->consignmentItem ? (float) $d->consignmentItem->unit_cost_price : 0)),
+        ])->sortByDesc('qty');
 
         $deductions = $query->paginate(20)->withQueryString();
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
@@ -957,7 +983,10 @@ class TitipanBarangController extends Controller
             'totalQty',
             'totalHppAmount',
             'totalUnscannedOrders',
-            'totalManualCorrections'
+            'totalManualCorrections',
+            'qtyPotongGudang',
+            'qtyHanyaTitipan',
+            'rekapPerSupplier'
         ));
     }
 

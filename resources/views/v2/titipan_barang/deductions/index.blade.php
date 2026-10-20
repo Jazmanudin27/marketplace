@@ -73,38 +73,44 @@
     </div>
 @endif
 
-{{-- ── Compact KPI Bar ── --}}
+{{-- ── Compact KPI Bar with Sumber Stok Breakdown ── --}}
 <div class="row g-2 mb-3">
     <div class="col-6 col-md-3">
         <div class="compact-kpi-box border-start border-danger border-3">
             <div class="compact-kpi-label text-danger">Total Pengeluaran</div>
             <div class="compact-kpi-val text-dark">{{ number_format($totalCount, 0, ',', '.') }} <span class="small fw-normal text-muted" style="font-size:0.75rem;">Trx</span></div>
-            <div class="compact-kpi-sub">Riwayat terfilter</div>
+            <div class="compact-kpi-sub">Total: {{ number_format($totalQty, 0, ',', '.') }} PCS keluar</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="compact-kpi-box border-start border-warning border-3">
-            <div class="compact-kpi-label text-warning-emphasis">Total Qty Keluar</div>
-            <div class="compact-kpi-val text-warning-emphasis">{{ number_format($totalQty, 0, ',', '.') }} <span class="small fw-normal text-muted" style="font-size:0.75rem;">PCS</span></div>
-            <div class="compact-kpi-sub">Unit stok dipotong</div>
+        <div class="compact-kpi-box border-start border-warning border-3" style="background: #fffbeb;">
+            <div class="compact-kpi-label text-warning-emphasis">
+                <i class="bi bi-person-badge text-warning me-1"></i>Titipan Supplier
+            </div>
+            <div class="compact-kpi-val text-warning-emphasis">{{ number_format($qtyHanyaTitipan, 0, ',', '.') }} <span class="small fw-normal text-muted" style="font-size:0.75rem;">PCS</span></div>
+            <div class="compact-kpi-sub">
+                @if($rekapPerSupplier->isNotEmpty())
+                    Top: {{ Str::limit($rekapPerSupplier->keys()->first(), 16) }} ({{ $rekapPerSupplier->first()['qty'] }} pcs)
+                @else
+                    Hanya stok titipan
+                @endif
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="compact-kpi-box border-start border-success border-3" style="background: #f0fdf4;">
+            <div class="compact-kpi-label text-success">
+                <i class="bi bi-building-check text-success me-1"></i>Potong Gudang Master
+            </div>
+            <div class="compact-kpi-val text-success">{{ number_format($qtyPotongGudang, 0, ',', '.') }} <span class="small fw-normal text-muted" style="font-size:0.75rem;">PCS</span></div>
+            <div class="compact-kpi-sub">Stok gudang ikut berkurang</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="compact-kpi-box border-start border-primary border-3">
             <div class="compact-kpi-label text-primary">Nilai HPP Modal</div>
             <div class="compact-kpi-val text-primary font-monospace" style="font-size: 1.05rem;">Rp {{ number_format($totalHppAmount, 0, ',', '.') }}</div>
-            <div class="compact-kpi-sub">Estimasi modal titipan</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="compact-kpi-box border-start border-info border-3">
-            <div class="compact-kpi-label text-info">Kategori Alasan</div>
-            <div class="compact-kpi-val text-dark" style="font-size: 0.95rem;">
-                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-1.5 py-0.5">
-                    {{ $totalUnscannedOrders }} Terlewat Scan
-                </span>
-            </div>
-            <div class="compact-kpi-sub">{{ $totalManualCorrections }} Koreksi / Retur / Lainnya</div>
+            <div class="compact-kpi-sub">{{ $totalUnscannedOrders }} Terlewat, {{ $totalManualCorrections }} Koreksi</div>
         </div>
     </div>
 </div>
@@ -131,6 +137,13 @@
                     </select>
                 </div>
                 <div class="col-6 col-md-2">
+                    <select name="stock_source" class="form-select form-select-sm fw-semibold">
+                        <option value="">Semua Sumber Stok</option>
+                        <option value="supplier" {{ request('stock_source') === 'supplier' ? 'selected' : '' }}>🏷️ Dari Supplier Saja</option>
+                        <option value="gudang" {{ request('stock_source') === 'gudang' ? 'selected' : '' }}>🏭 Potong Gudang Master</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
                     <select name="reason" class="form-select form-select-sm">
                         <option value="">Semua Alasan</option>
                         <option value="unscanned_order" {{ request('reason') == 'unscanned_order' ? 'selected' : '' }}>Pesanan Terlewat Scan</option>
@@ -141,15 +154,15 @@
                         <option value="other" {{ request('reason') == 'other' ? 'selected' : '' }}>Lainnya</option>
                     </select>
                 </div>
-                <div class="col-5 col-md-2">
-                    <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request('date_from') }}" title="Tanggal Mulai">
+                <div class="col-6 col-md-1">
+                    <input type="date" name="date_from" class="form-control form-control-sm px-1" value="{{ request('date_from') }}" title="Tanggal Mulai">
                 </div>
-                <div class="col-5 col-md-2">
-                    <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request('date_to') }}" title="Tanggal Akhir">
+                <div class="col-6 col-md-1">
+                    <input type="date" name="date_to" class="form-control form-control-sm px-1" value="{{ request('date_to') }}" title="Tanggal Akhir">
                 </div>
-                <div class="col-2 col-md-1 d-flex gap-1">
-                    <button type="submit" class="btn btn-primary btn-sm w-100" title="Filter"><i class="bi bi-filter"></i></button>
-                    @if(request()->hasAny(['search', 'supplier_id', 'reason', 'date_from', 'date_to']))
+                <div class="col-12 col-md-1 d-flex gap-1">
+                    <button type="submit" class="btn btn-primary btn-sm flex-fill" title="Filter"><i class="bi bi-filter"></i></button>
+                    @if(request()->hasAny(['search', 'supplier_id', 'stock_source', 'reason', 'date_from', 'date_to']))
                         <a href="{{ route('v2.titipan_barang.deductions.index') }}" class="btn btn-outline-secondary btn-sm" title="Reset"><i class="bi bi-x-lg"></i></a>
                     @endif
                 </div>
@@ -230,8 +243,12 @@
                                         {{ $ded->reason_label }}
                                     </span>
                                     @if($ded->deduct_master_stock)
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-1 py-0.5" style="font-size: 0.62rem;" title="Stok fisik gudang ikut dipotong">
-                                            <i class="bi bi-check-circle me-0.5"></i>Potong Gudang
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-1 py-0.5 fw-bold" style="font-size: 0.65rem;" title="Stok fisik gudang master ikut berkurang">
+                                            <i class="bi bi-building-check me-0.5"></i>Gudang & Titipan
+                                        </span>
+                                    @else
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-1 py-0.5 fw-bold" style="font-size: 0.65rem;" title="Hanya memotong stok titipan supplier, stok master gudang tidak berkurang">
+                                            <i class="bi bi-person-badge me-0.5"></i>Titipan: {{ $sup ? $sup->name : 'Supplier' }}
                                         </span>
                                     @endif
                                 </div>
