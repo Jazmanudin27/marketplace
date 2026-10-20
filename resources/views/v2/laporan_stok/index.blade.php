@@ -385,21 +385,21 @@
             @endif
             <div class="row g-2 align-items-end">
                 {{-- Nama Produk --}}
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-sm-6 col-md-4 col-xl-3">
                     <label class="form-label"><i class="bi bi-search me-1"></i>Nama Produk</label>
                     <input type="text" name="name" class="form-control"
                            placeholder="Cari nama produk..."
                            value="{{ request('name') }}">
                 </div>
                 {{-- SKU --}}
-                <div class="col-6 col-md-2">
+                <div class="col-6 col-sm-6 col-md-3 col-xl-2">
                     <label class="form-label"><i class="bi bi-upc-scan me-1"></i>SKU / Induk</label>
                     <input type="text" name="sku" class="form-control font-monospace"
                            placeholder="Cari SKU / Induk..."
                            value="{{ request('sku') }}">
                 </div>
                 {{-- Kategori --}}
-                <div class="col-6 col-md-2">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
                     <label class="form-label"><i class="bi bi-tags me-1"></i>Kategori</label>
                     <select name="category_id" class="form-select no-select2">
                         <option value="">Semua Kategori</option>
@@ -411,7 +411,7 @@
                     </select>
                 </div>
                 {{-- Channel --}}
-                <div class="col-6 col-md-2">
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
                     <label class="form-label"><i class="bi bi-shop me-1"></i>Channel</label>
                     <select name="channel_id" class="form-select no-select2">
                         <option value="">Semua Channel</option>
@@ -423,7 +423,7 @@
                     </select>
                 </div>
                 {{-- Toko --}}
-                <div class="col-6 col-md-2">
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
                     <label class="form-label"><i class="bi bi-building me-1"></i>Toko</label>
                     <select name="store_id" class="form-select no-select2">
                         <option value="">Semua Toko</option>
@@ -435,14 +435,14 @@
                         @endforeach
                     </select>
                 </div>
-                {{-- Tombol --}}
-                <div class="col-12 col-md-1 d-flex gap-2">
-                    <button type="submit" class="psr-btn psr-btn-primary" style="height:31px; padding:0 14px;" title="Cari">
-                        <i class="bi bi-search"></i>
+                {{-- Tombol Filter & Reset --}}
+                <div class="col-12 col-md-3 col-xl-1 d-flex gap-1.5 align-items-center">
+                    <button type="submit" class="btn btn-primary btn-sm flex-fill d-inline-flex align-items-center justify-content-center" style="height:31px;" title="Cari / Terapkan Filter">
+                        <i class="bi bi-search me-1"></i> Cari
                     </button>
                     @if(request()->anyFilled(['name', 'sku', 'category_id', 'channel_id', 'store_id', 'is_bundle', 'is_preorder', 'hide_zero_stock', 'only_diff', 'only_different']))
                         <a href="{{ route('v2.reports.stock', request('tab') ? ['tab' => request('tab')] : []) }}"
-                           class="psr-btn psr-btn-ghost" style="height:31px; padding:0 10px;" title="Reset Filter">
+                           class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center px-2" style="height:31px;" title="Reset Filter">
                             <i class="bi bi-x-lg"></i>
                         </a>
                     @endif
