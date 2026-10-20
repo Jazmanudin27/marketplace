@@ -216,8 +216,8 @@
                     {{-- Pilih Produk --}}
                     <div class="filter-form-group">
                         <label class="form-label text-primary fw-bold">Pilih Produk <span class="text-danger">*</span></label>
-                        <select name="product_id" id="ledger_product_id" class="form-select form-select-sm select2" required>
-                            <option value="">-- Cari & Pilih Produk (SKU / Nama) --</option>
+                        <select name="product_id" id="ledger_product_id" class="form-select form-select-sm" required>
+                            <option value="">-- Ketik Nama atau SKU Produk --</option>
                             @foreach ($products as $prod)
                                 <option value="{{ $prod->id }}">
                                     [{{ $prod->sku }}] {{ $prod->name }} (Stok: {{ $prod->stock }}) {{ $prod->is_bundle ? ' [BUNDLE]' : '' }}
@@ -312,39 +312,64 @@
         if ($('#ledger_product_id').length) {
             $('#ledger_product_id').select2({
                 theme: 'bootstrap-5',
-                placeholder: '-- Cari & Pilih Produk (SKU / Nama) --',
+                placeholder: '-- Ketik Nama atau SKU Produk --',
                 allowClear: true,
                 width: '100%',
+                ajax: {
+                    url: @json(route('v2.laporan_gudang.search_products')),
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            q: params.term || ''
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data.results || []
+                        };
+                    },
+                    cache: true
+                },
                 templateResult: formatProductOption,
                 templateSelection: formatProductSelection
             });
         }
 
-        function formatProductOption(state) {
-            if (!state.id) return state.text;
-            var text = state.text.trim();
-            // Match [SKU] Name (Stok: X)
-            var match = text.match(/^\[(.*?)\]\s*(.*?)\s*\(Stok:\s*(\d+)\)(.*)$/);
-            if (match) {
-                var sku = match[1];
-                var name = match[2];
-                var stock = match[3];
-                var extra = match[4];
-                return $(
-                    '<div class="d-flex align-items-center justify-content-between py-1">' +
-                        '<div class="d-flex flex-column" style="max-width: 80%;">' +
-                            '<span class="fw-semibold text-dark text-truncate" style="font-size: 0.8rem;">' + name + (extra ? ' <span class="badge bg-warning-subtle text-warning border border-warning-subtle py-0 px-1" style="font-size:0.65rem;">BUNDLE</span>' : '') + '</span>' +
-                            '<span class="font-monospace text-muted" style="font-size: 0.72rem;"><i class="bi bi-upc me-1 opacity-50"></i>' + sku + '</span>' +
-                        '</div>' +
-                        '<span class="badge bg-light text-secondary border px-2 py-1 font-monospace" style="font-size: 0.72rem;">Stok: ' + stock + '</span>' +
-                    '</div>'
-                );
+        function formatProductOption(item) {
+            if (!item.id) return item.text;
+            var name = item.name;
+            var sku = item.sku;
+            var stock = item.stock !== undefined ? item.stock : 0;
+            var isBundle = item.is_bundle;
+
+            // Fallback parsing regex if not structured from AJAX
+            if (!name) {
+                var text = item.text.trim();
+                var match = text.match(/^\[(.*?)\]\s*(.*?)\s*\(Stok:\s*(\d+)\)(.*)$/);
+                if (match) {
+                    sku = match[1];
+                    name = match[2];
+                    stock = match[3];
+                    isBundle = match[4] && match[4].indexOf('BUNDLE') !== -1;
+                } else {
+                    return item.text;
+                }
             }
-            return state.text;
+
+            return $(
+                '<div class="d-flex align-items-center justify-content-between py-1">' +
+                    '<div class="d-flex flex-column" style="max-width: 80%;">' +
+                        '<span class="fw-semibold text-dark text-truncate" style="font-size: 0.8rem;">' + name + (isBundle ? ' <span class="badge bg-warning-subtle text-warning border border-warning-subtle py-0 px-1" style="font-size:0.65rem;">BUNDLE</span>' : '') + '</span>' +
+                        '<span class="font-monospace text-muted" style="font-size: 0.72rem;"><i class="bi bi-upc me-1 opacity-50"></i>' + sku + '</span>' +
+                    '</div>' +
+                    '<span class="badge bg-light text-secondary border px-2 py-1 font-monospace" style="font-size: 0.72rem;">Stok: ' + stock + '</span>' +
+                '</div>'
+            );
         }
 
-        function formatProductSelection(state) {
-            return state.text;
+        function formatProductSelection(item) {
+            return item.text || item.name || '-- Pilih Produk --';
         }
     });
 </script>

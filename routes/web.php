@@ -334,6 +334,7 @@ Route::middleware('auth')->group(function () {
 
         // Laporan Gudang Jadi V2
         Route::get('/gudang-jadi/laporan', [\App\Http\Controllers\V2\LaporanGudangController::class, 'index'])->name('laporan_gudang.index');
+        Route::get('/gudang-jadi/laporan/search-products', [\App\Http\Controllers\V2\LaporanGudangController::class, 'searchProducts'])->name('laporan_gudang.search_products');
         Route::get('/laporan-gudang', [\App\Http\Controllers\V2\LaporanGudangController::class, 'index']);
 
         // Laporan Stok Barang (Gudang & Marketplace) V2
