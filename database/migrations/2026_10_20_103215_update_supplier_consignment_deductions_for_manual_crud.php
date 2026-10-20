@@ -11,10 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('supplier_consignment_deductions', function (Blueprint $table) {
-            // Ubah order_id menjadi nullable agar pengeluaran manual / tanpa order marketplace bisa disimpan
-            $table->unsignedBigInteger('order_id')->nullable()->change();
+        try {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE `supplier_consignment_deductions` MODIFY `order_id` BIGINT UNSIGNED NULL");
+        } catch (\Throwable $e) {
+            try {
+                Schema::table('supplier_consignment_deductions', function (Blueprint $table) {
+                    $table->unsignedBigInteger('order_id')->nullable()->change();
+                });
+            } catch (\Throwable $e2) {}
+        }
 
+        Schema::table('supplier_consignment_deductions', function (Blueprint $table) {
             if (!Schema::hasColumn('supplier_consignment_deductions', 'reason')) {
                 $table->string('reason', 50)->default('unscanned_order')->after('scanned_barcode');
             }

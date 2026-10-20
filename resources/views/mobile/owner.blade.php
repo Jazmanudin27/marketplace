@@ -279,6 +279,24 @@
         </div>
     </div>
 
+    <!-- Quick Action: Setoran Titipan Supplier -->
+    <div class="dashboard-card mb-4 p-3 bg-white" style="border-left: 4px solid #4f46e5;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; background: rgba(79, 70, 229, 0.1); color: #4f46e5;">
+                    <i class="fas fa-hand-holding-usd fs-5"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold text-dark mb-0" style="font-size: 0.9rem;">Setoran Titipan Supplier</h6>
+                    <small class="text-muted" style="font-size: 0.72rem;">Setor hasil penjualan & mutasi kas otomatis</small>
+                </div>
+            </div>
+            <a href="{{ route('mobile.owner.titipan_settlement') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" style="font-size: 0.75rem;">
+                Buka <i class="fas fa-chevron-right ms-0.5"></i>
+            </a>
+        </div>
+    </div>
+
     <!-- Recent Orders Card -->
     <div class="dashboard-card mb-4 overflow-hidden">
         <div class="card-header bg-light d-flex justify-content-between align-items-center py-3 px-3 border-bottom">

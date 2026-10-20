@@ -679,17 +679,24 @@ class SupplierConsignmentController extends Controller
                 'total_amount_paid' => $totalAmountPaid,
             ]);
 
-            // Opsional: Catat Pengeluaran Keuangan (Expense)
+            // Catat Pengeluaran Keuangan (Expense)
             $supplier = Supplier::find($request->supplier_id);
+            $supplierName = $supplier ? $supplier->name : 'Supplier';
+
+            $paymentSource = 'kas_besar';
+            if ($request->payment_method === 'transfer' && $request->bank_account_id) {
+                $bank = BankAccount::where('tenant_id', $tenantId)->find($request->bank_account_id);
+                $paymentSource = $bank ? ($bank->bank_name ?: (string)$bank->id) : (string)$request->bank_account_id;
+            }
+
             Expense::create([
-                'tenant_id'       => $tenantId,
-                'category'        => 'Setoran Barang Konsinyasi',
-                'amount'          => $totalAmountPaid,
-                'expense_date'    => $request->settlement_date,
-                'payment_method'  => $request->payment_method,
-                'bank_account_id' => $request->bank_account_id,
-                'description'     => 'Setoran Penjualan Barang Konsinyasi ' . ($supplier ? $supplier->name : '') . ' (' . $settlementNumber . ') Ã¢â‚¬â€ Total ' . $totalQtySettled . ' PCS',
-                'created_by'      => Auth::id(),
+                'tenant_id'      => $tenantId,
+                'title'          => "Setoran Titipan Konsinyasi: {$supplierName} ({$settlementNumber})",
+                'category'       => 'Setoran Barang Konsinyasi',
+                'payment_source' => $paymentSource,
+                'amount'         => $totalAmountPaid,
+                'expense_date'   => $request->settlement_date,
+                'description'    => "Setoran Penjualan Barang Konsinyasi {$supplierName} ({$settlementNumber}) — Total {$totalQtySettled} PCS." . ($request->notes ? " Catatan: {$request->notes}" : ''),
             ]);
 
             return $settlement;
@@ -775,6 +782,15 @@ class SupplierConsignmentController extends Controller
         abort_unless($settlement->tenant_id === Auth::user()->tenant_id, 403);
 
         DB::transaction(function () use ($settlement) {
+            // Rollback mutasi kas pengeluaran (Expense) terkait setoran ini
+            Expense::where('tenant_id', $settlement->tenant_id)
+                ->where('category', 'Setoran Barang Konsinyasi')
+                ->where(function ($q) use ($settlement) {
+                    $q->where('title', 'like', "%{$settlement->settlement_number}%")
+                      ->orWhere('description', 'like', "%{$settlement->settlement_number}%");
+                })
+                ->delete();
+
             $settlement->items()->delete();
             $settlement->delete();
         });

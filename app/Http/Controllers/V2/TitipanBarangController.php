@@ -681,15 +681,23 @@ class TitipanBarangController extends Controller
             ]);
 
             $supplier = Supplier::find($request->supplier_id);
+            $supplierName = $supplier ? $supplier->name : 'Supplier';
+
+            // Tentukan payment_source kas/bank agar tersinkron ke Laporan Mutasi Kas & Keuangan
+            $paymentSource = 'kas_besar';
+            if ($request->payment_method === 'transfer' && $request->bank_account_id) {
+                $bank = BankAccount::where('tenant_id', $tenantId)->find($request->bank_account_id);
+                $paymentSource = $bank ? ($bank->bank_name ?: (string)$bank->id) : (string)$request->bank_account_id;
+            }
+
             Expense::create([
-                'tenant_id'       => $tenantId,
-                'category'        => 'Setoran Barang Konsinyasi',
-                'amount'          => $totalAmountPaid,
-                'expense_date'    => $request->settlement_date,
-                'payment_method'  => $request->payment_method,
-                'bank_account_id' => $request->bank_account_id,
-                'description'     => 'Setoran Penjualan Barang Konsinyasi ' . ($supplier ? $supplier->name : '') . ' (' . $settlementNumber . ') — Total ' . $totalQtySettled . ' PCS',
-                'created_by'      => Auth::id(),
+                'tenant_id'      => $tenantId,
+                'title'          => "Setoran Titipan Konsinyasi: {$supplierName} ({$settlementNumber})",
+                'category'       => 'Setoran Barang Konsinyasi',
+                'payment_source' => $paymentSource,
+                'amount'         => $totalAmountPaid,
+                'expense_date'   => $request->settlement_date,
+                'description'    => "Setoran Penjualan Barang Konsinyasi {$supplierName} ({$settlementNumber}) — Total {$totalQtySettled} PCS." . ($request->notes ? " Catatan: {$request->notes}" : ''),
             ]);
 
             return $settlement;
@@ -773,12 +781,54 @@ class TitipanBarangController extends Controller
         abort_unless($settlement->tenant_id === Auth::user()->tenant_id, 403);
 
         DB::transaction(function () use ($settlement) {
+            // Rollback mutasi kas pengeluaran (Expense) terkait setoran ini
+            Expense::where('tenant_id', $settlement->tenant_id)
+                ->where('category', 'Setoran Barang Konsinyasi')
+                ->where(function ($q) use ($settlement) {
+                    $q->where('title', 'like', "%{$settlement->settlement_number}%")
+                      ->orWhere('description', 'like', "%{$settlement->settlement_number}%");
+                })
+                ->delete();
+
             $settlement->items()->delete();
             $settlement->delete();
         });
 
         return redirect()->route('supplier_consignments.settlement.index')
-            ->with('success', 'Riwayat setoran supplier berhasil dihapus.');
+            ->with('success', 'Riwayat setoran supplier berhasil dihapus dan mutasi kas dibatalkan.');
+    }
+
+    /**
+     * Pastikan kolom tambahan untuk manual CRUD pengeluaran titipan tersedia di database.
+     */
+    protected function ensureDeductionsColumnsExist(): void
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('supplier_consignment_deductions', 'deduction_date')) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            } catch (\Throwable $e) {}
+
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('supplier_consignment_deductions', 'deduction_date')) {
+                try {
+                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE `supplier_consignment_deductions` MODIFY `order_id` BIGINT UNSIGNED NULL");
+                } catch (\Throwable $e) {}
+                try {
+                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE `supplier_consignment_deductions` ADD COLUMN `reason` VARCHAR(50) DEFAULT 'unscanned_order'");
+                } catch (\Throwable $e) {}
+                try {
+                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE `supplier_consignment_deductions` ADD COLUMN `reference_no` VARCHAR(100) NULL");
+                } catch (\Throwable $e) {}
+                try {
+                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE `supplier_consignment_deductions` ADD COLUMN `notes` TEXT NULL");
+                } catch (\Throwable $e) {}
+                try {
+                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE `supplier_consignment_deductions` ADD COLUMN `deduction_date` DATETIME NULL");
+                } catch (\Throwable $e) {}
+                try {
+                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE `supplier_consignment_deductions` ADD COLUMN `deduct_master_stock` TINYINT(1) DEFAULT 0");
+                } catch (\Throwable $e) {}
+            }
+        }
     }
 
     /**
@@ -790,7 +840,12 @@ class TitipanBarangController extends Controller
      */
     public function indexDeductions(Request $request)
     {
+        $this->ensureDeductionsColumnsExist();
         $tenantId = Auth::user()->tenant_id;
+        $hasDeductionDate = \Illuminate\Support\Facades\Schema::hasColumn('supplier_consignment_deductions', 'deduction_date');
+        $hasReason = \Illuminate\Support\Facades\Schema::hasColumn('supplier_consignment_deductions', 'reason');
+        $hasReferenceNo = \Illuminate\Support\Facades\Schema::hasColumn('supplier_consignment_deductions', 'reference_no');
+        $hasNotes = \Illuminate\Support\Facades\Schema::hasColumn('supplier_consignment_deductions', 'notes');
 
         $query = SupplierConsignmentDeduction::with([
             'consignmentItem.consignment.supplier',
@@ -798,9 +853,13 @@ class TitipanBarangController extends Controller
             'order.store',
             'orderItem',
             'user'
-        ])->where('tenant_id', $tenantId)
-          ->orderByDesc('deduction_date')
-          ->orderByDesc('id');
+        ])->where('tenant_id', $tenantId);
+
+        if ($hasDeductionDate) {
+            $query->orderByDesc('deduction_date')->orderByDesc('id');
+        } else {
+            $query->orderByDesc('created_at')->orderByDesc('id');
+        }
 
         // Filter Supplier
         if ($request->filled('supplier_id')) {
@@ -817,17 +876,21 @@ class TitipanBarangController extends Controller
         }
 
         // Filter Reason
-        if ($request->filled('reason')) {
+        if ($request->filled('reason') && $hasReason) {
             $query->where('reason', $request->reason);
         }
 
         // Filter Search (Invoice / Resi / Reference / Notes / Produk / SKU)
         if ($request->filled('search')) {
             $search = trim($request->search);
-            $query->where(function ($q) use ($search) {
-                $q->where('reference_no', 'like', "%{$search}%")
-                  ->orWhere('notes', 'like', "%{$search}%")
-                  ->orWhere('scanned_barcode', 'like', "%{$search}%")
+            $query->where(function ($q) use ($search, $hasReferenceNo, $hasNotes) {
+                if ($hasReferenceNo) {
+                    $q->where('reference_no', 'like', "%{$search}%");
+                }
+                if ($hasNotes) {
+                    $q->orWhere('notes', 'like', "%{$search}%");
+                }
+                $q->orWhere('scanned_barcode', 'like', "%{$search}%")
                   ->orWhereHas('order', function ($oq) use ($search) {
                       $oq->where('invoice_number', 'like', "%{$search}%")
                          ->orWhere('order_marketplace_id', 'like', "%{$search}%")
@@ -846,19 +909,27 @@ class TitipanBarangController extends Controller
 
         // Filter Tanggal
         if ($request->filled('date_from')) {
-            $query->where(function ($q) use ($request) {
-                $q->whereDate('deduction_date', '>=', $request->date_from)
-                  ->orWhere(function ($sub) use ($request) {
-                      $sub->whereNull('deduction_date')->whereDate('created_at', '>=', $request->date_from);
-                  });
+            $query->where(function ($q) use ($request, $hasDeductionDate) {
+                if ($hasDeductionDate) {
+                    $q->whereDate('deduction_date', '>=', $request->date_from)
+                      ->orWhere(function ($sub) use ($request) {
+                          $sub->whereNull('deduction_date')->whereDate('created_at', '>=', $request->date_from);
+                      });
+                } else {
+                    $q->whereDate('created_at', '>=', $request->date_from);
+                }
             });
         }
         if ($request->filled('date_to')) {
-            $query->where(function ($q) use ($request) {
-                $q->whereDate('deduction_date', '<=', $request->date_to)
-                  ->orWhere(function ($sub) use ($request) {
-                      $sub->whereNull('deduction_date')->whereDate('created_at', '<=', $request->date_to);
-                  });
+            $query->where(function ($q) use ($request, $hasDeductionDate) {
+                if ($hasDeductionDate) {
+                    $q->whereDate('deduction_date', '<=', $request->date_to)
+                      ->orWhere(function ($sub) use ($request) {
+                          $sub->whereNull('deduction_date')->whereDate('created_at', '<=', $request->date_to);
+                      });
+                } else {
+                    $q->whereDate('created_at', '<=', $request->date_to);
+                }
             });
         }
 
@@ -895,6 +966,7 @@ class TitipanBarangController extends Controller
      */
     public function createDeduction(Request $request)
     {
+        $this->ensureDeductionsColumnsExist();
         $tenantId = Auth::user()->tenant_id;
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
 
@@ -927,6 +999,7 @@ class TitipanBarangController extends Controller
      */
     public function storeDeduction(Request $request)
     {
+        $this->ensureDeductionsColumnsExist();
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([
@@ -1054,6 +1127,7 @@ class TitipanBarangController extends Controller
      */
     public function editDeduction(SupplierConsignmentDeduction $deduction)
     {
+        $this->ensureDeductionsColumnsExist();
         abort_unless($deduction->tenant_id === Auth::user()->tenant_id, 403);
         $tenantId = Auth::user()->tenant_id;
 
@@ -1082,6 +1156,7 @@ class TitipanBarangController extends Controller
      */
     public function updateDeduction(Request $request, SupplierConsignmentDeduction $deduction)
     {
+        $this->ensureDeductionsColumnsExist();
         abort_unless($deduction->tenant_id === Auth::user()->tenant_id, 403);
         $tenantId = Auth::user()->tenant_id;
 

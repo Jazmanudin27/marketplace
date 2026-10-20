@@ -6,8 +6,16 @@ use App\Models\MasterProduct;
 use App\Models\Order;
 use App\Models\OfflineSale;
 use App\Models\ProductionOrder;
+use App\Models\BankAccount;
+use App\Models\Expense;
+use App\Models\Supplier;
+use App\Models\SupplierConsignment;
+use App\Models\SupplierConsignmentItem;
+use App\Models\SupplierConsignmentSettlement;
+use App\Models\SupplierConsignmentSettlementItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class MobileController extends Controller
@@ -742,5 +750,203 @@ class MobileController extends Controller
             'grossProfit', 'expensesByCategory', 'expensesCategoryList', 'totalExpenses',
             'netProfit', 'profitMargin'
         ));
+    }
+
+    /**
+     * Mobile: Daftar Riwayat Setoran Pembayaran Titipan Supplier.
+     */
+    public function ownerTitipanSettlement(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+
+        $query = SupplierConsignmentSettlement::where('tenant_id', $tenantId)
+            ->with(['supplier', 'creator', 'bankAccount', 'items.masterProduct']);
+
+        if ($request->filled('supplier_id')) {
+            $query->where('supplier_id', $request->supplier_id);
+        }
+
+        if ($request->filled('search')) {
+            $s = trim($request->search);
+            $query->where(function ($q) use ($s) {
+                $q->where('settlement_number', 'like', "%{$s}%")
+                  ->orWhere('reference_number', 'like', "%{$s}%");
+            });
+        }
+
+        $settlements = $query->orderByDesc('settlement_date')->orderByDesc('id')->paginate(15)->withQueryString();
+
+        $totalAmountPaid = (float) SupplierConsignmentSettlement::where('tenant_id', $tenantId)->sum('total_amount_paid');
+        $totalQtySettled = (int) SupplierConsignmentSettlement::where('tenant_id', $tenantId)->sum('total_qty_settled');
+        $totalCount = SupplierConsignmentSettlement::where('tenant_id', $tenantId)->count();
+
+        return view('mobile.owner_titipan_settlement', compact('settlements', 'suppliers', 'totalAmountPaid', 'totalQtySettled', 'totalCount'));
+    }
+
+    /**
+     * Mobile: Form Pembayaran Setoran Titipan ke Supplier.
+     */
+    public function ownerTitipanSettlementCreate(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $bankAccounts = BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('bank_name')->get();
+
+        $selectedSupplierId = $request->supplier_id ?: ($suppliers->first() ? $suppliers->first()->id : null);
+        $availableItems = [];
+
+        if ($selectedSupplierId) {
+            $items = SupplierConsignmentItem::whereHas('consignment', function ($q) use ($tenantId, $selectedSupplierId) {
+                $q->where('tenant_id', $tenantId)
+                  ->where('supplier_id', $selectedSupplierId)
+                  ->where('status', 'approved');
+            })->with(['masterProduct', 'consignment'])->get();
+
+            foreach ($items as $item) {
+                $product = $item->masterProduct;
+                if (!$product) continue;
+
+                $qtyReceived  = $item->qty_received;
+                $currentStock = $product->stock;
+                $actualSold   = (int) ($item->qty_sold ?? 0);
+                $qtySold      = $actualSold > 0 ? min($qtyReceived, $actualSold) : max(0, $qtyReceived - $currentStock);
+
+                $qtySettled = (int) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $item->id)
+                    ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                    ->sum('qty_settled');
+
+                $basisQty     = $actualSold > 0 ? $qtySold : $qtyReceived;
+                $qtyUnsettled = max(0, $basisQty - $qtySettled);
+
+                if ($qtyUnsettled > 0) {
+                    $availableItems[] = [
+                        'consignment_item_id' => $item->id,
+                        'ref_number'          => $item->consignment ? $item->consignment->reference_number : '-',
+                        'consignment_date'    => $item->consignment ? $item->consignment->consignment_date->format('d/m/Y') : '-',
+                        'master_product_id'   => $product->id,
+                        'sku'                 => $product->sku,
+                        'name'                => $product->name,
+                        'qty_received'        => $qtyReceived,
+                        'qty_sold'            => $qtySold,
+                        'qty_settled'         => $qtySettled,
+                        'qty_unsettled'       => $qtyUnsettled,
+                        'unit_cost_price'     => (float)$item->unit_cost_price,
+                    ];
+                }
+            }
+        }
+
+        $settlementNumber = SupplierConsignmentSettlement::generateSettlementNumber();
+
+        return view('mobile.owner_titipan_settlement_create', compact(
+            'suppliers',
+            'bankAccounts',
+            'selectedSupplierId',
+            'availableItems',
+            'settlementNumber'
+        ));
+    }
+
+    /**
+     * Mobile: Simpan Pembayaran Setoran Titipan ke Supplier & Sinkron ke Mutasi Kas.
+     */
+    public function ownerTitipanSettlementStore(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'supplier_id'     => 'required|exists:suppliers,id',
+            'settlement_date' => 'required|date',
+            'payment_method'  => 'required|in:cash,transfer',
+            'bank_account_id' => 'required_if:payment_method,transfer|nullable|exists:bank_accounts,id',
+            'notes'           => 'nullable|string|max:1000',
+            'items'           => 'required|array|min:1',
+            'items.*.consignment_item_id' => 'required|exists:supplier_consignment_items,id',
+            'items.*.master_product_id'   => 'required|exists:master_products,id',
+            'items.*.qty_settled'         => 'required|integer|min:1',
+            'items.*.unit_cost_price'     => 'required|numeric|min:0',
+        ]);
+
+        $settlement = DB::transaction(function () use ($request, $tenantId) {
+            $settlementNumber = SupplierConsignmentSettlement::generateSettlementNumber();
+            $totalQtySettled  = 0;
+            $totalAmountPaid  = 0;
+
+            $settlement = SupplierConsignmentSettlement::create([
+                'tenant_id'         => $tenantId,
+                'supplier_id'       => $request->supplier_id,
+                'settlement_number' => $settlementNumber,
+                'settlement_date'   => $request->settlement_date,
+                'payment_method'    => $request->payment_method,
+                'bank_account_id'   => $request->payment_method === 'transfer' ? $request->bank_account_id : null,
+                'reference_number'  => $request->reference_number,
+                'status'            => 'approved',
+                'notes'             => $request->notes,
+                'created_by'        => Auth::id(),
+            ]);
+
+            foreach ($request->items as $row) {
+                $qtySettled = (int) $row['qty_settled'];
+                $costPrice  = (float) $row['unit_cost_price'];
+                $subtotal   = $qtySettled * $costPrice;
+
+                if ($qtySettled > 0) {
+                    $totalQtySettled += $qtySettled;
+                    $totalAmountPaid += $subtotal;
+
+                    $settlement->items()->create([
+                        'supplier_consignment_item_id' => $row['consignment_item_id'],
+                        'master_product_id'           => $row['master_product_id'],
+                        'qty_settled'                 => $qtySettled,
+                        'unit_cost_price'             => $costPrice,
+                        'subtotal'                    => $subtotal,
+                    ]);
+                }
+            }
+
+            $settlement->update([
+                'total_qty_settled' => $totalQtySettled,
+                'total_amount_paid' => $totalAmountPaid,
+            ]);
+
+            // Sinkronisasi otomatis ke Mutasi Kas (Expense)
+            $supplier = Supplier::find($request->supplier_id);
+            $supplierName = $supplier ? $supplier->name : 'Supplier';
+
+            $paymentSource = 'kas_besar';
+            if ($request->payment_method === 'transfer' && $request->bank_account_id) {
+                $bank = BankAccount::where('tenant_id', $tenantId)->find($request->bank_account_id);
+                $paymentSource = $bank ? ($bank->bank_name ?: (string)$bank->id) : (string)$request->bank_account_id;
+            }
+
+            Expense::create([
+                'tenant_id'      => $tenantId,
+                'title'          => "Setoran Titipan Konsinyasi: {$supplierName} ({$settlementNumber})",
+                'category'       => 'Setoran Barang Konsinyasi',
+                'payment_source' => $paymentSource,
+                'amount'         => $totalAmountPaid,
+                'expense_date'   => $request->settlement_date,
+                'description'    => "Setoran Penjualan Barang Konsinyasi {$supplierName} ({$settlementNumber}) — Total {$totalQtySettled} PCS." . ($request->notes ? " Catatan: {$request->notes}" : ''),
+            ]);
+
+            return $settlement;
+        });
+
+        return redirect()->route('mobile.owner.titipan_settlement')
+            ->with('success', 'Pembayaran setoran titipan berhasil disimpan dan masuk ke mutasi kas.');
+    }
+
+    /**
+     * Mobile: Detail Bukti Pembayaran Setoran Titipan Supplier.
+     */
+    public function ownerTitipanSettlementShow($id)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $settlement = SupplierConsignmentSettlement::where('tenant_id', $tenantId)
+            ->with(['supplier', 'creator', 'bankAccount', 'items.masterProduct', 'items.consignmentItem.consignment'])
+            ->findOrFail($id);
+
+        return view('mobile.owner_titipan_settlement_show', compact('settlement'));
     }
 }

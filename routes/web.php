@@ -1204,6 +1204,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/mobile/owner/stok-barang/{id}', [\App\Http\Controllers\MobileController::class, 'ownerStokBarangDetail'])->name('mobile.owner.stok_barang.detail');
         Route::get('/mobile/owner/spk', [\App\Http\Controllers\MobileController::class, 'ownerSpk'])->name('mobile.owner.spk');
         Route::get('/mobile/owner/laba-rugi', [\App\Http\Controllers\MobileController::class, 'ownerProfitLoss'])->name('mobile.owner.profit_loss');
+
+        // Pembayaran & Setoran Titipan Barang Konsinyasi Mobile
+        Route::get('/mobile/owner/titipan-settlement', [\App\Http\Controllers\MobileController::class, 'ownerTitipanSettlement'])->name('mobile.owner.titipan_settlement');
+        Route::get('/mobile/owner/titipan-settlement/create', [\App\Http\Controllers\MobileController::class, 'ownerTitipanSettlementCreate'])->name('mobile.owner.titipan_settlement.create');
+        Route::post('/mobile/owner/titipan-settlement', [\App\Http\Controllers\MobileController::class, 'ownerTitipanSettlementStore'])->name('mobile.owner.titipan_settlement.store');
+        Route::get('/mobile/owner/titipan-settlement/{settlement}', [\App\Http\Controllers\MobileController::class, 'ownerTitipanSettlementShow'])->name('mobile.owner.titipan_settlement.show');
     });
 
     // Gudang Mobile Dashboard (Scan Kemasan Produk & Request Produksi)
