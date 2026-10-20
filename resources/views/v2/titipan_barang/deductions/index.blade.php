@@ -4,44 +4,34 @@
 
 @push('styles')
 <style>
-.deduction-kpi-card {
+.compact-kpi-box {
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 14px 16px;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border-radius: 8px;
+    padding: 10px 14px;
+    transition: all 0.15s ease;
 }
-.deduction-kpi-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+.compact-kpi-box:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
-.deduction-kpi-title {
-    font-size: 0.72rem;
+.compact-kpi-label {
+    font-size: 0.68rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     color: #64748b;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
-.deduction-kpi-value {
-    font-size: 1.25rem;
+.compact-kpi-val {
+    font-size: 1.15rem;
     font-weight: 700;
     line-height: 1.2;
 }
-.deduction-kpi-sub {
-    font-size: 0.7rem;
+.compact-kpi-sub {
+    font-size: 0.68rem;
     color: #94a3b8;
-    margin-top: 4px;
-}
-.deduction-kpi-icon {
-    position: absolute;
-    right: 14px;
-    bottom: 12px;
-    font-size: 2.2rem;
-    opacity: 0.12;
-    pointer-events: none;
+    margin-top: 2px;
 }
 </style>
 @endpush
@@ -51,100 +41,88 @@
 {{-- ── Page Header ── --}}
 <div class="v2-page-header align-items-center mb-3">
     <div>
-        <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0">
-            <i class="bi bi-box-arrow-up-right text-danger fs-5"></i> Pengeluaran Stok Titipan Barang
+        <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0" style="font-size: 1.15rem;">
+            <i class="bi bi-box-arrow-up-right text-danger"></i> Pengeluaran Stok Titipan Barang
         </h1>
-        <p class="text-muted small mb-0">Kelola pemotongan stok titipan manual (pesanan terlewat scan, retur ke supplier, barang rusak, sample, dll)</p>
+        <p class="text-muted small mb-0" style="font-size: 0.78rem;">Pemotongan stok titipan manual (terlewat scan, retur, rusak, koreksi)</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
-        <a href="{{ route('v2.titipan_barang.index') }}" class="btn btn-sm btn-outline-secondary py-1.5 px-3 rounded-2 fw-semibold">
-            <i class="bi bi-box-arrow-in-down me-1"></i> Penerimaan Titipan
+        <a href="{{ route('v2.titipan_barang.index') }}" class="btn btn-sm btn-outline-secondary py-1 px-2.5 rounded-2" style="font-size: 0.78rem;">
+            <i class="bi bi-box-arrow-in-down me-1"></i> Penerimaan
         </a>
-        <a href="{{ route('v2.titipan_barang.stock_card') }}" class="btn btn-sm btn-outline-secondary py-1.5 px-3 rounded-2 fw-semibold">
+        <a href="{{ route('v2.titipan_barang.stock_card') }}" class="btn btn-sm btn-outline-secondary py-1 px-2.5 rounded-2" style="font-size: 0.78rem;">
             <i class="bi bi-card-checklist me-1"></i> Kartu Stok
         </a>
-        <a href="{{ route('v2.titipan_barang.deductions.create') }}" class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#dc2626; border:none; border-radius:6px;">
-            <i class="bi bi-plus-lg me-1"></i> Catat Pengeluaran Baru
+        <a href="{{ route('v2.titipan_barang.deductions.create') }}" class="btn btn-sm py-1 px-3 fw-semibold text-white shadow-sm" style="background:#dc2626; border:none; border-radius:6px; font-size: 0.8rem;">
+            <i class="bi bi-plus-lg me-1"></i> Catat Baru
         </a>
     </div>
 </div>
 
 {{-- ── Alert Notifications ── --}}
 @if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 mb-3" role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 py-2 px-3 mb-2.5" role="alert" style="font-size: 0.82rem;">
+        <i class="bi bi-check-circle-fill me-1.5 text-success"></i>{{ session('success') }}
+        <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
     </div>
 @endif
 @if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 mb-3" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 py-2 px-3 mb-2.5" role="alert" style="font-size: 0.82rem;">
+        <i class="bi bi-exclamation-triangle-fill me-1.5 text-danger"></i>{{ session('error') }}
+        <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
     </div>
 @endif
 
-{{-- ── KPI Summary Cards ── --}}
-<div class="row g-2.5 mb-3">
-    <div class="col-12 col-sm-6 col-xl-3">
-        <div class="deduction-kpi-card border-start border-danger border-3">
-            <div class="deduction-kpi-title text-danger">Total Pengeluaran</div>
-            <div class="deduction-kpi-value text-dark">
-                {{ number_format($totalCount, 0, ',', '.') }} Transaksi
-            </div>
-            <div class="deduction-kpi-sub">Riwayat pemotongan terfilter</div>
-            <i class="bi bi-receipt deduction-kpi-icon text-danger"></i>
+{{-- ── Compact KPI Bar ── --}}
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="compact-kpi-box border-start border-danger border-3">
+            <div class="compact-kpi-label text-danger">Total Pengeluaran</div>
+            <div class="compact-kpi-val text-dark">{{ number_format($totalCount, 0, ',', '.') }} <span class="small fw-normal text-muted" style="font-size:0.75rem;">Trx</span></div>
+            <div class="compact-kpi-sub">Riwayat terfilter</div>
         </div>
     </div>
-    <div class="col-12 col-sm-6 col-xl-3">
-        <div class="deduction-kpi-card border-start border-warning border-3">
-            <div class="deduction-kpi-title text-warning">Total Qty Keluar</div>
-            <div class="deduction-kpi-value text-warning-emphasis">
-                {{ number_format($totalQty, 0, ',', '.') }} PCS
-            </div>
-            <div class="deduction-kpi-sub">Total unit barang yang dikeluarkan</div>
-            <i class="bi bi-boxes deduction-kpi-icon text-warning"></i>
+    <div class="col-6 col-md-3">
+        <div class="compact-kpi-box border-start border-warning border-3">
+            <div class="compact-kpi-label text-warning-emphasis">Total Qty Keluar</div>
+            <div class="compact-kpi-val text-warning-emphasis">{{ number_format($totalQty, 0, ',', '.') }} <span class="small fw-normal text-muted" style="font-size:0.75rem;">PCS</span></div>
+            <div class="compact-kpi-sub">Unit stok dipotong</div>
         </div>
     </div>
-    <div class="col-12 col-sm-6 col-xl-3">
-        <div class="deduction-kpi-card border-start border-primary border-3">
-            <div class="deduction-kpi-title text-primary">Nilai HPP Modal</div>
-            <div class="deduction-kpi-value text-primary font-monospace">
-                Rp {{ number_format($totalHppAmount, 0, ',', '.') }}
-            </div>
-            <div class="deduction-kpi-sub">Estimasi modal titipan keluar</div>
-            <i class="bi bi-cash-stack deduction-kpi-icon text-primary"></i>
+    <div class="col-6 col-md-3">
+        <div class="compact-kpi-box border-start border-primary border-3">
+            <div class="compact-kpi-label text-primary">Nilai HPP Modal</div>
+            <div class="compact-kpi-val text-primary font-monospace" style="font-size: 1.05rem;">Rp {{ number_format($totalHppAmount, 0, ',', '.') }}</div>
+            <div class="compact-kpi-sub">Estimasi modal titipan</div>
         </div>
     </div>
-    <div class="col-12 col-sm-6 col-xl-3">
-        <div class="deduction-kpi-card border-start border-info border-3">
-            <div class="deduction-kpi-title text-info">Kategori Pengeluaran</div>
-            <div class="deduction-kpi-value text-dark" style="font-size: 1rem;">
-                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2">
-                    <i class="bi bi-qr-code-scan me-1"></i>{{ $totalUnscannedOrders }} Terlewat Scan
+    <div class="col-6 col-md-3">
+        <div class="compact-kpi-box border-start border-info border-3">
+            <div class="compact-kpi-label text-info">Kategori Alasan</div>
+            <div class="compact-kpi-val text-dark" style="font-size: 0.95rem;">
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-1.5 py-0.5">
+                    {{ $totalUnscannedOrders }} Terlewat Scan
                 </span>
             </div>
-            <div class="deduction-kpi-sub mt-1.5">{{ $totalManualCorrections }} Koreksi / Retur / Kerusakan</div>
-            <i class="bi bi-pie-chart deduction-kpi-icon text-info"></i>
+            <div class="compact-kpi-sub">{{ $totalManualCorrections }} Koreksi / Retur / Lainnya</div>
         </div>
     </div>
 </div>
 
 {{-- ── Filter Card ── --}}
 <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white">
-    <div class="card-body p-3">
+    <div class="card-body p-2.5">
         <form method="GET" action="{{ route('v2.titipan_barang.deductions.index') }}">
-            <div class="row g-2.5 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="font-size:0.72rem;">Cari Pengeluaran</label>
+            <div class="row g-2 align-items-center">
+                <div class="col-12 col-md-3">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
-                        <input type="text" name="search" class="form-control form-control-sm border-start-0" placeholder="Invoice / Resi / Produk / Ref..." value="{{ request('search') }}">
+                        <input type="text" name="search" class="form-control form-control-sm border-start-0" placeholder="Cari Resi / Inv / Produk / Ref..." value="{{ request('search') }}">
                     </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="font-size:0.72rem;">Supplier</label>
+                <div class="col-6 col-md-2">
                     <select name="supplier_id" class="form-select form-select-sm select2">
-                        <option value="">-- Semua Supplier --</option>
+                        <option value="">Semua Supplier</option>
                         @foreach($suppliers as $sup)
                             <option value="{{ $sup->id }}" {{ request('supplier_id') == $sup->id ? 'selected' : '' }}>
                                 {{ $sup->name }}
@@ -152,10 +130,9 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="font-size:0.72rem;">Alasan Pengeluaran</label>
+                <div class="col-6 col-md-2">
                     <select name="reason" class="form-select form-select-sm">
-                        <option value="">-- Semua Alasan --</option>
+                        <option value="">Semua Alasan</option>
                         <option value="unscanned_order" {{ request('reason') == 'unscanned_order' ? 'selected' : '' }}>Pesanan Terlewat Scan</option>
                         <option value="manual_adjustment" {{ request('reason') == 'manual_adjustment' ? 'selected' : '' }}>Koreksi Stok Manual</option>
                         <option value="return_supplier" {{ request('reason') == 'return_supplier' ? 'selected' : '' }}>Retur ke Supplier</option>
@@ -164,30 +141,30 @@
                         <option value="other" {{ request('reason') == 'other' ? 'selected' : '' }}>Lainnya</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="font-size:0.72rem;">Tanggal Mulai</label>
-                    <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request('date_from') }}">
+                <div class="col-5 col-md-2">
+                    <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request('date_from') }}" title="Tanggal Mulai">
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="font-size:0.72rem;">Tanggal Akhir</label>
-                    <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request('date_to') }}">
+                <div class="col-5 col-md-2">
+                    <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request('date_to') }}" title="Tanggal Akhir">
                 </div>
-                <div class="col-md-1 d-flex gap-1">
-                    <button type="submit" class="btn btn-primary btn-sm w-100 fw-semibold" title="Terapkan Filter"><i class="bi bi-filter"></i></button>
-                    <a href="{{ route('v2.titipan_barang.deductions.index') }}" class="btn btn-outline-secondary btn-sm" title="Reset Filter"><i class="bi bi-arrow-counterclockwise"></i></a>
+                <div class="col-2 col-md-1 d-flex gap-1">
+                    <button type="submit" class="btn btn-primary btn-sm w-100" title="Filter"><i class="bi bi-filter"></i></button>
+                    @if(request()->hasAny(['search', 'supplier_id', 'reason', 'date_from', 'date_to']))
+                        <a href="{{ route('v2.titipan_barang.deductions.index') }}" class="btn btn-outline-secondary btn-sm" title="Reset"><i class="bi bi-x-lg"></i></a>
+                    @endif
                 </div>
             </div>
         </form>
     </div>
 </div>
 
-{{-- ── Main Table Card ── --}}
-<div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white">
-    <div class="card-header bg-white border-bottom py-2.5 px-3 d-flex align-items-center justify-content-between">
+{{-- ── Simplified Main Table ── --}}
+<div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white mb-4">
+    <div class="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-2">
             <i class="bi bi-list-check text-danger"></i>
-            <span class="fw-bold text-dark small text-uppercase" style="letter-spacing:0.04em;">Daftar Riwayat Pengeluaran Stok Titipan</span>
-            <span class="badge bg-light text-muted border px-2 py-0.5" style="font-size:0.7rem;">
+            <span class="fw-bold text-dark small text-uppercase" style="letter-spacing:0.03em; font-size: 0.75rem;">Daftar Pengeluaran Stok Titipan</span>
+            <span class="badge bg-light text-muted border px-1.5 py-0.5" style="font-size:0.68rem;">
                 {{ $deductions->total() }} Data
             </span>
         </div>
@@ -195,18 +172,14 @@
 
     @if($deductions->count() > 0)
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
-                <thead class="bg-light text-muted">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                <thead class="bg-light text-muted" style="font-size: 0.72rem;">
                     <tr>
-                        <th class="ps-3 py-2.5" style="width: 140px;">WAKTU / TANGGAL</th>
-                        <th class="py-2.5">PRODUK & SKU</th>
-                        <th class="py-2.5">BATCH TITIPAN (SUPPLIER)</th>
-                        <th class="text-center py-2.5" style="width: 100px;">QTY KELUAR</th>
-                        <th class="py-2.5">ALASAN PENGELUARAN</th>
-                        <th class="py-2.5">TERKAIT PESANAN</th>
-                        <th class="text-center py-2.5">POTONG MASTER</th>
-                        <th class="py-2.5">OPERATOR</th>
-                        <th class="text-center pe-3 py-2.5" style="width: 110px;">AKSI</th>
+                        <th class="ps-3 py-2" style="width: 130px;">WAKTU</th>
+                        <th class="py-2">PRODUK & TITIPAN</th>
+                        <th class="py-2">ALASAN & TERKAIT PESANAN</th>
+                        <th class="text-center py-2" style="width: 120px;">QTY KELUAR</th>
+                        <th class="text-center pe-3 py-2" style="width: 90px;">AKSI</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -220,104 +193,103 @@
                             $dateObj = $ded->deduction_date ?: $ded->created_at;
                         @endphp
                         <tr>
-                            <td class="ps-3 py-2.5">
+                            {{-- 1. WAKTU & OPERATOR --}}
+                            <td class="ps-3 py-2">
                                 <div class="fw-semibold text-dark">{{ $dateObj ? $dateObj->format('d/m/Y') : '-' }}</div>
-                                <small class="text-muted" style="font-size: 0.72rem;">{{ $dateObj ? $dateObj->format('H:i') . ' WIB' : '' }}</small>
+                                <div class="text-muted" style="font-size: 0.7rem;">{{ $dateObj ? $dateObj->format('H:i') . ' WIB' : '' }}</div>
+                                <div class="text-muted text-truncate mt-0.5" style="font-size: 0.68rem; max-width: 120px;" title="Operator: {{ $ded->user ? $ded->user->name : 'Sistem' }}">
+                                    <i class="bi bi-person me-0.5 opacity-50"></i>{{ $ded->user ? $ded->user->name : 'Sistem' }}
+                                </div>
                             </td>
-                            <td class="py-2.5">
-                                <div class="fw-bold text-dark lh-sm" style="max-width: 260px; word-break: break-word;">
+
+                            {{-- 2. PRODUK, SKU & SUPPLIER/BATCH --}}
+                            <td class="py-2">
+                                <div class="fw-bold text-dark lh-sm text-truncate" style="max-width: 340px;" title="{{ $prod ? $prod->name : 'Produk Terhapus' }}">
                                     {{ $prod ? $prod->name : 'Produk Terhapus' }}
                                 </div>
-                                <div class="d-flex align-items-center gap-1.5 mt-1">
-                                    <span class="badge bg-secondary-subtle text-secondary border font-monospace px-1.5 py-0.5" style="font-size:0.68rem;">
-                                        SKU: {{ $prod ? $prod->sku : '-' }}
+                                <div class="d-flex align-items-center gap-1.5 mt-1 flex-wrap">
+                                    <span class="badge bg-light text-secondary border font-monospace px-1 py-0.5" style="font-size: 0.65rem;">
+                                        {{ $prod ? $prod->sku : '-' }}
                                     </span>
-                                    @if($cItem && $cItem->unit_cost_price > 0)
-                                        <span class="text-muted small" style="font-size:0.7rem;">
-                                            HPP: Rp {{ number_format($cItem->unit_cost_price, 0, ',', '.') }}
+                                    @if($cons)
+                                        <span class="text-muted small">•</span>
+                                        <a href="{{ route('v2.titipan_barang.show', $cons->id) }}" class="text-decoration-none small text-primary d-inline-flex align-items-center gap-0.5 font-monospace" style="font-size: 0.72rem;">
+                                            <i class="bi bi-box-seam me-0.5"></i>{{ $cons->reference_number }}
+                                        </a>
+                                        <span class="text-secondary small fw-semibold" style="font-size: 0.72rem;">
+                                            ({{ $sup ? $sup->name : '-' }})
                                         </span>
                                     @endif
                                 </div>
                             </td>
-                            <td class="py-2.5">
-                                @if($cons)
-                                    <a href="{{ route('v2.titipan_barang.show', $cons->id) }}" class="text-decoration-none fw-semibold font-monospace small text-primary d-inline-flex align-items-center gap-1">
-                                        <i class="bi bi-box-seam"></i> {{ $cons->reference_number }}
-                                    </a>
-                                    <div class="text-muted small" style="font-size:0.72rem;">
-                                        {{ $sup ? $sup->name : 'Supplier' }}
-                                    </div>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td class="text-center py-2.5">
-                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fw-bold font-monospace fs-6">
-                                    -{{ number_format($ded->quantity) }} PCS
-                                </span>
-                            </td>
-                            <td class="py-2.5">
-                                <span class="badge {{ $ded->reason_badge_class }} px-2 py-1 mb-1 d-inline-block">
-                                    {{ $ded->reason_label }}
-                                </span>
-                                @if($ded->reference_no)
-                                    <div class="text-muted small" style="font-size:0.72rem;">
-                                        Ref: <span class="font-monospace fw-semibold text-dark">{{ $ded->reference_no }}</span>
-                                    </div>
-                                @endif
-                                @if($ded->notes)
-                                    <div class="text-muted fst-italic small text-truncate" style="max-width: 200px; font-size:0.7rem;" title="{{ $ded->notes }}">
-                                        "{{ $ded->notes }}"
-                                    </div>
-                                @endif
-                            </td>
-                            <td class="py-2.5">
+
+                            {{-- 3. ALASAN & PESANAN / REFERENSI --}}
+                            <td class="py-2">
+                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                    <span class="badge {{ $ded->reason_badge_class }} px-1.5 py-0.5" style="font-size: 0.68rem;">
+                                        {{ $ded->reason_label }}
+                                    </span>
+                                    @if($ded->deduct_master_stock)
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-1 py-0.5" style="font-size: 0.62rem;" title="Stok fisik gudang ikut dipotong">
+                                            <i class="bi bi-check-circle me-0.5"></i>Potong Gudang
+                                        </span>
+                                    @endif
+                                </div>
+
                                 @if($order)
-                                    <a href="{{ route('orders.show', $order->id) }}" class="fw-bold text-primary text-decoration-none d-inline-flex align-items-center gap-1" target="_blank">
-                                        <i class="bi bi-receipt"></i> {{ $order->invoice_number ?: $order->order_marketplace_id }}
-                                    </a>
-                                    <div class="d-flex align-items-center gap-1 mt-0.5 flex-wrap">
+                                    <div class="d-flex align-items-center gap-1.5 mt-1 flex-wrap">
+                                        <a href="{{ route('orders.show', $order->id) }}" class="fw-semibold text-primary text-decoration-none small d-inline-flex align-items-center gap-1" target="_blank" style="font-size: 0.75rem;">
+                                            <i class="bi bi-receipt"></i> {{ $order->invoice_number ?: $order->order_marketplace_id }}
+                                        </a>
                                         @if($order->store)
-                                            <span class="badge bg-light text-secondary border px-1.5 py-0.5" style="font-size:0.65rem;">
-                                                {{ $order->store->store_name }}
+                                            <span class="text-muted small" style="font-size: 0.68rem;">
+                                                [{{ $order->store->store_name }}]
                                             </span>
                                         @endif
                                         @if($order->tracking_number)
-                                            <span class="badge bg-light text-muted border font-monospace px-1.5 py-0.5" style="font-size:0.65rem;" title="Resi: {{ $order->tracking_number }}">
+                                            <span class="text-muted font-monospace small" style="font-size: 0.68rem;" title="Resi: {{ $order->tracking_number }}">
                                                 <i class="bi bi-truck me-0.5"></i>{{ Str::limit($order->tracking_number, 12) }}
                                             </span>
                                         @endif
                                     </div>
-                                @else
-                                    <span class="text-muted small fst-italic">Tanpa Order Marketplace</span>
+                                @elseif($ded->reference_no)
+                                    <div class="text-muted small mt-1" style="font-size: 0.72rem;">
+                                        Ref: <span class="font-monospace fw-semibold text-dark">{{ $ded->reference_no }}</span>
+                                    </div>
+                                @endif
+
+                                @if($ded->notes)
+                                    <div class="text-muted fst-italic text-truncate mt-0.5" style="max-width: 250px; font-size: 0.68rem;" title="{{ $ded->notes }}">
+                                        "{{ $ded->notes }}"
+                                    </div>
                                 @endif
                             </td>
-                            <td class="text-center py-2.5">
-                                @if($ded->deduct_master_stock)
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle" title="Stok fisik gudang master ikut dikurangi saat input">
-                                        <i class="bi bi-check-circle me-1"></i>Ya
-                                    </span>
-                                @else
-                                    <span class="badge bg-light text-muted border" title="Stok master tidak dipotong tambahan (sudah dipotong scanner / sistem lain)">
-                                        <i class="bi bi-dash-circle me-1"></i>Tidak
-                                    </span>
+
+                            {{-- 4. QTY KELUAR & HPP --}}
+                            <td class="text-center py-2">
+                                <div class="fw-bold text-danger font-monospace fs-6">
+                                    -{{ number_format($ded->quantity) }} PCS
+                                </div>
+                                @if($cItem && $cItem->unit_cost_price > 0)
+                                    <div class="text-muted" style="font-size: 0.68rem;">
+                                        HPP: Rp {{ number_format($cItem->unit_cost_price, 0, ',', '.') }}
+                                    </div>
                                 @endif
                             </td>
-                            <td class="py-2.5 text-muted small" style="font-size:0.75rem;">
-                                <i class="bi bi-person me-1"></i>{{ $ded->user ? $ded->user->name : 'Sistem' }}
-                            </td>
-                            <td class="text-center pe-3 py-2.5">
+
+                            {{-- 5. AKSI (Detail, Edit, Hapus) --}}
+                            <td class="text-center pe-3 py-2">
                                 <div class="d-inline-flex align-items-center gap-1">
-                                    <a href="{{ route('v2.titipan_barang.deductions.show', $ded->id) }}" class="btn btn-sm btn-outline-info p-1 px-2" title="Detail Pengeluaran" style="border-radius:5px;">
+                                    <a href="{{ route('v2.titipan_barang.deductions.show', $ded->id) }}" class="btn btn-sm btn-light border p-1 px-1.5 text-secondary" title="Detail" style="border-radius:4px; font-size:0.75rem;">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a href="{{ route('v2.titipan_barang.deductions.edit', $ded->id) }}" class="btn btn-sm btn-outline-warning p-1 px-2" title="Edit Pengeluaran" style="border-radius:5px;">
+                                    <a href="{{ route('v2.titipan_barang.deductions.edit', $ded->id) }}" class="btn btn-sm btn-light border p-1 px-1.5 text-primary" title="Edit" style="border-radius:4px; font-size:0.75rem;">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <form action="{{ route('v2.titipan_barang.deductions.destroy', $ded->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Batalkan pengeluaran ini? Stok titipan akan dikembalikan sebanyak {{ $ded->quantity }} pcs.')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2" title="Batalkan / Hapus" style="border-radius:5px;">
+                                        <button type="submit" class="btn btn-sm btn-light border p-1 px-1.5 text-danger" title="Batalkan / Hapus" style="border-radius:4px; font-size:0.75rem;">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
@@ -330,10 +302,10 @@
         </div>
 
         @if($deductions->hasPages())
-            <div class="card-footer bg-white border-top py-2.5 px-3">
+            <div class="card-footer bg-white border-top py-2 px-3">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <small class="text-muted">
-                        Menampilkan {{ $deductions->firstItem() }} - {{ $deductions->lastItem() }} dari total {{ $deductions->total() }} catatan pengeluaran
+                    <small class="text-muted" style="font-size: 0.72rem;">
+                        Menampilkan {{ $deductions->firstItem() }} - {{ $deductions->lastItem() }} dari total {{ $deductions->total() }} data
                     </small>
                     {{ $deductions->links() }}
                 </div>
@@ -341,15 +313,15 @@
         @endif
     @else
         <div class="text-center py-5">
-            <div class="mb-3">
-                <div class="rounded-circle bg-danger-subtle text-danger d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
-                    <i class="bi bi-box-arrow-up-right fs-2"></i>
+            <div class="mb-2">
+                <div class="rounded-circle bg-danger-subtle text-danger d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                    <i class="bi bi-box-arrow-up-right fs-4"></i>
                 </div>
             </div>
-            <h6 class="fw-bold text-dark mb-1">Belum Ada Riwayat Pengeluaran Stok Titipan</h6>
-            <p class="text-muted small mb-3">Semua pemotongan stok titipan (scan kemas terlewat, retur supplier, atau koreksi) akan tercatat di sini.</p>
-            <a href="{{ route('v2.titipan_barang.deductions.create') }}" class="btn btn-sm text-white px-3 py-1.5 fw-semibold" style="background:#dc2626; border:none; border-radius:6px;">
-                <i class="bi bi-plus-lg me-1"></i> Catat Pengeluaran Sekarang
+            <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">Belum Ada Riwayat Pengeluaran Stok Titipan</h6>
+            <p class="text-muted small mb-2.5" style="font-size: 0.75rem;">Semua pemotongan stok titipan manual akan tercatat di sini.</p>
+            <a href="{{ route('v2.titipan_barang.deductions.create') }}" class="btn btn-sm text-white px-3 py-1 fw-semibold" style="background:#dc2626; border:none; border-radius:6px; font-size: 0.78rem;">
+                <i class="bi bi-plus-lg me-1"></i> Catat Pengeluaran Baru
             </a>
         </div>
     @endif
