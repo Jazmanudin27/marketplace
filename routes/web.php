@@ -332,6 +332,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/laporan', [\App\Http\Controllers\V2\LaporanPenjualanController::class, 'index'])->name('laporan.index');
         Route::get('/laporan-penjualan', [\App\Http\Controllers\V2\LaporanPenjualanController::class, 'index']);
 
+        // Laporan Gudang Jadi V2
+        Route::get('/gudang-jadi/laporan', [\App\Http\Controllers\V2\LaporanGudangController::class, 'index'])->name('laporan_gudang.index');
+        Route::get('/laporan-gudang', [\App\Http\Controllers\V2\LaporanGudangController::class, 'index']);
+
         // Laporan Stok Barang (Gudang & Marketplace) V2
         Route::get('/reports/stock', [\App\Http\Controllers\V2\LaporanStokController::class, 'index'])->name('reports.stock');
         Route::get('/reports/stock/print', [\App\Http\Controllers\V2\LaporanStokController::class, 'print'])->name('reports.stock.print');

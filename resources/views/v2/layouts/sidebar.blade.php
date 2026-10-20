@@ -213,10 +213,12 @@
                 request()->is('v2/scanner-gudang*') ||
                 request()->is('v2/reports/stock*') ||
                 request()->is('v2/laporan-stok*') ||
+                request()->is('v2/laporan-gudang*') ||
                 request()->routeIs('v2.gudang_jadi.*') ||
                 request()->routeIs('v2.scanner_gudang.*') ||
                 request()->routeIs('v2.stock_opname.*') ||
-                request()->routeIs('v2.reports.stock*');
+                request()->routeIs('v2.reports.stock*') ||
+                request()->routeIs('v2.laporan_gudang.*');
 
             $lowStockAlertCount = 0;
             if (auth()->check() && auth()->user()->tenant_id) {
@@ -270,6 +272,11 @@
                         @if($lowStockAlertCount > 0)
                             <span class="badge bg-danger rounded-pill px-1.5 py-0.5 ms-auto" style="font-size: 0.62rem;" title="{{ $lowStockAlertCount }} Produk Stok < 10">{{ $lowStockAlertCount }}</span>
                         @endif
+                    </a>
+                    <a href="{{ route('v2.laporan_gudang.index') }}"
+                        class="v2-submenu-link {{ request()->is('v2/gudang-jadi/laporan*') || request()->is('v2/laporan-gudang*') || request()->routeIs('v2.laporan_gudang.*') ? 'active' : '' }}">
+                        <i class="bi bi-file-earmark-bar-graph text-info me-1.5"></i>
+                        <span>Laporan</span>
                     </a>
                 </div>
             </div>
