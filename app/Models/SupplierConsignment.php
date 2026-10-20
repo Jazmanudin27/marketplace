@@ -56,6 +56,16 @@ class SupplierConsignment extends Model
         return $this->hasMany(SupplierConsignmentItem::class);
     }
 
+    public function deductions(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(
+            SupplierConsignmentDeduction::class,
+            SupplierConsignmentItem::class,
+            'supplier_consignment_id',
+            'supplier_consignment_item_id'
+        );
+    }
+
     public static function generateReferenceNumber(): string
     {
         $prefix = 'KNS-' . date('Ymd') . '-';

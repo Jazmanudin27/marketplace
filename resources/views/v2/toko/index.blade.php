@@ -235,10 +235,10 @@
                         @elseif ($store->status === 'expired')
                             @php
                                 $reconnectUrl = match($chCode) {
-                                    'shopee'    => route('shopee.authorize'),
-                                    'tiktok'    => route('tiktok.auth'),
-                                    'tokopedia' => route('tiktok.auth', ['channel' => 'tokopedia']),
-                                    'lazada'    => route('lazada.authorize'),
+                                    'shopee'    => route('shopee.authorize', ['return_to' => 'v2']),
+                                    'tiktok'    => route('tiktok.auth', ['channel' => 'tiktok', 'return_to' => 'v2']),
+                                    'tokopedia' => route('tiktok.auth', ['channel' => 'tokopedia', 'return_to' => 'v2']),
+                                    'lazada'    => route('lazada.authorize', ['return_to' => 'v2']),
                                     default     => null,
                                 };
                             @endphp

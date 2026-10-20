@@ -148,6 +148,10 @@ class PermissionRegistry
                 'supplier-consignments.destroy'    => 'Hapus Penerimaan Barang Titipan',
                 'supplier-consignments.stock_card' => 'Lihat Kartu Stok Konsinyasi',
                 'supplier-consignments.settlement' => 'Lihat & Kelola Riwayat Setoran Supplier',
+                'supplier-consignments.deductions.index'   => 'Lihat Pengeluaran Stok Titipan',
+                'supplier-consignments.deductions.create'  => 'Tambah Pengeluaran Stok Titipan Manual',
+                'supplier-consignments.deductions.edit'    => 'Edit Pengeluaran Stok Titipan',
+                'supplier-consignments.deductions.destroy' => 'Hapus Pengeluaran Stok Titipan',
             ],
             'Marketing & Penjualan' => [
                 'spks.index'                    => 'Lihat SPK (Surat Perintah Kerja)',

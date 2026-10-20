@@ -19,6 +19,10 @@
         <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-secondary fw-semibold px-3">
             <i class="bi bi-printer me-1"></i> Cetak Faktur
         </button>
+        <a href="{{ route('v2.titipan_barang.deductions.create') }}"
+            class="btn btn-sm btn-outline-danger fw-semibold px-3">
+            <i class="bi bi-box-arrow-up-right me-1"></i> Catat Pengeluaran
+        </a>
         <a href="{{ route('supplier_consignments.edit', $consignment) }}"
             class="btn btn-sm fw-semibold text-dark px-3" style="background:#fbbf24; border:none;">
             <i class="bi bi-pencil me-1"></i> Edit
@@ -289,64 +293,116 @@
     </div>
 </div>
 
-{{-- ── Riwayat Scan Kemas ── --}}
-@if($allDeductions->isNotEmpty())
+{{-- ── Riwayat Pengeluaran & Pemotongan Stok Titipan ── --}}
+@php
+    $allDeductions = collect();
+    foreach($consignment->items as $cItem) {
+        if ($cItem->deductions && $cItem->deductions->isNotEmpty()) {
+            $allDeductions = $allDeductions->concat($cItem->deductions);
+        }
+    }
+@endphp
+
 <div class="v2-card shadow-sm overflow-hidden mt-3">
-    <div class="px-3 py-2.5 border-bottom bg-light d-flex align-items-center justify-content-between">
-        <span class="fw-bold text-secondary small text-uppercase" style="font-size:0.73rem; letter-spacing:0.04em;">
-            <i class="bi bi-qr-code-scan text-success me-1"></i>
-            Riwayat Pengurangan Stok Saat Scan Kemas
-        </span>
-        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:0.7rem;">
-            {{ $allDeductions->count() }} Kali Scan
-        </span>
+    <div class="px-3 py-2.5 border-bottom bg-light d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <span class="fw-bold text-secondary small text-uppercase" style="font-size:0.73rem; letter-spacing:0.04em;">
+                <i class="bi bi-box-arrow-up-right text-danger me-1"></i>
+                Riwayat Pengeluaran & Pemotongan Stok Titipan
+            </span>
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:0.7rem;">
+                {{ $allDeductions->count() }} Kali Pengeluaran ({{ number_format($allDeductions->sum('quantity')) }} PCS)
+            </span>
+        </div>
+        <a href="{{ route('v2.titipan_barang.deductions.create') }}" class="btn btn-sm btn-danger py-1 px-2.5 rounded-2 fw-semibold text-white" style="font-size:0.75rem;">
+            <i class="bi bi-plus-lg me-1"></i> Catat Pengeluaran Baru
+        </a>
     </div>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" style="font-size:0.8rem;">
-            <thead class="bg-light text-muted">
-                <tr>
-                    <th class="ps-3 py-2.5">WAKTU SCAN</th>
-                    <th class="py-2.5">INVOICE / PESANAN</th>
-                    <th class="py-2.5">PRODUK (SKU)</th>
-                    <th class="text-center py-2.5">JUMLAH POTONG</th>
-                    <th class="py-2.5">KODE SCAN</th>
-                    <th class="pe-3 py-2.5">PETUGAS KEMAS</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($allDeductions->sortByDesc('created_at') as $ded)
-                <tr>
-                    <td class="ps-3 text-muted">{{ $ded->created_at->format('d/m/Y H:i:s') }}</td>
-                    <td>
-                        @if($ded->order)
-                            <a href="{{ route('orders.show', $ded->order_id) }}" class="fw-bold text-primary text-decoration-none" target="_blank">
-                                {{ $ded->order->invoice_number ?: $ded->order->order_marketplace_id }}
-                            </a>
-                            <small class="text-muted d-block">{{ $ded->order->store ? $ded->order->store->store_name : '' }}</small>
-                        @else
-                            <span class="text-muted">Order #{{ $ded->order_id }}</span>
-                        @endif
-                    </td>
-                    <td>
-                        <div class="fw-semibold text-dark">{{ $ded->consignmentItem && $ded->consignmentItem->masterProduct ? $ded->consignmentItem->masterProduct->name : '-' }}</div>
-                        <span class="badge bg-light text-secondary border font-monospace" style="font-size:0.65rem;">
-                            {{ $ded->consignmentItem && $ded->consignmentItem->masterProduct ? $ded->consignmentItem->masterProduct->sku : '' }}
-                        </span>
-                    </td>
-                    <td class="text-center">
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fw-bold font-monospace">
-                            -{{ $ded->quantity }} PCS
-                        </span>
-                    </td>
-                    <td><code class="small text-dark">{{ $ded->scanned_barcode ?: '-' }}</code></td>
-                    <td class="pe-3 text-muted">{{ $ded->user ? $ded->user->name : '-' }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
+
+    @if($allDeductions->isNotEmpty())
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size:0.8rem;">
+                <thead class="bg-light text-muted">
+                    <tr>
+                        <th class="ps-3 py-2.5">WAKTU / TANGGAL</th>
+                        <th class="py-2.5">ALASAN PENGELUARAN</th>
+                        <th class="py-2.5">INVOICE / PESANAN</th>
+                        <th class="py-2.5">PRODUK (SKU)</th>
+                        <th class="text-center py-2.5">JUMLAH POTONG</th>
+                        <th class="py-2.5">KODE / REF</th>
+                        <th class="py-2.5">PETUGAS</th>
+                        <th class="text-center pe-3 py-2.5">AKSI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($allDeductions->sortByDesc(fn($d) => $d->deduction_date ?: $d->created_at) as $ded)
+                    @php
+                        $dDate = $ded->deduction_date ?: $ded->created_at;
+                    @endphp
+                    <tr>
+                        <td class="ps-3 text-muted">
+                            <span class="fw-semibold text-dark">{{ $dDate ? $dDate->format('d/m/Y') : '-' }}</span>
+                            <small class="d-block text-muted" style="font-size:0.7rem;">{{ $dDate ? $dDate->format('H:i') . ' WIB' : '' }}</small>
+                        </td>
+                        <td>
+                            <span class="badge {{ $ded->reason_badge_class }} px-2 py-0.5" style="font-size:0.72rem;">
+                                {{ $ded->reason_label }}
+                            </span>
+                        </td>
+                        <td>
+                            @if($ded->order)
+                                <a href="{{ route('orders.show', $ded->order_id) }}" class="fw-bold text-primary text-decoration-none" target="_blank">
+                                    {{ $ded->order->invoice_number ?: $ded->order->order_marketplace_id }}
+                                </a>
+                                <small class="text-muted d-block" style="font-size:0.7rem;">{{ $ded->order->store ? $ded->order->store->store_name : '' }}</small>
+                            @else
+                                <span class="text-muted small fst-italic">Tanpa Pesanan</span>
+                            @endif
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ $ded->consignmentItem && $ded->consignmentItem->masterProduct ? $ded->consignmentItem->masterProduct->name : '-' }}</div>
+                            <span class="badge bg-light text-secondary border font-monospace" style="font-size:0.65rem;">
+                                {{ $ded->consignmentItem && $ded->consignmentItem->masterProduct ? $ded->consignmentItem->masterProduct->sku : '' }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fw-bold font-monospace">
+                                -{{ number_format($ded->quantity) }} PCS
+                            </span>
+                        </td>
+                        <td>
+                            <code class="small text-dark">{{ $ded->reference_no ?: ($ded->scanned_barcode ?: '-') }}</code>
+                        </td>
+                        <td class="text-muted small">{{ $ded->user ? $ded->user->name : '-' }}</td>
+                        <td class="text-center pe-3">
+                            <div class="d-inline-flex align-items-center gap-1">
+                                <a href="{{ route('v2.titipan_barang.deductions.show', $ded->id) }}" class="btn btn-xs btn-outline-info p-1 px-1.5" title="Detail" style="font-size:0.7rem;">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ route('v2.titipan_barang.deductions.edit', $ded->id) }}" class="btn btn-xs btn-outline-warning p-1 px-1.5" title="Edit" style="font-size:0.7rem;">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form action="{{ route('v2.titipan_barang.deductions.destroy', $ded->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Batalkan pengeluaran ini? Stok titipan akan dikembalikan sebanyak {{ $ded->quantity }} pcs.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-xs btn-outline-danger p-1 px-1.5" title="Batalkan" style="font-size:0.7rem;">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-inbox fs-3 d-block mb-1 text-secondary"></i>
+            <span class="small">Belum ada pengeluaran atau pemotongan stok untuk batch konsinyasi ini.</span>
+        </div>
+    @endif
 </div>
-@endif
 
 {{-- ── Riwayat Setoran / Pembayaran Supplier ── --}}
 @php

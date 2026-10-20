@@ -29,11 +29,13 @@ class TiktokController extends Controller
     {
         // 'channel' bisa 'tiktok' atau 'tokopedia'
         $channel = $request->query('channel', 'tiktok');
+        $returnTo = $request->query('return_to', 'v2');
 
-        // Simpan tenant_id dan channel di state OAuth agar tersedia di callback
+        // Simpan tenant_id, channel, dan return_to di state OAuth agar tersedia di callback
         $state = base64_encode(json_encode([
             'tenant_id' => Auth::user()->tenant_id,
             'channel' => $channel,
+            'return_to' => $returnTo,
             'nonce' => Str::random(10),
         ]));
 
@@ -42,6 +44,7 @@ class TiktokController extends Controller
         Log::info('[TikTok OAuth] Redirect ke authorization URL', [
             'tenant_id' => Auth::user()->tenant_id,
             'channel' => $channel,
+            'return_to' => $returnTo,
             'url' => $url,
         ]);
 
@@ -58,20 +61,23 @@ class TiktokController extends Controller
             return app(\App\Http\Controllers\Marketing\TiktokAdsAuthController::class)->callback($request);
         }
 
+        $stateRaw = $request->query('state');
+        $state = $stateRaw ? json_decode(base64_decode($stateRaw), true) : [];
+        $returnTo = $state['return_to'] ?? 'v2';
+        $redirectRoute = $returnTo === 'v1' ? 'stores.index' : 'v2.toko.index';
+
         try {
             $code = $request->query('code');
-            $stateRaw = $request->query('state');
 
             if (!$code) {
-                return redirect()->route('stores.index')->with('error', 'Otorisasi TikTok dibatalkan.');
+                return redirect()->route($redirectRoute)->with('error', 'Otorisasi TikTok dibatalkan.');
             }
 
-            $state = json_decode(base64_decode($stateRaw), true);
             $tenantId = $state['tenant_id'] ?? null;
             $channel = $state['channel'] ?? 'tiktok'; // 'tiktok' atau 'tokopedia'
 
             if (!$tenantId) {
-                return redirect()->route('stores.index')->with('error', 'Invalid State parameter.');
+                return redirect()->route($redirectRoute)->with('error', 'Invalid State parameter.');
             }
 
             // Dapatkan Access Token dari TikTok
@@ -85,7 +91,7 @@ class TiktokController extends Controller
             $shops = $shopInfo['shops'] ?? [];
 
             if (empty($shops)) {
-                return redirect()->route('stores.index')->with('error', 'Tidak ada toko yang ditemukan untuk akun ini.');
+                return redirect()->route($redirectRoute)->with('error', 'Tidak ada toko yang ditemukan untuk akun ini.');
             }
 
             // Ambil toko pertama (primary)
@@ -141,10 +147,11 @@ class TiktokController extends Controller
                 'store_name' => $storeName,
                 'channel' => $channel,
                 'tenant_id' => $tenantId,
+                'return_to' => $returnTo,
             ]);
 
             $platformLabel = $channel === 'tokopedia' ? 'Tokopedia' : 'TikTok Shop';
-            return redirect()->route('stores.index')
+            return redirect()->route($redirectRoute)
                 ->with('success', "✅ Toko {$platformLabel} \"{$storeName}\" berhasil dihubungkan!");
 
         } catch (\Throwable $e) {
@@ -152,8 +159,6 @@ class TiktokController extends Controller
 
             // Fallback: simpan toko ke ERP jika otorisasi gagal di lingkungan uji
             try {
-                $stateRaw = $request->query('state');
-                $state = json_decode(base64_decode($stateRaw), true);
                 $tenantId = $state['tenant_id'] ?? (Auth::user()->tenant_id ?? 1);
                 $channelCode = $state['channel'] ?? 'tiktok';
 
@@ -179,14 +184,14 @@ class TiktokController extends Controller
                     );
 
                     $platformLabel = $channelCode === 'tokopedia' ? 'Tokopedia' : 'TikTok Shop';
-                    return redirect()->route('stores.index')
+                    return redirect()->route($redirectRoute)
                         ->with('success', "✅ Toko {$platformLabel} \"{$storeName}\" berhasil ditambahkan ke ERP!");
                 }
             } catch (\Throwable $eFb) {
                 Log::error('TikTok fallback error: ' . $eFb->getMessage());
             }
 
-            return redirect()->route('stores.index')
+            return redirect()->route($redirectRoute)
                 ->with('error', 'Gagal menghubungkan toko: ' . $e->getMessage());
         }
     }

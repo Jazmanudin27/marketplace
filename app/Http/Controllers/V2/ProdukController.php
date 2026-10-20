@@ -8,6 +8,9 @@ use App\Models\Category;
 use App\Models\Brand;
 use App\Models\Store;
 use App\Models\Channel;
+use App\Models\Tenant;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -129,13 +132,29 @@ class ProdukController extends Controller
             'unlinked' => $unlinkedCount,
         ];
 
+        $tenant = Tenant::find($tenantId);
+        $lastImportAt = $tenant?->last_product_import_at;
+        $canImport = true;
+        $nextImportAt = null;
+
+        if ($lastImportAt) {
+            $nextImportAt = $lastImportAt->copy()->addDays(7);
+            if (now()->lt($nextImportAt) && Auth::user()->role !== 'super-admin') {
+                $canImport = false;
+            }
+        }
+
         return view('v2.produk.index', compact(
             'products',
             'stores',
             'channels',
             'categories',
             'brands',
-            'counts'
+            'counts',
+            'tenant',
+            'lastImportAt',
+            'canImport',
+            'nextImportAt'
         ));
     }
 
@@ -325,6 +344,17 @@ class ProdukController extends Controller
         @ini_set('memory_limit', '1024M');
 
         $tenantId = Auth::user()->tenant_id;
+        $tenant = Tenant::find($tenantId);
+
+        // Validasi pembatasan import: Maksimal 1 kali dalam 1 minggu (7 hari)
+        if ($tenant && $tenant->last_product_import_at) {
+            $nextAllowed = $tenant->last_product_import_at->copy()->addDays(7);
+            if (now()->lt($nextAllowed) && Auth::user()->role !== 'super-admin') {
+                $formattedNext = $nextAllowed->translatedFormat('d F Y H:i');
+                $diff = now()->diffForHumans($nextAllowed, ['parts' => 2, 'syntax' => CarbonInterface::DIFF_RELATIVE_TO_NOW]);
+                return redirect()->back()->with('error', "Import master produk dibatasi maksimal 1 kali dalam 1 minggu. Terakhir diimport: {$tenant->last_product_import_at->translatedFormat('d F Y H:i')}. Anda baru dapat melakukan import kembali pada {$formattedNext} ({$diff}).");
+            }
+        }
 
         $request->validate([
             'file' => 'required|file|max:20480',
@@ -738,6 +768,10 @@ class ProdukController extends Controller
                     MasterProduct::recalculateAllBundleStocks($tenantId);
                 } catch (\Throwable $e) {}
             }
+        }
+
+        if ($tenant) {
+            $tenant->update(['last_product_import_at' => now()]);
         }
 
         return redirect()->route('v2.produk.index')->with('success', "Import produk selesai! {$insertedCount} produk baru ditambahkan (otomatis PO), {$updatedCount} produk diperbarui" . ($skippedCount > 0 ? ", {$skippedCount} baris tidak diupdate/dilewati (karena kosong atau SKU tidak valid)." : "."));

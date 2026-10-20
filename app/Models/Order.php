@@ -233,6 +233,11 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function consignmentDeductions(): HasMany
+    {
+        return $this->hasMany(SupplierConsignmentDeduction::class, 'order_id');
+    }
+
     public function returnOrder(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(ReturnOrder::class);

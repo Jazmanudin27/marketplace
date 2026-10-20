@@ -263,8 +263,8 @@
                     </a>
                     <a href="{{ route('v2.reports.stock') }}"
                         class="v2-submenu-link d-flex align-items-center justify-content-between {{ request()->is('v2/reports/stock*') || request()->is('v2/laporan-stok*') || request()->routeIs('v2.reports.stock*') ? 'active' : '' }}">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-boxes text-info me-1.5"></i>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-boxes text-info me-1"></i>
                             <span>Stok Barang</span>
                         </div>
                         @if($lowStockAlertCount > 0)
@@ -298,6 +298,11 @@
                         class="v2-submenu-link {{ request()->routeIs('v2.titipan_barang.index') || request()->routeIs('v2.titipan_barang.create') || request()->routeIs('v2.titipan_barang.show') || request()->routeIs('v2.titipan_barang.edit') || request()->routeIs('supplier_consignments.index') ? 'active' : '' }}">
                         <i class="bi bi-box-arrow-in-down text-success me-1.5"></i>
                         <span>Penerimaan Barang Titipan</span>
+                    </a>
+                    <a href="{{ route('v2.titipan_barang.deductions.index') }}"
+                        class="v2-submenu-link {{ request()->routeIs('v2.titipan_barang.deductions.*') || request()->routeIs('supplier_consignments.deductions.*') ? 'active' : '' }}">
+                        <i class="bi bi-box-arrow-up-right text-danger me-1.5"></i>
+                        <span>Pengeluaran Stok Titipan</span>
                     </a>
                     <a href="{{ route('v2.titipan_barang.stock_card') }}"
                         class="v2-submenu-link {{ request()->routeIs('v2.titipan_barang.stock_card') || request()->routeIs('supplier_consignments.stock_card') ? 'active' : '' }}">

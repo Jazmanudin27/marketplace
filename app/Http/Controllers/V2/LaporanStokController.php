@@ -31,25 +31,33 @@ class LaporanStokController extends Controller
             ->where('tenant_id', $tenantId);
 
         // Tab filter (matches Master Product)
-        $tab = $request->get('tab');
-        if ($tab === 'single') {
+        $tab    = $request->get('tab');
+        $format = $request->get('report_format', 'standard');
+
+        if ($tab === 'single' || $request->get('is_bundle') === '0') {
             $query->where(function($q) {
                 $q->where('is_bundle', false)->orWhereNull('is_bundle');
             });
-        } elseif ($tab === 'bundle') {
+        } elseif ($tab === 'bundle' || $request->get('is_bundle') === '1') {
             $query->where('is_bundle', true);
-        } elseif ($tab === 'ready') {
+        } elseif ($tab === 'ready' || $request->get('is_preorder') === '0') {
             $query->where(function ($q) {
                 $q->where('is_preorder', false)->orWhereNull('is_preorder');
             });
-        } elseif ($tab === 'po') {
+        } elseif ($tab === 'po' || $request->get('is_preorder') === '1') {
             $query->where('is_preorder', true);
-        } elseif ($tab === 'diff') {
+        }
+
+        // Filter Discrepancy (Selisih)
+        if ($tab === 'diff' || $format === 'discrepancy' || $request->boolean('only_different') || $request->boolean('only_diff')) {
             $query->whereHas('marketplaceProducts', function ($mq) {
                 $mq->where('sync_stock', true)
                    ->whereColumn('stock', '!=', 'master_products.stock');
             });
-        } elseif ($tab === 'low') {
+        }
+
+        // Filter Low Stock (< 10 PCS)
+        if ($tab === 'low' || $format === 'low_stock' || $request->boolean('low_stock') || $request->boolean('only_low')) {
             $query->where('stock', '<', 10);
         }
 
@@ -63,21 +71,6 @@ class LaporanStokController extends Controller
 
         if ($request->filled('product_id')) {
             $query->where('id', $request->product_id);
-        }
-
-        if (!$tab && $request->filled('is_bundle')) {
-            $query->where('is_bundle', (bool)$request->is_bundle);
-        }
-
-        if (!$tab && $request->filled('is_preorder')) {
-            if ($request->is_preorder === '1') {
-                $query->where('is_preorder', true);
-            } elseif ($request->is_preorder === '0') {
-                $query->where(function ($q) {
-                    $q->where('is_preorder', false)
-                      ->orWhereNull('is_preorder');
-                });
-            }
         }
 
         if ($request->filled('name')) {
@@ -125,11 +118,28 @@ class LaporanStokController extends Controller
             });
         }
 
-        if ($request->boolean('only_different') || $request->boolean('only_diff')) {
-            $query->whereHas('marketplaceProducts', function ($mq) {
-                $mq->where('sync_stock', true)
-                   ->whereColumn('stock', '!=', 'master_products.stock');
-            });
+        // Sort By
+        $sortBy = $request->get('sort_by', 'name_asc');
+        switch ($sortBy) {
+            case 'name_desc':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'stock_desc':
+                $query->orderBy('stock', 'desc');
+                break;
+            case 'stock_asc':
+                $query->orderBy('stock', 'asc');
+                break;
+            case 'sku_asc':
+                $query->orderBy('sku', 'asc');
+                break;
+            case 'sku_desc':
+                $query->orderBy('sku', 'desc');
+                break;
+            case 'name_asc':
+            default:
+                $query->orderBy('name', 'asc');
+                break;
         }
 
         return $query;
@@ -189,7 +199,7 @@ class LaporanStokController extends Controller
         ];
 
         $query    = $this->buildQuery($request, $tenantId);
-        $products = $query->orderBy('name')->paginate(50)->withQueryString();
+        $products = $query->paginate(50)->withQueryString();
 
         return view('v2.laporan_stok.index', compact('categories', 'brands', 'stores', 'allStores', 'channels', 'products', 'counts', 'kpi'));
     }
@@ -211,9 +221,203 @@ class LaporanStokController extends Controller
 
         $stores   = $storesQuery->orderBy('store_name')->get();
         $query    = $this->buildQuery($request, $tenantId);
-        $products = $query->orderBy('name')->get();
+        $products = $query->get();
+        $format   = $request->get('report_format', 'standard');
 
-        return view('v2.laporan_stok.print', compact('products', 'stores'));
+        return view('v2.laporan_stok.print', compact('products', 'stores', 'format'));
+    }
+
+    /**
+     * Export Stock Report to CSV/Excel.
+     */
+    public function export(Request $request)
+    {
+        $this->checkAccess();
+        $tenantId = Auth::user()->tenant_id;
+
+        $storesQuery = Store::with('channel')
+            ->where('tenant_id', $tenantId);
+
+        if ($request->filled('store_id')) {
+            $storesQuery->where('id', $request->store_id);
+        }
+
+        $stores   = $storesQuery->orderBy('store_name')->get();
+        $query    = $this->buildQuery($request, $tenantId);
+        $products = $query->get();
+        $format   = $request->get('report_format', 'standard');
+
+        $filename = 'Laporan_Stok_' . ucfirst($format) . '_' . date('Ymd_His') . '.csv';
+
+        return response()->streamDownload(function () use ($products, $stores, $format) {
+            $output = fopen('php://output', 'w');
+            // Write UTF-8 BOM so Excel opens with proper encoding
+            fputs($output, "\xEF\xBB\xBF");
+
+            if ($format === 'warehouse') {
+                // Format Ringkas Gudang / Stock Opname
+                fputcsv($output, [
+                    'NO',
+                    'SKU',
+                    'SKU INDUK',
+                    'NAMA PRODUK',
+                    'KATEGORI',
+                    'BRAND',
+                    'TIPE',
+                    'STATUS PO',
+                    'MIN STOK',
+                    'STOK FISIK GUDANG (PCS)',
+                    'HASIL CEK FISIK / OPNAME',
+                    'SELISIH FISIK',
+                    'CATATAN / KONDISI'
+                ], ';');
+
+                foreach ($products as $i => $p) {
+                    fputcsv($output, [
+                        $i + 1,
+                        $p->sku ?: '-',
+                        $p->sku_induk ?: '-',
+                        $p->name,
+                        $p->category->name ?? '-',
+                        $p->brand->name ?? '-',
+                        $p->is_bundle ? 'Bundle' : 'Single',
+                        $p->is_preorder ? 'PO' : 'Ready',
+                        $p->min_stock ?? 5,
+                        (int)$p->stock,
+                        '',
+                        '',
+                        ''
+                    ], ';');
+                }
+            } elseif ($format === 'discrepancy') {
+                // Format Selisih Stok
+                fputcsv($output, [
+                    'NO',
+                    'SKU',
+                    'NAMA PRODUK',
+                    'STOK GUDANG',
+                    'NAMA TOKO MARKETPLACE',
+                    'CHANNEL',
+                    'KUOTA MARKETPLACE',
+                    'SELISIH (MP - GUDANG)',
+                    'STATUS SINKRONISASI'
+                ], ';');
+
+                $rowNum = 1;
+                foreach ($products as $p) {
+                    $gudangStock = (int)$p->stock;
+                    foreach ($p->marketplaceProducts as $mp) {
+                        if (!$mp->store) continue;
+                        $mpStock = (int)$mp->stock;
+                        $diff = $mpStock - $gudangStock;
+                        if ($diff !== 0) {
+                            fputcsv($output, [
+                                $rowNum++,
+                                $p->sku ?: '-',
+                                $p->name,
+                                $gudangStock,
+                                $mp->store->store_name,
+                                $mp->store->channel->name ?? 'MP',
+                                $mpStock,
+                                ($diff > 0 ? "+{$diff}" : $diff),
+                                $mp->sync_stock ? 'Perlu Sinkronisasi Ulang' : 'Sync Nonaktif'
+                            ], ';');
+                        }
+                    }
+                }
+            } elseif ($format === 'low_stock') {
+                // Format Stok Kritis / Menipis
+                fputcsv($output, [
+                    'NO',
+                    'SKU',
+                    'SKU INDUK',
+                    'NAMA PRODUK',
+                    'KATEGORI',
+                    'BRAND',
+                    'STATUS',
+                    'MIN STOK',
+                    'SISA STOK SAAT INI',
+                    'DEFISIT / KEKURANGAN',
+                    'STATUS REKOMENDASI'
+                ], ';');
+
+                foreach ($products as $i => $p) {
+                    $currStock = (int)$p->stock;
+                    $minStock = (int)($p->min_stock ?? 10);
+                    $deficit = max(0, $minStock - $currStock);
+                    fputcsv($output, [
+                        $i + 1,
+                        $p->sku ?: '-',
+                        $p->sku_induk ?: '-',
+                        $p->name,
+                        $p->category->name ?? '-',
+                        $p->brand->name ?? '-',
+                        $p->is_preorder ? 'PO' : 'Ready',
+                        $minStock,
+                        $currStock,
+                        $deficit,
+                        $currStock <= 0 ? 'HABIS TOTAL (URGENT RESTOCK)' : 'MENIPIS (SEGERA PRODUKSI/BELANJA)'
+                    ], ';');
+                }
+            } else {
+                // Format Standar / Lengkap (Semua Kolom & Marketplace)
+                $headers = [
+                    'NO',
+                    'SKU',
+                    'SKU INDUK',
+                    'NAMA PRODUK',
+                    'KATEGORI',
+                    'BRAND',
+                    'JENIS',
+                    'STATUS PO',
+                    'STOK FISIK GUDANG'
+                ];
+                foreach ($stores as $store) {
+                    $ch = $store->channel->name ?? 'MP';
+                    $headers[] = "{$store->store_name} ({$ch})";
+                }
+                $headers[] = 'STATUS SINKRON';
+
+                fputcsv($output, $headers, ';');
+
+                foreach ($products as $i => $p) {
+                    $gudangStock = (int)$p->stock;
+                    $row = [
+                        $i + 1,
+                        $p->sku ?: '-',
+                        $p->sku_induk ?: '-',
+                        $p->name,
+                        $p->category->name ?? '-',
+                        $p->brand->name ?? '-',
+                        $p->is_bundle ? 'Bundle' : 'Single',
+                        $p->is_preorder ? 'PO' : 'Ready',
+                        $gudangStock
+                    ];
+
+                    $hasDiff = false;
+                    foreach ($stores as $store) {
+                        $mp = $p->marketplaceProducts->firstWhere('store_id', $store->id);
+                        if ($mp) {
+                            $stk = (int)$mp->stock;
+                            if ($mp->sync_stock && $stk !== $gudangStock) {
+                                $hasDiff = true;
+                            }
+                            $row[] = $stk;
+                        } else {
+                            $row[] = '-';
+                        }
+                    }
+
+                    $row[] = $hasDiff ? 'Ada Selisih' : 'Sinkron';
+                    fputcsv($output, $row, ';');
+                }
+            }
+
+            fclose($output);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
     }
 
     /**

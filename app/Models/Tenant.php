@@ -14,7 +14,15 @@ class Tenant extends Model
         'office_latitude',
         'office_longitude',
         'office_radius',
+        'last_product_import_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'last_product_import_at' => 'datetime',
+        ];
+    }
 
     /**
      * Get start and end date of the cutoff period based on a month period (YYYY-MM).

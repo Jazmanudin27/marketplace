@@ -61,6 +61,9 @@
         <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-secondary fw-semibold px-3">
             <i class="bi bi-printer me-1"></i> Cetak
         </button>
+        <a href="{{ route('v2.titipan_barang.deductions.index') }}" class="btn btn-sm btn-outline-danger fw-semibold px-3">
+            <i class="bi bi-box-arrow-up-right me-1"></i> Pengeluaran Stok
+        </a>
         <a href="{{ route('supplier_consignments.index') }}" class="btn btn-sm btn-outline-secondary fw-semibold px-3">
             <i class="bi bi-box-seam me-1"></i> Penerimaan Barang
         </a>

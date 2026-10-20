@@ -17,7 +17,18 @@ class SupplierConsignmentDeduction extends Model
         'order_item_id',
         'quantity',
         'scanned_barcode',
+        'reason',
+        'reference_no',
+        'notes',
+        'deduction_date',
+        'deduct_master_stock',
         'user_id',
+    ];
+
+    protected $casts = [
+        'quantity'            => 'integer',
+        'deduction_date'      => 'datetime',
+        'deduct_master_stock' => 'boolean',
     ];
 
     public function tenant(): BelongsTo
@@ -43,5 +54,35 @@ class SupplierConsignmentDeduction extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Label representasi teks untuk alasan pengeluaran stok titipan.
+     */
+    public function getReasonLabelAttribute(): string
+    {
+        return match ($this->reason) {
+            'unscanned_order'   => 'Pesanan Terlewat Scan',
+            'manual_adjustment' => 'Koreksi Stok Manual',
+            'return_supplier'   => 'Retur / Balik ke Supplier',
+            'damaged'           => 'Barang Rusak / Hilang',
+            'direct_sale'       => 'Penjualan Langsung / Offline',
+            default             => 'Lainnya / Manual',
+        };
+    }
+
+    /**
+     * Badge CSS class untuk alasan pengeluaran.
+     */
+    public function getReasonBadgeClassAttribute(): string
+    {
+        return match ($this->reason) {
+            'unscanned_order'   => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle',
+            'manual_adjustment' => 'bg-info-subtle text-info-emphasis border border-info-subtle',
+            'return_supplier'   => 'bg-danger-subtle text-danger border border-danger-subtle',
+            'damaged'           => 'bg-secondary-subtle text-secondary border border-secondary-subtle',
+            'direct_sale'       => 'bg-primary-subtle text-primary border border-primary-subtle',
+            default             => 'bg-light text-dark border',
+        };
     }
 }

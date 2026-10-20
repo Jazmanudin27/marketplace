@@ -18,7 +18,7 @@
 .psr-tab {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     padding: 12px 18px;
     font-size: 0.8rem;
     font-weight: 500;
@@ -28,6 +28,10 @@
     border-bottom: 2px solid transparent;
     transition: color .15s, border-color .15s;
     position: relative;
+}
+.psr-tab i {
+    font-size: 0.85rem;
+    margin-right: 3px;
 }
 .psr-tab:hover { color: #3b82f6; text-decoration: none; }
 .psr-tab.active {
@@ -153,6 +157,24 @@
 .channel-tokopedia { background: #03ac0e; color: #fff; }
 .channel-lazada { background: #0f146d; color: #fff; }
 .channel-default { background: #64748b; color: #fff; }
+
+/* Modal Format Card Styles */
+.format-card {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0 !important;
+    transition: all 0.18s ease-in-out;
+}
+.format-card:hover {
+    border-color: #3b82f6 !important;
+    background: #f8fafc;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+}
+.format-card.active {
+    border-color: #2563eb !important;
+    background: #eff6ff !important;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+}
+.cursor-pointer { cursor: pointer; }
 </style>
 @endpush
 
@@ -160,8 +182,8 @@
 <!-- Page Header Compact (Persis Master Produk) -->
 <div class="v2-page-header align-items-center mb-3">
     <div>
-        <h1 class="v2-page-title d-flex align-items-center gap-2">
-            <i class="bi bi-boxes text-primary fs-5"></i> Stok Barang
+        <h1 class="v2-page-title d-flex align-items-center gap-2.5">
+            <i class="bi bi-boxes text-primary fs-5 me-1"></i> Stok Barang
         </h1>
         <p class="v2-page-subtitle mb-0">Pemantauan real-time stok fisik gudang vs kuota etalase marketplace, deteksi selisih stok &amp; sinkronisasi otomatis</p>
     </div>
@@ -169,12 +191,12 @@
         <a href="{{ route('v2.reports.stock') }}" class="btn btn-sm btn-v2-secondary py-1.5 px-2.5" title="Refresh Halaman">
             <i class="bi bi-arrow-clockwise"></i>
         </a>
-        <a href="{{ route('v2.reports.stock.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-v2-secondary py-1.5 px-3 shadow-sm" title="Cetak / Print Laporan">
+        <button type="button" class="btn btn-sm btn-v2-secondary py-1.5 px-3 shadow-sm d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#modalCetakLaporan" title="Cetak & Export Laporan Stok">
             <i class="bi bi-printer me-1"></i> Cetak Laporan
-        </a>
+        </button>
         @if(($counts['diff'] ?? 0) > 0)
-            <button type="button" class="btn btn-sm btn-danger py-1.5 px-3 shadow-sm fw-semibold d-inline-flex align-items-center gap-1.5" id="btnSyncAllBatch" title="Sync Semua Selisih ke Marketplace">
-                <i class="bi bi-arrow-repeat"></i> Sync Semua Selisih ({{ number_format($counts['diff'] ?? 0) }})
+            <button type="button" class="btn btn-sm btn-danger py-1.5 px-3 shadow-sm fw-semibold d-inline-flex align-items-center gap-2" id="btnSyncAllBatch" title="Sync Semua Selisih ke Marketplace">
+                <i class="bi bi-arrow-repeat me-1"></i> Sync Semua Selisih ({{ number_format($counts['diff'] ?? 0) }})
             </button>
         @endif
     </div>
@@ -660,6 +682,236 @@
         </div>
     @endif
 </div>
+
+{{-- ── MODAL FORM CETAK & EXPORT LAPORAN STOK ── --}}
+<div class="modal fade" id="modalCetakLaporan" tabindex="-1" aria-labelledby="modalCetakLaporanLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+            <div class="modal-header py-3 px-4 bg-light border-bottom">
+                <div class="d-flex align-items-center gap-2.5">
+                    <div class="rounded-3 p-2 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-printer-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0" id="modalCetakLaporanLabel">Cetak &amp; Export Laporan Stok</h5>
+                        <div class="text-muted" style="font-size: 0.76rem;">Pilih format laporan, sesuaikan filter data &amp; pilih mode output cetak atau file spreadsheet</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form id="formCetakLaporan" method="GET" action="{{ route('v2.reports.stock.print') }}" target="_blank">
+                <div class="modal-body p-4">
+                    
+                    {{-- ── 1. PILIHAN FORMAT LAPORAN ── --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark d-flex align-items-center gap-1.5 mb-2" style="font-size: 0.85rem;">
+                            <i class="bi bi-file-earmark-ruled text-primary"></i> 1. Pilih Format Laporan
+                        </label>
+                        <div class="row g-2.5">
+                            {{-- Format 1: Lengkap --}}
+                            <div class="col-12 col-sm-6">
+                                <label class="format-card d-block p-3 rounded-3 border h-100 cursor-pointer position-relative transition-all {{ $currentTab === 'diff' || $currentTab === 'low' ? '' : 'active' }}" for="formatStandard">
+                                    <div class="form-check p-0 m-0 d-flex align-items-start gap-2.5">
+                                        <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="report_format" id="formatStandard" value="standard" {{ $currentTab === 'diff' || $currentTab === 'low' ? '' : 'checked' }}>
+                                        <div>
+                                            <div class="fw-bold text-dark" style="font-size: 0.83rem;">
+                                                <i class="bi bi-grid-3x3-gap-fill text-primary me-1"></i> Standar (Lengkap)
+                                            </div>
+                                            <div class="text-muted mt-1" style="font-size: 0.72rem; line-height: 1.35;">
+                                                Perbandingan stok gudang vs tiap toko marketplace (Shopee, TikTok, Lazada) &amp; status sinkron.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {{-- Format 2: Fisik Gudang (Opname) --}}
+                            <div class="col-12 col-sm-6">
+                                <label class="format-card d-block p-3 rounded-3 border h-100 cursor-pointer position-relative transition-all" for="formatWarehouse">
+                                    <div class="form-check p-0 m-0 d-flex align-items-start gap-2.5">
+                                        <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="report_format" id="formatWarehouse" value="warehouse">
+                                        <div>
+                                            <div class="fw-bold text-dark" style="font-size: 0.83rem;">
+                                                <i class="bi bi-boxes text-success me-1"></i> Fisik Gudang (Stock Opname)
+                                            </div>
+                                            <div class="text-muted mt-1" style="font-size: 0.72rem; line-height: 1.35;">
+                                                Lembar cek fisik rak dengan kolom checklist/paraf opname manual untuk staf gudang.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {{-- Format 3: Selisih Stok --}}
+                            <div class="col-12 col-sm-6">
+                                <label class="format-card d-block p-3 rounded-3 border h-100 cursor-pointer position-relative transition-all {{ $currentTab === 'diff' ? 'active' : '' }}" for="formatDiff">
+                                    <div class="form-check p-0 m-0 d-flex align-items-start gap-2.5">
+                                        <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="report_format" id="formatDiff" value="discrepancy" {{ $currentTab === 'diff' ? 'checked' : '' }}>
+                                        <div>
+                                            <div class="fw-bold text-dark" style="font-size: 0.83rem;">
+                                                <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> Selisih Stok (Discrepancy)
+                                            </div>
+                                            <div class="text-muted mt-1" style="font-size: 0.72rem; line-height: 1.35;">
+                                                Khusus produk yang kuota marketplaceny berbeda dari stok gudang untuk rekonsiliasi.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {{-- Format 4: Stok Kritis / Menipis --}}
+                            <div class="col-12 col-sm-6">
+                                <label class="format-card d-block p-3 rounded-3 border h-100 cursor-pointer position-relative transition-all {{ $currentTab === 'low' ? 'active' : '' }}" for="formatLow">
+                                    <div class="form-check p-0 m-0 d-flex align-items-start gap-2.5">
+                                        <input class="form-check-input mt-1 flex-shrink-0" type="radio" name="report_format" id="formatLow" value="low_stock" {{ $currentTab === 'low' ? 'checked' : '' }}>
+                                        <div>
+                                            <div class="fw-bold text-dark" style="font-size: 0.83rem;">
+                                                <i class="bi bi-bell-fill text-warning me-1"></i> Stok Kritis / Menipis (&lt; 10 PCS)
+                                            </div>
+                                            <div class="text-muted mt-1" style="font-size: 0.72rem; line-height: 1.35;">
+                                                Prioritas pengadaan &amp; restock untuk tim purchasing dan penjahit/produksi.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- ── 2. FILTER DATA LAPORAN ── --}}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark d-flex align-items-center gap-1.5 mb-2" style="font-size: 0.85rem;">
+                            <i class="bi bi-funnel text-primary"></i> 2. Filter &amp; Kriteria Barang
+                        </label>
+                        <div class="p-3 bg-light rounded-3 border">
+                            <div class="row g-2.5">
+                                {{-- Kategori --}}
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label text-muted small fw-semibold mb-1">Kategori Produk</label>
+                                    <select name="category_id" id="modalFilterCategory" class="form-select form-select-sm">
+                                        <option value="">Semua Kategori</option>
+                                        @foreach($categories as $cat)
+                                            <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>
+                                                {{ $cat->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- Brand / Merk --}}
+                                <div class="col-6 col-md-4">
+                                    <label class="form-label text-muted small fw-semibold mb-1">Brand / Merk</label>
+                                    <select name="brand_id" id="modalFilterBrand" class="form-select form-select-sm">
+                                        <option value="">Semua Brand</option>
+                                        @foreach($brands as $br)
+                                            <option value="{{ $br->id }}" {{ request('brand_id') == $br->id ? 'selected' : '' }}>
+                                                {{ $br->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- Toko Marketplace --}}
+                                <div class="col-6 col-md-4">
+                                    <label class="form-label text-muted small fw-semibold mb-1">Toko Marketplace</label>
+                                    <select name="store_id" id="modalFilterStore" class="form-select form-select-sm">
+                                        <option value="">Semua Toko</option>
+                                        @foreach($allStores as $st)
+                                            <option value="{{ $st->id }}" {{ request('store_id') == $st->id ? 'selected' : '' }}>
+                                                {{ $st->store_name }} ({{ $st->channel->name ?? 'MP' }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- Jenis Produk --}}
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label text-muted small fw-semibold mb-1">Jenis Produk</label>
+                                    <select name="is_bundle" id="modalFilterBundle" class="form-select form-select-sm">
+                                        <option value="">Semua Jenis</option>
+                                        <option value="0" {{ request('is_bundle') === '0' || $currentTab === 'single' ? 'selected' : '' }}>Single (Utama)</option>
+                                        <option value="1" {{ request('is_bundle') === '1' || $currentTab === 'bundle' ? 'selected' : '' }}>Paket (Bundle)</option>
+                                    </select>
+                                </div>
+
+                                {{-- Status PO --}}
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label text-muted small fw-semibold mb-1">Tipe Stok / PO</label>
+                                    <select name="is_preorder" id="modalFilterPO" class="form-select form-select-sm">
+                                        <option value="">Semua Tipe</option>
+                                        <option value="0" {{ request('is_preorder') === '0' || $currentTab === 'ready' ? 'selected' : '' }}>Ready Stock</option>
+                                        <option value="1" {{ request('is_preorder') === '1' || $currentTab === 'po' ? 'selected' : '' }}>Pre-Order (PO)</option>
+                                    </select>
+                                </div>
+
+                                {{-- Urutan / Sort By --}}
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label text-muted small fw-semibold mb-1">Urutan Data</label>
+                                    <select name="sort_by" id="modalFilterSort" class="form-select form-select-sm">
+                                        <option value="name_asc" selected>Nama Produk (A - Z)</option>
+                                        <option value="name_desc">Nama Produk (Z - A)</option>
+                                        <option value="stock_desc">Stok Terbanyak</option>
+                                        <option value="stock_asc">Stok Tersedikit</option>
+                                        <option value="sku_asc">SKU (A - Z)</option>
+                                    </select>
+                                </div>
+
+                                {{-- Pencarian Keyword --}}
+                                <div class="col-6 col-md-3">
+                                    <label class="form-label text-muted small fw-semibold mb-1">Cari Kata Kunci</label>
+                                    <input type="text" name="search" id="modalFilterSearch" class="form-control form-control-sm"
+                                           placeholder="Nama / SKU..." value="{{ request('name') ?: (request('sku') ?: request('search')) }}">
+                                </div>
+                            </div>
+
+                            {{-- Checklist Spesial --}}
+                            <div class="d-flex align-items-center gap-3 mt-3 pt-2 border-top flex-wrap">
+                                <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
+                                    <input class="form-check-input" type="checkbox" name="hide_zero_stock" value="1" id="modalHideZero" {{ request('hide_zero_stock') ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-semibold text-secondary" for="modalHideZero">
+                                        Sembunyikan Stok 0
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
+                                    <input class="form-check-input" type="checkbox" name="only_diff" value="1" id="modalOnlyDiff" {{ request('only_diff') || request('only_different') || $currentTab === 'diff' ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-semibold text-danger" for="modalOnlyDiff">
+                                        Hanya Ada Selisih
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
+                                    <input class="form-check-input" type="checkbox" name="low_stock" value="1" id="modalLowStock" {{ request('low_stock') || request('only_low') || $currentTab === 'low' ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-semibold text-warning-emphasis" for="modalLowStock">
+                                        Hanya Stok &lt; 10 PCS
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                {{-- Modal Footer Actions --}}
+                <div class="modal-footer py-2.5 px-4 bg-light border-top d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnResetModalFilter">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-light border px-3" data-bs-dismiss="modal">
+                            Batal
+                        </button>
+                        <button type="button" class="btn btn-sm btn-success px-3 fw-semibold d-inline-flex align-items-center gap-1.5" id="btnActionExportCsv">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Export Excel (CSV)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary px-3.5 fw-semibold d-inline-flex align-items-center gap-1.5" id="btnActionPrintPdf">
+                            <i class="bi bi-printer me-1"></i> Cetak / Print (PDF)
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -815,6 +1067,70 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // Modal Cetak & Export Laporan logic
+    const formCetak = document.getElementById('formCetakLaporan');
+    const btnPrint = document.getElementById('btnActionPrintPdf');
+    const btnExport = document.getElementById('btnActionExportCsv');
+    const btnResetModal = document.getElementById('btnResetModalFilter');
+    const formatCards = document.querySelectorAll('.format-card');
+
+    function updateActiveFormatCard() {
+        formatCards.forEach(card => {
+            const radio = card.querySelector('input[type="radio"]');
+            if (radio && radio.checked) {
+                card.classList.add('active');
+                if (radio.value === 'discrepancy') {
+                    const diffCheck = document.getElementById('modalOnlyDiff');
+                    if (diffCheck) diffCheck.checked = true;
+                } else if (radio.value === 'low_stock') {
+                    const lowCheck = document.getElementById('modalLowStock');
+                    if (lowCheck) lowCheck.checked = true;
+                }
+            } else {
+                card.classList.remove('active');
+            }
+        });
+    }
+
+    formatCards.forEach(card => {
+        card.addEventListener('click', function () {
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio) {
+                radio.checked = true;
+                updateActiveFormatCard();
+            }
+        });
+    });
+
+    if (btnPrint && formCetak) {
+        btnPrint.addEventListener('click', function (e) {
+            e.preventDefault();
+            formCetak.action = "{{ route('v2.reports.stock.print') }}";
+            formCetak.target = "_blank";
+            formCetak.submit();
+        });
+    }
+
+    if (btnExport && formCetak) {
+        btnExport.addEventListener('click', function (e) {
+            e.preventDefault();
+            formCetak.action = "{{ route('v2.reports.stock.export') }}";
+            formCetak.target = "_blank";
+            formCetak.submit();
+        });
+    }
+
+    if (btnResetModal && formCetak) {
+        btnResetModal.addEventListener('click', function () {
+            formCetak.reset();
+            const std = document.getElementById('formatStandard');
+            if (std) std.checked = true;
+            updateActiveFormatCard();
+        });
+    }
+
+    updateActiveFormatCard();
 });
 </script>
 @endpush

@@ -26,9 +26,12 @@ class LazadaController extends Controller
      */
     public function authorizeLazada(Request $request)
     {
-        // Simpan tenant_id di state OAuth agar tersedia di callback
+        $returnTo = $request->query('return_to', 'v2');
+
+        // Simpan tenant_id dan return_to di state OAuth agar tersedia di callback
         $state = base64_encode(json_encode([
             'tenant_id' => Auth::user()->tenant_id,
+            'return_to' => $returnTo,
             'nonce' => Str::random(10),
         ]));
 
@@ -36,6 +39,7 @@ class LazadaController extends Controller
 
         Log::info('[Lazada OAuth] Redirect ke authorization URL', [
             'tenant_id' => Auth::user()->tenant_id,
+            'return_to' => $returnTo,
             'url' => $url,
         ]);
 
@@ -47,24 +51,23 @@ class LazadaController extends Controller
      */
     public function callback(Request $request)
     {
+        $stateRaw = $request->query('state');
+        $state = $stateRaw ? json_decode(base64_decode($stateRaw), true) : [];
+        $returnTo = $state['return_to'] ?? 'v2';
+        $redirectRoute = $returnTo === 'v1' ? 'stores.index' : 'v2.toko.index';
+
         try {
             $code = $request->query('code');
-            $stateRaw = $request->query('state');
 
             if (!$code) {
-                return redirect()->route('stores.index')->with('error', 'Otorisasi Lazada dibatalkan.');
+                return redirect()->route($redirectRoute)->with('error', 'Otorisasi Lazada dibatalkan.');
             }
 
-            $state = json_decode(base64_decode($stateRaw), true);
             $tenantId = $state['tenant_id'] ?? null;
 
             if (!$tenantId) {
                 // Fallback ke user login
-                $tenantId = Auth::user()->tenant_id ?? null;
-            }
-
-            if (!$tenantId) {
-                return redirect()->route('stores.index')->with('error', 'Invalid State parameter.');
+                $tenantId = Auth::user()->tenant_id ?? 1;
             }
 
             // Dapatkan Access Token dari Lazada
@@ -111,14 +114,15 @@ class LazadaController extends Controller
                 'shop_id' => $realShopId,
                 'store_name' => $shopName,
                 'tenant_id' => $tenantId,
+                'return_to' => $returnTo,
             ]);
 
-            return redirect()->route('stores.index')
+            return redirect()->route($redirectRoute)
                 ->with('success', "✅ Toko Lazada \"{$shopName}\" berhasil dihubungkan!");
 
         } catch (\Throwable $e) {
             Log::error('[Lazada OAuth] Error: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
-            return redirect()->route('stores.index')
+            return redirect()->route($redirectRoute)
                 ->with('error', 'Gagal menghubungkan toko Lazada: ' . $e->getMessage());
         }
     }

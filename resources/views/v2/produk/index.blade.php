@@ -127,9 +127,15 @@
         <a href="{{ route('v2.produk.print', request()->query()) }}" target="_blank" class="btn btn-sm btn-v2-secondary py-1.5 px-3 shadow-sm" title="Cetak Laporan Produk">
             <i class="bi bi-printer me-1"></i> Cetak Laporan
         </a>
-        <button type="button" class="btn btn-sm btn-v2-success py-1.5 px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importProdukModal">
-            <i class="bi bi-file-earmark-excel me-1"></i> Import Produk
-        </button>
+        @if($canImport ?? true)
+            <button type="button" class="btn btn-sm btn-v2-success py-1.5 px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importProdukModal">
+                <i class="bi bi-file-earmark-excel me-1"></i> Import Produk
+            </button>
+        @else
+            <button type="button" class="btn btn-sm btn-outline-secondary py-1.5 px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importProdukModal" title="Import dibatasi 1x seminggu. Terkunci hingga {{ $nextImportAt ? $nextImportAt->translatedFormat('d M Y H:i') : '' }}">
+                <i class="bi bi-lock-fill text-warning me-1"></i> Import Produk <span class="badge bg-secondary-subtle text-muted ms-1" style="font-size: 0.65rem;">1x Seminggu</span>
+            </button>
+        @endif
         <a href="{{ route('v2.produk.create') }}" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm">
             <i class="bi bi-plus-lg me-1"></i> Tambah Produk Master
         </a>
@@ -661,9 +667,26 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-3.5">
+                    @if(!($canImport ?? true))
+                        <div class="alert alert-warning border-warning d-flex align-items-start gap-2.5 py-2.5 px-3 mb-3" style="font-size: 0.78rem;">
+                            <i class="bi bi-shield-lock-fill fs-5 text-warning flex-shrink-0 mt-0.5"></i>
+                            <div>
+                                <div class="fw-bold text-dark mb-0.5">Batas Frekuensi Import Sedang Aktif</div>
+                                <div class="text-secondary">
+                                    Menu import produk dibatasi hanya <strong>1 kali dalam 1 minggu</strong> (7 hari).
+                                </div>
+                                <div class="mt-1.5 pt-1.5 border-top border-warning-subtle text-muted" style="font-size: 0.72rem;">
+                                    Terakhir import: <span class="text-dark fw-medium">{{ $lastImportAt ? $lastImportAt->translatedFormat('d F Y, H:i') : '-' }}</span><br>
+                                    Dapat import kembali: <span class="text-primary fw-bold">{{ $nextImportAt ? $nextImportAt->translatedFormat('d F Y, H:i') : '-' }}</span> ({{ $nextImportAt ? now()->diffForHumans($nextImportAt, ['parts' => 2, 'syntax' => \Carbon\CarbonInterface::DIFF_RELATIVE_TO_NOW]) : '' }})
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="alert alert-info bg-info-subtle border-info-subtle text-info py-2 px-3 mb-3" style="font-size: 0.75rem;">
                         <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill me-1"></i> Panduan Format File Import:</div>
                         <ul class="mb-0 ps-3">
+                            <li><strong class="text-danger">Ketentuan Frekuensi:</strong> Upload/import master produk dibatasi maksimal 1 kali setiap 1 minggu.</li>
                             <li>Format file disarankan <strong>.CSV</strong> (Comma Separated Values) / Excel.</li>
                             <li>Sistem menggunakan kolom <strong>SKU</strong> sebagai penanda unik. Jika SKU belum ada, produk otomatis ditambahkan ke Master Produk dengan status <strong>PO (Pre-Order)</strong>.</li>
                             <li>Jika SKU sudah ada, produk akan diperbarui. Kolom yang <strong>kosong</strong> diabaikan (tidak menimpa data lama).</li>
@@ -673,7 +696,7 @@
 
                     <div class="mb-3">
                         <label class="form-label form-label-sm fw-semibold">Pilih File Import (.csv) <span class="text-danger">*</span></label>
-                        <input type="file" name="file" class="form-control form-control-sm" accept=".csv, .txt, .xlsx, .xls" required>
+                        <input type="file" name="file" class="form-control form-control-sm" accept=".csv, .txt, .xlsx, .xls" {{ ($canImport ?? true) ? 'required' : 'disabled' }}>
                     </div>
 
                     <div class="p-2.5 bg-light border rounded-3 d-flex align-items-center justify-content-between">
@@ -688,9 +711,15 @@
                 </div>
                 <div class="modal-footer bg-light py-2">
                     <button type="button" class="btn btn-sm btn-v2-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-sm btn-v2-success">
-                        <i class="bi bi-upload me-1"></i> Upload & Process Import
-                    </button>
+                    @if($canImport ?? true)
+                        <button type="submit" class="btn btn-sm btn-v2-success">
+                            <i class="bi bi-upload me-1"></i> Upload & Process Import
+                        </button>
+                    @else
+                        <button type="button" class="btn btn-sm btn-secondary" disabled>
+                            <i class="bi bi-lock-fill me-1"></i> Terkunci (Maks 1x Seminggu)
+                        </button>
+                    @endif
                 </div>
             </form>
         </div>

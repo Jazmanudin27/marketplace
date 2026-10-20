@@ -128,4 +128,67 @@ class MasterProductImportTest extends TestCase
         // Explicitly set to 0 -> is_preorder is false
         $this->assertFalse($product->is_preorder);
     }
+
+    public function test_import_updates_last_product_import_at_and_blocks_second_import_within_week(): void
+    {
+        $csvContent1 = implode("\n", [
+            'sku;nama_produk;harga_jual',
+            'SKU-FIRST-01;Produk Pertama;10000',
+        ]);
+        $file1 = UploadedFile::fake()->createWithContent('import1.csv', $csvContent1);
+
+        $res1 = $this->post(route('v2.produk.import'), ['file' => $file1]);
+        $res1->assertSessionHas('success');
+
+        $this->tenant->refresh();
+        $this->assertNotNull($this->tenant->last_product_import_at);
+
+        // Second import immediately after should be blocked
+        $csvContent2 = implode("\n", [
+            'sku;nama_produk;harga_jual',
+            'SKU-SECOND-02;Produk Kedua;20000',
+        ]);
+        $file2 = UploadedFile::fake()->createWithContent('import2.csv', $csvContent2);
+
+        $res2 = $this->post(route('v2.produk.import'), ['file' => $file2]);
+        $res2->assertSessionHas('error');
+
+        // Product from blocked import should not exist
+        $secondProduct = MasterProduct::where('tenant_id', $this->tenant->id)
+            ->where('sku', 'SKU-SECOND-02')
+            ->first();
+        $this->assertNull($secondProduct);
+
+        // Fast forward 8 days in past for last_product_import_at
+        $this->tenant->update([
+            'last_product_import_at' => now()->subDays(8),
+        ]);
+
+        $res3 = $this->post(route('v2.produk.import'), ['file' => $file2]);
+        $res3->assertSessionHas('success');
+
+        $secondProduct = MasterProduct::where('tenant_id', $this->tenant->id)
+            ->where('sku', 'SKU-SECOND-02')
+            ->first();
+        $this->assertNotNull($secondProduct);
+    }
+
+    public function test_index_reflects_import_lock_status(): void
+    {
+        $resBefore = $this->get(route('v2.produk.index'));
+        $resBefore->assertOk();
+        $resBefore->assertViewHas('canImport', true);
+
+        // Set last import to 2 days ago
+        $this->tenant->update([
+            'last_product_import_at' => now()->subDays(2),
+        ]);
+
+        $resAfter = $this->get(route('v2.produk.index'));
+        $resAfter->assertOk();
+        $resAfter->assertViewHas('canImport', false);
+        $resAfter->assertSee('Batas Frekuensi Import Sedang Aktif');
+        $resAfter->assertSee('Terkunci (Maks 1x Seminggu)');
+    }
 }
+

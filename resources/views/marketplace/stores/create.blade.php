@@ -49,7 +49,7 @@
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-4 text-md-end">
-                                    <a href="{{ route('shopee.authorize') }}" class="btn btn-danger btn-sm w-100 w-md-auto py-2 px-3 fw-semibold rounded-3 shadow-sm">
+                                    <a href="{{ route('shopee.authorize', ['return_to' => 'v1']) }}" class="btn btn-danger btn-sm w-100 w-md-auto py-2 px-3 fw-semibold rounded-3 shadow-sm">
                                         <i class="fas fa-plug me-1"></i> Hubungkan Shopee
                                     </a>
                                 </div>
@@ -81,7 +81,7 @@
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-4 text-md-end">
-                                    <a href="{{ route('tiktok.auth', ['channel' => 'tokopedia']) }}" class="btn btn-success btn-sm w-100 w-md-auto py-2 px-3 fw-semibold rounded-3 shadow-sm">
+                                    <a href="{{ route('tiktok.auth', ['channel' => 'tokopedia', 'return_to' => 'v1']) }}" class="btn btn-success btn-sm w-100 w-md-auto py-2 px-3 fw-semibold rounded-3 shadow-sm">
                                         <i class="fas fa-plug me-1"></i> Hubungkan Tokopedia
                                     </a>
                                 </div>
@@ -110,7 +110,7 @@
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-4 text-md-end">
-                                    <a href="{{ route('tiktok.auth') }}" class="btn btn-dark btn-sm w-100 w-md-auto py-2 px-3 fw-semibold rounded-3 shadow-sm">
+                                    <a href="{{ route('tiktok.auth', ['channel' => 'tiktok', 'return_to' => 'v1']) }}" class="btn btn-dark btn-sm w-100 w-md-auto py-2 px-3 fw-semibold rounded-3 shadow-sm">
                                         <i class="fas fa-plug me-1"></i> Hubungkan TikTok
                                     </a>
                                 </div>
@@ -139,7 +139,7 @@
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-4 text-md-end">
-                                    <a href="{{ route('lazada.authorize') }}" class="btn btn-primary btn-sm w-100 w-md-auto py-2 px-3 fw-semibold rounded-3 shadow-sm" style="background-color: #0f146d; border-color: #0f146d;">
+                                    <a href="{{ route('lazada.authorize', ['return_to' => 'v1']) }}" class="btn btn-primary btn-sm w-100 w-md-auto py-2 px-3 fw-semibold rounded-3 shadow-sm" style="background-color: #0f146d; border-color: #0f146d;">
                                         <i class="fas fa-plug me-1"></i> Hubungkan Lazada
                                     </a>
                                 </div>

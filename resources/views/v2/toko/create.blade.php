@@ -22,6 +22,33 @@
 <div class="row justify-content-start">
     <div class="col-12 col-lg-9">
         
+        {{-- Flash Alerts & Validation Errors --}}
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show py-2 px-3 mb-3 border-0 shadow-sm" style="font-size: 0.78rem;" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+                <button type="button" class="btn-close py-2.5" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 border-0 shadow-sm" style="font-size: 0.78rem;" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+                <button type="button" class="btn-close py-2.5" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show py-2 px-3 mb-3 border-0 shadow-sm" style="font-size: 0.78rem;" role="alert">
+                <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Mohon periksa isian form:</div>
+                <ul class="mb-0 ps-3">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="btn-close py-2.5" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         <div class="v2-card shadow-sm border mb-3">
             <div class="v2-card-header bg-light py-2.5">
                 <h6 class="v2-card-title d-flex align-items-center gap-2 m-0">
@@ -58,7 +85,7 @@
                                 </div>
                             </div>
                             <div class="col-12 col-md-4 text-md-end">
-                                <a href="{{ route('shopee.authorize') }}" class="btn btn-sm btn-danger w-100 w-md-auto py-1.5 px-3 fw-bold shadow-sm">
+                                <a href="{{ route('shopee.authorize', ['return_to' => 'v2']) }}" class="btn btn-sm btn-danger w-100 w-md-auto py-1.5 px-3 fw-bold shadow-sm">
                                     <i class="bi bi-plug-fill me-1"></i> Hubungkan Shopee
                                 </a>
                             </div>
@@ -89,7 +116,7 @@
                                 </div>
                             </div>
                             <div class="col-12 col-md-4 text-md-end">
-                                <a href="{{ route('tiktok.auth', ['channel' => 'tokopedia']) }}" class="btn btn-sm btn-success w-100 w-md-auto py-1.5 px-3 fw-bold shadow-sm">
+                                <a href="{{ route('tiktok.auth', ['channel' => 'tokopedia', 'return_to' => 'v2']) }}" class="btn btn-sm btn-success w-100 w-md-auto py-1.5 px-3 fw-bold shadow-sm">
                                     <i class="bi bi-plug-fill me-1"></i> Hubungkan Tokopedia
                                 </a>
                             </div>
@@ -117,7 +144,7 @@
                                 </div>
                             </div>
                             <div class="col-12 col-md-4 text-md-end">
-                                <a href="{{ route('tiktok.auth') }}" class="btn btn-sm btn-dark w-100 w-md-auto py-1.5 px-3 fw-bold shadow-sm">
+                                <a href="{{ route('tiktok.auth', ['channel' => 'tiktok', 'return_to' => 'v2']) }}" class="btn btn-sm btn-dark w-100 w-md-auto py-1.5 px-3 fw-bold shadow-sm">
                                     <i class="bi bi-plug-fill me-1"></i> Hubungkan TikTok
                                 </a>
                             </div>
@@ -145,7 +172,7 @@
                                 </div>
                             </div>
                             <div class="col-12 col-md-4 text-md-end">
-                                <a href="{{ route('lazada.authorize') }}" class="btn btn-sm btn-primary w-100 w-md-auto py-1.5 px-3 fw-bold shadow-sm" style="background-color: #0f146d !important; border-color: #0f146d !important;">
+                                <a href="{{ route('lazada.authorize', ['return_to' => 'v2']) }}" class="btn btn-sm btn-primary w-100 w-md-auto py-1.5 px-3 fw-bold shadow-sm" style="background-color: #0f146d !important; border-color: #0f146d !important;">
                                     <i class="bi bi-plug-fill me-1"></i> Hubungkan Lazada
                                 </a>
                             </div>
@@ -170,7 +197,7 @@
                 <p class="text-muted mb-3" style="font-size: 0.78rem;">Masukkan Nama Toko & Shop ID / Username Toko secara langsung untuk mendaftarkan toko ke database ERP.</p>
 
                 <div class="collapse show" id="manualStoreForm">
-                    <form action="{{ url('/v2/toko') }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('v2.toko.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="row g-3">
                             <div class="col-12 col-md-6">

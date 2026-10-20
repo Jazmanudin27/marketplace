@@ -16,16 +16,21 @@ class ShopeeController extends Controller
     }
 
 
-    public function authorize()
+    public function authorize(Request $request)
     {
         // Simpan tenant_id di session agar bisa digunakan saat callback
         $tenantId = Auth::user()->tenant_id ?? 1;
-        session(['shopee_oauth_tenant_id' => $tenantId]);
+        $returnTo = $request->query('return_to', 'v2');
+        session([
+            'shopee_oauth_tenant_id' => $tenantId,
+            'shopee_oauth_return_to' => $returnTo,
+        ]);
 
         $authUrl = $this->shopee->getAuthorizationUrl();
 
         Log::info('Shopee OAuth: Redirecting to authorization URL', [
             'tenant_id' => $tenantId,
+            'return_to' => $returnTo,
             'url'       => $authUrl,
         ]);
 
@@ -34,10 +39,13 @@ class ShopeeController extends Controller
 
     public function callback(Request $request)
     {
+        $returnTo = session('shopee_oauth_return_to', 'v2');
+        $redirectRoute = $returnTo === 'v1' ? 'stores.index' : 'v2.toko.index';
+
         // Validasi parameter dari Shopee
         if ($request->has('error')) {
             Log::warning('Shopee OAuth: User cancelled or error', ['params' => $request->all()]);
-            return redirect()->route('stores.index')
+            return redirect()->route($redirectRoute)
                 ->with('error', 'Otorisasi Shopee dibatalkan: ' . $request->get('error'));
         }
 
@@ -91,12 +99,13 @@ class ShopeeController extends Controller
                 'shop_id' => $shopId,
                 'store_name' => $storeName,
                 'tenant_id' => $tenantId,
+                'return_to' => $returnTo,
             ]);
 
             // Hapus session
-            session()->forget('shopee_oauth_tenant_id');
+            session()->forget(['shopee_oauth_tenant_id', 'shopee_oauth_return_to']);
 
-            return redirect()->route('stores.index')
+            return redirect()->route($redirectRoute)
                 ->with('success', "✅ Toko Shopee \"{$storeName}\" berhasil terhubung!");
 
         } catch (\Throwable $e) {
@@ -129,7 +138,7 @@ class ShopeeController extends Controller
                             ]
                         );
 
-                        return redirect()->route('stores.index')
+                        return redirect()->route($redirectRoute)
                             ->with('success', "✅ Toko Shopee \"Shopee Toko {$shopId}\" berhasil ditambahkan ke ERP!");
                     }
                 } catch (\Throwable $eFb) {
@@ -137,7 +146,7 @@ class ShopeeController extends Controller
                 }
             }
 
-            return redirect()->route('stores.index')
+            return redirect()->route($redirectRoute)
                 ->with('error', 'Gagal menghubungkan toko Shopee: ' . $e->getMessage());
         }
     }
