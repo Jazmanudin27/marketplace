@@ -89,14 +89,9 @@ class WebhookController extends Controller
                     $timeFrom = now()->subDays(3)->timestamp;
                     $timeTo = now()->timestamp;
 
-                    // 2. Eksekusi sinkronisasi langsung (dispatchSync) agar realtime tanpa tertunda di antrean queue
-                    try {
-                        PullOrdersFromShopee::dispatchSync($store, $timeFrom, $timeTo, false, $orderSn);
-                        Log::info("[Webhook] Job PullOrdersFromShopee dispatchSync selesai untuk store {$store->store_name} dengan order_sn {$orderSn}");
-                    } catch (\Throwable $e) {
-                        Log::error("[Webhook] Gagal dispatchSync PullOrdersFromShopee: " . $e->getMessage() . " — beralih ke antrean queue");
-                        PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo, false, $orderSn);
-                    }
+                    // 2. Dispatch asinkron ke antrean queue agar webhook langsung merespon HTTP 200 kilat (<20ms) setara Node.js
+                    PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo, false, $orderSn);
+                    Log::info("[Webhook] Job PullOrdersFromShopee di-dispatch ke queue background untuk store {$store->store_name} dengan order_sn {$orderSn}");
                 }
             } else {
                 Log::warning('[Webhook] Shopee code=' . $data['code'] . ' tapi shop_id atau ordersn kosong', $data);
@@ -134,13 +129,9 @@ class WebhookController extends Controller
                 $timeFrom = now()->subDays(1)->timestamp;
                 $timeTo = now()->timestamp;
 
-                try {
-                    \App\Jobs\PullOrdersFromTiktok::dispatchSync($store, $timeFrom, $timeTo, false, $orderId);
-                    Log::info("[Webhook] Job PullOrdersFromTiktok dispatchSync selesai untuk store {$store->store_name} dengan order_id {$orderId}");
-                } catch (\Throwable $e) {
-                    Log::error("[Webhook] Gagal dispatchSync PullOrdersFromTiktok: " . $e->getMessage() . " — beralih ke antrean queue");
-                    \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo, false, $orderId);
-                }
+                // Dispatch asinkron ke antrean queue agar webhook langsung merespon HTTP 200 kilat (<20ms) setara Node.js
+                \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo, false, $orderId);
+                Log::info("[Webhook] Job PullOrdersFromTiktok di-dispatch ke queue background untuk store {$store->store_name} dengan order_id {$orderId}");
             }
         }
 
