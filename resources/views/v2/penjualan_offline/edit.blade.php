@@ -71,8 +71,8 @@
                     <div class="row g-2 align-items-end">
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold text-secondary mb-1">Cari / Pilih Produk Master</label>
-                            <select id="select_product" class="form-select form-select-sm">
-                                <option value="">-- Pilih Produk Master --</option>
+                            <select id="select_product" class="form-select form-select-sm select2" data-placeholder="-- Ketik Nama Produk atau SKU --">
+                                <option value="">-- Ketik Nama Produk atau SKU --</option>
                                 @foreach($products as $prod)
                                     <option value="{{ $prod->id }}"
                                             data-name="{{ $prod->name }}"
@@ -309,8 +309,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return parseFloat(clean) || 0;
     }
 
-    selectProduct.addEventListener('change', function() {
-        const opt = this.options[this.selectedIndex];
+    function onProductSelected() {
+        const opt = selectProduct.options[selectProduct.selectedIndex];
         if (opt && opt.value) {
             const price = parseFloat(opt.dataset.price) || 0;
             inputPrice.value = formatRupiah(price);
@@ -318,7 +318,12 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             inputPrice.value = '0';
         }
-    });
+    }
+
+    selectProduct.addEventListener('change', onProductSelected);
+    if (typeof jQuery !== 'undefined') {
+        $('#select_product').on('select2:select change', onProductSelected);
+    }
 
     inputQty.addEventListener('input', function() {
         this.value = formatRupiah(parseRupiah(this.value));
@@ -390,6 +395,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         renderCart();
         selectProduct.value = '';
+        if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
+            $('#select_product').val('').trigger('change');
+        }
         inputQty.value = 1;
         inputPrice.value = '0';
         selectProduct.focus();
@@ -533,13 +541,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    document.getElementById('customer_id').addEventListener('change', function() {
-        const opt = this.options[this.selectedIndex];
+    function onCustomerSelected() {
+        const custSelect = document.getElementById('customer_id');
+        if (!custSelect) return;
+        const opt = custSelect.options[custSelect.selectedIndex];
         if (opt && opt.value) {
             document.getElementById('buyer_name').value = opt.dataset.name || '';
             document.getElementById('buyer_phone').value = opt.dataset.phone || '';
         }
-    });
+    }
+
+    const custSelectElem = document.getElementById('customer_id');
+    if (custSelectElem) {
+        custSelectElem.addEventListener('change', onCustomerSelected);
+        if (typeof jQuery !== 'undefined') {
+            $('#customer_id').on('select2:select change', onCustomerSelected);
+        }
+    }
+
+    // Pastikan Select2 terinisialisasi pada seluruh dropdown .select2
+    if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
+        if (window.initV2Select2) {
+            window.initV2Select2();
+        } else {
+            $('select.select2').select2({
+                theme: 'bootstrap-5',
+                width: '100%'
+            });
+        }
+    }
 
     function escapeHtml(str) {
         if (!str) return '';

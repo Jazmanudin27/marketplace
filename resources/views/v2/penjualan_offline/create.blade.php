@@ -61,8 +61,8 @@
                     <div class="row g-2 align-items-end">
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold text-secondary mb-1">Cari / Pilih Produk Master</label>
-                            <select id="select_product" class="form-select form-select-sm">
-                                <option value="">-- Pilih Produk Master --</option>
+                            <select id="select_product" class="form-select form-select-sm select2" data-placeholder="-- Ketik Nama Produk atau SKU --">
+                                <option value="">-- Ketik Nama Produk atau SKU --</option>
                                 @foreach($products as $prod)
                                     <option value="{{ $prod->id }}"
                                             data-name="{{ $prod->name }}"
@@ -149,7 +149,7 @@
                         <label class="form-label small fw-semibold text-secondary mb-1">
                             <i class="bi bi-shop me-1 text-primary"></i> Toko / Cabang Asal
                         </label>
-                        <select name="store_id" id="store_id" class="form-select form-select-sm">
+                        <select name="store_id" id="store_id" class="form-select form-select-sm select2" data-placeholder="-- Pilih Toko (Default / Toko Utama) --">
                             <option value="">-- Pilih Toko (Default / Toko Utama) --</option>
                             @foreach($stores as $st)
                                 <option value="{{ $st->id }}">{{ $st->store_name }}</option>
@@ -159,7 +159,7 @@
 
                     <div class="mb-2.5">
                         <label class="form-label small fw-semibold text-secondary mb-1">Pelanggan Terdaftar (Opsional)</label>
-                        <select name="customer_id" id="customer_id" class="form-select form-select-sm">
+                        <select name="customer_id" id="customer_id" class="form-select form-select-sm select2" data-placeholder="-- Pelanggan Walk-in (Umum) --">
                             <option value="">-- Pelanggan Walk-in (Umum) --</option>
                             @foreach($customers as $cust)
                                 <option value="{{ $cust->id }}" data-phone="{{ $cust->phone }}" data-name="{{ $cust->name }}">
@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
     applyRupiahFormatEvent(paidInput, calculateTotals);
 
     // Otomatis isi harga saat produk master dipilih & bisa langsung diedit
-    selectProduct.addEventListener('change', function() {
+    function onProductSelected() {
         const opt = selectProduct.options[selectProduct.selectedIndex];
         if (opt && opt.value) {
             let rawPrice = parseFloat(opt.dataset.price) || 0;
@@ -332,7 +332,12 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             inputPrice.value = '0';
         }
-    });
+    }
+
+    selectProduct.addEventListener('change', onProductSelected);
+    if (typeof jQuery !== 'undefined') {
+        $('#select_product').on('select2:select change', onProductSelected);
+    }
 
     // Quick Cash buttons
     document.querySelectorAll('.quick-cash-btn').forEach(btn => {
@@ -385,6 +390,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         renderCart();
         selectProduct.value = '';
+        if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
+            $('#select_product').val('').trigger('change');
+        }
         inputQty.value = 1;
         inputPrice.value = '0';
         selectProduct.focus();
@@ -528,13 +536,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    document.getElementById('customer_id').addEventListener('change', function() {
-        const opt = this.options[this.selectedIndex];
+    function onCustomerSelected() {
+        const custSelect = document.getElementById('customer_id');
+        if (!custSelect) return;
+        const opt = custSelect.options[custSelect.selectedIndex];
         if (opt && opt.value) {
             document.getElementById('buyer_name').value = opt.dataset.name || '';
             document.getElementById('buyer_phone').value = opt.dataset.phone || '';
         }
-    });
+    }
+
+    const custSelectElem = document.getElementById('customer_id');
+    if (custSelectElem) {
+        custSelectElem.addEventListener('change', onCustomerSelected);
+        if (typeof jQuery !== 'undefined') {
+            $('#customer_id').on('select2:select change', onCustomerSelected);
+        }
+    }
+
+    // Pastikan Select2 terinisialisasi pada seluruh dropdown .select2
+    if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
+        if (window.initV2Select2) {
+            window.initV2Select2();
+        } else {
+            $('select.select2').select2({
+                theme: 'bootstrap-5',
+                width: '100%'
+            });
+        }
+    }
 
     function escapeHtml(str) {
         if (!str) return '';
