@@ -199,28 +199,44 @@
             $('#realtimeClock').text(timeStr);
         }, 1000);
 
-        // Global Select2 Initializer with Clean Native Popper & Modal Support
+        // Global Select2 Initializer (Semua Select Option Memiliki Pencarian di V2)
         window.initV2Select2 = function(context) {
-            var $target = context ? 
-                $(context).find('select.select2, select.v2-select2') : 
-                $('select.select2, select.v2-select2');
+            var $root = context ? $(context) : $(document);
+            var $target = $root.is('select') ? $root : $root.find('select');
 
-            $target.not('.no-select2').each(function() {
+            $target.not('.no-select2, .swal2-select, .dataTables_length select, select[name$="_length"]').each(function() {
                 var $select = $(this);
                 if ($select.hasClass('select2-hidden-accessible')) {
                     return; // Already initialized
+                }
+
+                // Abaikan select di dalam template cloning
+                if ($select.closest('.d-none-template, template').length) {
+                    return;
                 }
 
                 // If inside modal, attach to modal to prevent z-index backdrop clipping
                 var $modal = $select.closest('.modal');
                 var dropdownParent = $modal.length ? $modal : null;
 
+                var firstOption = $select.find('option:first');
+                var firstOptionText = firstOption.length ? firstOption.text().trim() : '';
+                var placeholderText = $select.data('placeholder') || ($select.find('option[value=""]').length ? firstOptionText : (firstOptionText || '-- Cari / Pilih --'));
+
                 $select.select2({
                     theme: 'bootstrap-5',
-                    width: '100%',
-                    placeholder: $select.data('placeholder') || $select.find('option:first').text() || '-- Pilih --',
-                    allowClear: true,
-                    dropdownParent: dropdownParent
+                    width: $select.data('width') || '100%',
+                    placeholder: placeholderText,
+                    allowClear: $select.find('option[value=""]').length > 0 || $select.prop('multiple'),
+                    dropdownParent: dropdownParent,
+                    language: {
+                        noResults: function() {
+                            return "Data tidak ditemukan";
+                        },
+                        searching: function() {
+                            return "Mencari...";
+                        }
+                    }
                 });
             });
         };
@@ -260,7 +276,16 @@
         });
 
         $(document).on('shown.bs.modal', '.modal', function() {
+            window.initV2Select2(this);
             window.initV2NumberInputs(this);
+        });
+
+        $(document).on('shown.bs.tab', function() {
+            window.initV2Select2();
+        });
+
+        $(document).ajaxComplete(function() {
+            window.initV2Select2();
         });
 
         $(document).ready(function() {
