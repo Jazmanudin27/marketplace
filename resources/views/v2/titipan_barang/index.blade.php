@@ -57,6 +57,9 @@
         <p class="text-muted small mb-0">Kelola daftar transaksi penerimaan barang titipan supplier dan persediaan gudang master</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
+        <a href="{{ route('v2.titipan_barang.settlement.create') }}" class="btn btn-sm btn-outline-success py-1.5 px-3 rounded-2 fw-semibold">
+            <i class="bi bi-cash-stack me-1"></i> Pembayaran / Setoran
+        </a>
         <a href="{{ route('v2.titipan_barang.deductions.index') }}" class="btn btn-sm btn-outline-danger py-1.5 px-3 rounded-2 fw-semibold">
             <i class="bi bi-box-arrow-up-right me-1"></i> Pengeluaran Stok
         </a>
