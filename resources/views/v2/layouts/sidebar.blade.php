@@ -308,8 +308,8 @@
                     </a>
                     <a href="{{ route('v2.titipan_barang.deductions.index') }}"
                         class="v2-submenu-link {{ request()->routeIs('v2.titipan_barang.deductions.*') || request()->routeIs('supplier_consignments.deductions.*') ? 'active' : '' }}">
-                        <i class="bi bi-box-arrow-up-right text-danger me-1.5"></i>
-                        <span>Pengeluaran Stok Titipan</span>
+                        <i class="bi bi-clipboard-check text-warning me-1.5"></i>
+                        <span>Stok Opname Titipan</span>
                     </a>
                     <a href="{{ route('v2.titipan_barang.stock_card') }}"
                         class="v2-submenu-link {{ request()->routeIs('v2.titipan_barang.stock_card') || request()->routeIs('supplier_consignments.stock_card') ? 'active' : '' }}">

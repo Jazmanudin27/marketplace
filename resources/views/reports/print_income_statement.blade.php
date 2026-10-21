@@ -129,5 +129,33 @@
             </tr>
         </tbody>
     </table>
+
+    {{-- 4. ANALISIS PROFITABILITAS (HPP & MARGIN) --}}
+    <table class="table-statement">
+        <thead>
+            <tr>
+                <th class="section-bg">4. Analisis Profitabilitas (HPP &amp; Margin Bersih)</th>
+                <th style="width: 180px;" class="section-bg text-end">Rp</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="fw-semibold">Total Dana Dilepas Bersih (Net Released)</td>
+                <td class="text-end font-monospace text-success fw-bold">Rp {{ number_format($totalDilepas, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <td class="fw-semibold">Total HPP Modal Barang Terjual</td>
+                <td class="text-end font-monospace text-secondary fw-bold">Rp {{ number_format($grandTotalHpp ?? 0, 0, ',', '.') }}</td>
+            </tr>
+            <tr class="grand-total-bg">
+                <td class="text-uppercase">Total Margin Keuntungan Bersih (Rp)</td>
+                <td class="text-end font-monospace text-primary fs-6">Rp {{ number_format($grandTotalMarginRp ?? ($totalDilepas - ($grandTotalHpp ?? 0)), 0, ',', '.') }}</td>
+            </tr>
+            <tr class="bg-primary bg-opacity-10 fw-bold">
+                <td class="text-uppercase text-primary">Persentase Margin Keuntungan Bersih (%)</td>
+                <td class="text-end font-monospace text-primary fs-6">{{ number_format($grandOverallMarginPct ?? 0, 2, ',', '.') }}%</td>
+            </tr>
+        </tbody>
+    </table>
 </body>
 </html>

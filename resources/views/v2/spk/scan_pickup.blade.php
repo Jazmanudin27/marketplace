@@ -137,10 +137,10 @@
                         </p>
                     </div>
                     <div class="d-flex gap-1 flex-wrap">
-                        <a href="{{ route('spks.show', $spk->id) }}" class="btn btn-secondary btn-sm px-3">
+                        <a href="{{ Route::has('spk.show') ? route('spk.show', $spk->id) : route('spks.show', $spk->id) }}" class="btn btn-secondary btn-sm px-3">
                             <i class="fas fa-arrow-left me-1"></i> Kembali ke SPK
                         </a>
-                        <a href="{{ route('spks.print_labels', $spk->id) }}" target="_blank" class="btn btn-dark btn-sm px-3">
+                        <a href="{{ Route::has('spk.print_labels') ? route('spk.print_labels', $spk->id) : route('spks.print_labels', $spk->id) }}" target="_blank" class="btn btn-dark btn-sm px-3">
                             <i class="fas fa-tags me-1"></i> Cetak Label Stiker
                         </a>
                         <a href="{{ route('spks.print', $spk->id) }}" target="_blank" class="btn btn-outline-primary btn-sm px-3">
@@ -480,6 +480,10 @@
             }
         });
 
+        let lastScannedCode = null;
+        let lastScannedTime = 0;
+        let cameraCooldown = false;
+
         // Submit Scan Processing via AJAX
         function submitScan(scannedVal = null) {
             if (isProcessing) return;
@@ -490,6 +494,15 @@
                 return;
             }
 
+            const now = Date.now();
+            if (lastScannedCode === code && (now - lastScannedTime) < 2500) {
+                console.warn("Anti-double-scan: Code sama terdeteksi dalam < 2.5s:", code);
+                barcodeInput.value = '';
+                return;
+            }
+            lastScannedCode = code;
+            lastScannedTime = now;
+
             const qty = parseInt(qtyScanInput.value) || 1;
             const namaPengambil = namaPengambilInput.value.trim();
 
@@ -497,7 +510,7 @@
             btnSubmitScan.disabled = true;
             btnSubmitScan.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i>Proses...`;
 
-            fetch(`{{ route('spks.process_scan_pickup', $spk->id) }}`, {
+            fetch(`{{ Route::has('spk.process_scan_pickup') ? route('spk.process_scan_pickup', $spk->id) : route('spks.process_scan_pickup', $spk->id) }}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -739,10 +752,16 @@
                 { facingMode: "environment" },
                 config,
                 (decodedText) => {
-                    if (!isProcessing) {
-                        barcodeInput.value = decodedText;
-                        submitScan(decodedText);
-                    }
+                    const now = Date.now();
+                    if (isProcessing || cameraCooldown) return;
+                    if (lastScannedCode === decodedText && (now - lastScannedTime) < 3000) return;
+
+                    // Beri jeda kamera 2.5 detik agar tidak menembak berulang kali pada stiker yang sama
+                    cameraCooldown = true;
+                    setTimeout(() => { cameraCooldown = false; }, 2500);
+
+                    barcodeInput.value = decodedText;
+                    submitScan(decodedText);
                 },
                 (errorMessage) => {}
             ).then(() => {

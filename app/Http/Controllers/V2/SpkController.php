@@ -299,4 +299,21 @@ class SpkController extends BaseSpkController
 
         return $response;
     }
+
+    /**
+     * Display V2 SPK Print Labels.
+     */
+    public function printItemLabels(Spk $spk)
+    {
+        $response = parent::printItemLabels($spk);
+
+        if ($response instanceof \Illuminate\View\View) {
+            if (view()->exists('v2.spk.print_labels')) {
+                return view('v2.spk.print_labels', $response->getData());
+            }
+            return $response;
+        }
+
+        return $response;
+    }
 }

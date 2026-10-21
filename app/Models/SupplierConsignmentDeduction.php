@@ -16,6 +16,9 @@ class SupplierConsignmentDeduction extends Model
         'order_id',
         'order_item_id',
         'quantity',
+        'system_stock',
+        'actual_stock',
+        'difference_qty',
         'scanned_barcode',
         'reason',
         'reference_no',
@@ -27,9 +30,43 @@ class SupplierConsignmentDeduction extends Model
 
     protected $casts = [
         'quantity'            => 'integer',
+        'system_stock'        => 'integer',
+        'actual_stock'        => 'integer',
+        'difference_qty'      => 'integer',
         'deduction_date'      => 'datetime',
         'deduct_master_stock' => 'boolean',
     ];
+
+    /**
+     * Label representasi perbedaan stok opname (selisih fisik vs ERP).
+     */
+    public function getDifferenceLabelAttribute(): string
+    {
+        if ($this->difference_qty === null) {
+            return '-' . number_format($this->quantity) . ' PCS';
+        }
+        if ($this->difference_qty < 0) {
+            return number_format($this->difference_qty) . ' PCS (Kurang)';
+        }
+        if ($this->difference_qty > 0) {
+            return '+' . number_format($this->difference_qty) . ' PCS (Lebih)';
+        }
+        return '0 PCS (Sesuai)';
+    }
+
+    /**
+     * Badge CSS class untuk selisih stok opname.
+     */
+    public function getDifferenceBadgeClassAttribute(): string
+    {
+        if ($this->difference_qty === null || $this->difference_qty < 0) {
+            return 'bg-danger-subtle text-danger border border-danger-subtle';
+        }
+        if ($this->difference_qty > 0) {
+            return 'bg-info-subtle text-info-emphasis border border-info-subtle';
+        }
+        return 'bg-success-subtle text-success border border-success-subtle';
+    }
 
     public function tenant(): BelongsTo
     {

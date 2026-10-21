@@ -480,6 +480,10 @@
             }
         });
 
+        let lastScannedCode = null;
+        let lastScannedTime = 0;
+        let cameraCooldown = false;
+
         // Submit Scan Processing via AJAX
         function submitScan(scannedVal = null) {
             if (isProcessing) return;
@@ -489,6 +493,15 @@
                 barcodeInput.focus();
                 return;
             }
+
+            const now = Date.now();
+            if (lastScannedCode === code && (now - lastScannedTime) < 2500) {
+                console.warn("Anti-double-scan: Code sama terdeteksi dalam < 2.5s:", code);
+                barcodeInput.value = '';
+                return;
+            }
+            lastScannedCode = code;
+            lastScannedTime = now;
 
             const qty = parseInt(qtyScanInput.value) || 1;
             const namaPengambil = namaPengambilInput.value.trim();
@@ -739,10 +752,16 @@
                 { facingMode: "environment" },
                 config,
                 (decodedText) => {
-                    if (!isProcessing) {
-                        barcodeInput.value = decodedText;
-                        submitScan(decodedText);
-                    }
+                    const now = Date.now();
+                    if (isProcessing || cameraCooldown) return;
+                    if (lastScannedCode === decodedText && (now - lastScannedTime) < 3000) return;
+
+                    // Beri jeda kamera 2.5 detik agar tidak menembak berulang kali pada stiker yang sama
+                    cameraCooldown = true;
+                    setTimeout(() => { cameraCooldown = false; }, 2500);
+
+                    barcodeInput.value = decodedText;
+                    submitScan(decodedText);
                 },
                 (errorMessage) => {}
             ).then(() => {

@@ -20,8 +20,8 @@
             <i class="bi bi-printer me-1"></i> Cetak Faktur
         </button>
         <a href="{{ route('v2.titipan_barang.deductions.create') }}"
-            class="btn btn-sm btn-outline-danger fw-semibold px-3">
-            <i class="bi bi-box-arrow-up-right me-1"></i> Catat Pengeluaran
+            class="btn btn-sm btn-outline-primary fw-semibold px-3">
+            <i class="bi bi-qr-code-scan me-1"></i> Scan Stok Opname
         </a>
         <a href="{{ route('supplier_consignments.edit', $consignment) }}"
             class="btn btn-sm fw-semibold text-dark px-3" style="background:#fbbf24; border:none;">
@@ -307,15 +307,15 @@
     <div class="px-3 py-2.5 border-bottom bg-light d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div class="d-flex align-items-center gap-2">
             <span class="fw-bold text-secondary small text-uppercase" style="font-size:0.73rem; letter-spacing:0.04em;">
-                <i class="bi bi-box-arrow-up-right text-danger me-1"></i>
-                Riwayat Pengeluaran & Pemotongan Stok Titipan
+                <i class="bi bi-clipboard-check text-warning me-1"></i>
+                Riwayat Stok Opname & Penyesuaian Titipan
             </span>
-            <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:0.7rem;">
-                {{ $allDeductions->count() }} Kali Pengeluaran ({{ number_format($allDeductions->sum('quantity')) }} PCS)
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:0.7rem;">
+                {{ $allDeductions->count() }} Kali Opname / Penyesuaian
             </span>
         </div>
-        <a href="{{ route('v2.titipan_barang.deductions.create') }}" class="btn btn-sm btn-danger py-1 px-2.5 rounded-2 fw-semibold text-white" style="font-size:0.75rem;">
-            <i class="bi bi-plus-lg me-1"></i> Catat Pengeluaran Baru
+        <a href="{{ route('v2.titipan_barang.deductions.create') }}" class="btn btn-sm btn-primary py-1 px-2.5 rounded-2 fw-semibold text-white" style="font-size:0.75rem;">
+            <i class="bi bi-qr-code-scan me-1"></i> Mulai Scan Opname
         </a>
     </div>
 

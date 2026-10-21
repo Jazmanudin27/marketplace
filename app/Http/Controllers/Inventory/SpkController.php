@@ -1326,6 +1326,48 @@ class SpkController extends Controller
             ], 422);
         }
 
+        // 2b. VALIDASI PIECE & ANTI-DOUBLE-SCAN:
+        $pieceNum = null;
+        if (preg_match('/(?:^|\|)P(\d+)(?:\||$)/i', $rawCode, $pMatch)) {
+            $pieceNum = (int) $pMatch[1];
+        }
+
+        if ($pieceNum !== null) {
+            $alreadyScanned = \App\Models\SpkItemPickup::where('spk_item_id', $matchedItem->id)
+                ->where('catatan', 'like', "%[PCS:{$pieceNum}]%")
+                ->exists();
+
+            if ($alreadyScanned) {
+                return response()->json([
+                    'success'      => false,
+                    'error_type'   => 'already_scanned',
+                    'title'        => 'SUDAH PERNAH DI-SCAN!',
+                    'message'      => "Barang ini (Pcs #{$pieceNum}) sudah pernah di-scan sebelumnya!",
+                    'detail'       => "Satu label stiker hanya dapat di-scan 1 kali untuk mencegah double scan.",
+                    'item_id'      => $matchedItem->id,
+                    'scanned_code' => $rawCode,
+                ], 422);
+            }
+        }
+
+        // Anti-Replay Debounce Lock (Mencegah double scan cepat dalam rentang 2 detik)
+        $lockKey = "spk_scan_lock_{$tenantId}_{$spk->id}_{$matchedItem->id}_" . md5($rawCode);
+        if (!\Illuminate\Support\Facades\Cache::add($lockKey, 1, 2)) {
+            return response()->json([
+                'success'      => false,
+                'error_type'   => 'duplicate_scan',
+                'title'        => 'DOUBLE SCAN TERDETEKSI!',
+                'message'      => 'Barcode baru saja di-scan. Mohon jeda 2 detik sebelum scan item berikutnya.',
+                'detail'       => 'Double scan otomatis dicegah oleh sistem.',
+                'item_id'      => $matchedItem->id,
+                'scanned_code' => $rawCode,
+            ], 422);
+        }
+
+        if ($pieceNum !== null) {
+            $catatan .= " [PCS:{$pieceNum}]";
+        }
+
         // 3. ⚡ LIGHTNING FAST DB TRANSACTION
         $qtyToTake = min($qtyRequested, $sisaQty);
 
@@ -2751,6 +2793,49 @@ class SpkController extends Controller
                 'item_id'      => $matchedItem->id,
                 'scanned_code' => $rawCode,
             ], 422);
+        }
+
+        // 3b. VALIDASI PIECE & ANTI-DOUBLE-SCAN:
+        // Cek jika QR Code memiliki identitas unit spesifik (misal: |P1, |P2, dll)
+        $pieceNum = null;
+        if (preg_match('/(?:^|\|)P(\d+)(?:\||$)/i', $rawCode, $pMatch)) {
+            $pieceNum = (int) $pMatch[1];
+        }
+
+        if ($pieceNum !== null) {
+            $alreadyScanned = \App\Models\SpkItemPickup::where('spk_item_id', $matchedItem->id)
+                ->where('catatan', 'like', "%[PCS:{$pieceNum}]%")
+                ->exists();
+
+            if ($alreadyScanned) {
+                return response()->json([
+                    'success'      => false,
+                    'error_type'   => 'already_scanned',
+                    'title'        => 'SUDAH PERNAH DI-SCAN!',
+                    'message'      => "Barang ini (Pcs #{$pieceNum}) sudah pernah di-scan sebelumnya!",
+                    'detail'       => "Satu label stiker hanya dapat di-scan 1 kali untuk mencegah double scan.",
+                    'item_id'      => $matchedItem->id,
+                    'scanned_code' => $rawCode,
+                ], 422);
+            }
+        }
+
+        // Anti-Replay Debounce Lock (Mencegah double scan cepat dalam rentang 2 detik)
+        $lockKey = "spk_scan_lock_{$tenantId}_{$spk->id}_{$matchedItem->id}_" . md5($cleanCode);
+        if (!\Illuminate\Support\Facades\Cache::add($lockKey, 1, 2)) {
+            return response()->json([
+                'success'      => false,
+                'error_type'   => 'duplicate_scan',
+                'title'        => 'DOUBLE SCAN TERDETEKSI!',
+                'message'      => 'Barcode baru saja di-scan. Mohon jeda 2 detik sebelum scan item berikutnya.',
+                'detail'       => 'Double scan otomatis dicegah oleh sistem.',
+                'item_id'      => $matchedItem->id,
+                'scanned_code' => $rawCode,
+            ], 422);
+        }
+
+        if ($pieceNum !== null) {
+            $catatan .= " [PCS:{$pieceNum}]";
         }
 
         // 4. Eksekusi Pengambilan / Penerimaan Barang

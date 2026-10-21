@@ -829,6 +829,18 @@ class TitipanBarangController extends Controller
                 } catch (\Throwable $e) {}
             }
         }
+
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('supplier_consignment_deductions', 'actual_stock')) {
+            try {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE `supplier_consignment_deductions` ADD COLUMN `system_stock` INT NULL");
+            } catch (\Throwable $e) {}
+            try {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE `supplier_consignment_deductions` ADD COLUMN `actual_stock` INT NULL");
+            } catch (\Throwable $e) {}
+            try {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE `supplier_consignment_deductions` ADD COLUMN `difference_qty` INT NULL");
+            } catch (\Throwable $e) {}
+        }
     }
 
     /**
@@ -956,6 +968,12 @@ class TitipanBarangController extends Controller
         $totalUnscannedOrders = $allFiltered->where('reason', 'unscanned_order')->count();
         $totalManualCorrections = $allFiltered->where('reason', '!=', 'unscanned_order')->count();
 
+        // Metrik Opname Spesifik (Fisik, Selisih Kurang, Selisih Lebih)
+        $totalActualExamined = (int) $allFiltered->sum(fn($d) => $d->actual_stock !== null ? $d->actual_stock : $d->quantity);
+        $totalDiffMinus      = (int) $allFiltered->where('difference_qty', '<', 0)->sum(fn($d) => abs($d->difference_qty));
+        $totalDiffPlus       = (int) $allFiltered->where('difference_qty', '>', 0)->sum('difference_qty');
+        $totalMatchCount     = (int) $allFiltered->where('difference_qty', 0)->count();
+
         // Rekap Sumber Stok: Berapa Qty hanya Titipan Supplier vs Ikut Potong Gudang Master
         $qtyPotongGudang = (int) $allFiltered->where('deduct_master_stock', 1)->sum('quantity');
         $qtyHanyaTitipan = (int) $allFiltered->where('deduct_master_stock', '!=', 1)->sum('quantity');
@@ -984,6 +1002,10 @@ class TitipanBarangController extends Controller
             'totalHppAmount',
             'totalUnscannedOrders',
             'totalManualCorrections',
+            'totalActualExamined',
+            'totalDiffMinus',
+            'totalDiffPlus',
+            'totalMatchCount',
             'qtyPotongGudang',
             'qtyHanyaTitipan',
             'rekapPerSupplier'
@@ -991,7 +1013,7 @@ class TitipanBarangController extends Controller
     }
 
     /**
-     * Form Pencatatan Pengeluaran Stok Titipan Manual V2.
+     * Form Scan Stok Opname Titipan Barang V2.
      */
     public function createDeduction(Request $request)
     {
@@ -1004,13 +1026,13 @@ class TitipanBarangController extends Controller
         $preselectedOrderId = $request->input('order_id');
         $preselectedOrder   = $preselectedOrderId ? Order::with(['store', 'items.masterProduct'])->where('tenant_id', $tenantId)->find($preselectedOrderId) : null;
 
-        // Ambil item titipan yang masih ada sisa stok
+        // Ambil semua item titipan konsinyasi aktif yang disetujui (memungkinkan opname walau sisa_stok di ERP 0)
         $availableItemsRaw = SupplierConsignmentItem::with(['consignment.supplier', 'masterProduct'])
             ->whereHas('consignment', function ($q) use ($tenantId) {
                 $q->where('tenant_id', $tenantId)->where('status', 'approved');
             })
             ->get()
-            ->filter(fn($it) => $it->sisa_stok > 0)
+            ->filter(fn($it) => $it->qty_received > 0)
             ->values();
 
         $availableItems = $availableItemsRaw->map(function ($it) {
@@ -1026,7 +1048,9 @@ class TitipanBarangController extends Controller
                 'product_name'  => $p ? $p->name : 'Produk',
                 'sku'           => $p ? $p->sku : '-',
                 'barcode'       => $p ? ($p->barcode ?: '') : '',
-                'sisa_stok'     => (int) $it->sisa_stok,
+                'sisa_stok'     => (int) $it->sisa_stok, // Stok fisik di ERP saat ini
+                'qty_received'  => (int) $it->qty_received,
+                'qty_sold'      => (int) ($it->qty_sold ?? 0),
                 'hpp'           => (float) $it->unit_cost_price,
             ];
         })->values();
@@ -1042,84 +1066,169 @@ class TitipanBarangController extends Controller
     }
 
     /**
-     * Simpan Pengeluaran Stok Titipan Baru V2.
+     * Simpan Stok Opname Titipan Barang / Penyesuaian Stok V2.
      */
     public function storeDeduction(Request $request)
     {
         $this->ensureDeductionsColumnsExist();
         $tenantId = Auth::user()->tenant_id;
 
-        // 1. Dukung batch items dari keranjang scanner
+        // 1. Dukung batch items dari keranjang scan stok opname
         if ($request->has('items') && is_array($request->items) && count($request->items) > 0) {
             $request->validate([
-                'items'                        => 'required|array|min:1',
+                'items'                                 => 'required|array|min:1',
                 'items.*.supplier_consignment_item_id' => 'required|exists:supplier_consignment_items,id',
-                'items.*.quantity'             => 'required|integer|min:1',
-                'reason'                       => 'required|in:unscanned_order,manual_adjustment,return_supplier,damaged,direct_sale,other',
-                'deduction_date'               => 'nullable|date',
-                'notes'                        => 'nullable|string|max:1000',
-                'deduct_master_stock'          => 'nullable|boolean',
+                'items.*.actual_stock'                 => 'nullable|integer|min:0',
+                'items.*.quantity'                     => 'nullable|integer|min:0',
+                'reason'                               => 'required|string',
+                'opname_date'                          => 'nullable|date',
+                'deduction_date'                       => 'nullable|date',
+                'pic'                                  => 'nullable|string|max:150',
+                'notes'                                => 'nullable|string|max:1000',
+                'deduct_master_stock'                  => 'nullable|boolean',
             ]);
 
             $deductMasterStock = $request->boolean('deduct_master_stock');
-            $deductionDate = $request->filled('deduction_date') ? $request->deduction_date : now();
-            $totalProcessedQty = 0;
+            $opnameDate = $request->filled('opname_date') 
+                ? $request->opname_date 
+                : ($request->filled('deduction_date') ? $request->deduction_date : now());
+            $pic = trim($request->pic ?: Auth::user()->name);
+            $totalScannedQty = 0;
+            $itemsCount = count($request->items);
 
             try {
-                DB::transaction(function () use ($request, $tenantId, $deductMasterStock, $deductionDate, &$totalProcessedQty) {
+                DB::transaction(function () use ($request, $tenantId, $deductMasterStock, $opnameDate, $pic, &$totalScannedQty) {
                     foreach ($request->items as $row) {
-                        $qty = (int) $row['quantity'];
-                        if ($qty <= 0) continue;
-
+                        $consItemId = $row['supplier_consignment_item_id'];
                         $consItem = SupplierConsignmentItem::with(['consignment', 'masterProduct'])
-                            ->where('id', $row['supplier_consignment_item_id'])
+                            ->where('id', $consItemId)
                             ->whereHas('consignment', fn($q) => $q->where('tenant_id', $tenantId))
                             ->firstOrFail();
 
-                        if ($consItem->sisa_stok < $qty) {
-                            $prodName = $consItem->masterProduct ? $consItem->masterProduct->name : 'Produk';
-                            throw new \Exception("Stok titipan {$prodName} tidak mencukupi! Sisa: {$consItem->sisa_stok} pcs, diminta: {$qty} pcs.");
+                        $systemStock = (int) $consItem->sisa_stok;
+
+                        // Tentukan stok fisik terhitung
+                        if (isset($row['actual_stock']) && $row['actual_stock'] !== null && $row['actual_stock'] !== '') {
+                            $actualStock = (int) $row['actual_stock'];
+                            $diff = $actualStock - $systemStock;
+                        } else {
+                            // Fallback jika dikirim quantity pengeluaran biasa
+                            $qtyKeluar = (int) ($row['quantity'] ?? 0);
+                            $diff = -$qtyKeluar;
+                            $actualStock = max(0, $systemStock - $qtyKeluar);
                         }
 
-                        $consItem->increment('qty_sold', $qty);
+                        $refBatch = $consItem->consignment ? $consItem->consignment->reference_number : '-';
+                        $prodName = $consItem->masterProduct ? $consItem->masterProduct->name : 'Produk';
+                        $reason = $request->reason ?: 'manual_adjustment';
+                        $userNotes = trim($request->notes ?? '');
 
-                        if ($deductMasterStock && $consItem->masterProduct) {
-                            $consItem->masterProduct->decrement('stock', $qty);
+                        if ($diff < 0) {
+                            // Stok fisik kurang dari ERP (misal ERP 11, Fisik 10 => Selisih -1 pcs)
+                            $shortage = abs($diff);
+                            $consItem->increment('qty_sold', $shortage);
+
+                            if ($deductMasterStock && $consItem->masterProduct) {
+                                $consItem->masterProduct->decrement('stock', $shortage);
+                            }
+
+                            $deduction = SupplierConsignmentDeduction::create([
+                                'tenant_id'                    => $tenantId,
+                                'supplier_consignment_item_id' => $consItem->id,
+                                'order_id'                     => null,
+                                'order_item_id'                => null,
+                                'quantity'                     => $shortage,
+                                'system_stock'                 => $systemStock,
+                                'actual_stock'                 => $actualStock,
+                                'difference_qty'               => $diff,
+                                'reason'                       => $reason,
+                                'reference_no'                 => $pic ? "PIC: {$pic}" : null,
+                                'notes'                        => "Opname: ERP {$systemStock} -> Fisik {$actualStock} (Selisih {$diff} pcs). " . $userNotes,
+                                'deduction_date'               => $opnameDate,
+                                'deduct_master_stock'          => $deductMasterStock,
+                                'user_id'                      => Auth::id(),
+                                'scanned_barcode'              => 'OPNAME-SCAN',
+                            ]);
+
+                            StockMovement::create([
+                                'tenant_id'         => $tenantId,
+                                'master_product_id' => $consItem->master_product_id,
+                                'user_id'           => Auth::id(),
+                                'type'              => 'adj',
+                                'quantity'          => -$shortage,
+                                'balance_after'     => $consItem->masterProduct ? $consItem->masterProduct->stock : 0,
+                                'reference'         => "Stok Opname Titipan ({$refBatch}) - Selisih -{$shortage} pcs [Fisik: {$actualStock}, ERP: {$systemStock}]",
+                            ]);
+                        } elseif ($diff > 0) {
+                            // Stok fisik lebih dari ERP (Surplus: misal ERP 10, Fisik 12 => Selisih +2 pcs)
+                            $surplus = $diff;
+                            $currQtySold = (int) ($consItem->qty_sold ?? 0);
+                            if ($currQtySold >= $surplus) {
+                                $consItem->decrement('qty_sold', $surplus);
+                            } else {
+                                $excess = $surplus - $currQtySold;
+                                $consItem->update(['qty_sold' => 0]);
+                                $consItem->increment('qty_received', $excess);
+                            }
+
+                            if ($deductMasterStock && $consItem->masterProduct) {
+                                $consItem->masterProduct->increment('stock', $surplus);
+                            }
+
+                            $deduction = SupplierConsignmentDeduction::create([
+                                'tenant_id'                    => $tenantId,
+                                'supplier_consignment_item_id' => $consItem->id,
+                                'order_id'                     => null,
+                                'order_item_id'                => null,
+                                'quantity'                     => $surplus,
+                                'system_stock'                 => $systemStock,
+                                'actual_stock'                 => $actualStock,
+                                'difference_qty'               => $diff,
+                                'reason'                       => $reason,
+                                'reference_no'                 => $pic ? "PIC: {$pic}" : null,
+                                'notes'                        => "Opname Surplus: ERP {$systemStock} -> Fisik {$actualStock} (Selisih +{$diff} pcs). " . $userNotes,
+                                'deduction_date'               => $opnameDate,
+                                'deduct_master_stock'          => $deductMasterStock,
+                                'user_id'                      => Auth::id(),
+                                'scanned_barcode'              => 'OPNAME-SCAN',
+                            ]);
+
+                            StockMovement::create([
+                                'tenant_id'         => $tenantId,
+                                'master_product_id' => $consItem->master_product_id,
+                                'user_id'           => Auth::id(),
+                                'type'              => 'adj',
+                                'quantity'          => $surplus,
+                                'balance_after'     => $consItem->masterProduct ? $consItem->masterProduct->stock : 0,
+                                'reference'         => "Stok Opname Titipan Surplus ({$refBatch}) - Surplus +{$surplus} pcs [Fisik: {$actualStock}, ERP: {$systemStock}]",
+                            ]);
+                        } else {
+                            // Fisik cocok persis dengan ERP (Selisih 0)
+                            SupplierConsignmentDeduction::create([
+                                'tenant_id'                    => $tenantId,
+                                'supplier_consignment_item_id' => $consItem->id,
+                                'order_id'                     => null,
+                                'order_item_id'                => null,
+                                'quantity'                     => 0,
+                                'system_stock'                 => $systemStock,
+                                'actual_stock'                 => $actualStock,
+                                'difference_qty'               => 0,
+                                'reason'                       => $reason,
+                                'reference_no'                 => $pic ? "PIC: {$pic}" : null,
+                                'notes'                        => "Opname Sesuai: Fisik sama dengan ERP ({$systemStock} pcs). " . $userNotes,
+                                'deduction_date'               => $opnameDate,
+                                'deduct_master_stock'          => $deductMasterStock,
+                                'user_id'                      => Auth::id(),
+                                'scanned_barcode'              => 'OPNAME-SCAN',
+                            ]);
                         }
 
-                        $deduction = SupplierConsignmentDeduction::create([
-                            'tenant_id'                    => $tenantId,
-                            'supplier_consignment_item_id' => $consItem->id,
-                            'order_id'                     => null,
-                            'order_item_id'                => null,
-                            'quantity'                     => $qty,
-                            'reason'                       => $request->reason,
-                            'reference_no'                 => null,
-                            'notes'                        => $request->notes,
-                            'deduction_date'               => $deductionDate,
-                            'deduct_master_stock'          => $deductMasterStock,
-                            'user_id'                      => Auth::id(),
-                            'scanned_barcode'              => 'SCAN-CART',
-                        ]);
-
-                        $refNote = "Pengeluaran Titipan ({$consItem->consignment->reference_number}) - " . $deduction->reason_label . ($request->notes ? " ({$request->notes})" : '');
-
-                        StockMovement::create([
-                            'tenant_id'         => $tenantId,
-                            'master_product_id' => $consItem->master_product_id,
-                            'user_id'           => Auth::id(),
-                            'type'              => 'out',
-                            'quantity'          => $qty,
-                            'balance_after'     => $consItem->masterProduct ? $consItem->masterProduct->stock : 0,
-                            'reference'         => $refNote,
-                        ]);
-
-                        $totalProcessedQty += $qty;
+                        $totalScannedQty += $actualStock;
                     }
                 });
 
                 return redirect()->route('v2.titipan_barang.deductions.index')
-                    ->with('success', "Berhasil mencatat pengeluaran titipan untuk " . count($request->items) . " item produk (Total {$totalProcessedQty} PCS).");
+                    ->with('success', "✅ Stok Opname Titipan berhasil disimpan untuk {$itemsCount} item produk (Total Fisik Terhitung: {$totalScannedQty} PCS).");
             } catch (\Throwable $e) {
                 return back()->withInput()->with('error', $e->getMessage());
             }
@@ -1401,22 +1510,42 @@ class TitipanBarangController extends Controller
 
         DB::transaction(function () use ($deduction, $consItem, $qty, $tenantId) {
             if ($consItem) {
-                $consItem->decrement('qty_sold', $qty);
+                $diff = $deduction->difference_qty;
+                if ($diff === null || $diff < 0) {
+                    // Revert pengurangan / kekurangan stok (kembalikan stok)
+                    $consItem->decrement('qty_sold', $qty);
 
-                if ($deduction->deduct_master_stock && $consItem->masterProduct) {
-                    $consItem->masterProduct->increment('stock', $qty);
+                    if ($deduction->deduct_master_stock && $consItem->masterProduct) {
+                        $consItem->masterProduct->increment('stock', $qty);
+                    }
+
+                    StockMovement::create([
+                        'tenant_id'         => $tenantId,
+                        'master_product_id' => $consItem->master_product_id,
+                        'user_id'           => Auth::id(),
+                        'type'              => 'in',
+                        'quantity'          => $qty,
+                        'balance_after'     => $consItem->masterProduct ? $consItem->masterProduct->stock : 0,
+                        'reference'         => "Pembatalan Opname Titipan ({$consItem->consignment->reference_number}) #" . $deduction->id,
+                    ]);
+                } elseif ($diff > 0) {
+                    // Revert surplus (kurangi kembali surplus)
+                    $consItem->increment('qty_sold', $qty);
+
+                    if ($deduction->deduct_master_stock && $consItem->masterProduct) {
+                        $consItem->masterProduct->decrement('stock', $qty);
+                    }
+
+                    StockMovement::create([
+                        'tenant_id'         => $tenantId,
+                        'master_product_id' => $consItem->master_product_id,
+                        'user_id'           => Auth::id(),
+                        'type'              => 'out',
+                        'quantity'          => $qty,
+                        'balance_after'     => $consItem->masterProduct ? $consItem->masterProduct->stock : 0,
+                        'reference'         => "Pembatalan Surplus Opname Titipan ({$consItem->consignment->reference_number}) #" . $deduction->id,
+                    ]);
                 }
-
-                // Catat audit pengembalian stok titipan
-                StockMovement::create([
-                    'tenant_id'         => $tenantId,
-                    'master_product_id' => $consItem->master_product_id,
-                    'user_id'           => Auth::id(),
-                    'type'              => 'in',
-                    'quantity'          => $qty,
-                    'balance_after'     => $consItem->masterProduct ? $consItem->masterProduct->stock : 0,
-                    'reference'         => "Pembatalan Pengeluaran Titipan ({$consItem->consignment->reference_number}) #" . $deduction->id,
-                ]);
             }
 
             if ($deduction->orderItem) {
@@ -1430,7 +1559,7 @@ class TitipanBarangController extends Controller
         });
 
         return redirect()->route('v2.titipan_barang.deductions.index')
-            ->with('success', "Pengeluaran stok titipan berhasil dibatalkan dan stok dikembalikan.");
+            ->with('success', "Data stok opname titipan berhasil dibatalkan dan stok telah disesuaikan kembali.");
     }
 
     /**

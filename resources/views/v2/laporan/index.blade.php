@@ -105,7 +105,7 @@
                 </h6>
             </div>
             <div class="p-3.5" style="padding: 16px 18px;">
-                <form id="releasedFilterForm" action="{{ route('reports.released_sales.print') }}" method="GET" target="_blank">
+                <form id="releasedFilterForm" action="{{ Route::has('v2.laporan.released_sales.print') ? route('v2.laporan.released_sales.print') : route('reports.released_sales.print') }}" method="GET" target="_blank">
                     <input type="hidden" name="tab" value="dilepas">
 
                     {{-- Format Laporan --}}
@@ -176,7 +176,7 @@
                 </h6>
             </div>
             <div class="p-3.5" style="padding: 16px 18px;">
-                <form id="salesFilterForm" action="{{ route('reports.sales.print') }}" method="GET" target="_blank">
+                <form id="salesFilterForm" action="{{ Route::has('v2.laporan.sales.print') ? route('v2.laporan.sales.print') : route('reports.sales.print') }}" method="GET" target="_blank">
                     <input type="hidden" name="tab" value="semua">
 
                     {{-- Format Laporan Penjualan --}}
@@ -289,13 +289,13 @@
 function exportReleasedCsv() {
     const form = document.getElementById('releasedFilterForm');
     const params = new URLSearchParams(new FormData(form)).toString();
-    window.location.href = "{{ route('reports.released_sales.export') }}?" + params;
+    window.location.href = "{{ Route::has('v2.laporan.released_sales.export') ? route('v2.laporan.released_sales.export') : route('reports.released_sales.export') }}?" + params;
 }
 
 function exportSalesCsv() {
     const form = document.getElementById('salesFilterForm');
     const params = new URLSearchParams(new FormData(form)).toString();
-    window.location.href = "{{ route('reports.sales.export') }}?" + params;
+    window.location.href = "{{ Route::has('v2.laporan.sales.export') ? route('v2.laporan.sales.export') : route('reports.sales.export') }}?" + params;
 }
 </script>
 @endpush

@@ -49,7 +49,7 @@
                                     <button type="button" id="btn-toggle-sound" class="btn btn-outline-secondary btn-sm px-2 py-0 border-0 ms-1" style="font-size: 0.85rem;">
                                         <i class="fas fa-volume-up text-primary me-1"></i><span id="sound-status-label">Suara: ON</span>
                                     </button>
-                                    <a href="{{ route('spks.index') }}" class="btn btn-secondary btn-sm px-3">
+                                    <a href="{{ Route::has('spk.index') ? route('spk.index') : route('spks.index') }}" class="btn btn-secondary btn-sm px-3">
                                         <i class="fas fa-arrow-left me-1"></i>Kembali
                                     </a>
                                 </div>
@@ -168,7 +168,7 @@
                                         </td>
                                         <td>
                                             @if($spk)
-                                                <a href="{{ route('spks.show', $spk->id) }}" target="_blank" class="fw-bold text-decoration-none text-primary badge-spk">
+                                                <a href="{{ Route::has('spk.show') ? route('spk.show', $spk->id) : route('spks.show', $spk->id) }}" target="_blank" class="fw-bold text-decoration-none text-primary badge-spk">
                                                     #{{ $spk->no_spk }}
                                                 </a>
                                             @else
@@ -318,6 +318,10 @@
             }
         });
 
+        let lastScannedCode = '';
+        let lastScannedAt = 0;
+        let cameraCooldownUntil = 0;
+
         btnSubmitScan.addEventListener('click', function() {
             submitScan();
         });
@@ -331,6 +335,15 @@
                 return;
             }
 
+            // Debounce: cegah barcode scanner / keyup cepat trigger 2x dalam 2.5 detik untuk kode yang sama
+            const now = Date.now();
+            if (code === lastScannedCode && (now - lastScannedAt) < 2500) {
+                barcodeInput.value = '';
+                return;
+            }
+            lastScannedCode = code;
+            lastScannedAt = now;
+
             const qty = parseInt(qtyScanInput.value) || 1;
             const namaPengambil = namaPengambilInput.value.trim();
 
@@ -338,7 +351,7 @@
             btnSubmitScan.disabled = true;
             btnSubmitScan.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i>Proses...`;
 
-            fetch(`{{ route('spks.process_scan_karung') }}`, {
+            fetch(`{{ Route::has('spk.process_scan_karung') ? route('spk.process_scan_karung') : route('spks.process_scan_karung') }}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -498,16 +511,20 @@
                 config,
                 (decodedText) => {
                     const now = Date.now();
-                    if (decodedText === lastScannedText && (now - lastScannedTime) < 2000) {
-                        return; // Ignore duplicate camera frames within 2s
+                    if (now < cameraCooldownUntil) {
+                        return; // Sedang cooldown setelah scan sukses
                     }
-                    if ((now - lastScannedTime) < 800) {
+                    if (decodedText === lastScannedText && (now - lastScannedTime) < 2500) {
+                        return; // Ignore duplicate camera frames within 2.5s
+                    }
+                    if ((now - lastScannedTime) < 1000) {
                         return; // Min delay between scans
                     }
                     lastScannedText = decodedText;
                     lastScannedTime = now;
 
                     if (!isProcessing) {
+                        cameraCooldownUntil = now + 2500; // Beri jeda 2.5 detik agar barang sempat disingkirkan
                         barcodeInput.value = decodedText;
                         submitScan(decodedText);
                     }

@@ -204,13 +204,18 @@
         @foreach ($spk->items as $item)
             @php
                 $skuDisplay = $item->sku ?: $item->masterProduct->sku ?? 'ITEM-' . $item->id;
-                $barcodeVal = $spk->no_spk . '|ITEM-' . $item->id . '|' . $skuDisplay;
                 $repeatQty = max(1, (int) $item->quantity);
             @endphp
 
             @for ($i = 1; $i <= $repeatQty; $i++)
+                @php
+                    $barcodeVal = $spk->no_spk . '|ITEM-' . $item->id . '|' . $skuDisplay . '|P' . $i;
+                @endphp
                 <div class="sticker-card">
-                    <span class="badge-spk">SPK</span>
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 4px;">
+                        <span class="badge-spk">SPK</span>
+                        <span style="font-size: 8px; font-weight: 800; color: #475569; font-family: 'JetBrains Mono', monospace;">{{ $i }}/{{ $repeatQty }}</span>
+                    </div>
                     <div class="spk-tag" title="{{ $spk->no_spk }}">#{{ $spk->no_spk }}</div>
 
                     <div class="qr-wrapper">
@@ -218,6 +223,7 @@
                     </div>
 
                     <div class="sku-tag" title="{{ $skuDisplay }}">{{ $skuDisplay }}</div>
+                    <div style="font-size: 7.5px; font-weight: 700; color: #64748b; margin-top: -2px;">Pcs #{{ $i }}</div>
                 </div>
             @endfor
         @endforeach
@@ -228,10 +234,12 @@
             @foreach ($spk->items as $item)
                 @php
                     $skuDisplay = $item->sku ?: $item->masterProduct->sku ?? 'ITEM-' . $item->id;
-                    $barcodeVal = $spk->no_spk . '|ITEM-' . $item->id . '|' . $skuDisplay;
                     $repeatQty = max(1, (int) $item->quantity);
                 @endphp
                 @for ($i = 1; $i <= $repeatQty; $i++)
+                    @php
+                        $barcodeVal = $spk->no_spk . '|ITEM-' . $item->id . '|' . $skuDisplay . '|P' . $i;
+                    @endphp
                     try {
                         new QRious({
                             element: document.getElementById(

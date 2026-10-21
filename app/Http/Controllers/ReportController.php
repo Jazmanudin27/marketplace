@@ -1728,13 +1728,12 @@ class ReportController extends Controller
                     'Jumlah Order',
                     'Total Item Terjual',
                     'Omset Kotor (Rp)',
-                    'Biaya Platform (Rp)',
-                    'Biaya Gratis Ongkir (Rp)',
-                    'Biaya Layanan (Rp)',
-                    'Biaya Promosi (Rp)',
-                    'Biaya Lainnya (Rp)',
+                    'Refund (Rp)',
                     'Total Potongan Marketplace (Rp)',
-                    'Dana Dilepas Net (Rp)'
+                    'Dana Dilepas Net (Rp)',
+                    'HPP (Rp)',
+                    'Margin (Rp)',
+                    'Margin %'
                 ]);
 
                 foreach ($channelData['channels'] as $idx => $row) {
@@ -1745,13 +1744,12 @@ class ReportController extends Controller
                         $row['orders'],
                         $row['qty'],
                         (int)$row['omset'],
-                        (int)($row['fee_platform'] ?? 0),
-                        (int)($row['fee_free_shipping'] ?? 0),
-                        (int)($row['fee_service'] ?? 0),
-                        (int)($row['fee_promo'] ?? 0),
-                        (int)($row['fee_other'] ?? 0),
+                        (int)($row['refund'] ?? 0),
                         (int)($row['total_fee'] ?? 0),
-                        (int)($row['net_released'] ?? 0)
+                        (int)($row['net_released'] ?? 0),
+                        (int)($row['hpp'] ?? 0),
+                        (int)($row['margin_rp'] ?? 0),
+                        ($row['margin_pct'] ?? 0) . '%'
                     ]);
                 }
 
@@ -1763,13 +1761,122 @@ class ReportController extends Controller
                     $channelData['grandTotalOrders'],
                     $channelData['grandTotalQty'],
                     (int)$channelData['grandTotalOmset'],
-                    (int)($channelData['grandPlatformFee'] ?? 0),
-                    (int)($channelData['grandFreeShippingFee'] ?? 0),
-                    (int)($channelData['grandServiceFee'] ?? 0),
-                    (int)($channelData['grandPromoFee'] ?? 0),
-                    (int)($channelData['grandOtherFee'] ?? 0),
+                    (int)($channelData['grandTotalRefund'] ?? 0),
                     (int)($channelData['grandMarketplaceFee'] ?? 0),
-                    (int)($channelData['grandNetReleased'] ?? 0)
+                    (int)($channelData['grandNetReleased'] ?? 0),
+                    (int)($channelData['grandTotalHpp'] ?? 0),
+                    (int)($channelData['grandTotalMarginRp'] ?? 0),
+                    ($channelData['grandOverallMarginPct'] ?? 0) . '%'
+                ]);
+
+                fclose($file);
+            };
+        } elseif ($reportFormat === 'per_tanggal') {
+            $dateData = $this->getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId, 'completed_at');
+            $callback = function () use ($dateData) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
+
+                fputcsv($file, [
+                    'No.',
+                    'Tanggal',
+                    'Total Qty Terjual',
+                    'Omset Kotor (Rp)',
+                    'Refund (Rp)',
+                    'Total Potongan Marketplace (Rp)',
+                    'Dana Dilepas Net (Rp)',
+                    'HPP (Rp)',
+                    'Margin (Rp)',
+                    'Margin %'
+                ]);
+
+                foreach ($dateData['dates'] as $idx => $row) {
+                    fputcsv($file, [
+                        $idx + 1,
+                        $row['date'],
+                        $row['total_qty'],
+                        (int)$row['total_omset'],
+                        (int)($row['refund'] ?? 0),
+                        (int)($row['total_fee'] ?? 0),
+                        (int)($row['net_released'] ?? 0),
+                        (int)($row['hpp'] ?? 0),
+                        (int)($row['margin_rp'] ?? 0),
+                        ($row['margin_pct'] ?? 0) . '%'
+                    ]);
+                }
+
+                // Summary Row
+                fputcsv($file, [
+                    '',
+                    'TOTAL REKAPITULASI',
+                    $dateData['grandTotalQty'],
+                    (int)$dateData['grandTotalOmset'],
+                    (int)($dateData['grandTotalRefund'] ?? 0),
+                    (int)($dateData['grandMarketplaceFee'] ?? 0),
+                    (int)($dateData['grandNetReleased'] ?? 0),
+                    (int)($dateData['grandTotalHpp'] ?? 0),
+                    (int)($dateData['grandTotalMarginRp'] ?? 0),
+                    ($dateData['grandOverallMarginPct'] ?? 0) . '%'
+                ]);
+
+                fclose($file);
+            };
+        } elseif ($reportFormat === 'per_produk') {
+            $productData = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo, $storeId, 'completed_at');
+            $callback = function () use ($productData) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
+
+                fputcsv($file, [
+                    'No.',
+                    'SKU',
+                    'Nama Produk',
+                    'Kategori',
+                    'Brand',
+                    'Qty Terjual',
+                    'Harga Satuan (Rp)',
+                    'Omset Kotor (Rp)',
+                    'Total Potongan Marketplace (Rp)',
+                    'Dana Dilepas Net (Rp)',
+                    'HPP Modal (Rp)',
+                    'Margin (Rp)',
+                    'Margin %'
+                ]);
+
+                foreach ($productData['items'] as $idx => $item) {
+                    $unitPrice = $item['qty_total'] > 0 ? (int)($item['total_omset'] / $item['qty_total']) : 0;
+                    fputcsv($file, [
+                        $idx + 1,
+                        $item['sku'],
+                        $item['name'],
+                        $item['category_name'],
+                        $item['brand_name'],
+                        $item['qty_total'],
+                        $unitPrice,
+                        (int)$item['total_omset'],
+                        (int)($item['total_fee'] ?? 0),
+                        (int)($item['net_released'] ?? 0),
+                        (int)($item['total_hpp'] ?? 0),
+                        (int)($item['margin_rp'] ?? 0),
+                        ($item['margin_pct'] ?? 0) . '%'
+                    ]);
+                }
+
+                // Summary Row
+                fputcsv($file, [
+                    '',
+                    'TOTAL REKAPITULASI',
+                    '',
+                    '',
+                    '',
+                    $productData['grandTotalQty'],
+                    '',
+                    (int)$productData['grandTotalOmset'],
+                    (int)($productData['grandMarketplaceFee'] ?? 0),
+                    (int)($productData['grandNetReleased'] ?? 0),
+                    (int)($productData['grandTotalHpp'] ?? 0),
+                    (int)($productData['grandTotalMarginRp'] ?? 0),
+                    ($productData['grandOverallMarginPct'] ?? 0) . '%'
                 ]);
 
                 fclose($file);
@@ -1790,11 +1897,13 @@ class ReportController extends Controller
                     'Ringkasan Produk',
                     'Qty',
                     'Omset Kotor (Rp)',
+                    'Refund (Rp)',
                     'Biaya Platform (Rp)',
                     'Biaya Gratis Ongkir (Rp)',
                     'Biaya Layanan (Rp)',
                     'Biaya Promosi (Rp)',
                     'Biaya Lainnya (Rp)',
+                    'Total Potongan (Rp)',
                     'Dana Dilepas Net (Rp)',
                     'HPP (Rp)',
                     'Margin (Rp)',
@@ -1820,11 +1929,13 @@ class ReportController extends Controller
                         $row['items_summary'],
                         $row['total_qty'],
                         (int)$row['omset'],
+                        (int)($row['refund'] ?? 0),
                         (int)$row['platform_fee'],
                         (int)$row['free_shipping_fee'],
                         (int)$row['service_fee'],
                         (int)$row['promo_fee'],
                         (int)$row['other_fee'],
+                        (int)($row['total_fee'] ?? 0),
                         (int)$row['net_released'],
                         (int)($row['hpp'] ?? 0),
                         (int)($row['margin_rp'] ?? 0),
@@ -1844,11 +1955,13 @@ class ReportController extends Controller
                     '',
                     $detailData['grandTotalQty'],
                     (int)$detailData['grandTotalOmset'],
+                    (int)($detailData['grandTotalRefund'] ?? 0),
                     (int)($detailData['grandTotalPlatformFee'] ?? 0),
                     (int)($detailData['grandTotalFreeShipping'] ?? 0),
                     (int)($detailData['grandTotalServiceFee'] ?? 0),
                     (int)($detailData['grandTotalPromoFee'] ?? 0),
                     (int)($detailData['grandTotalOtherFee'] ?? 0),
+                    (int)($detailData['grandTotalTotalFee'] ?? 0),
                     (int)($detailData['grandTotalNetReleased'] ?? 0),
                     (int)($detailData['grandTotalHpp'] ?? 0),
                     (int)($detailData['grandTotalMarginRp'] ?? 0),
@@ -2058,12 +2171,31 @@ class ReportController extends Controller
             $netReleased = max(0.0, $grossRevenue - $totalRefunds - $marketplaceFee);
         }
 
+        $totalHpp = 0.0;
+        if ($channelCode !== 'offline') {
+            $hppOrders = $query->with('items')->get();
+            foreach ($hppOrders as $ord) {
+                $omsetAmt = (float)$ord->total_amount;
+                $isFullRefundOrReturn = in_array(strtoupper((string)$ord->order_status), ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL', 'IN_CANCEL'])
+                    || ($omsetAmt > 0 && (float)$ord->refund_amount >= $omsetAmt);
+                $totalHpp += $isFullRefundOrReturn ? 0.0 : (float)$ord->hpp_total;
+            }
+        }
+        if ($channelCode === 'all' || $channelCode === 'offline') {
+            $totalHpp += (float) ($offSales ? $offSales->sum('hpp_total') : 0);
+        }
+        $marginRp = $netReleased - $totalHpp;
+        $marginPct = $netReleased > 0 ? round(($marginRp / $netReleased) * 100, 2) : 0.0;
+
         return [
             'total_orders'    => $totalOrders,
             'gross_revenue'   => $grossRevenue,
             'total_refunds'   => $totalRefunds,
             'marketplace_fee' => $marketplaceFee,
             'net_released'    => $netReleased,
+            'total_hpp'       => $totalHpp,
+            'margin_rp'       => $marginRp,
+            'margin_pct'      => $marginPct,
         ];
     }
 
@@ -2321,6 +2453,9 @@ class ReportController extends Controller
             $totalFee = $row['total_fee'] ?? 0;
             $netReleased = max(0.0, $totalOmset - $totalFee);
 
+            $marginRp = $netReleased - $totalHpp;
+            $marginPct = $netReleased > 0 ? round(($marginRp / $netReleased) * 100, 2) : 0.0;
+
             $grandTotalQty += $qtyTotal;
             $grandTotalOmset += $totalOmset;
             $grandTotalHpp += $totalHpp;
@@ -2332,6 +2467,7 @@ class ReportController extends Controller
             $grandOtherFee += $feeOther;
             $grandMarketplaceFee += $totalFee;
             $grandNetReleased += $netReleased;
+            $grandTotalMarginRp = ($grandTotalMarginRp ?? 0) + $marginRp;
 
             $items[] = [
                 'sku'               => $row['sku'],
@@ -2352,6 +2488,8 @@ class ReportController extends Controller
                 'total_fee'         => $totalFee,
                 'net_released'      => $netReleased,
                 'total_hpp'         => $totalHpp,
+                'margin_rp'         => $marginRp,
+                'margin_pct'        => $marginPct,
                 'gross_profit'      => $grossProfit,
                 'profit_margin'     => $profitMargin,
             ];
@@ -2361,6 +2499,7 @@ class ReportController extends Controller
         usort($items, fn($a, $b) => strcmp($a['name'], $b['name']));
 
         $overallMargin = $grandTotalOmset > 0 ? ($grandTotalProfit / $grandTotalOmset) * 100 : 0;
+        $grandOverallMarginPct = $grandNetReleased > 0 ? round((($grandTotalMarginRp ?? 0) / $grandNetReleased) * 100, 2) : 0.0;
 
         return [
             'items'                 => $items,
@@ -2375,7 +2514,11 @@ class ReportController extends Controller
             'grandPromoFee'         => $grandPromoFee,
             'grandOtherFee'         => $grandOtherFee,
             'grandMarketplaceFee'   => $grandMarketplaceFee,
+            'grandTotalTotalFee'    => $grandMarketplaceFee,
             'grandNetReleased'      => $grandNetReleased,
+            'grandTotalMarginRp'    => $grandTotalMarginRp ?? 0,
+            'grandOverallMarginPct' => $grandOverallMarginPct,
+            'grandTotalRefund'      => 0,
         ];
     }
 
@@ -2395,6 +2538,8 @@ class ReportController extends Controller
         $grandMarketplaceFee = 0;
         $grandNetReleased = 0;
         $grandTotalRefund = 0;
+        $grandTotalHpp = 0;
+        $grandTotalMarginRp = 0;
 
         // POS Offline - Grouped by Instansi / Channel
         if (($channelCode === 'all' || $channelCode === 'offline') && empty($storeId)) {
@@ -2424,10 +2569,15 @@ class ReportController extends Controller
                 $offOmset = (float) $salesList->sum('grand_total');
                 $offOrders = $salesList->count();
                 $offQty = 0;
+                $offHpp = 0;
                 foreach ($salesList as $s) {
                     $iQty = $s->items->sum('quantity');
                     $offQty += ($iQty > 0 ? $iQty : 1);
+                    $offHpp += (float) ($s->hpp_total ?? 0);
                 }
+
+                $offMarginRp = $offOmset - $offHpp;
+                $offMarginPct = $offOmset > 0 ? round(($offMarginRp / $offOmset) * 100, 2) : 0.0;
 
                 $channels[] = [
                     'name' => 'Penjualan Offline (' . $instName . ')',
@@ -2435,6 +2585,7 @@ class ReportController extends Controller
                     'orders' => $offOrders,
                     'qty' => $offQty,
                     'omset' => $offOmset,
+                    'refund' => 0,
                     'fee_platform' => 0,
                     'fee_free_shipping' => 0,
                     'fee_service' => 0,
@@ -2442,6 +2593,9 @@ class ReportController extends Controller
                     'fee_other' => 0,
                     'total_fee' => 0,
                     'net_released' => $offOmset,
+                    'hpp' => $offHpp,
+                    'margin_rp' => $offMarginRp,
+                    'margin_pct' => $offMarginPct,
                     'aov' => $offOrders > 0 ? $offOmset / $offOrders : 0,
                 ];
 
@@ -2449,6 +2603,8 @@ class ReportController extends Controller
                 $grandTotalQty += $offQty;
                 $grandTotalOrders += $offOrders;
                 $grandNetReleased += $offOmset;
+                $grandTotalHpp += $offHpp;
+                $grandTotalMarginRp += $offMarginRp;
             }
         }
 
@@ -2490,22 +2646,15 @@ class ReportController extends Controller
                 $feePromo = 0;
                 $feeOther = 0;
                 $totalFee = 0;
-                $netReleased = 0;
-
-                $feePlatform = 0;
-                $feeFreeShipping = 0;
-                $feeService = 0;
-                $feePromo = 0;
-                $feeOther = 0;
-                $totalFee = 0;
                 $refundTotal = 0;
                 $netReleased = 0;
+                $channelHpp = 0;
 
                 foreach ($ordersGet as $o) {
                     $iQty = $o->items->sum('quantity');
                     $qty += ($iQty > 0 ? $iQty : 1);
 
-                    $refAmt = $o->refund_amount;
+                    $refAmt = (float)$o->refund_amount;
                     $refundTotal += $refAmt;
 
                     $details = $o->fee_breakdown_details;
@@ -2522,7 +2671,16 @@ class ReportController extends Controller
                     $totalFee += $oFee;
 
                     $netReleased += (float)$o->net_amount;
+
+                    $omsetAmt = (float)$o->total_amount;
+                    $isFullRefundOrReturn = in_array(strtoupper((string)$o->order_status), ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL', 'IN_CANCEL'])
+                        || ($omsetAmt > 0 && $refAmt >= $omsetAmt);
+                    $oHpp = $isFullRefundOrReturn ? 0.0 : (float)$o->hpp_total;
+                    $channelHpp += $oHpp;
                 }
+
+                $chMarginRp = $netReleased - $channelHpp;
+                $chMarginPct = $netReleased > 0 ? round(($chMarginRp / $netReleased) * 100, 2) : 0.0;
 
                 $channels[] = [
                     'name' => $storeName,
@@ -2538,6 +2696,9 @@ class ReportController extends Controller
                     'fee_other' => $feeOther,
                     'total_fee' => $totalFee,
                     'net_released' => $netReleased,
+                    'hpp' => $channelHpp,
+                    'margin_rp' => $chMarginRp,
+                    'margin_pct' => $chMarginPct,
                     'aov' => $ordCount > 0 ? $omset / $ordCount : 0,
                 ];
 
@@ -2552,13 +2713,19 @@ class ReportController extends Controller
                 $grandOtherFee += $feeOther;
                 $grandMarketplaceFee += $totalFee;
                 $grandNetReleased += $netReleased;
+                $grandTotalHpp += $channelHpp;
+                $grandTotalMarginRp += $chMarginRp;
             }
         }
+
+        $grandTotalTotalFee = $grandMarketplaceFee;
+        $grandOverallMarginPct = $grandNetReleased > 0 ? round(($grandTotalMarginRp / $grandNetReleased) * 100, 2) : 0.0;
 
         return compact(
             'channels', 'grandTotalOmset', 'grandTotalQty', 'grandTotalOrders', 'grandTotalRefund',
             'grandPlatformFee', 'grandFreeShippingFee', 'grandServiceFee',
-            'grandPromoFee', 'grandOtherFee', 'grandMarketplaceFee', 'grandNetReleased'
+            'grandPromoFee', 'grandOtherFee', 'grandMarketplaceFee', 'grandTotalTotalFee', 'grandNetReleased',
+            'grandTotalHpp', 'grandTotalMarginRp', 'grandOverallMarginPct'
         );
     }
 
@@ -2761,12 +2928,14 @@ class ReportController extends Controller
         $grandMarketplaceFee = 0;
         $grandNetReleased = 0;
         $grandTotalRefund = 0;
+        $grandTotalHpp = 0;
+        $grandTotalMarginRp = 0;
 
         while ($current <= $last) {
             $dt = date('Y-m-d', $current);
 
             // POS Offline
-            $offQty = 0; $offOmset = 0.0;
+            $offQty = 0; $offOmset = 0.0; $offHpp = 0.0;
             if (($channelCode === 'all' || $channelCode === 'offline') && empty($storeId)) {
                 $offQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
                     ->whereDate('sold_at', $dt)
@@ -2785,6 +2954,7 @@ class ReportController extends Controller
 
                 $offSalesGet = $offQuery->get();
                 $offOmset = (float) $offSalesGet->sum('grand_total');
+                $offHpp = (float) $offSalesGet->sum('hpp_total');
                 foreach ($offSalesGet as $s) {
                     $iQty = $s->items->sum('quantity');
                     $offQty += ($iQty > 0 ? $iQty : 1);
@@ -2792,7 +2962,7 @@ class ReportController extends Controller
             }
 
             // Online Orders
-            $onQty = 0; $onOmset = 0.0;
+            $onQty = 0; $onOmset = 0.0; $onHpp = 0.0;
             $onPlatformFee = 0; $onFreeShippingFee = 0; $onServiceFee = 0; $onPromoFee = 0; $onOtherFee = 0; $onTotalFee = 0;
             if ($channelCode === 'all' || $channelCode !== 'offline') {
                 $onQuery = \App\Models\Order::where('tenant_id', $tenantId)
@@ -2820,7 +2990,8 @@ class ReportController extends Controller
                     $iQty = $o->items->sum('quantity');
                     $onQty += ($iQty > 0 ? $iQty : 1);
 
-                    $onRefund += (float)$o->refund_amount;
+                    $refAmt = (float)$o->refund_amount;
+                    $onRefund += $refAmt;
 
                     $details = $o->fee_breakdown_details;
                     $onPlatformFee += abs($details['platform_fee'] ?? $o->fee_platform_amount ?? 0);
@@ -2836,6 +3007,12 @@ class ReportController extends Controller
                     $onTotalFee += $oFee;
 
                     $onNetReleased += (float)$o->net_amount;
+
+                    $omsetAmt = (float)$o->total_amount;
+                    $isFullRefundOrReturn = in_array(strtoupper((string)$o->order_status), ['RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'CANCELLED', 'BATAL', 'IN_CANCEL'])
+                        || ($omsetAmt > 0 && $refAmt >= $omsetAmt);
+                    $oHpp = $isFullRefundOrReturn ? 0.0 : (float)$o->hpp_total;
+                    $onHpp += $oHpp;
                 }
             }
 
@@ -2843,6 +3020,11 @@ class ReportController extends Controller
             $tOmset = $offOmset + $onOmset;
 
             if ($tQty > 0 || $tOmset > 0) {
+                $tNetReleased = $onNetReleased + $offOmset;
+                $tHpp = $offHpp + $onHpp;
+                $dateMarginRp = $tNetReleased - $tHpp;
+                $dateMarginPct = $tNetReleased > 0 ? round(($dateMarginRp / $tNetReleased) * 100, 2) : 0.0;
+
                 $dates[] = [
                     'date' => $dt,
                     'qty_offline' => $offQty,
@@ -2858,7 +3040,10 @@ class ReportController extends Controller
                     'fee_promo' => $onPromoFee,
                     'fee_other' => $onOtherFee,
                     'total_fee' => $onTotalFee,
-                    'net_released' => $onNetReleased + $offOmset,
+                    'net_released' => $tNetReleased,
+                    'hpp' => $tHpp,
+                    'margin_rp' => $dateMarginRp,
+                    'margin_pct' => $dateMarginPct,
                 ];
                 $grandTotalQty += $tQty;
                 $grandTotalOmset += $tOmset;
@@ -2869,16 +3054,22 @@ class ReportController extends Controller
                 $grandPromoFee += $onPromoFee;
                 $grandOtherFee += $onOtherFee;
                 $grandMarketplaceFee += $onTotalFee;
-                $grandNetReleased += ($onNetReleased + $offOmset);
+                $grandNetReleased += $tNetReleased;
+                $grandTotalHpp += $tHpp;
+                $grandTotalMarginRp += $dateMarginRp;
             }
 
             $current = strtotime('+1 day', $current);
         }
 
+        $grandTotalTotalFee = $grandMarketplaceFee;
+        $grandOverallMarginPct = $grandNetReleased > 0 ? round(($grandTotalMarginRp / $grandNetReleased) * 100, 2) : 0.0;
+
         return compact(
             'dates', 'grandTotalQty', 'grandTotalOmset', 'grandTotalRefund',
             'grandPlatformFee', 'grandFreeShippingFee', 'grandServiceFee',
-            'grandPromoFee', 'grandOtherFee', 'grandMarketplaceFee', 'grandNetReleased'
+            'grandPromoFee', 'grandOtherFee', 'grandMarketplaceFee', 'grandTotalTotalFee', 'grandNetReleased',
+            'grandTotalHpp', 'grandTotalMarginRp', 'grandOverallMarginPct'
         );
     }
 
@@ -3051,10 +3242,14 @@ class ReportController extends Controller
             $totalDilepas = $totalPendapatan - abs($totalPengeluaran);
         }
 
+        $grandTotalHpp = (float) ($detailData['grandTotalHpp'] ?? 0);
+        $grandTotalMarginRp = (float) ($detailData['grandTotalMarginRp'] ?? 0);
+        $grandOverallMarginPct = (float) ($detailData['grandOverallMarginPct'] ?? 0);
+
         return compact(
             'grossSales', 'refunds', 'subtotalPesanan', 'vouchers', 'totalPendapatan',
             'platformFee', 'freeShippingFee', 'serviceFee', 'promoFee', 'otherFee', 'tax',
-            'totalPengeluaran', 'totalDilepas'
+            'totalPengeluaran', 'totalDilepas', 'grandTotalHpp', 'grandTotalMarginRp', 'grandOverallMarginPct'
         );
     }
 }

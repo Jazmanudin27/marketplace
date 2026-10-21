@@ -327,10 +327,15 @@ Route::middleware('auth')->group(function () {
         Route::delete('/spk/{spk}', [\App\Http\Controllers\V2\SpkController::class, 'destroy'])->name('spk.destroy');
         Route::get('/spk/{spk}/scan-pickup', [\App\Http\Controllers\V2\SpkController::class, 'scanPickupPage'])->name('spk.scan_pickup');
         Route::post('/spk/{spk}/scan-pickup', [\App\Http\Controllers\V2\SpkController::class, 'processScanPickup'])->name('spk.process_scan_pickup');
+        Route::get('/spk/{spk}/print-labels', [\App\Http\Controllers\V2\SpkController::class, 'printItemLabels'])->name('spk.print_labels');
 
         // Laporan Penjualan V2
         Route::get('/laporan', [\App\Http\Controllers\V2\LaporanPenjualanController::class, 'index'])->name('laporan.index');
         Route::get('/laporan-penjualan', [\App\Http\Controllers\V2\LaporanPenjualanController::class, 'index']);
+        Route::get('/laporan/released-sales/print', [\App\Http\Controllers\V2\LaporanPenjualanController::class, 'printReleasedSalesReport'])->name('laporan.released_sales.print');
+        Route::get('/laporan/released-sales/export', [\App\Http\Controllers\V2\LaporanPenjualanController::class, 'exportReleasedSalesReport'])->name('laporan.released_sales.export');
+        Route::get('/laporan/sales/print', [\App\Http\Controllers\V2\LaporanPenjualanController::class, 'printSalesReport'])->name('laporan.sales.print');
+        Route::get('/laporan/sales/export', [\App\Http\Controllers\V2\LaporanPenjualanController::class, 'exportSalesReport'])->name('laporan.sales.export');
 
         // Laporan Gudang Jadi V2
         Route::get('/gudang-jadi/laporan', [\App\Http\Controllers\V2\LaporanGudangController::class, 'index'])->name('laporan_gudang.index');
@@ -365,7 +370,20 @@ Route::middleware('auth')->group(function () {
             Route::get('/settlement/{settlement}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'showSettlement'])->name('settlement.show');
             Route::delete('/settlement/{settlement}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'destroySettlement'])->name('settlement.destroy');
 
-            // Pengeluaran Stok Titipan (Consignment Deduction) CRUD
+            // Stok Opname Titipan Barang (Consignment Opname / Stock Adjustment) CRUD
+            Route::prefix('opname')->name('opname.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\V2\TitipanBarangController::class, 'indexDeductions'])->name('index');
+                Route::get('/create', [\App\Http\Controllers\V2\TitipanBarangController::class, 'createDeduction'])->name('create');
+                Route::post('/', [\App\Http\Controllers\V2\TitipanBarangController::class, 'storeDeduction'])->name('store');
+                Route::get('/search-orders', [\App\Http\Controllers\V2\TitipanBarangController::class, 'searchOrders'])->name('search_orders');
+                Route::get('/consignment-items', [\App\Http\Controllers\V2\TitipanBarangController::class, 'getConsignmentItems'])->name('consignment_items');
+                Route::get('/{deduction}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'showDeduction'])->name('show');
+                Route::get('/{deduction}/edit', [\App\Http\Controllers\V2\TitipanBarangController::class, 'editDeduction'])->name('edit');
+                Route::put('/{deduction}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'updateDeduction'])->name('update');
+                Route::delete('/{deduction}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'destroyDeduction'])->name('destroy');
+            });
+
+            // Pengeluaran Stok Titipan (Consignment Deduction) CRUD - Backward Compatibility
             Route::prefix('pengeluaran')->name('deductions.')->group(function () {
                 Route::get('/', [\App\Http\Controllers\V2\TitipanBarangController::class, 'indexDeductions'])->name('index');
                 Route::get('/create', [\App\Http\Controllers\V2\TitipanBarangController::class, 'createDeduction'])->name('create');

@@ -459,7 +459,7 @@
 
                     <div class="d-flex align-items-center gap-2 flex-wrap">
                         {{-- Tombol Scan Penerimaan (Aksi Kunci) --}}
-                        <a href="{{ route('spks.scan_pickup', $spk->id) }}"
+                        <a href="{{ Route::has('spk.scan_pickup') ? route('spk.scan_pickup', $spk->id) : route('spks.scan_pickup', $spk->id) }}"
                             class="btn btn-sm btn-primary fw-bold px-3 shadow-sm d-inline-flex align-items-center gap-1">
                             <i class="fas fa-qrcode"></i> Scan Penerimaan
                         </a>
@@ -480,7 +480,7 @@
                                 </li>
                                 <li>
                                     <a class="dropdown-item py-2 small fw-semibold"
-                                        href="{{ route('spks.print_labels', $spk->id) }}" target="_blank">
+                                        href="{{ Route::has('spk.print_labels') ? route('spk.print_labels', $spk->id) : route('spks.print_labels', $spk->id) }}" target="_blank">
                                         <i class="fas fa-tags text-dark me-2"></i> Cetak Label Stiker Kemasan
                                     </a>
                                 </li>
@@ -1372,11 +1372,11 @@
                         PRODUKSI)
                     </span>
                     <div class="d-flex gap-2">
-                        <a href="{{ route('spks.print_labels', $spk->id) }}" target="_blank"
+                        <a href="{{ Route::has('spk.print_labels') ? route('spk.print_labels', $spk->id) : route('spks.print_labels', $spk->id) }}" target="_blank"
                             class="btn btn-sm btn-dark fw-bold px-3">
                             <i class="fas fa-tags me-1"></i> Cetak Label Stiker Kemasan
                         </a>
-                        <a href="{{ route('spks.scan_pickup', $spk->id) }}"
+                        <a href="{{ Route::has('spk.scan_pickup') ? route('spk.scan_pickup', $spk->id) : route('spks.scan_pickup', $spk->id) }}"
                             class="btn btn-sm btn-success fw-bold px-3 shadow-sm d-inline-flex align-items-center gap-1.5"
                             style="background: linear-gradient(135deg, #059669, #10b981);">
                             <i class="fas fa-qrcode fs-6"></i> Buka Layar Scanner Penerimaan (QR / Barcode)

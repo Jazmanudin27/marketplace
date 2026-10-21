@@ -318,6 +318,10 @@
             }
         });
 
+        let lastScannedCode = '';
+        let lastScannedAt = 0;
+        let cameraCooldownUntil = 0;
+
         btnSubmitScan.addEventListener('click', function() {
             submitScan();
         });
@@ -330,6 +334,15 @@
                 barcodeInput.focus();
                 return;
             }
+
+            // Debounce: cegah barcode scanner / keyup cepat trigger 2x dalam 2.5 detik untuk kode yang sama
+            const now = Date.now();
+            if (code === lastScannedCode && (now - lastScannedAt) < 2500) {
+                barcodeInput.value = '';
+                return;
+            }
+            lastScannedCode = code;
+            lastScannedAt = now;
 
             const qty = parseInt(qtyScanInput.value) || 1;
             const namaPengambil = namaPengambilInput.value.trim();
@@ -498,16 +511,20 @@
                 config,
                 (decodedText) => {
                     const now = Date.now();
-                    if (decodedText === lastScannedText && (now - lastScannedTime) < 2000) {
-                        return; // Ignore duplicate camera frames within 2s
+                    if (now < cameraCooldownUntil) {
+                        return; // Sedang cooldown setelah scan sukses
                     }
-                    if ((now - lastScannedTime) < 800) {
+                    if (decodedText === lastScannedText && (now - lastScannedTime) < 2500) {
+                        return; // Ignore duplicate camera frames within 2.5s
+                    }
+                    if ((now - lastScannedTime) < 1000) {
                         return; // Min delay between scans
                     }
                     lastScannedText = decodedText;
                     lastScannedTime = now;
 
                     if (!isProcessing) {
+                        cameraCooldownUntil = now + 2500; // Beri jeda 2.5 detik agar barang sempat disingkirkan
                         barcodeInput.value = decodedText;
                         submitScan(decodedText);
                     }

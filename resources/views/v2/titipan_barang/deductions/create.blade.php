@@ -1,6 +1,6 @@
 @extends('v2.layouts.app')
 
-@section('title', 'Scan Pengeluaran Stok Titipan Barang (Konsinyasi) V2')
+@section('title', 'Scan Stok Opname Titipan Barang (Konsinyasi) V2')
 
 @push('styles')
 <style>
@@ -17,8 +17,8 @@
     background: #f8fafc;
 }
 .reason-card.active {
-    border-color: #dc2626;
-    background: #fef2f2;
+    border-color: #2563eb;
+    background: #eff6ff;
 }
 .reason-card input[type="radio"] {
     display: none;
@@ -44,6 +44,15 @@
     0% { background-color: #dcfce7; }
     100% { background-color: transparent; }
 }
+.stock-stepper-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
 </style>
 @endpush
 
@@ -53,13 +62,15 @@
 <div class="v2-page-header align-items-center mb-3">
     <div>
         <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0" style="font-size: 1.15rem;">
-            <i class="bi bi-upc-scan text-danger fs-5"></i> Scan Pengeluaran Stok Titipan
+            <i class="bi bi-clipboard-check text-warning fs-5"></i> Scan Stok Opname Titipan Barang
         </h1>
-        <p class="text-muted small mb-0" style="font-size: 0.78rem;">Scan barcode/SKU produk titipan secara cepat, item otomatis masuk ke keranjang</p>
+        <p class="text-muted small mb-0" style="font-size: 0.78rem;">
+            Scan fisik barang di gudang satu per satu. Setiap scan otomatis menambah jumlah fisik di keranjang opname.
+        </p>
     </div>
     <div>
         <a href="{{ route('v2.titipan_barang.deductions.index') }}" class="btn btn-sm btn-outline-secondary py-1 px-3 fw-semibold" style="font-size: 0.78rem;">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Riwayat
+            <i class="bi bi-arrow-left me-1"></i> Kembali ke Riwayat Opname
         </a>
     </div>
 </div>
@@ -84,21 +95,21 @@
     </div>
 @endif
 
-<form action="{{ route('v2.titipan_barang.deductions.store') }}" method="POST" id="deduction-cart-form">
+<form action="{{ route('v2.titipan_barang.deductions.store') }}" method="POST" id="opname-cart-form">
     @csrf
 
     <div class="row g-3">
-        {{-- ── KOLOM KIRI: Scanner & Keranjang Pengeluaran ── --}}
+        {{-- ── KOLOM KIRI: Scanner & Keranjang Stok Opname ── --}}
         <div class="col-12 col-lg-8">
 
             {{-- ── 1. SCANNER BARCODE & FILTER SUPPLIER ── --}}
             <div class="card border-0 shadow-sm rounded-3 p-3 bg-white mb-3">
                 <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2.5">
                     <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2" style="font-size: 0.9rem;">
-                        <i class="bi bi-upc-scan text-primary"></i> 1. Scanner Barcode & Filter Supplier
+                        <i class="bi bi-upc-scan text-primary"></i> 1. Scanner Barcode Fisik Gudang
                     </h6>
                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace" style="font-size: 0.68rem;">
-                        AUTO-ADD CART
+                        SCAN-COUNT AUTO +1
                     </span>
                 </div>
 
@@ -106,7 +117,7 @@
                     <div class="col-md-5">
                         <label class="form-label small fw-semibold text-muted mb-1" style="font-size: 0.72rem;">Filter Supplier (Opsional)</label>
                         <select id="supplier_filter" class="form-select form-select-sm select2" onchange="filterAvailableProducts()">
-                            <option value="">-- Semua Supplier --</option>
+                            <option value="">-- Semua Supplier Titipan --</option>
                             @foreach($suppliers as $sup)
                                 <option value="{{ $sup->id }}" {{ $preselectedItem && $preselectedItem->consignment->supplier_id == $sup->id ? 'selected' : '' }}>
                                     {{ $sup->name }}
@@ -116,18 +127,18 @@
                     </div>
                     <div class="col-md-7">
                         <label class="form-label small fw-bold text-primary mb-1 d-flex justify-content-between" style="font-size: 0.75rem;">
-                            <span><i class="bi bi-qr-code-scan me-1"></i> Scan Barcode / SKU Produk Titipan *</span>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle py-0 px-1.5" style="font-size: 0.65rem;">Scanner Siap</span>
+                            <span><i class="bi bi-qr-code-scan me-1"></i> Scan Barcode / SKU Produk Fisik *</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle py-0 px-1.5" style="font-size: 0.65rem;">Scanner Standby</span>
                         </label>
                         <div class="input-group">
                             <span class="input-group-text bg-primary text-white border-primary"><i class="bi bi-upc"></i></span>
-                            <input type="text" id="barcode_scanner_input" class="form-control scan-input-box" placeholder="Scan barcode/SKU di sini..." autofocus autocomplete="off">
+                            <input type="text" id="barcode_scanner_input" class="form-control scan-input-box" placeholder="Arahkan scanner ke produk fisik gudang..." autofocus autocomplete="off">
                             <button type="button" class="btn btn-primary fw-semibold px-3" onclick="processScanInput()">
                                 <i class="bi bi-arrow-return-left"></i> Enter
                             </button>
                         </div>
                         <div class="form-text text-muted" style="font-size: 0.7rem;">
-                            Arahkan scanner ke label barcode titipan atau SKU produk. Jika discan 2x, Qty otomatis bertambah jadi 2.
+                            Contoh: Jika di gudang ada 10 barang fisik, scan 10 kali maka jumlah fisik di keranjang otomatis terhitung 10 pcs.
                         </div>
                     </div>
                 </div>
@@ -137,7 +148,7 @@
                     <div class="row g-2 align-items-center">
                         <div class="col-12 col-md-9">
                             <select id="manual_select_item" class="form-select form-select-sm select2">
-                                <option value="">-- Atau Pilih Manual dari Daftar Batch Titipan --</option>
+                                <option value="">-- Atau Pilih Manual dari Daftar Titipan --</option>
                                 @foreach($availableItems as $item)
                                     <option value="{{ $item['id'] }}"
                                         data-supplier-id="{{ $item['supplier_id'] }}"
@@ -148,14 +159,14 @@
                                         data-barcode="{{ $item['barcode'] }}"
                                         data-sisa="{{ $item['sisa_stok'] }}"
                                         data-hpp="{{ $item['hpp'] }}">
-                                        [{{ $item['batch_ref'] }}] {{ $item['product_name'] }} (SKU: {{ $item['sku'] }}) — Sisa: {{ $item['sisa_stok'] }} pcs ({{ $item['supplier_name'] }})
+                                        [{{ $item['batch_ref'] }}] {{ $item['product_name'] }} (SKU: {{ $item['sku'] }}) — Stok ERP: {{ $item['sisa_stok'] }} pcs ({{ $item['supplier_name'] }})
                                     </option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-12 col-md-3">
                             <button type="button" class="btn btn-outline-primary btn-sm w-100 fw-semibold" onclick="addManualSelectedItem()">
-                                <i class="bi bi-cart-plus me-1"></i> Tambah
+                                <i class="bi bi-cart-plus me-1"></i> Tambah ke List
                             </button>
                         </div>
                     </div>
@@ -165,13 +176,13 @@
                 <div id="scan_feedback" class="mt-2 py-1.5 px-2.5 rounded-2 small d-none" style="font-size: 0.78rem;"></div>
             </div>
 
-            {{-- ── 2. TABEL KERANJANG PENGELUARAN TITIPAN ── --}}
+            {{-- ── 2. TABEL KERANJANG HASIL SCAN STOK OPNAME ── --}}
             <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white mb-3">
                 <div class="card-header bg-white border-bottom py-2 px-3 d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-cart-check text-success fs-6"></i>
-                        <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">Keranjang Pengeluaran Titipan</h6>
-                        <span class="badge bg-danger text-white rounded-pill px-2 py-0.5" id="cart_badge_count" style="font-size: 0.68rem;">0 Item</span>
+                        <i class="bi bi-card-checklist text-primary fs-6"></i>
+                        <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">Hasil Scan Fisik Opname vs Stok ERP</h6>
+                        <span class="badge bg-primary text-white rounded-pill px-2 py-0.5" id="cart_badge_count" style="font-size: 0.68rem;">0 Item</span>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-danger py-0.5 px-2" style="font-size: 0.72rem;" onclick="clearCart()">
                         <i class="bi bi-trash me-0.5"></i> Kosongkan
@@ -185,26 +196,29 @@
                                 <th class="ps-3 py-2" style="width: 35px;">#</th>
                                 <th class="py-2">PRODUK & SKU</th>
                                 <th class="py-2">BATCH & SUPPLIER</th>
-                                <th class="text-center py-2" style="width: 80px;">SISA</th>
-                                <th class="text-center py-2" style="width: 130px;">QTY KELUAR</th>
-                                <th class="text-end py-2" style="width: 110px;">SUBTOTAL HPP</th>
+                                <th class="text-center py-2" style="width: 100px;">STOK ERP</th>
+                                <th class="text-center py-2" style="width: 150px;">FISIK (SCAN GUDANG)</th>
+                                <th class="text-center py-2" style="width: 130px;">SELISIH</th>
+                                <th class="text-end py-2" style="width: 110px;">SELISIH HPP</th>
                                 <th class="text-center pe-3 py-2" style="width: 45px;">AKSI</th>
                             </tr>
                         </thead>
                         <tbody id="cart_table_body">
                             <tr id="empty_cart_row">
-                                <td colspan="7" class="text-center py-4 text-muted">
+                                <td colspan="8" class="text-center py-4 text-muted">
                                     <i class="bi bi-upc-scan fs-3 d-block text-muted opacity-50 mb-1"></i>
-                                    <div class="fw-semibold">Keranjang Masih Kosong</div>
-                                    <div class="small">Scan barcode/SKU produk titipan di atas untuk menambahkan ke daftar ini.</div>
+                                    <div class="fw-semibold">Belum Ada Item yang Discan</div>
+                                    <div class="small">Scan barcode/SKU produk titipan fisik yang ada di gudang untuk mulai mencatat opname.</div>
                                 </td>
                             </tr>
                         </tbody>
                         <tfoot class="bg-light fw-bold" id="cart_table_foot" style="display: none;">
                             <tr>
-                                <td colspan="4" class="ps-3 text-end py-2">TOTAL KESELURUHAN:</td>
-                                <td class="text-center py-2 text-danger fs-6" id="foot_total_qty">0 PCS</td>
-                                <td class="text-end py-2 text-primary font-monospace" id="foot_total_hpp">Rp 0</td>
+                                <td colspan="3" class="ps-3 text-end py-2">TOTAL KESELURUHAN:</td>
+                                <td class="text-center py-2 text-primary font-monospace" id="foot_erp_qty">0 PCS</td>
+                                <td class="text-center py-2 text-success font-monospace fs-6" id="foot_actual_qty">0 PCS</td>
+                                <td class="text-center py-2" id="foot_diff_qty">0 PCS</td>
+                                <td class="text-end py-2 text-dark font-monospace" id="foot_total_hpp">Rp 0</td>
                                 <td></td>
                             </tr>
                         </tfoot>
@@ -212,45 +226,21 @@
                 </div>
             </div>
 
-            {{-- ── 3. ALASAN PENGELUARAN ── --}}
+            {{-- ── 3. INFORMASI SESI OPNAME & KATEGORI PENYESUAIAN ── --}}
             <div class="card border-0 shadow-sm rounded-3 p-3 bg-white mb-3">
                 <h6 class="fw-bold text-dark border-bottom pb-2 mb-2.5 d-flex align-items-center gap-2" style="font-size: 0.85rem;">
-                    <i class="bi bi-question-circle text-danger"></i> 2. Alasan Pengeluaran
+                    <i class="bi bi-sliders text-primary"></i> 2. Alasan / Kategori Penyesuaian Opname
                 </h6>
 
                 <div class="row g-2 mb-2.5">
                     <div class="col-6 col-md-4">
                         <label class="reason-card d-block h-100 active">
-                            <input type="radio" name="reason" value="unscanned_order" checked>
+                            <input type="radio" name="reason" value="manual_adjustment" checked>
                             <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-qr-code-scan text-warning fs-5"></i>
+                                <i class="bi bi-clipboard-check text-primary fs-5"></i>
                                 <div>
-                                    <div class="fw-bold small text-dark">Terlewat Scan</div>
-                                    <div class="text-muted" style="font-size:0.68rem;">Pesanan kemas lupa discan</div>
-                                </div>
-                            </div>
-                        </label>
-                    </div>
-                    <div class="col-6 col-md-4">
-                        <label class="reason-card d-block h-100">
-                            <input type="radio" name="reason" value="manual_adjustment">
-                            <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-sliders text-info fs-5"></i>
-                                <div>
-                                    <div class="fw-bold small text-dark">Koreksi Manual</div>
-                                    <div class="text-muted" style="font-size:0.68rem;">Penyesuaian stok selisih</div>
-                                </div>
-                            </div>
-                        </label>
-                    </div>
-                    <div class="col-6 col-md-4">
-                        <label class="reason-card d-block h-100">
-                            <input type="radio" name="reason" value="return_supplier">
-                            <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-arrow-return-left text-danger fs-5"></i>
-                                <div>
-                                    <div class="fw-bold small text-dark">Retur ke Supplier</div>
-                                    <div class="text-muted" style="font-size:0.68rem;">Barang dikembalikan</div>
+                                    <div class="fw-bold small text-dark">Koreksi Opname Gudang</div>
+                                    <div class="text-muted" style="font-size:0.68rem;">Penyesuaian stok selisih fisik</div>
                                 </div>
                             </div>
                         </label>
@@ -259,10 +249,34 @@
                         <label class="reason-card d-block h-100">
                             <input type="radio" name="reason" value="damaged">
                             <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-x-octagon text-secondary fs-5"></i>
+                                <i class="bi bi-x-octagon text-danger fs-5"></i>
                                 <div>
                                     <div class="fw-bold small text-dark">Rusak / Hilang</div>
-                                    <div class="text-muted" style="font-size:0.68rem;">Cacat fisik / susut</div>
+                                    <div class="text-muted" style="font-size:0.68rem;">Barang susut / cacat fisik</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <label class="reason-card d-block h-100">
+                            <input type="radio" name="reason" value="unscanned_order">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-qr-code-scan text-warning fs-5"></i>
+                                <div>
+                                    <div class="fw-bold small text-dark">Terlewat Scan Order</div>
+                                    <div class="text-muted" style="font-size:0.68rem;">Pesanan kemas lupa scan</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <label class="reason-card d-block h-100">
+                            <input type="radio" name="reason" value="return_supplier">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-arrow-return-left text-info fs-5"></i>
+                                <div>
+                                    <div class="fw-bold small text-dark">Retur ke Supplier</div>
+                                    <div class="text-muted" style="font-size:0.68rem;">Dikembalikan ke supplier</div>
                                 </div>
                             </div>
                         </label>
@@ -271,7 +285,7 @@
                         <label class="reason-card d-block h-100">
                             <input type="radio" name="reason" value="direct_sale">
                             <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-shop text-primary fs-5"></i>
+                                <i class="bi bi-shop text-success fs-5"></i>
                                 <div>
                                     <div class="fw-bold small text-dark">Penjualan Langsung</div>
                                     <div class="text-muted" style="font-size:0.68rem;">Offline / Toko fisik / Sample</div>
@@ -286,7 +300,7 @@
                                 <i class="bi bi-three-dots text-dark fs-5"></i>
                                 <div>
                                     <div class="fw-bold small text-dark">Lainnya</div>
-                                    <div class="text-muted" style="font-size:0.68rem;">Keperluan internal lainnya</div>
+                                    <div class="text-muted" style="font-size:0.68rem;">Penyesuaian internal lainnya</div>
                                 </div>
                             </div>
                         </label>
@@ -294,40 +308,44 @@
                 </div>
 
                 <div class="row g-2">
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold text-muted mb-1" style="font-size:0.72rem;">Catatan Pengeluaran (Opsional)</label>
-                        <input type="text" name="notes" class="form-control form-control-sm" placeholder="Contoh: Barang titipan Gilang keluar untuk order Shopee..." value="{{ old('notes') }}">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-muted mb-1" style="font-size:0.72rem;">Petugas / PIC Opname *</label>
+                        <input type="text" name="pic" class="form-control form-control-sm" value="{{ old('pic', Auth::user()->name) }}" required placeholder="Nama Petugas Opname">
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold text-muted mb-1" style="font-size:0.72rem;">Tanggal & Waktu Pengeluaran</label>
-                        <input type="datetime-local" name="deduction_date" class="form-control form-control-sm" value="{{ old('deduction_date', now()->format('Y-m-d\TH:i')) }}">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-muted mb-1" style="font-size:0.72rem;">Tanggal & Waktu Opname</label>
+                        <input type="datetime-local" name="opname_date" class="form-control form-control-sm" value="{{ old('opname_date', now()->format('Y-m-d\TH:i')) }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-muted mb-1" style="font-size:0.72rem;">Catatan Opname (Opsional)</label>
+                        <input type="text" name="notes" class="form-control form-control-sm" placeholder="Contoh: Stok opname rutin rak A..." value="{{ old('notes') }}">
                     </div>
                 </div>
             </div>
 
         </div>
 
-        {{-- ── KOLOM KANAN: Opsi Gudang Master & Ringkasan ── --}}
+        {{-- ── KOLOM KANAN: Opsi Gudang Master & Ringkasan Opname ── --}}
         <div class="col-12 col-lg-4">
 
             {{-- Card Sinkronisasi Gudang Master --}}
             <div class="card border-0 shadow-sm rounded-3 p-3 bg-white mb-3">
                 <h6 class="fw-bold text-dark border-bottom pb-2 mb-2.5 d-flex align-items-center gap-2" style="font-size: 0.85rem;">
-                    <i class="bi bi-shield-check text-warning"></i> Opsi Sinkronisasi Gudang Master
+                    <i class="bi bi-shield-check text-warning"></i> Sinkronisasi Stok Gudang Master
                 </h6>
 
                 <div class="form-check form-switch mb-2">
                     <input class="form-check-input" type="checkbox" name="deduct_master_stock" id="deduct_master_stock" value="1" {{ old('deduct_master_stock') ? 'checked' : '' }}>
                     <label class="form-check-label fw-semibold small text-dark" for="deduct_master_stock">
-                        Kurangi juga Stok Fisik Gudang Master?
+                        Sesuaikan juga Stok Fisik Gudang Master Produk?
                     </label>
                 </div>
 
                 <div class="p-2.5 rounded-2 bg-light border text-muted small" style="font-size:0.72rem; line-height: 1.4;">
                     <div class="fw-bold text-dark mb-1"><i class="bi bi-info-circle me-1 text-primary"></i>Petunjuk:</div>
                     <ul class="mb-0 ps-3">
-                        <li><strong>JANGAN CENTANG (Rekomendasi)</strong> jika barang ini keluar untuk pesanan marketplace yang sudah selesai dipacking/diverifikasi scanner gudang. Stok master sudah terpotong otomatis saat scan order tersebut.</li>
-                        <li class="mt-1"><strong>CENTANG</strong> jika barang ini benar-benar dikeluarkan fisik dari gudang di luar pesanan (seperti retur ke supplier, barang rusak/hilang, atau penjualan langsung offline).</li>
+                        <li><strong>CENTANG</strong> jika perubahan fisik stok titipan ini juga merefleksikan perubahan stok gudang master produk secara keseluruhan.</li>
+                        <li class="mt-1"><strong>JANGAN CENTANG</strong> jika Anda hanya ingin menyesuaikan pencatatan sisa titipan supplier tanpa mengubah angka stok master gudang ERP.</li>
                     </ul>
                 </div>
             </div>
@@ -335,7 +353,7 @@
             {{-- Card Ringkasan & Tombol Simpan --}}
             <div class="card border-0 shadow-sm rounded-3 p-3 bg-white mb-3 sticky-top" style="top: 80px;">
                 <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 d-flex align-items-center gap-2" style="font-size: 0.85rem;">
-                    <i class="bi bi-receipt text-danger"></i> Ringkasan Pengeluaran
+                    <i class="bi bi-receipt-cutoff text-primary"></i> Ringkasan Stok Opname
                 </h6>
 
                 <div class="d-flex justify-content-between align-items-center mb-1.5" style="font-size: 0.8rem;">
@@ -343,16 +361,24 @@
                     <span class="fw-bold text-dark" id="summary_item_count">0 Produk</span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-1.5" style="font-size: 0.8rem;">
-                    <span class="text-muted">Total Qty Keluar:</span>
-                    <span class="fw-bold text-danger fs-6" id="summary_total_qty">0 PCS</span>
+                    <span class="text-muted">Total Stok Sistem ERP:</span>
+                    <span class="fw-bold text-primary font-monospace" id="summary_erp_qty">0 PCS</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-1.5" style="font-size: 0.8rem;">
+                    <span class="text-muted">Total Fisik Terhitung:</span>
+                    <span class="fw-bold text-success font-monospace fs-6" id="summary_actual_qty">0 PCS</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2" style="font-size: 0.8rem;">
+                    <span class="text-muted">Total Selisih Bersih:</span>
+                    <span class="fw-bold font-monospace" id="summary_diff_badge">0 PCS</span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center pt-2 border-top mb-3" style="font-size: 0.82rem;">
-                    <span class="text-muted">Total Nilai HPP:</span>
-                    <span class="fw-bold text-primary font-monospace fs-6" id="summary_total_hpp">Rp 0</span>
+                    <span class="text-muted">Total Dampak HPP:</span>
+                    <span class="fw-bold text-dark font-monospace fs-6" id="summary_total_hpp">Rp 0</span>
                 </div>
 
-                <button type="submit" id="btn_submit_deduction" class="btn btn-danger w-100 py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" style="background:#dc2626; border:none; border-radius:8px;" disabled>
-                    <i class="bi bi-check-circle-fill"></i> Simpan Pengeluaran Stok
+                <button type="submit" id="btn_submit_opname" class="btn btn-primary w-100 py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" style="background:#2563eb; border:none; border-radius:8px;" disabled>
+                    <i class="bi bi-check-circle-fill"></i> Simpan Stok Opname
                 </button>
                 <div class="text-center mt-2">
                     <a href="{{ route('v2.titipan_barang.deductions.index') }}" class="text-decoration-none small text-muted">
@@ -372,7 +398,7 @@
 // Dataset Available Consignment Items dari Backend
 const availableConsignmentItems = @json($availableItems);
 
-// State Keranjang: Map by consignment_item_id => { item, quantity }
+// State Keranjang: Map by consignment_item_id => { item, actual_stock }
 let cart = new Map();
 
 // Audio Beep Effect via Web Audio API
@@ -400,7 +426,7 @@ function playBeep(success = true) {
     } catch (e) {}
 }
 
-// Focus on Barcode Input on Load & click
+// Focus on Barcode Input on Load & keydown Enter listener
 document.addEventListener('DOMContentLoaded', function() {
     const scannerInput = document.getElementById('barcode_scanner_input');
     if (scannerInput) {
@@ -456,7 +482,6 @@ function findMatchingConsignmentItem(rawScan) {
 
     const supplierFilter = document.getElementById('supplier_filter').value;
 
-    // Filter available pool by supplier if selected
     let pool = availableConsignmentItems;
     if (supplierFilter) {
         pool = pool.filter(it => it.supplier_id === supplierFilter);
@@ -493,7 +518,7 @@ function findMatchingConsignmentItem(rawScan) {
             (it.barcode && it.barcode.toLowerCase() === scan.toLowerCase())
         );
         if (foundOther) {
-            showFeedback(`Produk ditemukan di Supplier: ${foundOther.supplier_name}. Ganti filter supplier jika ingin memproses batch ini.`, false);
+            showFeedback(`Produk ditemukan di Supplier: ${foundOther.supplier_name}. Ubah filter supplier untuk memilih batch ini.`, false);
             return null;
         }
     }
@@ -501,7 +526,7 @@ function findMatchingConsignmentItem(rawScan) {
     return null;
 }
 
-// Proses Scan Input
+// Proses Scan Input Barcode
 function processScanInput() {
     const input = document.getElementById('barcode_scanner_input');
     const rawVal = input.value.trim();
@@ -510,13 +535,14 @@ function processScanInput() {
     const item = findMatchingConsignmentItem(rawVal);
     if (!item) {
         playBeep(false);
-        showFeedback(`Barcode / SKU "${rawVal}" tidak ditemukan dalam batch titipan aktif dengan sisa stok!`, false);
+        showFeedback(`Barcode / SKU "${rawVal}" tidak ditemukan dalam daftar barang titipan konsinyasi!`, false);
         input.value = '';
         input.focus();
         return;
     }
 
-    addItemToCart(item);
+    // Scan otomatis menambah fisik +1
+    incrementScanItem(item);
     input.value = '';
     input.focus();
 }
@@ -529,34 +555,30 @@ function addManualSelectedItem() {
 
     const item = availableConsignmentItems.find(it => it.id === itemId);
     if (item) {
-        addItemToCart(item);
+        incrementScanItem(item);
         select.value = '';
     }
 }
 
-// Tambah / Increment Item di Keranjang
-function addItemToCart(item) {
-    let currentQty = 0;
+// Increment Fisik Tiap Scan (+1)
+function incrementScanItem(item) {
+    let currentActual = 0;
     if (cart.has(item.id)) {
-        currentQty = cart.get(item.id).quantity;
+        currentActual = cart.get(item.id).actual_stock;
     }
 
-    const nextQty = currentQty + 1;
-
-    // Cek batas sisa stok
-    if (nextQty > item.sisa_stok) {
-        playBeep(false);
-        showFeedback(`Stok titipan "${item.product_name}" tidak cukup! Sisa stok batch hanya ${item.sisa_stok} pcs.`, false);
-        return;
-    }
-
+    const nextActual = currentActual + 1;
     cart.set(item.id, {
         item: item,
-        quantity: nextQty
+        actual_stock: nextActual
     });
 
+    const systemStock = item.sisa_stok;
+    const diff = nextActual - systemStock;
+    let diffText = diff === 0 ? '✓ Pas Sesuai' : (diff > 0 ? `+${diff} pcs (Lebih)` : `${diff} pcs (Kurang)`);
+
     playBeep(true);
-    showFeedback(`✅ [${item.sku}] ${item.product_name} dimasukkan ke keranjang (Qty: ${nextQty} PCS)`, true);
+    showFeedback(`✅ [${item.sku}] ${item.product_name} discan. Fisik: ${nextActual} pcs (ERP: ${systemStock} pcs | Selisih: ${diffText})`, true);
     renderCart();
 
     // Flash row
@@ -569,27 +591,18 @@ function addItemToCart(item) {
     }, 50);
 }
 
-// Ubah Qty langsung dari tombol +/- atau input
-function updateCartQty(itemId, newQty) {
+// Ubah Fisik langsung dari tombol stepper (+/-) atau ketik manual
+function updateActualStock(itemId, newActual) {
     itemId = parseInt(itemId);
     if (!cart.has(itemId)) return;
 
     const cartEntry = cart.get(itemId);
-    const maxQty = cartEntry.item.sisa_stok;
-
-    newQty = parseInt(newQty);
-    if (isNaN(newQty) || newQty <= 0) {
-        removeFromCart(itemId);
-        return;
+    newActual = parseInt(newActual);
+    if (isNaN(newActual) || newActual < 0) {
+        newActual = 0;
     }
 
-    if (newQty > maxQty) {
-        playBeep(false);
-        alert(`Jumlah melebihi sisa stok titipan yang tersedia (${maxQty} pcs)!`);
-        newQty = maxQty;
-    }
-
-    cartEntry.quantity = newQty;
+    cartEntry.actual_stock = newActual;
     cart.set(itemId, cartEntry);
     renderCart();
 }
@@ -606,37 +619,41 @@ function removeFromCart(itemId) {
 // Kosongkan Keranjang
 function clearCart() {
     if (cart.size === 0) return;
-    if (confirm('Kosongkan semua item dari keranjang pengeluaran?')) {
+    if (confirm('Kosongkan semua item dari daftar stok opname?')) {
         cart.clear();
         renderCart();
-        showFeedback('Keranjang telah dikosongkan.', true);
+        showFeedback('Keranjang stok opname telah dikosongkan.', true);
     }
 }
 
-// Render HTML Keranjang & Kalkulasi Total
+// Render HTML Keranjang & Kalkulasi Selisih
 function renderCart() {
     const tbody = document.getElementById('cart_table_body');
     const tfoot = document.getElementById('cart_table_foot');
     const badgeCount = document.getElementById('cart_badge_count');
     const summaryItemCount = document.getElementById('summary_item_count');
-    const summaryTotalQty = document.getElementById('summary_total_qty');
+    const summaryErpQty = document.getElementById('summary_erp_qty');
+    const summaryActualQty = document.getElementById('summary_actual_qty');
+    const summaryDiffBadge = document.getElementById('summary_diff_badge');
     const summaryTotalHpp = document.getElementById('summary_total_hpp');
-    const btnSubmit = document.getElementById('btn_submit_deduction');
+    const btnSubmit = document.getElementById('btn_submit_opname');
 
     if (cart.size === 0) {
         tbody.innerHTML = `
             <tr id="empty_cart_row">
-                <td colspan="7" class="text-center py-4 text-muted">
+                <td colspan="8" class="text-center py-4 text-muted">
                     <i class="bi bi-upc-scan fs-3 d-block text-muted opacity-50 mb-1"></i>
-                    <div class="fw-semibold">Keranjang Masih Kosong</div>
-                    <div class="small">Scan barcode/SKU produk titipan di atas untuk menambahkan ke daftar ini.</div>
+                    <div class="fw-semibold">Belum Ada Item yang Discan</div>
+                    <div class="small">Scan barcode/SKU produk titipan fisik yang ada di gudang untuk mulai mencatat opname.</div>
                 </td>
             </tr>
         `;
         tfoot.style.display = 'none';
         badgeCount.innerText = '0 Item';
         summaryItemCount.innerText = '0 Produk';
-        summaryTotalQty.innerText = '0 PCS';
+        summaryErpQty.innerText = '0 PCS';
+        summaryActualQty.innerText = '0 PCS';
+        summaryDiffBadge.innerHTML = `<span class="badge bg-light text-muted border">0 PCS</span>`;
         summaryTotalHpp.innerText = 'Rp 0';
         btnSubmit.disabled = true;
         return;
@@ -644,23 +661,38 @@ function renderCart() {
 
     let rowsHtml = '';
     let no = 1;
-    let totalQty = 0;
-    let totalHpp = 0;
+    let totalErpQty = 0;
+    let totalActualQty = 0;
+    let totalDiffQty = 0;
+    let totalHppImpact = 0;
 
     cart.forEach((entry, itemId) => {
         const item = entry.item;
-        const qty = entry.quantity;
-        const subtotalHpp = qty * item.hpp;
+        const systemStock = item.sisa_stok;
+        const actualStock = entry.actual_stock;
+        const diff = actualStock - systemStock;
+        const subtotalHpp = Math.abs(diff) * item.hpp;
 
-        totalQty += qty;
-        totalHpp += subtotalHpp;
+        totalErpQty += systemStock;
+        totalActualQty += actualStock;
+        totalDiffQty += diff;
+        totalHppImpact += (diff * item.hpp);
+
+        let diffBadge = '';
+        if (diff === 0) {
+            diffBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle fw-bold py-1 px-2"><i class="bi bi-check-circle me-1"></i>Sesuai (0)</span>`;
+        } else if (diff < 0) {
+            diffBadge = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold py-1 px-2"><i class="bi bi-dash-circle me-1"></i>${diff} PCS (Kurang)</span>`;
+        } else {
+            diffBadge = `<span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-bold py-1 px-2"><i class="bi bi-plus-circle me-1"></i>+${diff} PCS (Lebih)</span>`;
+        }
 
         rowsHtml += `
             <tr id="cart_row_${itemId}">
                 <td class="ps-3 py-2 text-muted small">${no++}</td>
                 <td class="py-2">
                     <input type="hidden" name="items[${itemId}][supplier_consignment_item_id]" value="${itemId}">
-                    <div class="fw-bold text-dark text-truncate" style="max-width: 250px;" title="${item.product_name}">${item.product_name}</div>
+                    <div class="fw-bold text-dark text-truncate" style="max-width: 230px;" title="${item.product_name}">${item.product_name}</div>
                     <span class="badge bg-light text-secondary border font-monospace" style="font-size:0.65rem;">${item.sku}</span>
                 </td>
                 <td class="py-2">
@@ -668,20 +700,25 @@ function renderCart() {
                     <div class="text-muted small" style="font-size:0.7rem;">${item.supplier_name}</div>
                 </td>
                 <td class="text-center py-2">
-                    <span class="badge bg-light text-dark border" style="font-size:0.7rem;">${item.sisa_stok} pcs</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2 py-1" style="font-size:0.75rem;">
+                        ${systemStock} PCS
+                    </span>
                 </td>
                 <td class="text-center py-2">
-                    <div class="input-group input-group-sm d-inline-flex" style="width: 110px;">
-                        <button type="button" class="btn btn-outline-secondary px-2 py-0" onclick="updateCartQty(${itemId}, ${qty - 1})">-</button>
-                        <input type="number" name="items[${itemId}][quantity]" class="form-control text-center fw-bold py-0 px-1" value="${qty}" min="1" max="${item.sisa_stok}" onchange="updateCartQty(${itemId}, this.value)">
-                        <button type="button" class="btn btn-outline-secondary px-2 py-0" onclick="updateCartQty(${itemId}, ${qty + 1})">+</button>
+                    <div class="input-group input-group-sm d-inline-flex align-items-center" style="width: 130px;">
+                        <button type="button" class="btn btn-outline-secondary stock-stepper-btn" onclick="updateActualStock(${itemId}, ${actualStock - 1})">-</button>
+                        <input type="number" name="items[${itemId}][actual_stock]" class="form-control text-center fw-bold py-0 px-1 font-monospace" value="${actualStock}" min="0" onchange="updateActualStock(${itemId}, this.value)">
+                        <button type="button" class="btn btn-outline-secondary stock-stepper-btn" onclick="updateActualStock(${itemId}, ${actualStock + 1})">+</button>
                     </div>
                 </td>
-                <td class="text-end py-2 font-monospace fw-semibold text-primary" style="font-size: 0.8rem;">
-                    Rp ${subtotalHpp.toLocaleString('id-ID')}
+                <td class="text-center py-2">
+                    ${diffBadge}
+                </td>
+                <td class="text-end py-2 font-monospace fw-semibold ${diff < 0 ? 'text-danger' : (diff > 0 ? 'text-success' : 'text-muted')}" style="font-size: 0.8rem;">
+                    ${diff === 0 ? '-' : (diff > 0 ? '+' : '-') + 'Rp ' + subtotalHpp.toLocaleString('id-ID')}
                 </td>
                 <td class="text-center pe-3 py-2">
-                    <button type="button" class="btn btn-sm btn-outline-danger p-0.5 px-1.5" title="Hapus" onclick="removeFromCart(${itemId})" style="border-radius: 4px;">
+                    <button type="button" class="btn btn-sm btn-outline-danger p-0.5 px-1.5" title="Hapus dari Opname" onclick="removeFromCart(${itemId})" style="border-radius: 4px;">
                         <i class="bi bi-x-lg"></i>
                     </button>
                 </td>
@@ -692,13 +729,29 @@ function renderCart() {
     tbody.innerHTML = rowsHtml;
     tfoot.style.display = '';
 
-    document.getElementById('foot_total_qty').innerText = `${totalQty} PCS`;
-    document.getElementById('foot_total_hpp').innerText = `Rp ${totalHpp.toLocaleString('id-ID')}`;
+    document.getElementById('foot_erp_qty').innerText = `${totalErpQty} PCS`;
+    document.getElementById('foot_actual_qty').innerText = `${totalActualQty} PCS`;
 
-    badgeCount.innerText = `${cart.size} Item`;
+    let totalDiffClass = totalDiffQty === 0 ? 'text-success' : (totalDiffQty < 0 ? 'text-danger' : 'text-primary');
+    let totalDiffPrefix = totalDiffQty > 0 ? '+' : '';
+    document.getElementById('foot_diff_qty').innerHTML = `<span class="${totalDiffClass} font-monospace">${totalDiffPrefix}${totalDiffQty} PCS</span>`;
+    document.getElementById('foot_total_hpp').innerText = (totalHppImpact < 0 ? '-' : '+') + 'Rp ' + Math.abs(totalHppImpact).toLocaleString('id-ID');
+
+    badgeCount.innerText = `${cart.size} Produk`;
     summaryItemCount.innerText = `${cart.size} Produk`;
-    summaryTotalQty.innerText = `${totalQty} PCS`;
-    summaryTotalHpp.innerText = `Rp ${totalHpp.toLocaleString('id-ID')}`;
+    summaryErpQty.innerText = `${totalErpQty} PCS`;
+    summaryActualQty.innerText = `${totalActualQty} PCS`;
+
+    let summaryDiffHtml = '';
+    if (totalDiffQty === 0) {
+        summaryDiffHtml = `<span class="badge bg-success-subtle text-success border border-success-subtle">✓ 0 PCS (Sesuai)</span>`;
+    } else if (totalDiffQty < 0) {
+        summaryDiffHtml = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle">${totalDiffQty} PCS (Kurang)</span>`;
+    } else {
+        summaryDiffHtml = `<span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">+${totalDiffQty} PCS (Lebih)</span>`;
+    }
+    summaryDiffBadge.innerHTML = summaryDiffHtml;
+    summaryTotalHpp.innerText = (totalHppImpact < 0 ? '-' : (totalHppImpact > 0 ? '+' : '')) + 'Rp ' + Math.abs(totalHppImpact).toLocaleString('id-ID');
     btnSubmit.disabled = false;
 }
 

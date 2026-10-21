@@ -18,20 +18,17 @@
 <div class="v2-page-header align-items-center mb-3">
     <div>
         <h1 class="v2-page-title d-flex align-items-center gap-2 mb-0">
-            <i class="bi bi-receipt-cutoff text-danger fs-5"></i> Detail Pengeluaran Titipan #{{ $deduction->id }}
+            <i class="bi bi-clipboard-check text-warning fs-5"></i> Detail Stok Opname Titipan #{{ $deduction->id }}
         </h1>
         <p class="text-muted small mb-0">
-            Pencatatan pemotongan stok titipan pada {{ $dateObj ? $dateObj->format('d/m/Y H:i') : '-' }} WIB
+            Hasil audit fisik stok titipan pada {{ $dateObj ? $dateObj->format('d F Y, H:i') : '-' }} WIB
         </p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
         <a href="{{ route('v2.titipan_barang.deductions.index') }}" class="btn btn-sm btn-outline-secondary py-1.5 px-3 fw-semibold">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Riwayat
+            <i class="bi bi-arrow-left me-1"></i> Kembali ke Riwayat Opname
         </a>
-        <a href="{{ route('v2.titipan_barang.deductions.edit', $deduction->id) }}" class="btn btn-sm btn-warning text-dark py-1.5 px-3 fw-semibold">
-            <i class="bi bi-pencil me-1"></i> Edit Pengeluaran
-        </a>
-        <form action="{{ route('v2.titipan_barang.deductions.destroy', $deduction->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan pengeluaran ini? Stok titipan akan dikembalikan sebanyak {{ $deduction->quantity }} pcs.')">
+        <form action="{{ route('v2.titipan_barang.deductions.destroy', $deduction->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan opname ini? Penyesuaian stok akan dikembalikan ke posisi sebelum opname.')">
             @csrf
             @method('DELETE')
             <button type="submit" class="btn btn-sm btn-outline-danger py-1.5 px-3 fw-semibold">
@@ -44,49 +41,49 @@
 {{-- ── Quick KPI Metric Banner ── --}}
 <div class="row g-2.5 mb-3">
     <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 border-start border-danger border-3">
-            <span class="text-muted text-uppercase fw-semibold small" style="font-size:0.68rem;">JUMLAH POTONG STOK</span>
-            <div class="fw-bold text-danger font-monospace fs-4 mt-1">
-                -{{ number_format($deduction->quantity) }} PCS
-            </div>
-            <small class="text-muted" style="font-size:0.7rem;">Stok titipan terpotong</small>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 border-start border-primary border-3">
-            <span class="text-muted text-uppercase fw-semibold small" style="font-size:0.68rem;">NILAI HPP MODAL</span>
-            <div class="fw-bold text-primary font-monospace fs-5 mt-1">
-                Rp {{ number_format($totalHpp, 0, ',', '.') }}
+            <span class="text-muted text-uppercase fw-semibold small" style="font-size:0.68rem;">STOK SISTEM (ERP)</span>
+            <div class="fw-bold text-primary font-monospace fs-4 mt-1">
+                {{ $deduction->system_stock !== null ? $deduction->system_stock : '-' }} PCS
             </div>
-            <small class="text-muted" style="font-size:0.7rem;">@ Rp {{ number_format($cItem ? $cItem->unit_cost_price : 0, 0, ',', '.') }} / pcs</small>
+            <small class="text-muted" style="font-size:0.7rem;">Stok tercatat di ERP</small>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 border-start border-warning border-3">
-            <span class="text-muted text-uppercase fw-semibold small" style="font-size:0.68rem;">ALASAN PENGELUARAN</span>
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 border-start border-success border-3">
+            <span class="text-muted text-uppercase fw-semibold small" style="font-size:0.68rem;">FISIK (SCAN GUDANG)</span>
+            <div class="fw-bold text-success font-monospace fs-4 mt-1">
+                {{ $deduction->actual_stock !== null ? $deduction->actual_stock : ($deduction->system_stock !== null ? $deduction->system_stock - $deduction->quantity : '-') }} PCS
+            </div>
+            <small class="text-muted" style="font-size:0.7rem;">Hitungan fisik riil di gudang</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 border-start border-danger border-3">
+            <span class="text-muted text-uppercase fw-semibold small" style="font-size:0.68rem;">SELISIH OPNAME</span>
             <div class="mt-1.5">
-                <span class="badge {{ $deduction->reason_badge_class }} px-2.5 py-1 fw-bold fs-6">
-                    {{ $deduction->reason_label }}
+                <span class="badge {{ $deduction->difference_badge_class }} px-2.5 py-1 fw-bold fs-6">
+                    {{ $deduction->difference_label }}
                 </span>
             </div>
-            <small class="text-muted mt-1 d-block" style="font-size:0.7rem;">Kategori transaksi</small>
+            <small class="text-muted mt-1 d-block" style="font-size:0.7rem;">Fisik vs ERP</small>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 border-start border-info border-3">
-            <span class="text-muted text-uppercase fw-semibold small" style="font-size:0.68rem;">POTONG MASTER GUDANG</span>
+            <span class="text-muted text-uppercase fw-semibold small" style="font-size:0.68rem;">SINKRON GUDANG MASTER</span>
             <div class="mt-1.5">
                 @if($deduction->deduct_master_stock)
                     <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-semibold">
-                        <i class="bi bi-check-circle-fill me-1"></i>Ya, Stok Master Terpotong
+                        <i class="bi bi-check-circle-fill me-1"></i>Ya, Stok Master Terupdate
                     </span>
                 @else
                     <span class="badge bg-light text-muted border px-2 py-1 fw-semibold">
-                        <i class="bi bi-dash-circle me-1"></i>Tidak Potong Master
+                        <i class="bi bi-dash-circle me-1"></i>Hanya Titipan
                     </span>
                 @endif
             </div>
-            <small class="text-muted mt-1 d-block" style="font-size:0.7rem;">Status sinkronisasi stok master</small>
+            <small class="text-muted mt-1 d-block" style="font-size:0.7rem;">Status sinkronisasi master gudang</small>
         </div>
     </div>
 </div>
@@ -104,17 +101,37 @@
                 <table class="table table-sm table-borderless mb-0" style="font-size: 0.84rem;">
                     <tbody>
                         <tr>
-                            <td class="text-muted" style="width: 170px;">ID Pengeluaran</td>
+                            <td class="text-muted" style="width: 170px;">ID Audit Opname</td>
                             <td class="fw-bold text-dark font-monospace">#{{ $deduction->id }}</td>
                         </tr>
                         <tr>
-                            <td class="text-muted">Waktu Pencatatan</td>
+                            <td class="text-muted">Stok Sistem ERP</td>
+                            <td class="font-monospace text-primary fw-bold">
+                                {{ $deduction->system_stock !== null ? $deduction->system_stock . ' PCS' : '-' }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Stok Fisik (Scan)</td>
+                            <td class="font-monospace text-success fw-bold">
+                                {{ $deduction->actual_stock !== null ? $deduction->actual_stock . ' PCS' : '-' }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Selisih Opname</td>
+                            <td>
+                                <span class="badge {{ $deduction->difference_badge_class }} px-2 py-0.5 fw-bold">
+                                    {{ $deduction->difference_label }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Waktu Opname</td>
                             <td class="text-dark fw-semibold">
                                 {{ $dateObj ? $dateObj->format('d F Y, H:i:s') : '-' }} WIB
                             </td>
                         </tr>
                         <tr>
-                            <td class="text-muted">Alasan Pengeluaran</td>
+                            <td class="text-muted">Kategori Alasan</td>
                             <td>
                                 <span class="badge {{ $deduction->reason_badge_class }} px-2 py-0.5">
                                     {{ $deduction->reason_label }}

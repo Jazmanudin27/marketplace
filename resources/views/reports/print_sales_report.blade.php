@@ -24,23 +24,58 @@
     </div>
 
     <div class="text-center mb-3">
-        <h4 class="fw-bold mb-1">{{ strtoupper($title ?? 'LAPORAN REKAP PENJUALAN PRODUK') }}</h4>
+        <h4 class="fw-bold mb-1">{{ strtoupper($title ?? 'LAPORAN REKAP PENJUALAN PRODUK DILEPAS') }}</h4>
         <div class="small text-muted">Periode Penjualan: {{ date('d F Y', strtotime($dateFrom)) }} s/d {{ date('d F Y', strtotime($dateTo)) }}</div>
     </div>
 
-
-
-    <div class="row mb-3">
-        <div class="col-6">
-            <div class="p-2 border rounded text-center">
-                <small class="text-muted d-block" style="font-size: 9px;">TOTAL OMSET KOTOR</small>
-                <strong class="fs-6 text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</strong>
+    {{-- 8 METRIC CARDS KONSISTEN DENGAN DETAIL TRANSAKSI --}}
+    <div class="row g-2 mb-3">
+        <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL OMSET KOTOR</small>
+                <strong class="text-primary font-monospace" style="font-size: 13px;">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</strong>
             </div>
         </div>
-        <div class="col-6">
-            <div class="p-2 border rounded text-center bg-success bg-opacity-10">
-                <small class="text-muted d-block" style="font-size: 9px;">TOTAL ITEM TERJUAL</small>
-                <strong class="fs-6 text-success">{{ number_format($grandTotalQty) }} Pcs</strong>
+        <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL REFUND / RETUR</small>
+                <strong class="text-danger font-monospace" style="font-size: 13px;">-Rp {{ number_format($grandTotalRefund ?? 0, 0, ',', '.') }}</strong>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL POTONGAN</small>
+                <strong class="text-warning font-monospace" style="font-size: 13px;">-Rp {{ number_format($grandMarketplaceFee ?? $grandTotalTotalFee ?? 0, 0, ',', '.') }}</strong>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL DANA DILEPAS NET</small>
+                <strong class="text-success font-monospace" style="font-size: 13px;">Rp {{ number_format($grandNetReleased ?? 0, 0, ',', '.') }}</strong>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL HPP</small>
+                <strong class="text-secondary font-monospace" style="font-size: 13px;">Rp {{ number_format($grandTotalHpp ?? 0, 0, ',', '.') }}</strong>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL MARGIN (RP)</small>
+                <strong class="text-primary font-monospace" style="font-size: 13px;">Rp {{ number_format($grandTotalMarginRp ?? 0, 0, ',', '.') }}</strong>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded text-center bg-primary bg-opacity-10">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">OVERALL MARGIN %</small>
+                <strong class="text-primary font-monospace" style="font-size: 13px;">{{ number_format($grandOverallMarginPct ?? 0, 2, ',', '.') }}%</strong>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL ITEM TERJUAL</small>
+                <strong class="text-dark font-monospace" style="font-size: 13px;">{{ number_format($grandTotalQty) }} Pcs</strong>
             </div>
         </div>
     </div>
@@ -49,35 +84,57 @@
         <table class="table table-print align-middle">
             <thead>
                 <tr>
-                    <th style="width: 30px;">No</th>
-                    <th>SKU</th>
+                    <th style="width: 25px;">No.</th>
+                    <th style="width: 10%;">SKU</th>
                     <th>Nama Produk</th>
-                    <th class="text-center">Qty</th>
-                    <th class="text-end">Harga</th>
-                    <th class="text-end">Omset Kotor</th>
+                    <th style="width: 10%;">Kategori / Merk</th>
+                    <th class="text-center" style="width: 5%;">Qty</th>
+                    <th class="text-end" style="width: 8%;">Harga Rata-rata</th>
+                    <th class="text-end" style="width: 9%;">Omset Kotor</th>
+                    <th class="text-end text-danger fw-bold" style="width: 9%;">Total Potongan</th>
+                    <th class="text-end text-success fw-bold" style="width: 10%;">Dana Dilepas Net</th>
+                    <th class="text-end text-secondary" style="width: 9%;">HPP</th>
+                    <th class="text-end text-primary fw-bold" style="width: 9%;">Margin (Rp)</th>
+                    <th class="text-center text-primary fw-bold" style="width: 6%;">Margin %</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($items as $idx => $row)
+                @forelse($items as $idx => $row)
                     @php
                         $hargaUnit = $row['qty_total'] > 0 ? $row['total_omset'] / $row['qty_total'] : 0;
+                        $totalFeeItem = $row['total_fee'] ?? 0;
                     @endphp
                     <tr>
                         <td class="text-center">{{ $idx + 1 }}</td>
                         <td class="font-monospace small">{{ $row['sku'] ?: '—' }}</td>
                         <td class="fw-bold">{{ $row['name'] }}</td>
+                        <td class="small text-muted">{{ $row['category_name'] ?: '—' }} / {{ $row['brand_name'] ?: '—' }}</td>
                         <td class="text-center font-monospace fw-bold">{{ number_format($row['qty_total']) }}</td>
                         <td class="text-end font-monospace">Rp {{ number_format($hargaUnit, 0, ',', '.') }}</td>
                         <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($row['total_omset'], 0, ',', '.') }}</td>
+                        <td class="text-end font-monospace text-danger fw-bold">{{ $totalFeeItem > 0 ? '-Rp ' . number_format($totalFeeItem, 0, ',', '.') : '0' }}</td>
+                        <td class="text-end font-monospace fw-bold text-success">Rp {{ number_format($row['net_released'], 0, ',', '.') }}</td>
+                        <td class="text-end font-monospace text-secondary">Rp {{ number_format($row['total_hpp'] ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($row['margin_rp'] ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-center font-monospace fw-bold text-primary">{{ number_format($row['margin_pct'] ?? 0, 2, ',', '.') }}%</td>
                     </tr>
-                @endforeach
+                @empty
+                    <tr>
+                        <td colspan="12" class="text-center py-3 text-muted">Tidak ada data rekap produk ditemukan.</td>
+                    </tr>
+                @endforelse
             </tbody>
             <tfoot>
                 <tr class="fw-bold bg-light">
-                    <td colspan="3" class="text-end">TOTAL REKAPITULASI:</td>
+                    <td colspan="4" class="text-end">TOTAL REKAPITULASI:</td>
                     <td class="text-center font-monospace">{{ number_format($grandTotalQty) }}</td>
                     <td></td>
-                    <td class="text-end text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace text-danger fw-bold">-Rp {{ number_format($grandMarketplaceFee ?? $grandTotalTotalFee ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace text-success fs-6">Rp {{ number_format($grandNetReleased ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace text-secondary">Rp {{ number_format($grandTotalHpp ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace text-primary">Rp {{ number_format($grandTotalMarginRp ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-center font-monospace text-primary">{{ number_format($grandOverallMarginPct ?? 0, 2, ',', '.') }}%</td>
                 </tr>
             </tfoot>
         </table>

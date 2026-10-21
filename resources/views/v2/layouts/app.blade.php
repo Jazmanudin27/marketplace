@@ -41,27 +41,30 @@
 <body class="v2-layout">
 
     <div class="v2-wrapper">
-        <!-- Include V2 Sidebar -->
-        @include('v2.layouts.sidebar')
-
-        <!-- Main Content Wrapper -->
+        <!-- Main Content Wrapper (100% Width) -->
         <main class="v2-main-content">
             <!-- Top Header Navbar Compact -->
             <header class="v2-header">
                 <div class="d-flex align-items-center gap-3">
-                    <button class="btn btn-sm btn-outline-secondary py-1 px-2 border-0" type="button"
-                        onclick="toggleV2Sidebar()">
-                        <i class="bi bi-list fs-5"></i>
-                    </button>
+                    <!-- Brand Logo & Name -->
+                    <a href="{{ url('/v2/dashboard') }}" class="d-flex align-items-center gap-2 text-decoration-none">
+                        <img src="{{ asset('images/logos/ruang-market.png') }}" alt="Ruang Market" class="rounded-2 shadow-sm" style="width: 32px; height: 32px; object-fit: contain; background: #ffffff; padding: 2px;">
+                        <div>
+                            <div class="fw-bold text-dark" style="letter-spacing: -0.3px; font-size: 0.86rem; line-height: 1.1;">
+                                RUANG <span class="text-primary" style="font-size: 0.74rem;">MARKET</span>
+                            </div>
+                            <div class="text-muted text-uppercase" style="font-size: 0.58rem; letter-spacing: 0.8px; font-weight: 600;">ERP V2</div>
+                        </div>
+                    </a>
 
-                    <!-- Breadcrumb / System Nav Tag -->
-                    <div class="d-none d-md-flex align-items-center gap-2" style="font-size: 0.78rem;">
-                        <span class="badge bg-primary-subtle text-primary fw-bold px-2 py-1">
-                            <i class="bi bi-grid me-1"></i>ERP V2
-                        </span>
-                        <span class="text-muted">/</span>
-                        <span class="fw-semibold text-dark">Marketplace Hub</span>
+                    <!-- Tenant Badge -->
+                    @if(Auth::check() && Auth::user()->tenant)
+                    <div class="d-none d-md-flex align-items-center gap-1.5 px-2.5 py-1 bg-light rounded border" style="font-size: 0.72rem;">
+                        <i class="bi bi-building text-primary"></i>
+                        <span class="fw-bold text-dark text-truncate" style="max-width: 150px;">{{ Auth::user()->tenant->name }}</span>
+                        <span class="badge bg-success p-1 rounded-circle ms-1" style="width: 6px; height: 6px;" title="Online"></span>
                     </div>
+                    @endif
                 </div>
 
                 <!-- Global Search Box -->
@@ -132,6 +135,12 @@
                             <li><a class="dropdown-item py-1.5"
                                     href="{{ route('v2.users.index') }}"><i
                                         class="bi bi-people me-2"></i>Pengguna Sistem</a></li>
+                            <li><a class="dropdown-item py-1.5"
+                                    href="{{ url('/v2/toko') }}"><i
+                                        class="bi bi-shop me-2"></i>Toko Terhubung</a></li>
+                            <li><a class="dropdown-item py-1.5"
+                                    href="{{ Route::has('users.index') ? route('users.index') : url('/users') }}"><i
+                                        class="bi bi-person-gear me-2"></i>Pengaturan Akun</a></li>
                             <li><a class="dropdown-item py-1.5" href="{{ url('/v2/produk') }}"><i
                                         class="bi bi-box-seam me-2"></i>Katalog Produk V2</a></li>
                             <li>
@@ -151,7 +160,10 @@
                 </div>
             </header>
 
-            <!-- Main Body Page Content -->
+            <!-- Horizontal Top Navigation Bar (Under Header - 100% Width) -->
+            @include('v2.layouts.navbar')
+
+            <!-- Main Body Page Content (100% Full Width) -->
             <div class="v2-body-content">
                 @yield('content')
             </div>
@@ -172,18 +184,9 @@
 
     <!-- Scripts -->
     <script>
-        function toggleV2Sidebar() {
-            $('body').toggleClass('sidebar-collapsed');
-            const isCollapsed = $('body').hasClass('sidebar-collapsed');
-            localStorage.setItem('v2_sidebar_collapsed', isCollapsed ? '1' : '0');
-        }
-
-        // Restore sidebar collapsed state on load
-        (function() {
-            if (localStorage.getItem('v2_sidebar_collapsed') === '1') {
-                $('body').addClass('sidebar-collapsed');
-            }
-        })();
+        // Ensure body is clean without sidebar collapsed class
+        $('body').removeClass('sidebar-collapsed');
+        localStorage.removeItem('v2_sidebar_collapsed');
 
         // Live Clock Counter
         setInterval(function() {

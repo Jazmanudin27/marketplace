@@ -60,8 +60,8 @@
         <a href="{{ route('v2.titipan_barang.settlement.create') }}" class="btn btn-sm btn-outline-success py-1.5 px-3 rounded-2 fw-semibold">
             <i class="bi bi-cash-stack me-1"></i> Pembayaran / Setoran
         </a>
-        <a href="{{ route('v2.titipan_barang.deductions.index') }}" class="btn btn-sm btn-outline-danger py-1.5 px-3 rounded-2 fw-semibold">
-            <i class="bi bi-box-arrow-up-right me-1"></i> Pengeluaran Stok
+        <a href="{{ route('v2.titipan_barang.deductions.index') }}" class="btn btn-sm btn-outline-primary py-1.5 px-3 rounded-2 fw-semibold">
+            <i class="bi bi-clipboard-check me-1"></i> Stok Opname Titipan
         </a>
         <a href="{{ route('supplier_consignments.stock_card') }}" class="btn btn-sm btn-outline-secondary py-1.5 px-3 rounded-2 fw-semibold">
             <i class="bi bi-card-checklist me-1"></i> Kartu Stok Supplier
