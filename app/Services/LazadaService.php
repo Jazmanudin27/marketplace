@@ -46,6 +46,7 @@ class LazadaService
             'force_auth' => 'true',
             'redirect_uri' => $this->redirectUri,
             'client_id' => $this->appKey,
+            'country' => 'id',
             'state' => $state,
         ]);
     }
