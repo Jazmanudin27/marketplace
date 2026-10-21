@@ -70,16 +70,16 @@ Schedule::command('tiktok:sync-escrow')
     ->runInBackground()
     ->withoutOverlapping(25);
 
-// Iklan Marketplace (Tengah malam)
-Schedule::command('shopee-ads:sync --days=3')
-    ->dailyAt('01:00')
-    ->runInBackground()
-    ->withoutOverlapping(30);
+// Iklan Marketplace [DINONAKTIFKAN KARENA TIDAK DIGUNAKAN]
+// Schedule::command('shopee-ads:sync --days=3')
+//     ->dailyAt('01:00')
+//     ->runInBackground()
+//     ->withoutOverlapping(30);
 
-Schedule::command('tiktok-ads:sync --days=3')
-    ->dailyAt('01:30')
-    ->runInBackground()
-    ->withoutOverlapping(30);
+// Schedule::command('tiktok-ads:sync --days=3')
+//     ->dailyAt('01:30')
+//     ->runInBackground()
+//     ->withoutOverlapping(30);
 
 // Cek stok menipis setiap hari jam 08:00
 Schedule::command('stock:check-low')
@@ -87,17 +87,16 @@ Schedule::command('stock:check-low')
     ->runInBackground()
     ->withoutOverlapping(15);
 
-// Auto-atribusi pesanan ke campaign iklan setiap jam
-Schedule::command('marketing:auto-attribute')
-    ->hourly()
-    ->runInBackground()
-    ->withoutOverlapping(30);
+// Auto-atribusi & Evaluasi rules iklan [DINONAKTIFKAN KARENA TIDAK DIGUNAKAN]
+// Schedule::command('marketing:auto-attribute')
+//     ->hourly()
+//     ->runInBackground()
+//     ->withoutOverlapping(30);
 
-// Evaluasi budget rules setiap jam
-Schedule::command('ads:evaluate-rules')
-    ->hourly()
-    ->runInBackground()
-    ->withoutOverlapping(20);
+// Schedule::command('ads:evaluate-rules')
+//     ->hourly()
+//     ->runInBackground()
+//     ->withoutOverlapping(20);
 
 // Sinkronisasi beda stok marketplace otomatis setiap 1 menit (KILAT & TANPA PENUMPUKAN RAM)
 Schedule::command('stock:sync --filter=diff')
