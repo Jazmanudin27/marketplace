@@ -553,7 +553,7 @@ class TitipanBarangController extends Controller
     }
 
     /**
-     * Form Input Setoran Hasil Penjualan V2.
+     * Form Input Setoran Hasil Penjualan V2 (Berbasis Nominal Per Invoice / Inputan Titipan).
      */
     public function createSettlement(Request $request)
     {
@@ -562,48 +562,63 @@ class TitipanBarangController extends Controller
         $bankAccounts = BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('bank_name')->get();
 
         $selectedSupplierId = $request->supplier_id ?: ($suppliers->first() ? $suppliers->first()->id : null);
-        $availableItems     = [];
+        $availableInvoices  = [];
 
         if ($selectedSupplierId) {
-            $items = SupplierConsignmentItem::whereHas('consignment', function ($q) use ($tenantId, $selectedSupplierId) {
-                $q->where('tenant_id', $tenantId)
-                  ->where('supplier_id', $selectedSupplierId)
-                  ->where('status', 'approved');
-            })->with(['masterProduct', 'consignment'])->get();
+            $consignments = SupplierConsignment::with(['items.masterProduct'])
+                ->where('tenant_id', $tenantId)
+                ->where('supplier_id', $selectedSupplierId)
+                ->where('status', 'approved')
+                ->orderByDesc('consignment_date')
+                ->orderByDesc('id')
+                ->get();
 
-            foreach ($items as $item) {
-                $product = $item->masterProduct;
-                if (!$product) continue;
+            foreach ($consignments as $consignment) {
+                $totalQtyReceived = (int) $consignment->items->sum('qty_received');
+                $totalAmountHpp   = (float) $consignment->items->sum(function ($it) {
+                    return $it->qty_received * $it->unit_cost_price;
+                });
 
-                $qtyReceived  = $item->qty_received;
-                $currentStock = $product->stock;
-                $actualSold   = (int) ($item->qty_sold ?? 0);
-                $qtySold      = $actualSold > 0 ? min($qtyReceived, $actualSold) : max(0, $qtyReceived - $currentStock);
+                $itemIds = $consignment->items->pluck('id');
+                $totalSettledAmount = (float) SupplierConsignmentSettlementItem::whereIn('supplier_consignment_item_id', $itemIds)
+                    ->whereHas('settlement', function ($q) {
+                        $q->where('status', 'approved');
+                    })
+                    ->sum('subtotal');
 
-                $qtySettled = (int) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $item->id)
+                $totalSettledQty = (int) SupplierConsignmentSettlementItem::whereIn('supplier_consignment_item_id', $itemIds)
                     ->whereHas('settlement', function ($q) {
                         $q->where('status', 'approved');
                     })
                     ->sum('qty_settled');
 
-                $basisQty     = $actualSold > 0 ? $qtySold : $qtyReceived;
-                $qtyUnsettled = max(0, $basisQty - $qtySettled);
+                $remainingAmount = max(0, $totalAmountHpp - $totalSettledAmount);
+                $remainingQty    = max(0, $totalQtyReceived - $totalSettledQty);
 
-                if ($qtyUnsettled > 0) {
-                    $availableItems[] = [
-                        'consignment_item_id' => $item->id,
-                        'ref_number'          => $item->consignment ? $item->consignment->reference_number : '-',
-                        'consignment_date'    => $item->consignment ? $item->consignment->consignment_date->format('Y-m-d') : '-',
-                        'master_product_id'   => $product->id,
-                        'sku'                 => $product->sku,
-                        'name'                => $product->name,
-                        'qty_received'        => $qtyReceived,
-                        'qty_sold'            => $qtySold,
-                        'qty_settled'         => $qtySettled,
-                        'qty_unsettled'       => $qtyUnsettled,
-                        'unit_cost_price'     => $item->unit_cost_price,
-                    ];
-                }
+                $availableInvoices[] = [
+                    'consignment_id'     => $consignment->id,
+                    'reference_number'   => $consignment->reference_number,
+                    'consignment_date'   => $consignment->consignment_date ? $consignment->consignment_date->format('d/m/Y') : '-',
+                    'raw_date'           => $consignment->consignment_date ? $consignment->consignment_date->format('Y-m-d') : '',
+                    'notes'              => $consignment->notes ?: '-',
+                    'total_qty'          => $totalQtyReceived,
+                    'total_amount'       => $totalAmountHpp,
+                    'settled_amount'     => $totalSettledAmount,
+                    'remaining_amount'   => $remainingAmount,
+                    'settled_qty'        => $totalSettledQty,
+                    'remaining_qty'      => $remainingQty,
+                    'is_paid_off'        => $remainingAmount <= 0,
+                    'items_count'        => $consignment->items->count(),
+                    'items'              => $consignment->items->map(function ($it) {
+                        return [
+                            'name'            => $it->masterProduct ? $it->masterProduct->name : 'Item',
+                            'sku'             => $it->masterProduct ? $it->masterProduct->sku : '-',
+                            'qty'             => $it->qty_received,
+                            'unit_cost_price' => $it->unit_cost_price,
+                            'subtotal'        => $it->qty_received * $it->unit_cost_price,
+                        ];
+                    }),
+                ];
             }
         }
 
@@ -613,13 +628,13 @@ class TitipanBarangController extends Controller
             'suppliers',
             'bankAccounts',
             'selectedSupplierId',
-            'availableItems',
+            'availableInvoices',
             'settlementNumber'
         ));
     }
 
     /**
-     * Simpan Setoran ke Supplier V2.
+     * Simpan Setoran ke Supplier V2 (Nominal Per Invoice).
      */
     public function storeSettlement(Request $request)
     {
@@ -630,81 +645,136 @@ class TitipanBarangController extends Controller
             'settlement_date' => 'required|date',
             'payment_method'  => 'required|in:cash,transfer',
             'bank_account_id' => 'required_if:payment_method,transfer|nullable|exists:bank_accounts,id',
+            'reference_number'=> 'nullable|string|max:100',
             'notes'           => 'nullable|string|max:1000',
-            'items'           => 'required|array|min:1',
-            'items.*.consignment_item_id' => 'required|exists:supplier_consignment_items,id',
-            'items.*.master_product_id'   => 'required|exists:master_products,id',
-            'items.*.qty_settled'         => 'required|integer|min:1',
-            'items.*.unit_cost_price'     => 'required|numeric|min:0',
+            'invoices'        => 'required|array|min:1',
         ]);
 
-        $settlement = DB::transaction(function () use ($request, $tenantId) {
-            $settlementNumber = SupplierConsignmentSettlement::generateSettlementNumber();
-            $totalQtySettled  = 0;
-            $totalAmountPaid  = 0;
+        try {
+            $settlement = DB::transaction(function () use ($request, $tenantId) {
+                $settlementNumber = SupplierConsignmentSettlement::generateSettlementNumber();
+                $totalQtySettled  = 0;
+                $totalAmountPaid  = 0;
+                $invoicesNotes    = [];
 
-            $settlement = SupplierConsignmentSettlement::create([
-                'tenant_id'         => $tenantId,
-                'supplier_id'       => $request->supplier_id,
-                'settlement_number' => $settlementNumber,
-                'settlement_date'   => $request->settlement_date,
-                'payment_method'    => $request->payment_method,
-                'bank_account_id'   => $request->payment_method === 'transfer' ? $request->bank_account_id : null,
-                'reference_number'  => $request->reference_number,
-                'status'            => 'approved',
-                'notes'             => $request->notes,
-                'created_by'        => Auth::id(),
-            ]);
+                $settlement = SupplierConsignmentSettlement::create([
+                    'tenant_id'         => $tenantId,
+                    'supplier_id'       => $request->supplier_id,
+                    'settlement_number' => $settlementNumber,
+                    'settlement_date'   => $request->settlement_date,
+                    'payment_method'    => $request->payment_method,
+                    'bank_account_id'   => $request->payment_method === 'transfer' ? $request->bank_account_id : null,
+                    'reference_number'  => $request->reference_number,
+                    'status'            => 'approved',
+                    'notes'             => $request->notes,
+                    'created_by'        => Auth::id(),
+                ]);
 
-            foreach ($request->items as $row) {
-                $qtySettled = (int) $row['qty_settled'];
-                $costPrice  = (float) $row['unit_cost_price'];
-                $subtotal   = $qtySettled * $costPrice;
+                foreach ($request->invoices as $consignmentId => $invData) {
+                    $rawAmount = $invData['amount'] ?? '0';
+                    $payAmount = (float) preg_replace('/[^0-9]/', '', (string)$rawAmount);
 
-                if ($qtySettled > 0) {
-                    $totalQtySettled += $qtySettled;
-                    $totalAmountPaid += $subtotal;
+                    if ($payAmount <= 0) {
+                        continue;
+                    }
 
-                    $settlement->items()->create([
-                        'supplier_consignment_item_id' => $row['consignment_item_id'],
-                        'master_product_id'           => $row['master_product_id'],
-                        'qty_settled'                 => $qtySettled,
-                        'unit_cost_price'             => $costPrice,
-                        'subtotal'                    => $subtotal,
-                    ]);
+                    $consignment = SupplierConsignment::with('items')->where('tenant_id', $tenantId)->find($consignmentId);
+                    if (!$consignment) {
+                        continue;
+                    }
+
+                    $totalAmountPaid += $payAmount;
+                    $remainingPay = $payAmount;
+                    $invoicesNotes[] = $consignment->reference_number . ' (Rp ' . number_format($payAmount, 0, ',', '.') . ')';
+
+                    // Alokasikan nominal pembayaran ke item-item consignment yang belum terbayar penuh
+                    foreach ($consignment->items as $cItem) {
+                        if ($remainingPay <= 0) {
+                            break;
+                        }
+
+                        $itemTotalCost = (float) ($cItem->qty_received * $cItem->unit_cost_price);
+                        $itemPrevSettled = (float) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
+                            ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                            ->sum('subtotal');
+
+                        $itemRemaining = max(0, $itemTotalCost - $itemPrevSettled);
+                        if ($itemRemaining <= 0) {
+                            continue;
+                        }
+
+                        $allocate = min($remainingPay, $itemRemaining);
+                        $remainingPay -= $allocate;
+
+                        $costPrice = (float) $cItem->unit_cost_price;
+                        $allocatedQty = $costPrice > 0 ? (int) round($allocate / $costPrice) : 0;
+                        if ($allocatedQty == 0 && $allocate > 0) {
+                            $allocatedQty = 1;
+                        }
+                        $totalQtySettled += $allocatedQty;
+
+                        $settlement->items()->create([
+                            'supplier_consignment_item_id' => $cItem->id,
+                            'master_product_id'           => $cItem->master_product_id,
+                            'qty_settled'                 => $allocatedQty,
+                            'unit_cost_price'             => $costPrice,
+                            'subtotal'                    => $allocate,
+                        ]);
+                    }
+
+                    // Jika masih ada sisa pembayaran yang dialokasikan (misal nominal melampaui sisa item)
+                    if ($remainingPay > 0 && $consignment->items->isNotEmpty()) {
+                        $firstItem = $consignment->items->first();
+                        $settlement->items()->create([
+                            'supplier_consignment_item_id' => $firstItem->id,
+                            'master_product_id'           => $firstItem->master_product_id,
+                            'qty_settled'                 => 0,
+                            'unit_cost_price'             => $firstItem->unit_cost_price,
+                            'subtotal'                    => $remainingPay,
+                        ]);
+                    }
                 }
-            }
 
-            $settlement->update([
-                'total_qty_settled' => $totalQtySettled,
-                'total_amount_paid' => $totalAmountPaid,
-            ]);
+                if ($totalAmountPaid <= 0) {
+                    throw new \Exception('Nominal pembayaran setoran harus lebih dari 0. Silakan isi nominal pada minimal 1 invoice titipan.');
+                }
 
-            $supplier = Supplier::find($request->supplier_id);
-            $supplierName = $supplier ? $supplier->name : 'Supplier';
+                $settlement->update([
+                    'total_qty_settled' => $totalQtySettled,
+                    'total_amount_paid' => $totalAmountPaid,
+                ]);
 
-            // Tentukan payment_source kas/bank agar tersinkron ke Laporan Mutasi Kas & Keuangan
-            $paymentSource = 'kas_besar';
-            if ($request->payment_method === 'transfer' && $request->bank_account_id) {
-                $bank = BankAccount::where('tenant_id', $tenantId)->find($request->bank_account_id);
-                $paymentSource = $bank ? ($bank->bank_name ?: (string)$bank->id) : (string)$request->bank_account_id;
-            }
+                $supplier = Supplier::find($request->supplier_id);
+                $supplierName = $supplier ? $supplier->name : 'Supplier';
 
-            Expense::create([
-                'tenant_id'      => $tenantId,
-                'title'          => "Setoran Titipan Konsinyasi: {$supplierName} ({$settlementNumber})",
-                'category'       => 'Setoran Barang Konsinyasi',
-                'payment_source' => $paymentSource,
-                'amount'         => $totalAmountPaid,
-                'expense_date'   => $request->settlement_date,
-                'description'    => "Setoran Penjualan Barang Konsinyasi {$supplierName} ({$settlementNumber}) — Total {$totalQtySettled} PCS." . ($request->notes ? " Catatan: {$request->notes}" : ''),
-            ]);
+                // Tentukan payment_source kas/bank agar tersinkron ke Laporan Mutasi Kas & Keuangan
+                $paymentSource = 'kas_besar';
+                if ($request->payment_method === 'transfer' && $request->bank_account_id) {
+                    $bank = BankAccount::where('tenant_id', $tenantId)->find($request->bank_account_id);
+                    $paymentSource = $bank ? ($bank->bank_name ?: (string)$bank->id) : (string)$request->bank_account_id;
+                }
 
-            return $settlement;
-        });
+                $notesDesc = !empty($invoicesNotes) ? ' Invoice: ' . implode(', ', $invoicesNotes) : '';
+                Expense::create([
+                    'tenant_id'      => $tenantId,
+                    'title'          => "Setoran Titipan Konsinyasi: {$supplierName} ({$settlementNumber})",
+                    'category'       => 'Setoran Barang Konsinyasi',
+                    'payment_source' => $paymentSource,
+                    'amount'         => $totalAmountPaid,
+                    'expense_date'   => $request->settlement_date,
+                    'description'    => "Setoran Titipan Supplier {$supplierName} ({$settlementNumber}) — Total Rp " . number_format($totalAmountPaid, 0, ',', '.') . ".{$notesDesc}" . ($request->notes ? " Catatan: {$request->notes}" : ''),
+                ]);
 
-        return redirect()->route('supplier_consignments.settlement.index', ['supplier_id' => $request->supplier_id])
-            ->with('success', 'Setoran hasil penjualan ke supplier berhasil disimpan.');
+                return $settlement;
+            });
+
+            return redirect()->route('v2.titipan_barang.settlement.index', ['supplier_id' => $request->supplier_id])
+                ->with('success', 'Setoran nominal per invoice ke supplier berhasil disimpan sebesar Rp ' . number_format($settlement->total_amount_paid, 0, ',', '.') . '.');
+        } catch (\Throwable $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => $e->getMessage()]);
+        }
     }
 
     /**
