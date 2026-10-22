@@ -1105,6 +1105,18 @@
                 if (clearInvoiceInput) {
                     invoiceInput.value = '';
                     invoiceInput.focus();
+                    setTimeout(() => {
+                        invoiceInput.focus();
+                        invoiceInput.select();
+                    }, 50);
+                    setTimeout(() => {
+                        invoiceInput.focus();
+                        invoiceInput.select();
+                    }, 150);
+                    setTimeout(() => {
+                        invoiceInput.focus();
+                        invoiceInput.select();
+                    }, 350);
                 }
             }
 
@@ -1493,6 +1505,27 @@
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#039;');
+            }
+
+            // Auto-focus kembalikan kursor ke input aktif saat operator klik di area bebas
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('button, input, select, textarea, .modal, a, .select2-container')) {
+                    if (!activeOrder) {
+                        invoiceInput.focus();
+                    } else if (!skuInput.disabled) {
+                        skuInput.focus();
+                    }
+                }
+            });
+
+            if (modalEl) {
+                modalEl.addEventListener('hidden.bs.modal', function () {
+                    if (!activeOrder) {
+                        invoiceInput.focus();
+                    } else if (!skuInput.disabled) {
+                        skuInput.focus();
+                    }
+                });
             }
 
             // Auto load invoice jika dioper dari daftar pesanan

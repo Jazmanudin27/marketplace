@@ -464,25 +464,47 @@ $(document).ready(function() {
     // Auto-focus Logic for Hardware Barcode Scanner
     // -------------------------------------------------------------
     function focusOrderInput() {
+        const $el = $('#inputScanOrder');
+        if ($el.length && !$el.prop('disabled')) {
+            $el.trigger('focus').select();
+        }
         setTimeout(() => {
-            $('#inputScanOrder').trigger('focus').select();
+            if ($el.length && !$el.prop('disabled')) {
+                $el.trigger('focus').select();
+            }
         }, 50);
         setTimeout(() => {
-            $('#inputScanOrder').trigger('focus').select();
-        }, 200);
+            if ($el.length && !$el.prop('disabled')) {
+                $el.trigger('focus').select();
+            }
+        }, 150);
+        setTimeout(() => {
+            if ($el.length && !$el.prop('disabled')) {
+                $el.trigger('focus').select();
+            }
+        }, 350);
     }
 
     function focusItemInput() {
-        if ($('#inputScanItem').is(':disabled')) return;
+        const $el = $('#inputScanItem');
+        if ($el.length && !$el.prop('disabled')) {
+            $el.trigger('focus').select();
+        }
         setTimeout(() => {
-            $('#inputScanItem').trigger('focus').select();
+            if ($el.length && !$el.prop('disabled')) {
+                $el.trigger('focus').select();
+            }
         }, 50);
         setTimeout(() => {
-            $('#inputScanItem').trigger('focus').select();
-        }, 200);
+            if ($el.length && !$el.prop('disabled')) {
+                $el.trigger('focus').select();
+            }
+        }, 150);
         setTimeout(() => {
-            $('#inputScanItem').trigger('focus').select();
-        }, 400);
+            if ($el.length && !$el.prop('disabled')) {
+                $el.trigger('focus').select();
+            }
+        }, 350);
     }
 
     $('#btnClearOrderInput').on('click', function() {
@@ -888,10 +910,12 @@ $(document).ready(function() {
         focusItemInput();
     }
 
-    // Klik di area Step 2 otomatis kembalikan fokus ke scan SKU jika aktif
-    $('#cardStep2, #itemsContainer').on('click', function(e) {
-        if ($(e.target).closest('.btn-substitute-item, button, input, .modal, a').length === 0) {
-            if (!$('#inputScanItem').prop('disabled')) {
+    // Klik di area bebas otomatis kembalikan fokus ke scanner yang aktif
+    $(document).on('click', function(e) {
+        if ($(e.target).closest('.btn-substitute-item, button, input, select, textarea, .modal, a, .swal2-container').length === 0) {
+            if (!currentOrder) {
+                focusOrderInput();
+            } else if (!$('#inputScanItem').prop('disabled')) {
                 focusItemInput();
             }
         }
@@ -995,14 +1019,31 @@ $(document).ready(function() {
                         icon: 'success',
                         title: 'Berhasil Kemas!',
                         text: res.message,
-                        timer: 2000,
-                        showConfirmButton: false
+                        timer: 1500,
+                        showConfirmButton: false,
+                        returnFocus: false,
+                        didClose: () => {
+                            resetScannerState();
+                            focusOrderInput();
+                        }
                     }).then(() => {
                         resetScannerState();
+                        focusOrderInput();
                     });
                 } else {
                     playErrorBuzzer();
-                    Swal.fire('Gagal', res.message || 'Gagal menyelesikan verifikasi kemasan.', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: res.message || 'Gagal menyelesaikan verifikasi kemasan.',
+                        returnFocus: false
+                    }).then(() => {
+                        if (!currentOrder) {
+                            focusOrderInput();
+                        } else {
+                            focusItemInput();
+                        }
+                    });
                 }
             },
             error: function(xhr) {
@@ -1010,7 +1051,18 @@ $(document).ready(function() {
                 playErrorBuzzer();
                 let msg = 'Terjadi kesalahan server.';
                 if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                Swal.fire('Error', msg, 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: msg,
+                    returnFocus: false
+                }).then(() => {
+                    if (!currentOrder) {
+                        focusOrderInput();
+                    } else {
+                        focusItemInput();
+                    }
+                });
             }
         });
     }
@@ -1022,7 +1074,7 @@ $(document).ready(function() {
 
         $('#cardStep1').addClass('active-step').removeClass('step-completed');
         $('#orderStatusBadge').removeClass('bg-success text-white').addClass('bg-secondary text-white').text('MENUNGGU SCAN');
-        $('#inputScanOrder').val('');
+        $('#inputScanOrder').prop('disabled', false).val('');
         $('#orderSummaryBox').addClass('d-none');
 
         $('#cardStep2').addClass('opacity-50').removeClass('active-step');
