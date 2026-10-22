@@ -648,6 +648,13 @@ class TitipanBarangController extends Controller
             'reference_number'=> 'nullable|string|max:100',
             'notes'           => 'nullable|string|max:1000',
             'invoices'        => 'required|array|min:1',
+        ], [
+            'supplier_id.required'        => 'Supplier penerima setoran wajib dipilih.',
+            'settlement_date.required'    => 'Tanggal setoran wajib diisi.',
+            'payment_method.required'     => 'Metode pembayaran wajib dipilih.',
+            'bank_account_id.required_if' => 'Sumber Rekening Bank wajib dipilih jika metode pembayaran adalah Transfer Bank.',
+            'bank_account_id.exists'      => 'Rekening bank yang dipilih tidak valid.',
+            'invoices.required'           => 'Pilih minimal satu nota atau dokumen titipan untuk disetorkan.',
         ]);
 
         try {

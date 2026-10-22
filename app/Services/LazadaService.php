@@ -41,14 +41,22 @@ class LazadaService
             ]);
         }
 
-        return $this->authUrl . '?' . http_build_query([
+        $params = [
             'response_type' => 'code',
-            'force_auth' => 'true',
-            'redirect_uri' => $this->redirectUri,
-            'client_id' => $this->appKey,
-            'country' => 'id',
-            'state' => $state,
-        ]);
+            'force_auth'    => 'true',
+            'redirect_uri'  => $this->redirectUri,
+            'client_id'     => $this->appKey,
+            'state'         => $state,
+        ];
+
+        // Parameter country opsional (hanya jika diset via LAZADA_COUNTRY).
+        // Jangan hardcode 'country=id' karena auth.lazada.com akan redirect ke api.lazada.co.id yang sering mengalami error ISP/temporary failure.
+        $country = config('services.lazada.country');
+        if (!empty($country)) {
+            $params['country'] = $country;
+        }
+
+        return $this->authUrl . '?' . http_build_query($params);
     }
 
     /**

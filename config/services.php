@@ -45,6 +45,7 @@ return [
         'app_key' => env('LAZADA_APP_KEY'),
         'app_secret' => env('LAZADA_APP_SECRET'),
         'redirect_uri' => env('LAZADA_REDIRECT_URI'),
+        'country' => env('LAZADA_COUNTRY'),
     ],
 
     'tiktok_ads' => [

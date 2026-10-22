@@ -85,7 +85,7 @@
                 <!-- Sumber Rekening Bank -->
                 <div class="mb-2" id="bank-container">
                     <label class="form-label small fw-semibold text-dark mb-1">Sumber Rekening Bank <span class="text-danger">*</span></label>
-                    <select name="bank_account_id" class="form-select form-select-sm">
+                    <select name="bank_account_id" id="bank_account_id" class="form-select form-select-sm @error('bank_account_id') is-invalid @enderror">
                         <option value="">-- Pilih Rekening --</option>
                         @foreach ($bankAccounts as $bank)
                             <option value="{{ $bank->id }}" {{ old('bank_account_id') == $bank->id ? 'selected' : '' }}>
@@ -93,6 +93,9 @@
                             </option>
                         @endforeach
                     </select>
+                    @error('bank_account_id')
+                        <div class="invalid-feedback small">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <!-- No. Ref Transfer -->
@@ -175,38 +178,17 @@
                                                 "{{ $inv['notes'] }}"
                                             </div>
                                         @endif
-                                        {{-- Collapsible Preview Barang --}}
+                                        {{-- Modal Trigger Rincian Produk --}}
                                         <div class="mt-1">
-                                            <a class="text-decoration-none fw-semibold text-secondary" style="font-size: 0.68rem;" data-bs-toggle="collapse" href="#itemsCollapse{{ $inv['consignment_id'] }}" role="button" aria-expanded="false">
-                                                <i class="bi bi-box-seam me-1"></i> Rincian Produk ({{ $inv['items_count'] }}) <i class="bi bi-chevron-down ms-0.5" style="font-size: 0.6rem;"></i>
-                                            </a>
-                                            <div class="collapse mt-1" id="itemsCollapse{{ $inv['consignment_id'] }}">
-                                                <div class="p-2 bg-light border rounded" style="font-size: 0.72rem; max-height: 180px; overflow-y: auto;">
-                                                    <table class="table table-sm table-borderless m-0" style="font-size: 0.7rem;">
-                                                        <thead>
-                                                            <tr class="text-muted border-bottom">
-                                                                <th>Produk</th>
-                                                                <th class="text-center">Qty</th>
-                                                                <th class="text-end">HPP</th>
-                                                                <th class="text-end">Subtotal</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach($inv['items'] as $itemPreview)
-                                                                <tr>
-                                                                    <td class="py-0.5 text-truncate" style="max-width: 140px;">
-                                                                        <span class="fw-semibold text-dark">{{ $itemPreview['name'] }}</span>
-                                                                        <span class="text-muted d-block font-monospace" style="font-size: 0.65rem;">{{ $itemPreview['sku'] }}</span>
-                                                                    </td>
-                                                                    <td class="py-0.5 text-center font-monospace">{{ number_format($itemPreview['qty']) }}</td>
-                                                                    <td class="py-0.5 text-end font-monospace">Rp {{ number_format($itemPreview['unit_cost_price'], 0, ',', '.') }}</td>
-                                                                    <td class="py-0.5 text-end font-monospace fw-semibold">Rp {{ number_format($itemPreview['subtotal'], 0, ',', '.') }}</td>
-                                                                </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
+                                            <button type="button"
+                                                class="btn btn-xs btn-outline-primary py-0.5 px-2 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm"
+                                                style="font-size: 0.68rem; font-weight: 500;"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalInvoiceItems{{ $inv['consignment_id'] }}">
+                                                <i class="bi bi-box-seam"></i>
+                                                <span>Rincian Produk ({{ $inv['items_count'] }})</span>
+                                                <i class="bi bi-box-arrow-up-right ms-0.5" style="font-size: 0.6rem;"></i>
+                                            </button>
                                         </div>
                                     </td>
                                     <td class="text-center font-monospace py-2">
@@ -287,6 +269,114 @@
     </div>
 </form>
 
+{{-- Modals Rincian Produk Per Dokumen Titipan --}}
+@foreach($availableInvoices as $inv)
+<div class="modal fade" id="modalInvoiceItems{{ $inv['consignment_id'] }}" tabindex="-1" aria-labelledby="modalLabel{{ $inv['consignment_id'] }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content shadow border-0" style="border-radius: 12px; overflow: hidden;">
+            <div class="modal-header py-2.5 px-3 bg-light border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="bi bi-receipt-cutoff fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="modal-title fw-bold text-dark mb-0 font-monospace" id="modalLabel{{ $inv['consignment_id'] }}">
+                                {{ $inv['reference_number'] }}
+                            </h6>
+                            @if($inv['is_paid_off'])
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5" style="font-size: 0.65rem;">Lunas</span>
+                            @else
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5" style="font-size: 0.65rem;">Sisa Tagihan: Rp {{ number_format($inv['remaining_amount'], 0, ',', '.') }}</span>
+                            @endif
+                        </div>
+                        <div class="text-muted small mt-0.5" style="font-size: 0.73rem;">
+                            <span><i class="bi bi-calendar3 me-1"></i>Tanggal: {{ $inv['consignment_date'] }}</span>
+                            <span class="mx-1.5">•</span>
+                            <span>{{ $inv['items_count'] }} Jenis Produk</span>
+                            <span class="mx-1.5">•</span>
+                            <span>Total Qty: {{ number_format($inv['total_qty']) }} PCS</span>
+                            @if($inv['notes'] && $inv['notes'] !== '-')
+                                <span class="mx-1.5">•</span>
+                                <span class="fst-italic text-secondary">"{{ $inv['notes'] }}"</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            @if(count($inv['items']) > 5)
+                <div class="px-3 pt-2.5 pb-2 bg-white border-bottom">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text"
+                            class="form-control border-start-0 ps-1"
+                            placeholder="Cari SKU atau nama produk di dokumen ini..."
+                            oninput="filterModalItems(this, 'tableItems{{ $inv['consignment_id'] }}')">
+                    </div>
+                </div>
+            @endif
+
+            <div class="modal-body p-0">
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-hover table-striped align-middle mb-0" id="tableItems{{ $inv['consignment_id'] }}" style="font-size: 0.8rem;">
+                        <thead class="bg-light text-muted sticky-top border-bottom">
+                            <tr>
+                                <th style="width: 5%;" class="text-center py-2 ps-3">#</th>
+                                <th style="width: 22%;" class="py-2">KODE / SKU</th>
+                                <th style="width: 43%;" class="py-2">NAMA PRODUK</th>
+                                <th style="width: 10%;" class="text-center py-2">QTY</th>
+                                <th style="width: 10%;" class="text-end py-2">HPP SATUAN</th>
+                                <th style="width: 10%;" class="text-end pe-3 py-2">SUBTOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($inv['items'] as $idx => $it)
+                                <tr class="item-row">
+                                    <td class="text-center text-muted small py-2 ps-3">{{ $idx + 1 }}</td>
+                                    <td class="py-2">
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle font-monospace px-1.5 py-1" style="font-size: 0.72rem;">
+                                            {{ $it['sku'] ?: '-' }}
+                                        </span>
+                                    </td>
+                                    <td class="py-2">
+                                        <span class="fw-semibold text-dark">{{ $it['name'] }}</span>
+                                    </td>
+                                    <td class="text-center font-monospace py-2">
+                                        <span class="badge bg-light text-dark border px-2 py-1 font-monospace">{{ number_format($it['qty']) }} PCS</span>
+                                    </td>
+                                    <td class="text-end font-monospace text-muted py-2">
+                                        Rp {{ number_format($it['unit_cost_price'], 0, ',', '.') }}
+                                    </td>
+                                    <td class="text-end font-monospace fw-bold text-dark pe-3 py-2">
+                                        Rp {{ number_format($it['subtotal'], 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">Tidak ada rincian produk</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer py-2 px-3 bg-light border-top d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3 font-monospace small">
+                    <span class="text-muted">Total Qty: <strong class="text-dark">{{ number_format($inv['total_qty']) }} PCS</strong></span>
+                    <span class="text-muted">Total Nilai HPP: <strong class="text-primary fs-6">Rp {{ number_format($inv['total_amount'], 0, ',', '.') }}</strong></span>
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary px-3 fw-semibold" data-bs-dismiss="modal">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
 @endsection
 
 @push('scripts')
@@ -363,12 +453,46 @@
         calculateTotalNominal();
     }
 
+    function filterModalItems(input, tableId) {
+        const val = input.value.toLowerCase().trim();
+        const rows = document.querySelectorAll('#' + tableId + ' tbody tr.item-row');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(val) ? '' : 'none';
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const methodSelect = document.getElementById('payment_method');
         if (methodSelect) {
             toggleBank(methodSelect.value);
         }
         calculateTotalNominal();
+
+        const form = document.getElementById('settlement-form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const method = document.getElementById('payment_method')?.value;
+                const bankSelect = document.getElementById('bank_account_id');
+                if (method === 'transfer' && bankSelect && !bankSelect.value) {
+                    e.preventDefault();
+                    alert('Silakan pilih Sumber Rekening Bank terlebih dahulu untuk metode Transfer Bank.');
+                    bankSelect.focus();
+                    return false;
+                }
+
+                let totalNominal = 0;
+                document.querySelectorAll('.invoice-pay-input').forEach(input => {
+                    totalNominal += parseRupiahNumber(input.value);
+                });
+
+                if (totalNominal <= 0) {
+                    e.preventDefault();
+                    alert('Nominal pembayaran setoran masih Rp 0. Masukkan nominal yang ingin disetorkan pada minimal satu dokumen titipan.');
+                    return false;
+                }
+            });
+        }
     });
 </script>
 @endpush
