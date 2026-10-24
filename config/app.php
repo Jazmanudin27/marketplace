@@ -123,4 +123,11 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Batas Kuota Import Master Produk Per Minggu
+    |--------------------------------------------------------------------------
+    */
+    'product_import_weekly_limit' => (int) env('PRODUCT_IMPORT_WEEKLY_LIMIT', 3),
+
 ];

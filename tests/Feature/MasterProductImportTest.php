@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\MasterProduct;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\ProductImportLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
@@ -129,48 +130,52 @@ class MasterProductImportTest extends TestCase
         $this->assertFalse($product->is_preorder);
     }
 
-    public function test_import_updates_last_product_import_at_and_blocks_second_import_within_week(): void
+    public function test_import_allows_up_to_three_imports_and_blocks_fourth_within_week(): void
     {
-        $csvContent1 = implode("\n", [
-            'sku;nama_produk;harga_jual',
-            'SKU-FIRST-01;Produk Pertama;10000',
-        ]);
-        $file1 = UploadedFile::fake()->createWithContent('import1.csv', $csvContent1);
-
+        // 1st import -> should succeed
+        $file1 = UploadedFile::fake()->createWithContent('import1.csv', "sku;nama_produk;harga_jual\nSKU-FIRST-01;Produk Pertama;10000");
         $res1 = $this->post(route('v2.produk.import'), ['file' => $file1]);
         $res1->assertSessionHas('success');
 
         $this->tenant->refresh();
         $this->assertNotNull($this->tenant->last_product_import_at);
+        $this->assertEquals(1, ProductImportLog::where('tenant_id', $this->tenant->id)->count());
 
-        // Second import immediately after should be blocked
-        $csvContent2 = implode("\n", [
-            'sku;nama_produk;harga_jual',
-            'SKU-SECOND-02;Produk Kedua;20000',
-        ]);
-        $file2 = UploadedFile::fake()->createWithContent('import2.csv', $csvContent2);
-
+        // 2nd import -> should succeed
+        $file2 = UploadedFile::fake()->createWithContent('import2.csv', "sku;nama_produk;harga_jual\nSKU-SECOND-02;Produk Kedua;20000");
         $res2 = $this->post(route('v2.produk.import'), ['file' => $file2]);
-        $res2->assertSessionHas('error');
+        $res2->assertSessionHas('success');
+        $this->assertEquals(2, ProductImportLog::where('tenant_id', $this->tenant->id)->count());
 
-        // Product from blocked import should not exist
-        $secondProduct = MasterProduct::where('tenant_id', $this->tenant->id)
-            ->where('sku', 'SKU-SECOND-02')
-            ->first();
-        $this->assertNull($secondProduct);
-
-        // Fast forward 8 days in past for last_product_import_at
-        $this->tenant->update([
-            'last_product_import_at' => now()->subDays(8),
-        ]);
-
-        $res3 = $this->post(route('v2.produk.import'), ['file' => $file2]);
+        // 3rd import -> should succeed
+        $file3 = UploadedFile::fake()->createWithContent('import3.csv', "sku;nama_produk;harga_jual\nSKU-THIRD-03;Produk Ketiga;30000");
+        $res3 = $this->post(route('v2.produk.import'), ['file' => $file3]);
         $res3->assertSessionHas('success');
+        $this->assertEquals(3, ProductImportLog::where('tenant_id', $this->tenant->id)->count());
 
-        $secondProduct = MasterProduct::where('tenant_id', $this->tenant->id)
-            ->where('sku', 'SKU-SECOND-02')
+        // 4th import immediately after -> should be blocked!
+        $file4 = UploadedFile::fake()->createWithContent('import4.csv', "sku;nama_produk;harga_jual\nSKU-FOURTH-04;Produk Keempat;40000");
+        $res4 = $this->post(route('v2.produk.import'), ['file' => $file4]);
+        $res4->assertSessionHas('error');
+
+        // Product from blocked 4th import should not exist
+        $fourthProduct = MasterProduct::where('tenant_id', $this->tenant->id)
+            ->where('sku', 'SKU-FOURTH-04')
             ->first();
-        $this->assertNotNull($secondProduct);
+        $this->assertNull($fourthProduct);
+
+        // Fast forward oldest import log by 8 days in the past (so only 2 imports remain in 7-day window)
+        $oldestLog = ProductImportLog::where('tenant_id', $this->tenant->id)->orderBy('created_at', 'asc')->first();
+        $oldestLog->update(['created_at' => now()->subDays(8)]);
+
+        $file5 = UploadedFile::fake()->createWithContent('import5.csv', "sku;nama_produk;harga_jual\nSKU-FOURTH-04;Produk Keempat;40000");
+        $res5 = $this->post(route('v2.produk.import'), ['file' => $file5]);
+        $res5->assertSessionHas('success');
+
+        $fourthProduct = MasterProduct::where('tenant_id', $this->tenant->id)
+            ->where('sku', 'SKU-FOURTH-04')
+            ->first();
+        $this->assertNotNull($fourthProduct);
     }
 
     public function test_index_reflects_import_lock_status(): void
@@ -178,17 +183,83 @@ class MasterProductImportTest extends TestCase
         $resBefore = $this->get(route('v2.produk.index'));
         $resBefore->assertOk();
         $resBefore->assertViewHas('canImport', true);
+        $resBefore->assertViewHas('remainingQuota', 3);
 
-        // Set last import to 2 days ago
-        $this->tenant->update([
-            'last_product_import_at' => now()->subDays(2),
-        ]);
+        // Insert 3 import logs within 2 days
+        for ($i = 1; $i <= 3; $i++) {
+            ProductImportLog::create([
+                'tenant_id' => $this->tenant->id,
+                'user_id' => $this->user->id,
+                'filename' => "test_{$i}.csv",
+                'created_at' => now()->subDays(1),
+            ]);
+        }
 
         $resAfter = $this->get(route('v2.produk.index'));
         $resAfter->assertOk();
         $resAfter->assertViewHas('canImport', false);
+        $resAfter->assertViewHas('remainingQuota', 0);
         $resAfter->assertSee('Batas Frekuensi Import Sedang Aktif');
-        $resAfter->assertSee('Terkunci (Maks 1x Seminggu)');
+        $resAfter->assertSee('Terkunci (Maks 3x Seminggu)');
+    }
+
+    public function test_super_admin_bypasses_weekly_import_limit(): void
+    {
+        // 3 logs already exist
+        for ($i = 1; $i <= 3; $i++) {
+            ProductImportLog::create([
+                'tenant_id' => $this->tenant->id,
+                'user_id' => $this->user->id,
+                'filename' => "test_{$i}.csv",
+                'created_at' => now()->subDays(1),
+            ]);
+        }
+
+        $superAdmin = User::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Super Admin',
+            'email' => 'superadmin@test.com',
+            'password' => bcrypt('password'),
+            'role' => 'super-admin',
+        ]);
+
+        $this->actingAs($superAdmin);
+
+        $resIndex = $this->get(route('v2.produk.index'));
+        $resIndex->assertOk();
+        $resIndex->assertViewHas('canImport', true);
+
+        $file = UploadedFile::fake()->createWithContent('super_admin.csv', "sku;nama_produk;harga_jual\nSKU-SUPER-01;Super Product;50000");
+        $resImport = $this->post(route('v2.produk.import'), ['file' => $file]);
+        $resImport->assertSessionHas('success');
+    }
+
+    public function test_custom_weekly_import_limit_via_config_and_tenant_attribute(): void
+    {
+        // 1. Set global config to 7
+        config(['app.product_import_weekly_limit' => 7]);
+
+        $this->assertEquals(7, $this->tenant->getMaxWeeklyProductImports());
+        $status = $this->tenant->getProductImportQuotaStatus();
+        $this->assertEquals(7, $status['max_limit']);
+        $this->assertEquals(7, $status['remaining_quota']);
+
+        // 2. Tenant override to 10
+        $this->tenant->update(['weekly_product_import_limit' => 10]);
+        $this->assertEquals(10, $this->tenant->fresh()->getMaxWeeklyProductImports());
+        $statusOverride = $this->tenant->fresh()->getProductImportQuotaStatus();
+        $this->assertEquals(10, $statusOverride['max_limit']);
+        $this->assertEquals(10, $statusOverride['remaining_quota']);
+
+        // 3. View index with custom limit
+        $res = $this->get(route('v2.produk.index'));
+        $res->assertOk();
+        $res->assertViewHas('maxImportLimit', 10);
+        $res->assertViewHas('remainingQuota', 10);
+        $res->assertSee('10/10 Tersedia');
     }
 }
+
+
+
 

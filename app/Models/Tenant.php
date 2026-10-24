@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Schema;
 
 class Tenant extends Model
 {
+    public const MAX_WEEKLY_PRODUCT_IMPORTS = 3;
+
     protected $fillable = [
         'name',
         'status',
@@ -15,12 +18,14 @@ class Tenant extends Model
         'office_longitude',
         'office_radius',
         'last_product_import_at',
+        'weekly_product_import_limit',
     ];
 
     protected function casts(): array
     {
         return [
             'last_product_import_at' => 'datetime',
+            'weekly_product_import_limit' => 'integer',
         ];
     }
 
@@ -67,4 +72,75 @@ class Tenant extends Model
     {
         return $this->hasMany(Order::class);
     }
+
+    public function productImportLogs(): HasMany
+    {
+        return $this->hasMany(ProductImportLog::class);
+    }
+
+    /**
+     * Get recent product imports within rolling N days (default 7 days).
+     */
+    public function getRecentProductImports(int $days = 7)
+    {
+        if (Schema::hasTable('product_import_logs')) {
+            return $this->productImportLogs()
+                ->where('created_at', '>=', now()->subDays($days))
+                ->orderBy('created_at', 'asc')
+                ->get();
+        }
+
+        return collect();
+    }
+
+    /**
+     * Get maximum allowed product imports per week for this tenant.
+     * Hierarchy: Tenant specific limit -> config('app.product_import_weekly_limit') -> env() -> default (3)
+     */
+    public function getMaxWeeklyProductImports(): int
+    {
+        if (!empty($this->weekly_product_import_limit) && (int) $this->weekly_product_import_limit > 0) {
+            return (int) $this->weekly_product_import_limit;
+        }
+
+        return (int) config('app.product_import_weekly_limit', env('PRODUCT_IMPORT_WEEKLY_LIMIT', self::MAX_WEEKLY_PRODUCT_IMPORTS));
+    }
+
+    /**
+     * Get quota and lock status for master product import.
+     */
+    public function getProductImportQuotaStatus(int $days = 7): array
+    {
+        $maxLimit = $this->getMaxWeeklyProductImports();
+        $recentImports = $this->getRecentProductImports($days);
+        $usedCount = $recentImports->count();
+
+        // Fallback for existing tenants when product_import_logs has no entry yet
+        if ($usedCount === 0 && $this->last_product_import_at && $this->last_product_import_at->gte(now()->subDays($days))) {
+            $usedCount = 1;
+            $oldestInWindow = $this->last_product_import_at;
+            $latestImportAt = $this->last_product_import_at;
+        } else {
+            $oldestInWindow = $recentImports->first()?->created_at;
+            $latestImportAt = $recentImports->last()?->created_at ?? $this->last_product_import_at;
+        }
+
+        $canImport = $usedCount < $maxLimit;
+        $remainingQuota = max(0, $maxLimit - $usedCount);
+        $nextImportAt = null;
+
+        if (!$canImport && $oldestInWindow) {
+            $nextImportAt = $oldestInWindow->copy()->addDays($days);
+        }
+
+        return [
+            'can_import' => $canImport,
+            'used_count' => $usedCount,
+            'max_limit' => $maxLimit,
+            'remaining_quota' => $remainingQuota,
+            'next_import_at' => $nextImportAt,
+            'last_import_at' => $latestImportAt,
+        ];
+    }
 }
+

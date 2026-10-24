@@ -9,6 +9,7 @@ use App\Models\Brand;
 use App\Models\Store;
 use App\Models\Channel;
 use App\Models\Tenant;
+use App\Models\ProductImportLog;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
@@ -133,16 +134,25 @@ class ProdukController extends Controller
         ];
 
         $tenant = Tenant::find($tenantId);
-        $lastImportAt = $tenant?->last_product_import_at;
-        $canImport = true;
-        $nextImportAt = null;
+        $quotaStatus = $tenant?->getProductImportQuotaStatus() ?? [
+            'can_import' => true,
+            'used_count' => 0,
+            'max_limit' => 3,
+            'remaining_quota' => 3,
+            'next_import_at' => null,
+            'last_import_at' => null,
+        ];
 
-        if ($lastImportAt) {
-            $nextImportAt = $lastImportAt->copy()->addDays(7);
-            if (now()->lt($nextImportAt) && Auth::user()->role !== 'super-admin') {
-                $canImport = false;
-            }
+        $canImport = $quotaStatus['can_import'];
+        if (Auth::user()->role === 'super-admin') {
+            $canImport = true;
         }
+
+        $lastImportAt = $quotaStatus['last_import_at'];
+        $nextImportAt = $quotaStatus['next_import_at'];
+        $remainingQuota = $quotaStatus['remaining_quota'];
+        $usedCount = $quotaStatus['used_count'];
+        $maxImportLimit = $quotaStatus['max_limit'];
 
         return view('v2.produk.index', compact(
             'products',
@@ -154,7 +164,10 @@ class ProdukController extends Controller
             'tenant',
             'lastImportAt',
             'canImport',
-            'nextImportAt'
+            'nextImportAt',
+            'remainingQuota',
+            'usedCount',
+            'maxImportLimit'
         ));
     }
 
@@ -346,13 +359,15 @@ class ProdukController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $tenant = Tenant::find($tenantId);
 
-        // Validasi pembatasan import: Maksimal 1 kali dalam 1 minggu (7 hari)
-        if ($tenant && $tenant->last_product_import_at) {
-            $nextAllowed = $tenant->last_product_import_at->copy()->addDays(7);
-            if (now()->lt($nextAllowed) && Auth::user()->role !== 'super-admin') {
-                $formattedNext = $nextAllowed->translatedFormat('d F Y H:i');
-                $diff = now()->diffForHumans($nextAllowed, ['parts' => 2, 'syntax' => CarbonInterface::DIFF_RELATIVE_TO_NOW]);
-                return redirect()->back()->with('error', "Import master produk dibatasi maksimal 1 kali dalam 1 minggu. Terakhir diimport: {$tenant->last_product_import_at->translatedFormat('d F Y H:i')}. Anda baru dapat melakukan import kembali pada {$formattedNext} ({$diff}).");
+        // Validasi pembatasan import: Maksimal 3 kali dalam 1 minggu (7 hari)
+        if ($tenant) {
+            $quotaStatus = $tenant->getProductImportQuotaStatus();
+            if (!$quotaStatus['can_import'] && Auth::user()->role !== 'super-admin') {
+                $nextAllowed = $quotaStatus['next_import_at'];
+                $formattedNext = $nextAllowed ? $nextAllowed->translatedFormat('d F Y H:i') : '-';
+                $diff = $nextAllowed ? now()->diffForHumans($nextAllowed, ['parts' => 2, 'syntax' => CarbonInterface::DIFF_RELATIVE_TO_NOW]) : '';
+                $lastFormatted = $quotaStatus['last_import_at'] ? $quotaStatus['last_import_at']->translatedFormat('d F Y H:i') : '-';
+                return redirect()->back()->with('error', "Import master produk dibatasi maksimal 3 kali dalam 1 minggu. Kuota minggu ini sudah habis (3/3 kali digunakan). Terakhir diimport: {$lastFormatted}. Anda baru dapat melakukan import kembali pada {$formattedNext} ({$diff}).");
             }
         }
 
@@ -772,6 +787,17 @@ class ProdukController extends Controller
 
         if ($tenant) {
             $tenant->update(['last_product_import_at' => now()]);
+
+            if (Schema::hasTable('product_import_logs')) {
+                ProductImportLog::create([
+                    'tenant_id' => $tenantId,
+                    'user_id' => Auth::id(),
+                    'filename' => $file->getClientOriginalName(),
+                    'inserted_count' => $insertedCount,
+                    'updated_count' => $updatedCount,
+                    'skipped_count' => $skippedCount,
+                ]);
+            }
         }
 
         return redirect()->route('v2.produk.index')->with('success', "Import produk selesai! {$insertedCount} produk baru ditambahkan (otomatis PO), {$updatedCount} produk diperbarui" . ($skippedCount > 0 ? ", {$skippedCount} baris tidak diupdate/dilewati (karena kosong atau SKU tidak valid)." : "."));

@@ -130,10 +130,13 @@
         @if($canImport ?? true)
             <button type="button" class="btn btn-sm btn-v2-success py-1.5 px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importProdukModal">
                 <i class="bi bi-file-earmark-excel me-1"></i> Import Produk
+                @if(isset($remainingQuota) && isset($maxImportLimit) && $remainingQuota < $maxImportLimit)
+                    <span class="badge bg-light text-success ms-1" style="font-size: 0.65rem;">Sisa {{ $remainingQuota }}x</span>
+                @endif
             </button>
         @else
-            <button type="button" class="btn btn-sm btn-outline-secondary py-1.5 px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importProdukModal" title="Import dibatasi 1x seminggu. Terkunci hingga {{ $nextImportAt ? $nextImportAt->translatedFormat('d M Y H:i') : '' }}">
-                <i class="bi bi-lock-fill text-warning me-1"></i> Import Produk <span class="badge bg-secondary-subtle text-muted ms-1" style="font-size: 0.65rem;">1x Seminggu</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-1.5 px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importProdukModal" title="Import dibatasi {{ $maxImportLimit ?? 3 }}x seminggu. Terkunci hingga {{ $nextImportAt ? $nextImportAt->translatedFormat('d M Y H:i') : '' }}">
+                <i class="bi bi-lock-fill text-warning me-1"></i> Import Produk <span class="badge bg-secondary-subtle text-muted ms-1" style="font-size: 0.65rem;">Maks {{ $maxImportLimit ?? 3 }}x Seminggu</span>
             </button>
         @endif
         <a href="{{ route('v2.produk.create') }}" class="btn btn-sm btn-v2-primary py-1.5 px-3 shadow-sm">
@@ -677,7 +680,7 @@
                             <div>
                                 <div class="fw-bold text-dark mb-0.5">Batas Frekuensi Import Sedang Aktif</div>
                                 <div class="text-secondary">
-                                    Menu import produk dibatasi hanya <strong>1 kali dalam 1 minggu</strong> (7 hari).
+                                    Menu import produk dibatasi maksimal <strong>{{ $maxImportLimit ?? 3 }} kali dalam 1 minggu</strong> (7 hari). Kuota minggu ini telah habis ({{ $usedCount ?? ($maxImportLimit ?? 3) }}/{{ $maxImportLimit ?? 3 }} terpakai).
                                 </div>
                                 <div class="mt-1.5 pt-1.5 border-top border-warning-subtle text-muted" style="font-size: 0.72rem;">
                                     Terakhir import: <span class="text-dark fw-medium">{{ $lastImportAt ? $lastImportAt->translatedFormat('d F Y, H:i') : '-' }}</span><br>
@@ -685,12 +688,25 @@
                                 </div>
                             </div>
                         </div>
+                    @else
+                        <div class="alert alert-light border d-flex align-items-center justify-content-between py-2 px-3 mb-3" style="font-size: 0.78rem;">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-shield-check text-success fs-5"></i>
+                                <div>
+                                    <span class="fw-bold text-dark">Kuota Import Mingguan:</span>
+                                    <span class="text-secondary">Tersisa <strong>{{ $remainingQuota ?? ($maxImportLimit ?? 3) }} kali</strong> dari {{ $maxImportLimit ?? 3 }} kali (rentang 7 hari).</span>
+                                </div>
+                            </div>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                {{ $remainingQuota ?? ($maxImportLimit ?? 3) }}/{{ $maxImportLimit ?? 3 }} Tersedia
+                            </span>
+                        </div>
                     @endif
 
                     <div class="alert alert-info bg-info-subtle border-info-subtle text-info py-2 px-3 mb-3" style="font-size: 0.75rem;">
                         <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill me-1"></i> Panduan Format File Import:</div>
                         <ul class="mb-0 ps-3">
-                            <li><strong class="text-danger">Ketentuan Frekuensi:</strong> Upload/import master produk dibatasi maksimal 1 kali setiap 1 minggu.</li>
+                            <li><strong class="text-danger">Ketentuan Frekuensi:</strong> Upload/import master produk dibatasi maksimal {{ $maxImportLimit ?? 3 }} kali setiap 1 minggu (rentang 7 hari).</li>
                             <li>Format file disarankan <strong>.CSV</strong> (Comma Separated Values) / Excel.</li>
                             <li>Sistem menggunakan kolom <strong>SKU</strong> sebagai penanda unik. Jika SKU belum ada, produk otomatis ditambahkan ke Master Produk dengan status <strong>PO (Pre-Order)</strong>.</li>
                             <li>Jika SKU sudah ada, produk akan diperbarui. Kolom yang <strong>kosong</strong> diabaikan (tidak menimpa data lama).</li>
@@ -721,7 +737,7 @@
                         </button>
                     @else
                         <button type="button" class="btn btn-sm btn-secondary" disabled>
-                            <i class="bi bi-lock-fill me-1"></i> Terkunci (Maks 1x Seminggu)
+                            <i class="bi bi-lock-fill me-1"></i> Terkunci (Maks {{ $maxImportLimit ?? 3 }}x Seminggu)
                         </button>
                     @endif
                 </div>
