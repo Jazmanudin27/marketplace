@@ -190,12 +190,12 @@
             <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;">
                 <thead class="bg-light bg-opacity-75 text-uppercase fw-bold text-secondary border-bottom" style="font-size: 0.72rem; letter-spacing: 0.04em;">
                     <tr>
-                        <th class="ps-3.5 py-2.5" style="width: 25%;">SUPPLIER</th>
-                        <th class="text-center py-2.5" style="width: 10%;">JUMLAH NOTA</th>
-                        <th class="text-end py-2.5" style="width: 16%;">TOTAL TITIPAN (RP)</th>
-                        <th class="text-end py-2.5" style="width: 16%;">SUDAH DISETOR (RP)</th>
-                        <th class="text-end py-2.5" style="width: 17%;">SISA WAJIB SETOR (RP)</th>
-                        <th class="text-center pe-3.5 py-2.5" style="width: 16%;">AKSI</th>
+                        <th class="ps-3.5 py-2.5" style="width: 27%;">SUPPLIER</th>
+                        <th class="text-center py-2.5" style="width: 11%;">JUMLAH NOTA</th>
+                        <th class="text-end py-2.5" style="width: 17%;">TOTAL TITIPAN (RP)</th>
+                        <th class="text-end py-2.5" style="width: 17%;">SUDAH DISETOR (RP)</th>
+                        <th class="text-end py-2.5" style="width: 18%;">SISA WAJIB SETOR (RP)</th>
+                        <th class="text-center pe-3.5 py-2.5" style="width: 10%;">AKSI</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
@@ -251,18 +251,15 @@
                                 @endif
                             </td>
                             <td class="text-center pe-3.5 py-3">
-                                <div class="d-flex align-items-center justify-content-center gap-1.5">
-                                    <button type="button" class="btn btn-outline-info btn-sm py-1.5 px-2.5 fw-semibold rounded-2 position-relative" style="font-size:0.76rem;" data-bs-toggle="collapse" data-bs-target="#historiBayarSup{{ $sRow['supplier_id'] }}" aria-expanded="false" title="Lihat Histori Pembayaran Setoran">
-                                        <i class="bi bi-clock-history me-1"></i>Histori Bayar
+                                <div class="d-inline-flex align-items-center justify-content-center gap-1.5">
+                                    <button type="button" class="btn btn-outline-info btn-sm py-1.5 px-2.5 rounded-2 position-relative" style="font-size:0.82rem;" data-bs-toggle="collapse" data-bs-target="#historiBayarSup{{ $sRow['supplier_id'] }}" aria-expanded="false" title="Histori Pembayaran Setoran">
+                                        <i class="bi bi-clock-history"></i>
                                         @if(!empty($sRow['settlement_history']) && count($sRow['settlement_history']) > 0)
-                                            <span class="badge bg-info text-white rounded-pill ms-1" style="font-size:0.65rem;">{{ count($sRow['settlement_history']) }}</span>
+                                            <span class="badge bg-info text-white rounded-pill ms-0.5" style="font-size:0.62rem;">{{ count($sRow['settlement_history']) }}</span>
                                         @endif
                                     </button>
-                                    <a href="{{ route('supplier_consignments.stock_card', ['supplier_id' => $sRow['supplier_id'], 'supplier' => $sRow['supplier_name']]) }}" class="btn btn-light btn-sm py-1.5 px-2.5 border fw-semibold rounded-2 text-secondary" style="font-size:0.76rem;" title="Lihat Kartu Stok Produk Supplier Ini">
-                                        <i class="bi bi-card-checklist me-1 text-primary"></i>Kartu Stok
-                                    </a>
-                                    <a href="{{ route('v2.titipan_barang.settlement.create', ['supplier_id' => $sRow['supplier_id']]) }}" class="btn btn-success btn-sm py-1.5 px-3 fw-semibold rounded-2 shadow-2xs" style="font-size:0.76rem;" title="Input Setoran untuk Supplier Ini">
-                                        <i class="bi bi-cash-stack me-1"></i>Setor
+                                    <a href="{{ route('v2.titipan_barang.settlement.create', ['supplier_id' => $sRow['supplier_id']]) }}" class="btn btn-success btn-sm py-1.5 px-2.5 rounded-2 shadow-2xs" style="font-size:0.82rem;" title="Input Setoran / Pembayaran">
+                                        <i class="bi bi-cash-stack"></i>
                                     </a>
                                 </div>
                             </td>
