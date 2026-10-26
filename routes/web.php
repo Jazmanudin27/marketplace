@@ -255,6 +255,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/penjualan-offline/{id}/cancel', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'cancel'])->name('penjualan_offline.cancel');
         Route::post('/penjualan-offline/{id}/scan-kemas', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'updateScanKemas'])->name('penjualan_offline.scan_kemas');
 
+        // Pesanan Dropship / Lazada (Menu Marketing V2)
+        Route::prefix('dropship')->name('dropship.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\V2\DropshipOrderController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\V2\DropshipOrderController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\V2\DropshipOrderController::class, 'store'])->name('store');
+            Route::get('/search-products', [\App\Http\Controllers\V2\DropshipOrderController::class, 'searchProducts'])->name('search_products');
+            Route::get('/{id}', [\App\Http\Controllers\V2\DropshipOrderController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [\App\Http\Controllers\V2\DropshipOrderController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [\App\Http\Controllers\V2\DropshipOrderController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\V2\DropshipOrderController::class, 'destroy'])->name('destroy');
+        });
+
         // Pesanan Retur V2
         Route::get('/retur', [\App\Http\Controllers\V2\ReturController::class, 'index'])->name('retur.index');
         Route::get('/retur/export', [\App\Http\Controllers\V2\ReturController::class, 'export'])->name('retur.export');

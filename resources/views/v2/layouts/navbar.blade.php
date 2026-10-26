@@ -160,6 +160,12 @@
                             </a>
                         </li>
                         <li>
+                            <a class="dropdown-item {{ request()->is('v2/dropship*') || request()->routeIs('v2.dropship.*') ? 'active' : '' }}"
+                               href="{{ route('v2.dropship.index') }}">
+                                <i class="bi bi-truck me-2 text-info"></i> Dropship
+                            </a>
+                        </li>
+                        <li>
                             <a class="dropdown-item {{ request()->is('v2/retur*') || request()->is('returns*') ? 'active' : '' }}"
                                href="{{ Route::has('v2.retur.index') ? route('v2.retur.index') : (Route::has('returns.index') ? route('returns.index') : url('/returns')) }}">
                                 <i class="bi bi-arrow-counterclockwise me-2 text-warning"></i> Pesanan Retur

@@ -139,6 +139,11 @@
                         <i class="bi bi-shop-window text-primary me-1.5"></i>
                         <span>Penjualan Offline</span>
                     </a>
+                    <a href="{{ route('v2.dropship.index') }}"
+                        class="v2-submenu-link {{ request()->is('v2/dropship*') || request()->routeIs('v2.dropship.*') ? 'active' : '' }}">
+                        <i class="bi bi-truck text-info me-1.5"></i>
+                        <span>Dropship</span>
+                    </a>
                     <a href="{{ Route::has('v2.retur.index') ? route('v2.retur.index') : (Route::has('returns.index') ? route('returns.index') : url('/returns')) }}"
                         class="v2-submenu-link {{ request()->is('v2/retur*') || request()->is('returns*') ? 'active' : '' }}">
                         <i class="bi bi-arrow-counterclockwise text-warning me-1.5"></i>
