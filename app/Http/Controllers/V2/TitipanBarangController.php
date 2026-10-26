@@ -687,6 +687,9 @@ class TitipanBarangController extends Controller
     /**
      * Form Input Setoran Hasil Penjualan V2 (Berbasis Nominal Per Invoice / Inputan Titipan).
      */
+    /**
+     * Form Input Setoran Hasil Penjualan V2 (Berbasis Total Per Supplier / FIFO Alokasi Otomatis).
+     */
     public function createSettlement(Request $request)
     {
         $tenantId     = Auth::user()->tenant_id;
@@ -696,13 +699,62 @@ class TitipanBarangController extends Controller
         $selectedSupplierId = $request->supplier_id ?: ($suppliers->first() ? $suppliers->first()->id : null);
         $availableInvoices  = [];
 
+        $supplierSummary = [
+            'total_titipan_rp'          => 0,
+            'total_terjual_rp'          => 0,
+            'setor_rp'                  => 0,
+            'sisa_wajib_setor_laku_rp'  => 0,
+            'sisa_total_titipan_rp'     => 0,
+            'total_qty_masuk'           => 0,
+            'total_qty_laku'            => 0,
+        ];
+
         if ($selectedSupplierId) {
+            // Hitung Ringkasan Supplier
+            $supConsignmentIds = SupplierConsignment::where('tenant_id', $tenantId)
+                ->where('supplier_id', $selectedSupplierId)
+                ->where('status', 'approved')
+                ->pluck('id');
+
+            if ($supConsignmentIds->isNotEmpty()) {
+                $supItemSummary = SupplierConsignmentItem::whereIn('supplier_consignment_id', $supConsignmentIds)
+                    ->select(
+                        DB::raw('COALESCE(SUM(qty_received), 0) as total_received'),
+                        DB::raw('COALESCE(SUM(qty_sold), 0) as total_sold'),
+                        DB::raw('COALESCE(SUM(qty_received * unit_cost_price), 0) as total_titipan_rp'),
+                        DB::raw('COALESCE(SUM(qty_sold * unit_cost_price), 0) as total_terjual_rp')
+                    )
+                    ->first();
+
+                $totalTitipanRp = (float) ($supItemSummary->total_titipan_rp ?? 0);
+                $totalTerjualRp = (float) ($supItemSummary->total_terjual_rp ?? 0);
+                $totalQtyMasuk  = (int) ($supItemSummary->total_received ?? 0);
+                $totalQtyLaku   = (int) ($supItemSummary->total_sold ?? 0);
+
+                $setorRp = (float) SupplierConsignmentSettlementItem::whereHas('settlement', function($q) use ($tenantId, $selectedSupplierId) {
+                    $q->where('tenant_id', $tenantId)
+                      ->where('supplier_id', $selectedSupplierId)
+                      ->where('status', 'approved');
+                })->sum('subtotal');
+
+                $supplierSummary = [
+                    'total_titipan_rp'          => $totalTitipanRp,
+                    'total_terjual_rp'          => $totalTerjualRp,
+                    'setor_rp'                  => $setorRp,
+                    'sisa_wajib_setor_laku_rp'  => max(0, $totalTerjualRp - $setorRp),
+                    'sisa_total_titipan_rp'     => max(0, $totalTitipanRp - $setorRp),
+                    'total_qty_masuk'           => $totalQtyMasuk,
+                    'total_qty_laku'            => $totalQtyLaku,
+                ];
+            }
+
+            // Urutkan FIFO: Dokumen tertua terlebih dahulu (consignment_date ASC, id ASC)
             $consignments = SupplierConsignment::with(['items.masterProduct'])
                 ->where('tenant_id', $tenantId)
                 ->where('supplier_id', $selectedSupplierId)
                 ->where('status', 'approved')
-                ->orderByDesc('consignment_date')
-                ->orderByDesc('id')
+                ->orderBy('consignment_date', 'asc')
+                ->orderBy('id', 'asc')
                 ->get();
 
             foreach ($consignments as $consignment) {
@@ -739,7 +791,7 @@ class TitipanBarangController extends Controller
                     'remaining_amount'   => $remainingAmount,
                     'settled_qty'        => $totalSettledQty,
                     'remaining_qty'      => $remainingQty,
-                    'is_paid_off'        => $remainingAmount <= 0,
+                    'is_paid_off'        => $remainingAmount <= 0.001,
                     'items_count'        => $consignment->items->count(),
                     'items'              => $consignment->items->map(function ($it) {
                         return [
@@ -761,12 +813,13 @@ class TitipanBarangController extends Controller
             'bankAccounts',
             'selectedSupplierId',
             'availableInvoices',
+            'supplierSummary',
             'settlementNumber'
         ));
     }
 
     /**
-     * Simpan Setoran ke Supplier V2 (Nominal Per Invoice).
+     * Simpan Setoran ke Supplier V2 (Total Per Supplier & FIFO Otomatis).
      */
     public function storeSettlement(Request $request)
     {
@@ -786,7 +839,6 @@ class TitipanBarangController extends Controller
             ],
             'reference_number'=> 'nullable|string|max:100',
             'notes'           => 'nullable|string|max:1000',
-            'invoices'        => 'required|array|min:1',
         ], [
             'supplier_id.required'        => 'Supplier penerima setoran wajib dipilih.',
             'supplier_id.exists'          => 'Supplier yang dipilih tidak valid atau bukan milik toko Anda.',
@@ -794,7 +846,6 @@ class TitipanBarangController extends Controller
             'payment_method.required'     => 'Metode pembayaran wajib dipilih.',
             'bank_account_id.required_if' => 'Sumber Rekening Bank wajib dipilih jika metode pembayaran adalah Transfer Bank.',
             'bank_account_id.exists'      => 'Rekening bank yang dipilih tidak valid atau bukan milik toko Anda.',
-            'invoices.required'           => 'Pilih minimal satu nota atau dokumen titipan untuk disetorkan.',
         ]);
 
         try {
@@ -817,63 +868,89 @@ class TitipanBarangController extends Controller
                     'created_by'        => Auth::id(),
                 ]);
 
-                foreach ($request->invoices as $consignmentId => $invData) {
-                    $rawAmount = (string)($invData['amount'] ?? '0');
-                    $cleanAmount = trim(str_ireplace(['rp', ' '], '', $rawAmount));
-                    if (preg_match('/^\d{1,3}(\.\d{3})+(,\d+)?$/', $cleanAmount)) {
-                        $cleanAmount = str_replace('.', '', $cleanAmount);
-                        $cleanAmount = str_replace(',', '.', $cleanAmount);
-                    } elseif (str_contains($cleanAmount, ',')) {
-                        $cleanAmount = str_replace(',', '.', $cleanAmount);
+                // Skema 1: Total Per Supplier (Lump Sum / FIFO)
+                if ($request->filled('total_amount')) {
+                    $rawTotal = (string) $request->total_amount;
+                    $cleanTotal = trim(str_ireplace(['rp', ' '], '', $rawTotal));
+                    if (preg_match('/^\d{1,3}(\.\d{3})+(,\d+)?$/', $cleanTotal)) {
+                        $cleanTotal = str_replace('.', '', $cleanTotal);
+                        $cleanTotal = str_replace(',', '.', $cleanTotal);
+                    } elseif (str_contains($cleanTotal, ',')) {
+                        $cleanTotal = str_replace(',', '.', $cleanTotal);
                     }
-                    $payAmount = (float) $cleanAmount;
+                    $lumpSumPaid = (float) $cleanTotal;
 
-                    if ($payAmount <= 0) {
-                        continue;
+                    if ($lumpSumPaid <= 0) {
+                        throw new \Exception('Nominal total pembayaran / setoran supplier harus lebih besar dari Rp 0.');
                     }
 
-                    $consignment = SupplierConsignment::with('items')
+                    // Ambil seluruh consignment approved milik supplier ini (FIFO: terlama lebih dulu)
+                    $consignments = SupplierConsignment::with(['items.masterProduct'])
                         ->where('tenant_id', $tenantId)
                         ->where('supplier_id', $request->supplier_id)
                         ->where('status', 'approved')
-                        ->lockForUpdate()
-                        ->find($consignmentId);
+                        ->orderBy('consignment_date', 'asc')
+                        ->orderBy('id', 'asc')
+                        ->get();
 
-                    if (!$consignment) {
-                        continue;
+                    // Kumpulkan semua item yang masih ada sisa tagihan
+                    $itemsToSettle = [];
+                    $totalUnsettledAll = 0;
+
+                    foreach ($consignments as $consignment) {
+                        foreach ($consignment->items as $cItem) {
+                            $itemCost = (float) ($cItem->qty_received * $cItem->unit_cost_price);
+                            $prevSettled = (float) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
+                                ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                                ->lockForUpdate()
+                                ->sum('subtotal');
+                            $prevQty = (int) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
+                                ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                                ->lockForUpdate()
+                                ->sum('qty_settled');
+
+                            $itemRemainingCost = max(0, $itemCost - $prevSettled);
+                            $itemRemainingQty  = max(0, (int)$cItem->qty_received - $prevQty);
+
+                            if ($itemRemainingCost > 0.001) {
+                                $totalUnsettledAll += $itemRemainingCost;
+                                $itemsToSettle[] = [
+                                    'consignment'    => $consignment,
+                                    'item'           => $cItem,
+                                    'remaining_cost' => $itemRemainingCost,
+                                    'remaining_qty'  => $itemRemainingQty,
+                                    'cost_price'     => (float) $cItem->unit_cost_price,
+                                ];
+                            }
+                        }
                     }
 
-                    $remainingPay = $payAmount;
-                    $invoicesNotes[] = $consignment->reference_number . ' (Rp ' . number_format($payAmount, 0, ',', '.') . ')';
+                    if (empty($itemsToSettle)) {
+                        throw new \Exception('Seluruh nota penerimaan titipan dari supplier ini sudah lunas disetorkan sebelumnya.');
+                    }
 
-                    // Alokasikan nominal pembayaran ke item-item consignment yang belum terbayar penuh
-                    foreach ($consignment->items as $cItem) {
-                        if ($remainingPay <= 0) {
+                    if ($lumpSumPaid > $totalUnsettledAll + 0.01) {
+                        throw new \Exception('Nominal setoran (Rp ' . number_format($lumpSumPaid, 0, ',', '.') . ') melebihi total seluruh sisa tagihan supplier ini (Rp ' . number_format($totalUnsettledAll, 0, ',', '.') . ').');
+                    }
+
+                    $remainingPay = $lumpSumPaid;
+                    $settledInvoicesMap = [];
+
+                    foreach ($itemsToSettle as $entry) {
+                        if ($remainingPay <= 0.001) {
                             break;
                         }
 
-                        $itemTotalCost = (float) ($cItem->qty_received * $cItem->unit_cost_price);
-                        $itemPrevSettled = (float) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
-                            ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
-                            ->lockForUpdate()
-                            ->sum('subtotal');
-                        $itemPrevQty = (int) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
-                            ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
-                            ->lockForUpdate()
-                            ->sum('qty_settled');
+                        $cItem        = $entry['item'];
+                        $consignment  = $entry['consignment'];
+                        $itemRemCost  = $entry['remaining_cost'];
+                        $qtyRemaining = $entry['remaining_qty'];
+                        $costPrice    = $entry['cost_price'];
 
-                        $itemRemaining = max(0, $itemTotalCost - $itemPrevSettled);
-                        if ($itemRemaining <= 0) {
-                            continue;
-                        }
-
-                        $allocate = min($remainingPay, $itemRemaining);
+                        $allocate = min($remainingPay, $itemRemCost);
                         $remainingPay -= $allocate;
 
-                        $costPrice = (float) $cItem->unit_cost_price;
-                        $qtyRemaining = max(0, (int)$cItem->qty_received - $itemPrevQty);
-
-                        if ($allocate >= $itemRemaining) {
+                        if ($allocate >= $itemRemCost) {
                             $allocatedQty = $qtyRemaining;
                         } else {
                             $allocatedQty = $costPrice > 0 ? (int) round($allocate / $costPrice) : 0;
@@ -891,18 +968,105 @@ class TitipanBarangController extends Controller
                             'unit_cost_price'             => $costPrice,
                             'subtotal'                    => $allocate,
                         ]);
+
+                        $ref = $consignment->reference_number;
+                        $settledInvoicesMap[$ref] = ($settledInvoicesMap[$ref] ?? 0) + $allocate;
                     }
 
-                    // Cegah overpayment jika nominal melampaui total sisa tagihan pada nota ini
-                    if ($remainingPay > 0.01) {
-                        throw new \Exception("Nominal setoran untuk nota {$consignment->reference_number} melebihi sisa tagihan sebesar Rp " . number_format($remainingPay, 0, ',', '.') . ".");
+                    $totalAmountPaid = $lumpSumPaid;
+                    foreach ($settledInvoicesMap as $ref => $amt) {
+                        $invoicesNotes[] = $ref . ' (Rp ' . number_format($amt, 0, ',', '.') . ')';
                     }
 
-                    $totalAmountPaid += $payAmount;
+                // Skema 2: Rincian Per Invoice (Fallback / Manual)
+                } elseif ($request->filled('invoices') && is_array($request->invoices)) {
+                    foreach ($request->invoices as $consignmentId => $invData) {
+                        $rawAmount = (string)($invData['amount'] ?? '0');
+                        $cleanAmount = trim(str_ireplace(['rp', ' '], '', $rawAmount));
+                        if (preg_match('/^\d{1,3}(\.\d{3})+(,\d+)?$/', $cleanAmount)) {
+                            $cleanAmount = str_replace('.', '', $cleanAmount);
+                            $cleanAmount = str_replace(',', '.', $cleanAmount);
+                        } elseif (str_contains($cleanAmount, ',')) {
+                            $cleanAmount = str_replace(',', '.', $cleanAmount);
+                        }
+                        $payAmount = (float) $cleanAmount;
+
+                        if ($payAmount <= 0) {
+                            continue;
+                        }
+
+                        $consignment = SupplierConsignment::with('items')
+                            ->where('tenant_id', $tenantId)
+                            ->where('supplier_id', $request->supplier_id)
+                            ->where('status', 'approved')
+                            ->lockForUpdate()
+                            ->find($consignmentId);
+
+                        if (!$consignment) {
+                            continue;
+                        }
+
+                        $remainingPay = $payAmount;
+                        $invoicesNotes[] = $consignment->reference_number . ' (Rp ' . number_format($payAmount, 0, ',', '.') . ')';
+
+                        foreach ($consignment->items as $cItem) {
+                            if ($remainingPay <= 0) {
+                                break;
+                            }
+
+                            $itemTotalCost = (float) ($cItem->qty_received * $cItem->unit_cost_price);
+                            $itemPrevSettled = (float) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
+                                ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                                ->lockForUpdate()
+                                ->sum('subtotal');
+                            $itemPrevQty = (int) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
+                                ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                                ->lockForUpdate()
+                                ->sum('qty_settled');
+
+                            $itemRemaining = max(0, $itemTotalCost - $itemPrevSettled);
+                            if ($itemRemaining <= 0) {
+                                continue;
+                            }
+
+                            $allocate = min($remainingPay, $itemRemaining);
+                            $remainingPay -= $allocate;
+
+                            $costPrice = (float) $cItem->unit_cost_price;
+                            $qtyRemaining = max(0, (int)$cItem->qty_received - $itemPrevQty);
+
+                            if ($allocate >= $itemRemaining) {
+                                $allocatedQty = $qtyRemaining;
+                            } else {
+                                $allocatedQty = $costPrice > 0 ? (int) round($allocate / $costPrice) : 0;
+                                if ($allocatedQty == 0 && $allocate > 0 && $qtyRemaining > 0) {
+                                    $allocatedQty = 1;
+                                }
+                                $allocatedQty = min($allocatedQty, $qtyRemaining);
+                            }
+                            $totalQtySettled += $allocatedQty;
+
+                            $settlement->items()->create([
+                                'supplier_consignment_item_id' => $cItem->id,
+                                'master_product_id'           => $cItem->master_product_id,
+                                'qty_settled'                 => $allocatedQty,
+                                'unit_cost_price'             => $costPrice,
+                                'subtotal'                    => $allocate,
+                            ]);
+                        }
+
+                        if ($remainingPay > 0.01) {
+                            throw new \Exception("Nominal setoran untuk nota {$consignment->reference_number} melebihi sisa tagihan sebesar Rp " . number_format($remainingPay, 0, ',', '.') . ".");
+                        }
+
+                        $totalAmountPaid += $payAmount;
+                    }
+                } else {
+                    throw new \Exception('Silakan masukkan Nominal Total Pembayaran / Setoran ke Supplier.');
                 }
 
                 if ($totalAmountPaid <= 0) {
-                    throw new \Exception('Nominal pembayaran setoran harus lebih dari 0. Silakan isi nominal pada minimal 1 invoice titipan.');
+                    throw new \Exception('Nominal pembayaran setoran harus lebih dari 0.');
                 }
 
                 $settlement->update([
@@ -920,7 +1084,7 @@ class TitipanBarangController extends Controller
                     $paymentSource = $bank ? ($bank->bank_name ?: (string)$bank->id) : (string)$request->bank_account_id;
                 }
 
-                $notesDesc = !empty($invoicesNotes) ? ' Invoice: ' . implode(', ', $invoicesNotes) : '';
+                $notesDesc = !empty($invoicesNotes) ? ' Nota: ' . implode(', ', $invoicesNotes) : '';
                 Expense::create([
                     'tenant_id'      => $tenantId,
                     'title'          => "Setoran Titipan Konsinyasi: {$supplierName} ({$settlementNumber})",
@@ -935,7 +1099,7 @@ class TitipanBarangController extends Controller
             });
 
             return redirect()->route('v2.titipan_barang.settlement.index', ['supplier_id' => $request->supplier_id])
-                ->with('success', 'Setoran nominal per invoice ke supplier berhasil disimpan sebesar Rp ' . number_format($settlement->total_amount_paid, 0, ',', '.') . '.');
+                ->with('success', 'Setoran pembayaran ke supplier berhasil disimpan sebesar Rp ' . number_format($settlement->total_amount_paid, 0, ',', '.') . '.');
         } catch (\Throwable $e) {
             return redirect()->back()
                 ->withInput()
@@ -1113,7 +1277,6 @@ class TitipanBarangController extends Controller
             ],
             'reference_number'=> 'nullable|string|max:100',
             'notes'           => 'nullable|string|max:1000',
-            'invoices'        => 'required|array|min:1',
         ]);
 
         try {
@@ -1135,64 +1298,84 @@ class TitipanBarangController extends Controller
                 $totalAmountPaid = 0;
                 $invoicesNotes   = [];
 
-                foreach ($request->invoices as $consignmentId => $invData) {
-                    $rawAmount = (string)($invData['amount'] ?? '0');
-                    $cleanAmount = trim(str_ireplace(['rp', ' '], '', $rawAmount));
-                    if (preg_match('/^\d{1,3}(\.\d{3})+(,\d+)?$/', $cleanAmount)) {
-                        $cleanAmount = str_replace('.', '', $cleanAmount);
-                        $cleanAmount = str_replace(',', '.', $cleanAmount);
-                    } else {
-                        $cleanAmount = str_replace(',', '', $cleanAmount);
+                if ($request->filled('total_amount')) {
+                    $rawTotal = (string) $request->total_amount;
+                    $cleanTotal = trim(str_ireplace(['rp', ' '], '', $rawTotal));
+                    if (preg_match('/^\d{1,3}(\.\d{3})+(,\d+)?$/', $cleanTotal)) {
+                        $cleanTotal = str_replace('.', '', $cleanTotal);
+                        $cleanTotal = str_replace(',', '.', $cleanTotal);
+                    } elseif (str_contains($cleanTotal, ',')) {
+                        $cleanTotal = str_replace(',', '.', $cleanTotal);
                     }
-                    $payAmount = (float) $cleanAmount;
+                    $lumpSumPaid = (float) $cleanTotal;
 
-                    if ($payAmount <= 0) {
-                        continue;
+                    if ($lumpSumPaid <= 0) {
+                        throw new \Exception('Nominal total pembayaran setoran harus lebih besar dari Rp 0.');
                     }
 
-                    $consignment = SupplierConsignment::with('items')
+                    $consignments = SupplierConsignment::with(['items.masterProduct'])
                         ->where('tenant_id', $tenantId)
                         ->where('supplier_id', $settlement->supplier_id)
                         ->where('status', 'approved')
-                        ->lockForUpdate()
-                        ->find($consignmentId);
+                        ->orderBy('consignment_date', 'asc')
+                        ->orderBy('id', 'asc')
+                        ->get();
 
-                    if (!$consignment) {
-                        continue;
+                    $itemsToSettle = [];
+                    $totalUnsettledAll = 0;
+
+                    foreach ($consignments as $consignment) {
+                        foreach ($consignment->items as $cItem) {
+                            $itemCost = (float) ($cItem->qty_received * $cItem->unit_cost_price);
+                            $prevSettled = (float) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
+                                ->where('settlement_id', '!=', $settlement->id)
+                                ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                                ->lockForUpdate()
+                                ->sum('subtotal');
+                            $prevQty = (int) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
+                                ->where('settlement_id', '!=', $settlement->id)
+                                ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                                ->lockForUpdate()
+                                ->sum('qty_settled');
+
+                            $itemRemainingCost = max(0, $itemCost - $prevSettled);
+                            $itemRemainingQty  = max(0, (int)$cItem->qty_received - $prevQty);
+
+                            if ($itemRemainingCost > 0.001) {
+                                $totalUnsettledAll += $itemRemainingCost;
+                                $itemsToSettle[] = [
+                                    'consignment'    => $consignment,
+                                    'item'           => $cItem,
+                                    'remaining_cost' => $itemRemainingCost,
+                                    'remaining_qty'  => $itemRemainingQty,
+                                    'cost_price'     => (float) $cItem->unit_cost_price,
+                                ];
+                            }
+                        }
                     }
 
-                    $remainingPay = $payAmount;
-                    $invoicesNotes[] = $consignment->reference_number . ' (Rp ' . number_format($payAmount, 0, ',', '.') . ')';
+                    if ($lumpSumPaid > $totalUnsettledAll + 0.01) {
+                        throw new \Exception('Nominal setoran (Rp ' . number_format($lumpSumPaid, 0, ',', '.') . ') melebihi total seluruh sisa tagihan supplier ini (Rp ' . number_format($totalUnsettledAll, 0, ',', '.') . ').');
+                    }
 
-                    foreach ($consignment->items as $cItem) {
-                        if ($remainingPay <= 0) {
+                    $remainingPay = $lumpSumPaid;
+                    $settledInvoicesMap = [];
+
+                    foreach ($itemsToSettle as $entry) {
+                        if ($remainingPay <= 0.001) {
                             break;
                         }
 
-                        $itemTotalCost = (float) ($cItem->qty_received * $cItem->unit_cost_price);
-                        $itemPrevSettled = (float) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
-                            ->where('settlement_id', '!=', $settlement->id)
-                            ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
-                            ->lockForUpdate()
-                            ->sum('subtotal');
-                        $itemPrevQty = (int) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
-                            ->where('settlement_id', '!=', $settlement->id)
-                            ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
-                            ->lockForUpdate()
-                            ->sum('qty_settled');
+                        $cItem        = $entry['item'];
+                        $consignment  = $entry['consignment'];
+                        $itemRemCost  = $entry['remaining_cost'];
+                        $qtyRemaining = $entry['remaining_qty'];
+                        $costPrice    = $entry['cost_price'];
 
-                        $itemRemaining = max(0, $itemTotalCost - $itemPrevSettled);
-                        if ($itemRemaining <= 0) {
-                            continue;
-                        }
-
-                        $allocate = min($remainingPay, $itemRemaining);
+                        $allocate = min($remainingPay, $itemRemCost);
                         $remainingPay -= $allocate;
 
-                        $costPrice = (float) $cItem->unit_cost_price;
-                        $qtyRemaining = max(0, (int)$cItem->qty_received - $itemPrevQty);
-
-                        if ($allocate >= $itemRemaining) {
+                        if ($allocate >= $itemRemCost) {
                             $allocatedQty = $qtyRemaining;
                         } else {
                             $allocatedQty = $costPrice > 0 ? (int) round($allocate / $costPrice) : 0;
@@ -1210,17 +1393,106 @@ class TitipanBarangController extends Controller
                             'unit_cost_price'             => $costPrice,
                             'subtotal'                    => $allocate,
                         ]);
+
+                        $ref = $consignment->reference_number;
+                        $settledInvoicesMap[$ref] = ($settledInvoicesMap[$ref] ?? 0) + $allocate;
                     }
 
-                    if ($remainingPay > 0.01) {
-                        throw new \Exception("Nominal setoran untuk nota {$consignment->reference_number} melebihi sisa tagihan sebesar Rp " . number_format($remainingPay, 0, ',', '.') . ".");
+                    $totalAmountPaid = $lumpSumPaid;
+                    foreach ($settledInvoicesMap as $ref => $amt) {
+                        $invoicesNotes[] = $ref . ' (Rp ' . number_format($amt, 0, ',', '.') . ')';
                     }
 
-                    $totalAmountPaid += $payAmount;
+                } elseif ($request->filled('invoices') && is_array($request->invoices)) {
+                    foreach ($request->invoices as $consignmentId => $invData) {
+                        $rawAmount = (string)($invData['amount'] ?? '0');
+                        $cleanAmount = trim(str_ireplace(['rp', ' '], '', $rawAmount));
+                        if (preg_match('/^\d{1,3}(\.\d{3})+(,\d+)?$/', $cleanAmount)) {
+                            $cleanAmount = str_replace('.', '', $cleanAmount);
+                            $cleanAmount = str_replace(',', '.', $cleanAmount);
+                        } else {
+                            $cleanAmount = str_replace(',', '', $cleanAmount);
+                        }
+                        $payAmount = (float) $cleanAmount;
+
+                        if ($payAmount <= 0) {
+                            continue;
+                        }
+
+                        $consignment = SupplierConsignment::with('items')
+                            ->where('tenant_id', $tenantId)
+                            ->where('supplier_id', $settlement->supplier_id)
+                            ->where('status', 'approved')
+                            ->lockForUpdate()
+                            ->find($consignmentId);
+
+                        if (!$consignment) {
+                            continue;
+                        }
+
+                        $remainingPay = $payAmount;
+                        $invoicesNotes[] = $consignment->reference_number . ' (Rp ' . number_format($payAmount, 0, ',', '.') . ')';
+
+                        foreach ($consignment->items as $cItem) {
+                            if ($remainingPay <= 0) {
+                                break;
+                            }
+
+                            $itemTotalCost = (float) ($cItem->qty_received * $cItem->unit_cost_price);
+                            $itemPrevSettled = (float) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
+                                ->where('settlement_id', '!=', $settlement->id)
+                                ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                                ->lockForUpdate()
+                                ->sum('subtotal');
+                            $itemPrevQty = (int) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
+                                ->where('settlement_id', '!=', $settlement->id)
+                                ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                                ->lockForUpdate()
+                                ->sum('qty_settled');
+
+                            $itemRemaining = max(0, $itemTotalCost - $itemPrevSettled);
+                            if ($itemRemaining <= 0) {
+                                continue;
+                            }
+
+                            $allocate = min($remainingPay, $itemRemaining);
+                            $remainingPay -= $allocate;
+
+                            $costPrice = (float) $cItem->unit_cost_price;
+                            $qtyRemaining = max(0, (int)$cItem->qty_received - $itemPrevQty);
+
+                            if ($allocate >= $itemRemaining) {
+                                $allocatedQty = $qtyRemaining;
+                            } else {
+                                $allocatedQty = $costPrice > 0 ? (int) round($allocate / $costPrice) : 0;
+                                if ($allocatedQty == 0 && $allocate > 0 && $qtyRemaining > 0) {
+                                    $allocatedQty = 1;
+                                }
+                                $allocatedQty = min($allocatedQty, $qtyRemaining);
+                            }
+                            $totalQtySettled += $allocatedQty;
+
+                            $settlement->items()->create([
+                                'supplier_consignment_item_id' => $cItem->id,
+                                'master_product_id'           => $cItem->master_product_id,
+                                'qty_settled'                 => $allocatedQty,
+                                'unit_cost_price'             => $costPrice,
+                                'subtotal'                    => $allocate,
+                            ]);
+                        }
+
+                        if ($remainingPay > 0.01) {
+                            throw new \Exception("Nominal setoran untuk nota {$consignment->reference_number} melebihi sisa tagihan sebesar Rp " . number_format($remainingPay, 0, ',', '.') . ".");
+                        }
+
+                        $totalAmountPaid += $payAmount;
+                    }
+                } else {
+                    throw new \Exception('Silakan masukkan Nominal Total Pembayaran Setoran Supplier.');
                 }
 
                 if ($totalAmountPaid <= 0) {
-                    throw new \Exception('Nominal pembayaran setoran harus lebih dari 0. Silakan isi nominal pada minimal 1 invoice titipan.');
+                    throw new \Exception('Nominal pembayaran setoran harus lebih dari 0.');
                 }
 
                 // 4. Update Header Settlement
@@ -1242,7 +1514,7 @@ class TitipanBarangController extends Controller
                     $paymentSource = $bank ? ($bank->bank_name ?: (string)$bank->id) : (string)$request->bank_account_id;
                 }
 
-                $notesDesc = !empty($invoicesNotes) ? ' Invoice: ' . implode(', ', $invoicesNotes) : '';
+                $notesDesc = !empty($invoicesNotes) ? ' Nota: ' . implode(', ', $invoicesNotes) : '';
                 Expense::create([
                     'tenant_id'      => $tenantId,
                     'title'          => "Setoran Titipan Konsinyasi: {$supplierName} ({$settlement->settlement_number})",
