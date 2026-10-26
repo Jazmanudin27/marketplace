@@ -103,7 +103,7 @@
                                 <div class="col-md-6">
                                     <label class="form-label small fw-semibold text-secondary mb-1">Upload Label / Dokumen Resi</label>
                                     <input type="file" name="resi_file" id="resi-file-input" class="form-control form-control-sm" accept="image/*,.pdf">
-                                    <div class="form-text small">Format: JPG, PNG, PDF (Maks. 5MB)</div>
+                                    <div class="form-text small">Format: JPG, PNG, PDF, WEBP (Maks. 25MB)</div>
                                 </div>
                             </div>
                         </div>
@@ -460,6 +460,14 @@
 
         $('#customer-select').on('change', function() {
             triggerCustomerSelectChange();
+        });
+
+        $('#resi-file-input').on('change', function() {
+            const file = this.files[0];
+            if (file && file.size > 25 * 1024 * 1024) {
+                alert('Ukuran file dokumen/resi (' + (file.size / (1024 * 1024)).toFixed(1) + ' MB) melebihi batas 25 MB! Silakan pilih file dengan ukuran lebih kecil.');
+                $(this).val('');
+            }
         });
 
         $('#buyer-name-input, #buyer-phone-input').on('input', function() {

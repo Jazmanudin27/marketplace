@@ -14,7 +14,9 @@ class TokoController extends Controller
     public function index()
     {
         Channel::ensureChannelsExist();
-        $tenantId = Auth::user()->tenant_id ?? 1;
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($tenantId, 403, 'Tenant ID tidak valid.');
+
         $stores = Store::with('channel')
             ->withCount(['marketplaceProducts', 'orders'])
             ->where('tenant_id', $tenantId)
@@ -37,6 +39,9 @@ class TokoController extends Controller
 
     public function store(Request $request)
     {
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($tenantId, 403, 'Tenant ID tidak valid.');
+
         $data = $request->validate([
             'channel_id'           => 'required|exists:channels,id',
             'store_name'           => 'required|string|max:255',
@@ -44,7 +49,6 @@ class TokoController extends Controller
             'logo'                 => 'nullable|image|mimes:jpeg,png,jpg,webp,gif,svg|max:2048',
         ]);
 
-        $tenantId = Auth::user()->tenant_id ?? 1;
         $marketStoreId = trim($data['marketplace_store_id']);
 
         $updateData = [
@@ -73,7 +77,9 @@ class TokoController extends Controller
 
     public function edit($id)
     {
-        $tenantId = Auth::user()->tenant_id ?? 1;
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($tenantId, 403, 'Tenant ID tidak valid.');
+
         $store = Store::where('tenant_id', $tenantId)->findOrFail($id);
         Channel::ensureChannelsExist();
         $channels = Channel::where('status', true)->get();
@@ -83,7 +89,9 @@ class TokoController extends Controller
 
     public function update(Request $request, $id)
     {
-        $tenantId = Auth::user()->tenant_id ?? 1;
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($tenantId, 403, 'Tenant ID tidak valid.');
+
         $store = Store::where('tenant_id', $tenantId)->findOrFail($id);
 
         $data = $request->validate([
@@ -112,7 +120,9 @@ class TokoController extends Controller
 
     public function destroy($id)
     {
-        $tenantId = Auth::user()->tenant_id ?? 1;
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($tenantId, 403, 'Tenant ID tidak valid.');
+
         $store = Store::where('tenant_id', $tenantId)->findOrFail($id);
         
         $name = $store->store_name;

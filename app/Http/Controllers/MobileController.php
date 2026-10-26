@@ -16,6 +16,7 @@ use App\Models\SupplierConsignmentSettlementItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
 class MobileController extends Controller
@@ -856,10 +857,17 @@ class MobileController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([
-            'supplier_id'     => 'required|exists:suppliers,id',
+            'supplier_id'     => [
+                'required',
+                Rule::exists('suppliers', 'id')->where(fn($q) => $q->where('tenant_id', $tenantId)),
+            ],
             'settlement_date' => 'required|date',
             'payment_method'  => 'required|in:cash,transfer',
-            'bank_account_id' => 'required_if:payment_method,transfer|nullable|exists:bank_accounts,id',
+            'bank_account_id' => [
+                'required_if:payment_method,transfer',
+                'nullable',
+                Rule::exists('bank_accounts', 'id')->where(fn($q) => $q->where('tenant_id', $tenantId)),
+            ],
             'notes'           => 'nullable|string|max:1000',
             'items'           => 'required|array|min:1',
             'items.*.consignment_item_id' => 'required|exists:supplier_consignment_items,id',
@@ -868,73 +876,107 @@ class MobileController extends Controller
             'items.*.unit_cost_price'     => 'required|numeric|min:0',
         ]);
 
-        $settlement = DB::transaction(function () use ($request, $tenantId) {
-            $settlementNumber = SupplierConsignmentSettlement::generateSettlementNumber();
-            $totalQtySettled  = 0;
-            $totalAmountPaid  = 0;
+        try {
+            $settlement = DB::transaction(function () use ($request, $tenantId) {
+                $settlementNumber = SupplierConsignmentSettlement::generateSettlementNumber();
+                $totalQtySettled  = 0;
+                $totalAmountPaid  = 0;
 
-            $settlement = SupplierConsignmentSettlement::create([
-                'tenant_id'         => $tenantId,
-                'supplier_id'       => $request->supplier_id,
-                'settlement_number' => $settlementNumber,
-                'settlement_date'   => $request->settlement_date,
-                'payment_method'    => $request->payment_method,
-                'bank_account_id'   => $request->payment_method === 'transfer' ? $request->bank_account_id : null,
-                'reference_number'  => $request->reference_number,
-                'status'            => 'approved',
-                'notes'             => $request->notes,
-                'created_by'        => Auth::id(),
-            ]);
+                $settlement = SupplierConsignmentSettlement::create([
+                    'tenant_id'         => $tenantId,
+                    'supplier_id'       => $request->supplier_id,
+                    'settlement_number' => $settlementNumber,
+                    'settlement_date'   => $request->settlement_date,
+                    'payment_method'    => $request->payment_method,
+                    'bank_account_id'   => $request->payment_method === 'transfer' ? $request->bank_account_id : null,
+                    'reference_number'  => $request->reference_number,
+                    'status'            => 'approved',
+                    'notes'             => $request->notes,
+                    'created_by'        => Auth::id(),
+                ]);
 
-            foreach ($request->items as $row) {
-                $qtySettled = (int) $row['qty_settled'];
-                $costPrice  = (float) $row['unit_cost_price'];
-                $subtotal   = $qtySettled * $costPrice;
+                foreach ($request->items as $row) {
+                    $qtySettled = (int) $row['qty_settled'];
+                    if ($qtySettled <= 0) {
+                        continue;
+                    }
 
-                if ($qtySettled > 0) {
+                    $cItem = SupplierConsignmentItem::whereHas('consignment', function($q) use ($tenantId, $request) {
+                        $q->where('tenant_id', $tenantId)
+                          ->where('supplier_id', $request->supplier_id)
+                          ->where('status', 'approved');
+                    })
+                    ->lockForUpdate()
+                    ->find($row['consignment_item_id']);
+
+                    if (!$cItem) {
+                        throw new \Exception("Item titipan ID {$row['consignment_item_id']} tidak valid atau bukan milik supplier terpilih.");
+                    }
+
+                    $prevQtySettled = (int) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
+                        ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                        ->lockForUpdate()
+                        ->sum('qty_settled');
+
+                    $qtyRemaining = max(0, (int)$cItem->qty_received - $prevQtySettled);
+                    if ($qtySettled > $qtyRemaining) {
+                        throw new \Exception("Jumlah setoran ({$qtySettled}) melebihi sisa item titipan yang belum disetor ({$qtyRemaining}).");
+                    }
+
+                    $costPrice  = (float) $cItem->unit_cost_price;
+                    $subtotal   = $qtySettled * $costPrice;
+
                     $totalQtySettled += $qtySettled;
                     $totalAmountPaid += $subtotal;
 
                     $settlement->items()->create([
-                        'supplier_consignment_item_id' => $row['consignment_item_id'],
-                        'master_product_id'           => $row['master_product_id'],
+                        'supplier_consignment_item_id' => $cItem->id,
+                        'master_product_id'           => $cItem->master_product_id,
                         'qty_settled'                 => $qtySettled,
                         'unit_cost_price'             => $costPrice,
                         'subtotal'                    => $subtotal,
                     ]);
                 }
-            }
 
-            $settlement->update([
-                'total_qty_settled' => $totalQtySettled,
-                'total_amount_paid' => $totalAmountPaid,
-            ]);
+                if ($totalAmountPaid <= 0) {
+                    throw new \Exception('Total setoran harus lebih dari 0.');
+                }
 
-            // Sinkronisasi otomatis ke Mutasi Kas (Expense)
-            $supplier = Supplier::find($request->supplier_id);
-            $supplierName = $supplier ? $supplier->name : 'Supplier';
+                $settlement->update([
+                    'total_qty_settled' => $totalQtySettled,
+                    'total_amount_paid' => $totalAmountPaid,
+                ]);
 
-            $paymentSource = 'kas_besar';
-            if ($request->payment_method === 'transfer' && $request->bank_account_id) {
-                $bank = BankAccount::where('tenant_id', $tenantId)->find($request->bank_account_id);
-                $paymentSource = $bank ? ($bank->bank_name ?: (string)$bank->id) : (string)$request->bank_account_id;
-            }
+                // Sinkronisasi otomatis ke Mutasi Kas (Expense)
+                $supplier = Supplier::where('tenant_id', $tenantId)->find($request->supplier_id);
+                $supplierName = $supplier ? $supplier->name : 'Supplier';
 
-            Expense::create([
-                'tenant_id'      => $tenantId,
-                'title'          => "Setoran Titipan Konsinyasi: {$supplierName} ({$settlementNumber})",
-                'category'       => 'Setoran Barang Konsinyasi',
-                'payment_source' => $paymentSource,
-                'amount'         => $totalAmountPaid,
-                'expense_date'   => $request->settlement_date,
-                'description'    => "Setoran Penjualan Barang Konsinyasi {$supplierName} ({$settlementNumber}) — Total {$totalQtySettled} PCS." . ($request->notes ? " Catatan: {$request->notes}" : ''),
-            ]);
+                $paymentSource = 'kas_besar';
+                if ($request->payment_method === 'transfer' && $request->bank_account_id) {
+                    $bank = BankAccount::where('tenant_id', $tenantId)->find($request->bank_account_id);
+                    $paymentSource = $bank ? ($bank->bank_name ?: (string)$bank->id) : (string)$request->bank_account_id;
+                }
 
-            return $settlement;
-        });
+                Expense::create([
+                    'tenant_id'      => $tenantId,
+                    'title'          => "Setoran Titipan Konsinyasi: {$supplierName} ({$settlementNumber})",
+                    'category'       => 'Setoran Barang Konsinyasi',
+                    'payment_source' => $paymentSource,
+                    'amount'         => $totalAmountPaid,
+                    'expense_date'   => $request->settlement_date,
+                    'description'    => "Setoran Penjualan Barang Konsinyasi {$supplierName} ({$settlementNumber}) — Total {$totalQtySettled} PCS." . ($request->notes ? " Catatan: {$request->notes}" : ''),
+                ]);
 
-        return redirect()->route('mobile.owner.titipan_settlement')
-            ->with('success', 'Pembayaran setoran titipan berhasil disimpan dan masuk ke mutasi kas.');
+                return $settlement;
+            });
+
+            return redirect()->route('mobile.owner.titipan_settlement')
+                ->with('success', 'Pembayaran setoran titipan berhasil disimpan dan masuk ke mutasi kas.');
+        } catch (\Throwable $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => $e->getMessage()]);
+        }
     }
 
     /**

@@ -15,6 +15,8 @@ use App\Jobs\PullReturnsFromShopee;
 use App\Jobs\PullReturnsFromTiktok;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ReturController extends Controller
 {
@@ -256,89 +258,95 @@ class ReturController extends Controller
 
     public function restock(Request $request, ReturnOrder $returnOrder)
     {
-        abort_unless($returnOrder->tenant_id === Auth::user()->tenant_id, 403);
-
-        if ($returnOrder->is_restocked) {
-            return back()->with('error', 'Barang retur ini sudah dikembalikan ke stok gudang sebelumnya.');
-        }
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($returnOrder->tenant_id === $tenantId, 403);
 
         $request->validate([
             'items' => 'required|array',
             'items.*.inspection_status' => 'required|in:GOOD,DEFECTIVE',
-            'items.*.inspection_notes' => 'nullable|string',
-            'items.*.photo' => 'nullable|image|max:4096',
+            'items.*.inspection_notes' => 'nullable|string|max:1000',
+            'items.*.photo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
-        $itemInputs = $request->input('items');
-        $hasGood = false;
+        try {
+            DB::transaction(function () use ($request, $returnOrder, $tenantId) {
+                $retOrder = ReturnOrder::where('tenant_id', $tenantId)
+                    ->lockForUpdate()
+                    ->findOrFail($returnOrder->id);
 
-        foreach ($returnOrder->items as $rItem) {
-            $input = $itemInputs[$rItem->id] ?? null;
-            if (!$input) continue;
-
-            $status = $input['inspection_status'];
-            $notes = $input['inspection_notes'] ?? null;
-
-            $photoPath = null;
-            if ($request->hasFile("items.{$rItem->id}.photo")) {
-                $file = $request->file("items.{$rItem->id}.photo");
-                $uploadDir = public_path('uploads/returns');
-                if (!file_exists($uploadDir)) {
-                    mkdir($uploadDir, 0777, true);
+                if ($retOrder->is_restocked) {
+                    throw new \Exception('Barang retur ini sudah dikembalikan ke stok gudang sebelumnya.');
                 }
-                $filename = 'qc_' . $rItem->id . '_' . time() . '.' . $file->getClientOriginalExtension();
-                $file->move($uploadDir, $filename);
-                $photoPath = 'uploads/returns/' . $filename;
-            }
 
-            $updateData = [
-                'inspection_status' => $status,
-                'inspection_notes' => $notes,
-            ];
+                $retOrder->load(['items.orderItem.marketplaceProduct', 'items.orderItem.masterProduct']);
+                $itemInputs = $request->input('items');
+                $hasGood = false;
 
-            if ($photoPath) {
-                $updateData['inspection_photo'] = $photoPath;
-            }
+                foreach ($retOrder->items as $rItem) {
+                    $input = $itemInputs[$rItem->id] ?? null;
+                    if (!$input) continue;
 
-            $rItem->update($updateData);
+                    $status = $input['inspection_status'];
+                    $notes = $input['inspection_notes'] ?? null;
 
-            if ($status === 'GOOD') {
-                $hasGood = true;
-                $masterProduct = null;
-                if ($rItem->orderItem) {
-                    $masterProduct = $rItem->orderItem->masterProduct 
-                        ?? ($rItem->orderItem->marketplaceProduct->masterProduct ?? null);
-
-                    if (!$masterProduct && $rItem->orderItem->master_product_id) {
-                        $masterProduct = MasterProduct::find($rItem->orderItem->master_product_id);
+                    $photoPath = null;
+                    if ($request->hasFile("items.{$rItem->id}.photo")) {
+                        $file = $request->file("items.{$rItem->id}.photo");
+                        $photoPath = $file->store('returns', 'public');
                     }
-                    if (!$masterProduct && $rItem->orderItem->marketplace_product_id) {
-                        $mp = MarketplaceProduct::find($rItem->orderItem->marketplace_product_id);
-                        if ($mp && $mp->master_product_id) {
-                            $masterProduct = MasterProduct::find($mp->master_product_id);
+
+                    $updateData = [
+                        'inspection_status' => $status,
+                        'inspection_notes' => $notes,
+                    ];
+
+                    if ($photoPath) {
+                        $updateData['inspection_photo'] = $photoPath;
+                    }
+
+                    $rItem->update($updateData);
+
+                    if ($status === 'GOOD') {
+                        $hasGood = true;
+                        $masterProduct = null;
+                        if ($rItem->orderItem) {
+                            $masterProduct = $rItem->orderItem->masterProduct 
+                                ?? ($rItem->orderItem->marketplaceProduct->masterProduct ?? null);
+
+                            if (!$masterProduct && $rItem->orderItem->master_product_id) {
+                                $masterProduct = MasterProduct::where('tenant_id', $tenantId)->find($rItem->orderItem->master_product_id);
+                            }
+                            if (!$masterProduct && $rItem->orderItem->marketplace_product_id) {
+                                $mp = MarketplaceProduct::where('tenant_id', $tenantId)->find($rItem->orderItem->marketplace_product_id);
+                                if ($mp && $mp->master_product_id) {
+                                    $masterProduct = MasterProduct::where('tenant_id', $tenantId)->find($mp->master_product_id);
+                                }
+                            }
+                        }
+
+                        if ($masterProduct) {
+                            $masterProduct->recordStockMovement(
+                                (int)$rItem->quantity,
+                                'in',
+                                'Terima Retur (Layak Jual): ' . $retOrder->return_sn . ($notes ? ' - ' . $notes : ''),
+                                Auth::id()
+                            );
                         }
                     }
                 }
 
-                if ($masterProduct) {
-                    $masterProduct->recordStockMovement(
-                        $rItem->quantity,
-                        'in',
-                        'Terima Retur (Layak Jual): ' . $returnOrder->return_sn . ($notes ? ' - ' . $notes : ''),
-                        Auth::id()
-                    );
-                }
-            }
+                $overallStatus = $hasGood ? 'GOOD' : 'DEFECTIVE';
+                $retOrder->update([
+                    'is_restocked' => true,
+                    'inspection_status' => $overallStatus,
+                    'checked_by' => Auth::id(),
+                ]);
+            });
+
+            return back()->with('success', 'Hasil pemeriksaan fisik barang retur berhasil disimpan.');
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
         }
-
-        $overallStatus = $hasGood ? 'GOOD' : 'DEFECTIVE';
-        $returnOrder->update([
-            'is_restocked' => true,
-            'inspection_status' => $overallStatus,
-            'checked_by' => Auth::id(),
-        ]);
-
-        return back()->with('success', 'Hasil pemeriksaan fisik barang retur berhasil disimpan.');
     }
 
     public function createReplacementOrder(Request $request, ReturnOrder $returnOrder)

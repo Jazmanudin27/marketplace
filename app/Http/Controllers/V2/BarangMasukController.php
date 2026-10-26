@@ -14,6 +14,7 @@ use App\Models\SupplierPayable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class BarangMasukController extends Controller
 {
@@ -124,13 +125,24 @@ class BarangMasukController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([
-            'supplier_id'   => 'required_if:source,pembelian|nullable|exists:suppliers,id',
-            'department_id' => 'nullable|exists:departments,id',
+            'supplier_id'   => [
+                'required_if:source,pembelian',
+                'nullable',
+                Rule::exists('suppliers', 'id')->where(fn($q) => $q->where('tenant_id', $tenantId)),
+            ],
+            'department_id' => [
+                'nullable',
+                Rule::exists('departments', 'id')->where(fn($q) => $q->where('tenant_id', $tenantId)),
+            ],
             'receipt_date'  => 'required|date',
             'source'        => 'required|in:pembelian,percetakan,produksi,lain_lain',
             'notes'         => 'nullable|string|max:1000',
             'items'         => 'required|array|min:1',
-            'items.*.item_id'   => 'required|integer|exists:inventory_items,id',
+            'items.*.item_id'   => [
+                'required',
+                'integer',
+                Rule::exists('inventory_items', 'id')->where(fn($q) => $q->where('tenant_id', $tenantId)),
+            ],
             'items.*.quantity'  => 'required|numeric|min:0.01',
             'items.*.unit_price' => 'required|numeric|min:0',
         ], [
@@ -281,10 +293,23 @@ class BarangMasukController extends Controller
             $tenantId = Auth::user()->tenant_id;
             $userId   = Auth::id();
 
-            if ($goodsReceipt->status === 'approved') {
-                $goodsReceipt->load(['items.inventoryItem']);
+            $receipt = GoodsReceipt::where('tenant_id', $tenantId)->lockForUpdate()->findOrFail($goodsReceipt->id);
 
-                foreach ($goodsReceipt->items as $item) {
+            // Cek apakah hutang supplier sudah dibayar
+            if ($receipt->payable()->exists()) {
+                $payable = $receipt->payable()->lockForUpdate()->first();
+                if ($payable && (float)$payable->paid_amount > 0) {
+                    abort(422, "Penerimaan barang tidak dapat dihapus karena hutang supplier sudah memiliki riwayat pembayaran sebesar Rp " . number_format($payable->paid_amount, 0, ',', '.') . ".");
+                }
+                if ($payable) {
+                    $payable->delete();
+                }
+            }
+
+            if ($receipt->status === 'approved') {
+                $receipt->load(['items.inventoryItem']);
+
+                foreach ($receipt->items as $item) {
                     $qty = $item->quantity;
                     if ($item->inventory_item_id && $item->inventoryItem) {
                         $item->inventoryItem->decrement('stock', $qty);
@@ -296,14 +321,15 @@ class BarangMasukController extends Controller
                             'user_id'           => $userId,
                             'type'              => 'adjustment',
                             'quantity'          => -$qty,
-                            'reference'         => 'Batal Penerimaan (Stok Keluar) — ' . $goodsReceipt->receipt_number,
+                            'reference'         => 'Batal Penerimaan (Stok Keluar) — ' . $receipt->receipt_number,
                             'balance_after'     => $newStock,
                         ]);
                     }
                 }
             }
 
-            $goodsReceipt->delete();
+            $receipt->items()->delete();
+            $receipt->delete();
         });
 
         return redirect()->route('v2.barang_masuk.index')

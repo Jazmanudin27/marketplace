@@ -389,69 +389,62 @@ class ScannerGudangController extends Controller
 
         $order = $orderModel;
 
-        $order->update([
-            'packing_status' => 'verified',
-            'packed_at'      => now(),
-        ]);
+        DB::transaction(function () use ($order, $request) {
+            $order->update([
+                'packing_status' => 'verified',
+                'packed_at'      => now(),
+            ]);
 
-        // Deduct stock physically
-        $order->processStockDeduction();
+            // Deduct stock physically
+            $order->processStockDeduction();
 
-        // Process Consignment Deduction if scanned from supplier consignment item
-        $itemSources = $request->input('item_sources', []);
-        if (is_array($itemSources) && !empty($itemSources)) {
-            foreach ($itemSources as $orderItemId => $sources) {
-                $orderItem = $order->items->firstWhere('id', (int) $orderItemId);
-                if (!$orderItem) continue;
+            // Process Consignment Deduction if scanned from supplier consignment item
+            $itemSources = $request->input('item_sources', []);
+            if (is_array($itemSources) && !empty($itemSources)) {
+                foreach ($itemSources as $orderItemId => $sources) {
+                    $orderItem = $order->items->firstWhere('id', (int) $orderItemId);
+                    if (!$orderItem) continue;
 
-                if (is_array($sources)) {
-                    foreach ($sources as $source) {
-                        $srcType           = $source['source'] ?? 'warehouse';
-                        $consignmentItemId = $source['consignment_item_id'] ?? null;
-                        $barcode           = $source['barcode'] ?? null;
+                    if (is_array($sources)) {
+                        foreach ($sources as $source) {
+                            $srcType           = $source['source'] ?? 'warehouse';
+                            $consignmentItemId = $source['consignment_item_id'] ?? null;
+                            $barcode           = $source['barcode'] ?? null;
 
-                        if ($srcType === 'consignment' && $consignmentItemId) {
-                            $consItem = SupplierConsignmentItem::where('id', $consignmentItemId)
-                                ->whereHas('consignment', fn($q) => $q->where('tenant_id', $order->tenant_id))
-                                ->first();
+                            if ($srcType === 'consignment' && $consignmentItemId) {
+                                $consItem = SupplierConsignmentItem::where('id', $consignmentItemId)
+                                    ->whereHas('consignment', fn($q) => $q->where('tenant_id', $order->tenant_id))
+                                    ->lockForUpdate()
+                                    ->first();
 
-                            if ($consItem) {
-                                $consItem->increment('qty_sold', 1);
+                                if ($consItem) {
+                                    $consItem->increment('qty_sold', 1);
 
+                                    $orderItem->update([
+                                        'supplier_consignment_item_id' => $consItem->id,
+                                        'fulfillment_source'           => 'consignment',
+                                    ]);
+
+                                    SupplierConsignmentDeduction::create([
+                                        'tenant_id'                    => $order->tenant_id,
+                                        'supplier_consignment_item_id' => $consItem->id,
+                                        'order_id'                     => $order->id,
+                                        'order_item_id'                => $orderItem->id,
+                                        'quantity'                     => 1,
+                                        'scanned_barcode'              => $barcode,
+                                        'user_id'                      => Auth::id(),
+                                    ]);
+                                }
+                            } else {
                                 $orderItem->update([
-                                    'supplier_consignment_item_id' => $consItem->id,
-                                    'fulfillment_source'           => 'consignment',
-                                ]);
-
-                                SupplierConsignmentDeduction::create([
-                                    'tenant_id'                    => $order->tenant_id,
-                                    'supplier_consignment_item_id' => $consItem->id,
-                                    'order_id'                     => $order->id,
-                                    'order_item_id'                => $orderItem->id,
-                                    'quantity'                     => 1,
-                                    'scanned_barcode'              => $barcode,
-                                    'user_id'                      => Auth::id(),
-                                ]);
-
-                                StockMovement::create([
-                                    'tenant_id'         => $order->tenant_id,
-                                    'master_product_id' => $consItem->master_product_id,
-                                    'user_id'           => Auth::id(),
-                                    'type'              => 'out',
-                                    'quantity'          => 1,
-                                    'balance_after'     => $consItem->masterProduct ? $consItem->masterProduct->stock : 0,
-                                    'reference'         => "Pengurangan Stok Titipan ({$consItem->consignment->reference_number}) - Order {$order->invoice_number}",
+                                    'fulfillment_source' => ($srcType === 'spk' ? 'spk' : 'warehouse'),
                                 ]);
                             }
-                        } else {
-                            $orderItem->update([
-                                'fulfillment_source' => ($srcType === 'spk' ? 'spk' : 'warehouse'),
-                            ]);
                         }
                     }
                 }
             }
-        }
+        });
 
         $autoShip = $request->boolean('auto_ship');
         $shipped = false;

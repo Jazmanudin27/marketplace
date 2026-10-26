@@ -8,6 +8,7 @@ use App\Models\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class TargetKomisiController extends Controller
 {
@@ -116,8 +117,8 @@ class TargetKomisiController extends Controller
     /**
      * Simpan Tim Marketing baru & Targetnya
      */
-    public function store(Request $request)
-    {
+        $tenantId = Auth::user()->tenant_id;
+
         $request->validate([
             'name' => 'required|string|max:255',
             'target_omset' => 'required|numeric|min:0',
@@ -131,11 +132,11 @@ class TargetKomisiController extends Controller
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
             'store_ids' => 'nullable|array',
-            'store_ids.*' => 'exists:stores,id',
+            'store_ids.*' => [
+                Rule::exists('stores', 'id')->where(fn($q) => $q->where('tenant_id', $tenantId)),
+            ],
             'description' => 'nullable|string',
         ]);
-
-        $tenantId = Auth::user()->tenant_id;
 
         $pMonth = $request->period_month ?? (int) date('n');
         $pYear  = $request->period_year ?? (int) date('Y');
@@ -182,6 +183,8 @@ class TargetKomisiController extends Controller
     {
         abort_unless($marketingTeam->tenant_id === Auth::user()->tenant_id, 403);
 
+        $tenantId = Auth::user()->tenant_id;
+
         $request->validate([
             'name' => 'required|string|max:255',
             'target_omset' => 'required|numeric|min:0',
@@ -195,7 +198,9 @@ class TargetKomisiController extends Controller
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
             'store_ids' => 'nullable|array',
-            'store_ids.*' => 'exists:stores,id',
+            'store_ids.*' => [
+                Rule::exists('stores', 'id')->where(fn($q) => $q->where('tenant_id', $tenantId)),
+            ],
             'description' => 'nullable|string',
         ]);
 

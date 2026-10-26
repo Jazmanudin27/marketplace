@@ -18,6 +18,7 @@ use App\Models\SupplierConsignmentSettlementItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class TitipanBarangController extends Controller
 {
@@ -641,19 +642,27 @@ class TitipanBarangController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([
-            'supplier_id'     => 'required|exists:suppliers,id',
+            'supplier_id'     => [
+                'required',
+                Rule::exists('suppliers', 'id')->where(fn($q) => $q->where('tenant_id', $tenantId)),
+            ],
             'settlement_date' => 'required|date',
             'payment_method'  => 'required|in:cash,transfer',
-            'bank_account_id' => 'required_if:payment_method,transfer|nullable|exists:bank_accounts,id',
+            'bank_account_id' => [
+                'required_if:payment_method,transfer',
+                'nullable',
+                Rule::exists('bank_accounts', 'id')->where(fn($q) => $q->where('tenant_id', $tenantId)),
+            ],
             'reference_number'=> 'nullable|string|max:100',
             'notes'           => 'nullable|string|max:1000',
             'invoices'        => 'required|array|min:1',
         ], [
             'supplier_id.required'        => 'Supplier penerima setoran wajib dipilih.',
+            'supplier_id.exists'          => 'Supplier yang dipilih tidak valid atau bukan milik toko Anda.',
             'settlement_date.required'    => 'Tanggal setoran wajib diisi.',
             'payment_method.required'     => 'Metode pembayaran wajib dipilih.',
             'bank_account_id.required_if' => 'Sumber Rekening Bank wajib dipilih jika metode pembayaran adalah Transfer Bank.',
-            'bank_account_id.exists'      => 'Rekening bank yang dipilih tidak valid.',
+            'bank_account_id.exists'      => 'Rekening bank yang dipilih tidak valid atau bukan milik toko Anda.',
             'invoices.required'           => 'Pilih minimal satu nota atau dokumen titipan untuk disetorkan.',
         ]);
 
@@ -678,19 +687,31 @@ class TitipanBarangController extends Controller
                 ]);
 
                 foreach ($request->invoices as $consignmentId => $invData) {
-                    $rawAmount = $invData['amount'] ?? '0';
-                    $payAmount = (float) preg_replace('/[^0-9]/', '', (string)$rawAmount);
+                    $rawAmount = (string)($invData['amount'] ?? '0');
+                    $cleanAmount = trim(str_ireplace(['rp', ' '], '', $rawAmount));
+                    if (preg_match('/^\d{1,3}(\.\d{3})+(,\d+)?$/', $cleanAmount)) {
+                        $cleanAmount = str_replace('.', '', $cleanAmount);
+                        $cleanAmount = str_replace(',', '.', $cleanAmount);
+                    } elseif (str_contains($cleanAmount, ',')) {
+                        $cleanAmount = str_replace(',', '.', $cleanAmount);
+                    }
+                    $payAmount = (float) $cleanAmount;
 
                     if ($payAmount <= 0) {
                         continue;
                     }
 
-                    $consignment = SupplierConsignment::with('items')->where('tenant_id', $tenantId)->find($consignmentId);
+                    $consignment = SupplierConsignment::with('items')
+                        ->where('tenant_id', $tenantId)
+                        ->where('supplier_id', $request->supplier_id)
+                        ->where('status', 'approved')
+                        ->lockForUpdate()
+                        ->find($consignmentId);
+
                     if (!$consignment) {
                         continue;
                     }
 
-                    $totalAmountPaid += $payAmount;
                     $remainingPay = $payAmount;
                     $invoicesNotes[] = $consignment->reference_number . ' (Rp ' . number_format($payAmount, 0, ',', '.') . ')';
 
@@ -703,7 +724,12 @@ class TitipanBarangController extends Controller
                         $itemTotalCost = (float) ($cItem->qty_received * $cItem->unit_cost_price);
                         $itemPrevSettled = (float) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
                             ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                            ->lockForUpdate()
                             ->sum('subtotal');
+                        $itemPrevQty = (int) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $cItem->id)
+                            ->whereHas('settlement', fn($q) => $q->where('status', 'approved'))
+                            ->lockForUpdate()
+                            ->sum('qty_settled');
 
                         $itemRemaining = max(0, $itemTotalCost - $itemPrevSettled);
                         if ($itemRemaining <= 0) {
@@ -714,9 +740,16 @@ class TitipanBarangController extends Controller
                         $remainingPay -= $allocate;
 
                         $costPrice = (float) $cItem->unit_cost_price;
-                        $allocatedQty = $costPrice > 0 ? (int) round($allocate / $costPrice) : 0;
-                        if ($allocatedQty == 0 && $allocate > 0) {
-                            $allocatedQty = 1;
+                        $qtyRemaining = max(0, (int)$cItem->qty_received - $itemPrevQty);
+
+                        if ($allocate >= $itemRemaining) {
+                            $allocatedQty = $qtyRemaining;
+                        } else {
+                            $allocatedQty = $costPrice > 0 ? (int) round($allocate / $costPrice) : 0;
+                            if ($allocatedQty == 0 && $allocate > 0 && $qtyRemaining > 0) {
+                                $allocatedQty = 1;
+                            }
+                            $allocatedQty = min($allocatedQty, $qtyRemaining);
                         }
                         $totalQtySettled += $allocatedQty;
 
@@ -729,17 +762,12 @@ class TitipanBarangController extends Controller
                         ]);
                     }
 
-                    // Jika masih ada sisa pembayaran yang dialokasikan (misal nominal melampaui sisa item)
-                    if ($remainingPay > 0 && $consignment->items->isNotEmpty()) {
-                        $firstItem = $consignment->items->first();
-                        $settlement->items()->create([
-                            'supplier_consignment_item_id' => $firstItem->id,
-                            'master_product_id'           => $firstItem->master_product_id,
-                            'qty_settled'                 => 0,
-                            'unit_cost_price'             => $firstItem->unit_cost_price,
-                            'subtotal'                    => $remainingPay,
-                        ]);
+                    // Cegah overpayment jika nominal melampaui total sisa tagihan pada nota ini
+                    if ($remainingPay > 0.01) {
+                        throw new \Exception("Nominal setoran untuk nota {$consignment->reference_number} melebihi sisa tagihan sebesar Rp " . number_format($remainingPay, 0, ',', '.') . ".");
                     }
+
+                    $totalAmountPaid += $payAmount;
                 }
 
                 if ($totalAmountPaid <= 0) {
@@ -751,7 +779,7 @@ class TitipanBarangController extends Controller
                     'total_amount_paid' => $totalAmountPaid,
                 ]);
 
-                $supplier = Supplier::find($request->supplier_id);
+                $supplier = Supplier::where('tenant_id', $tenantId)->find($request->supplier_id);
                 $supplierName = $supplier ? $supplier->name : 'Supplier';
 
                 // Tentukan payment_source kas/bank agar tersinkron ke Laporan Mutasi Kas & Keuangan

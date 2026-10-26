@@ -133,46 +133,50 @@ class StockOpnameController extends Controller
         $userNotes = trim($request->notes ?? '');
         $reference = "Stock Opname - {$pic}" . ($userNotes ? " ({$userNotes})" : '');
 
-        DB::transaction(function () use ($request, $tenantId, $reference, $date) {
-            $userId = Auth::id();
+        try {
+            DB::transaction(function () use ($request, $tenantId, $reference, $date) {
+                $userId = Auth::id();
 
-            foreach ($request->items as $itemData) {
-                $actualStock = (float) $itemData['actual_stock'];
+                foreach ($request->items as $itemData) {
+                    $actualStock = (float) $itemData['actual_stock'];
 
-                if ($itemData['item_type'] === 'inventory') {
-                    $item = InventoryItem::where('tenant_id', $tenantId)->findOrFail($itemData['item_id']);
-                    $currentStock = (float) $item->stock;
-                    $difference   = $actualStock - $currentStock;
+                    if ($itemData['item_type'] === 'inventory') {
+                        $item = InventoryItem::where('tenant_id', $tenantId)->lockForUpdate()->findOrFail($itemData['item_id']);
+                        $currentStock = (float) $item->stock;
+                        $difference   = $actualStock - $currentStock;
 
-                    if ($difference != 0) {
-                        $item->recordStockMovement(
-                            (int) round($difference),
-                            'adj',
-                            $reference,
-                            $userId,
-                            $date
-                        );
-                    }
-                } else {
-                    $product = MasterProduct::where('tenant_id', $tenantId)->findOrFail($itemData['item_id']);
-                    $currentStock = (float) $product->stock;
-                    $difference   = $actualStock - $currentStock;
+                        if (abs($difference) > 0.0001) {
+                            $item->recordStockMovement(
+                                (int) round($difference),
+                                'adj',
+                                $reference,
+                                $userId,
+                                $date
+                            );
+                        }
+                    } else {
+                        $product = MasterProduct::where('tenant_id', $tenantId)->lockForUpdate()->findOrFail($itemData['item_id']);
+                        $currentStock = (float) $product->stock;
+                        $difference   = $actualStock - $currentStock;
 
-                    if ($difference != 0) {
-                        $product->recordStockMovement(
-                            (int) round($difference),
-                            'adj',
-                            $reference,
-                            $userId,
-                            $date
-                        );
+                        if (abs($difference) > 0.0001) {
+                            $product->recordStockMovement(
+                                (int) round($difference),
+                                'adj',
+                                $reference,
+                                $userId,
+                                $date
+                            );
+                        }
                     }
                 }
-            }
-        });
+            });
 
-        return redirect()->route('v2.stock_opname.index')
-            ->with('success', '✅ Stock Opname V2 berhasil disimpan dan stok fisik telah disesuaikan.');
+            return redirect()->route('v2.stock_opname.index')
+                ->with('success', '✅ Stock Opname V2 berhasil disimpan dan stok fisik telah disesuaikan.');
+        } catch (\Throwable $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
     }
 
     /**

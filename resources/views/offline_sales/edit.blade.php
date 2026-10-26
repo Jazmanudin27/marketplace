@@ -139,8 +139,9 @@
                                 <div class="col-md-6">
                                     <label class="form-label small fw-semibold text-secondary mb-1">Ganti Label / Dokumen Resi</label>
                                     <input type="file" name="resi_file" id="resi-file-input" class="form-control form-control-sm" accept="image/*,.pdf">
+                                    <div class="form-text small">Format: JPG, PNG, PDF, WEBP (Maks. 25MB)</div>
                                     @if ($offlineSale->resi_file)
-                                        <div class="form-text small">
+                                        <div class="form-text small mt-1">
                                             Resi saat ini: <a href="{{ asset('storage/' . $offlineSale->resi_file) }}" target="_blank" class="text-primary fw-bold">Lihat Dokumen</a>
                                         </div>
                                     @endif
@@ -526,6 +527,14 @@
                 $('#po-deadline-container').slideUp(150);
             }
             renderCart();
+        });
+
+        $('#resi-file-input').on('change', function() {
+            const file = this.files[0];
+            if (file && file.size > 25 * 1024 * 1024) {
+                alert('Ukuran file dokumen/resi (' + (file.size / (1024 * 1024)).toFixed(1) + ' MB) melebihi batas 25 MB! Silakan pilih file dengan ukuran lebih kecil.');
+                $(this).val('');
+            }
         });
 
         // Search product

@@ -438,7 +438,7 @@
                             <div class="desain-label">DESAIN</div>
                             <div class="desain-hint">Klik atau seret foto desain/mockup ke sini</div>
                             <div class="mt-2">
-                                <small class="badge bg-light text-secondary border" style="font-size:10px;">JPEG / PNG / JPG · maks 4MB</small>
+                                <small class="badge bg-light text-secondary border" style="font-size:10px;">JPEG / PNG / JPG / WEBP · maks 25MB</small>
                             </div>
                         </div>
                         <img id="desain-preview-img" src="#" alt="Preview Desain" class="d-none" style="max-height:240px; width:100%; border-radius:10px; object-fit:contain;">
@@ -871,6 +871,16 @@ document.addEventListener('DOMContentLoaded', function() {
         desainInput.addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
+                const maxBytes = 25 * 1024 * 1024;
+                if (file.size > maxBytes) {
+                    alert('Ukuran file foto desain (' + (file.size / (1024 * 1024)).toFixed(1) + ' MB) melebihi batas 25 MB! Silakan pilih foto dengan ukuran lebih kecil.');
+                    this.value = '';
+                    desainPreview.src = '#';
+                    desainPreview.classList.add('d-none');
+                    desainPlaceholder.classList.remove('d-none');
+                    desainArea.classList.remove('has-image');
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = e => {
                     desainPreview.src = e.target.result;

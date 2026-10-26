@@ -11,6 +11,7 @@ use App\Models\WarehouseMutationItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class BarangKeluarController extends Controller
 {
@@ -159,79 +160,94 @@ class BarangKeluarController extends Controller
             'tujuan'           => 'required|string',
             'notes'            => 'nullable|string|max:1000',
             'items'            => 'required|array|min:1',
-            'items.*.item_id'  => 'required|exists:inventory_items,id',
+            'items.*.item_id'  => [
+                'required',
+                Rule::exists('inventory_items', 'id')->where(fn($q) => $q->where('tenant_id', $tenantId)),
+            ],
             'items.*.quantity' => 'required|numeric|min:0.01',
         ], [
             'items.required'   => 'Minimal masukkan 1 item barang yang dikeluarkan.',
         ]);
 
-        // Cek kecukupan stok
-        foreach ($request->items as $row) {
-            $item = InventoryItem::where('tenant_id', $tenantId)->findOrFail($row['item_id']);
-            if ($item->stock < (float)$row['quantity']) {
-                return back()->withInput()->with('error', "Stok barang '{$item->name}' tidak mencukupi (Sisa stok: {$item->stock} {$item->unit}).");
-            }
+        try {
+            $mutation = DB::transaction(function () use ($request, $tenantId) {
+                $userId         = Auth::id();
+                $mutationNumber = WarehouseMutation::generateMutationNumber('out');
+
+                // Akumulasi total kuantitas per item ID untuk tangani duplikasi baris
+                $itemTotals = [];
+                foreach ($request->items as $row) {
+                    $itemId = (int) $row['item_id'];
+                    $qty = (float) $row['quantity'];
+                    $itemTotals[$itemId] = ($itemTotals[$itemId] ?? 0) + $qty;
+                }
+
+                // Kunci dan cek stok fisik di dalam transaksi
+                foreach ($itemTotals as $itemId => $totalQty) {
+                    $item = InventoryItem::where('tenant_id', $tenantId)->lockForUpdate()->findOrFail($itemId);
+                    if ((float)$item->stock < $totalQty) {
+                        throw new \Exception("Stok barang '{$item->name}' tidak mencukupi (Sisa stok: {$item->stock} {$item->unit}, diminta: {$totalQty}).");
+                    }
+                }
+
+                $toDeptId = null;
+                if ($request->tujuan === 'produksi') {
+                    $toDeptId = $this->getDepartmentIdByName('Produksi');
+                } elseif ($request->tujuan === 'percetakan') {
+                    $toDeptId = $this->getDepartmentIdByName('Percetakan');
+                } elseif ($request->tujuan === 'retur') {
+                    $toDeptId = $this->getDepartmentIdByName('Retur / Pengembalian');
+                } elseif (is_numeric($request->tujuan)) {
+                    $toDeptId = (int) $request->tujuan;
+                } else {
+                    $toDeptId = $this->getDepartmentIdByName('Lain-lain');
+                }
+
+                $mutation = WarehouseMutation::create([
+                    'tenant_id'        => $tenantId,
+                    'mutation_number'  => $mutationNumber,
+                    'type'             => 'out',
+                    'to_department_id' => $toDeptId,
+                    'mutation_date'    => $request->mutation_date,
+                    'status'           => 'approved',
+                    'notes'            => $request->notes,
+                    'created_by'       => $userId,
+                ]);
+
+                foreach ($request->items as $row) {
+                    $item = InventoryItem::where('tenant_id', $tenantId)->lockForUpdate()->findOrFail($row['item_id']);
+                    $qty  = (float) $row['quantity'];
+
+                    $mutation->items()->create([
+                        'inventory_item_id' => $item->id,
+                        'quantity'          => $qty,
+                        'unit_price'        => $item->cost_price ?: 0,
+                        'notes'             => $row['notes'] ?? null,
+                    ]);
+
+                    $item->decrement('stock', $qty);
+                    $newStock = $item->fresh()->stock;
+
+                    StockMovement::create([
+                        'tenant_id'             => $tenantId,
+                        'inventory_item_id'     => $item->id,
+                        'warehouse_mutation_id' => $mutation->id,
+                        'user_id'               => $userId,
+                        'type'                  => 'out',
+                        'quantity'              => -$qty,
+                        'reference'             => 'Pengeluaran Barang V2 (' . $mutationNumber . ')',
+                        'balance_after'         => $newStock,
+                    ]);
+                }
+
+                return $mutation;
+            });
+
+            return redirect()->route('v2.barang_keluar.show', $mutation)
+                ->with('success', "✅ Transaksi Pengeluaran Barang ({$mutation->mutation_number}) berhasil disimpan.");
+        } catch (\Throwable $e) {
+            return back()->withInput()->with('error', $e->getMessage());
         }
-
-        $mutation = DB::transaction(function () use ($request, $tenantId) {
-            $userId         = Auth::id();
-            $mutationNumber = WarehouseMutation::generateMutationNumber('out');
-
-            $toDeptId = null;
-            if ($request->tujuan === 'produksi') {
-                $toDeptId = $this->getDepartmentIdByName('Produksi');
-            } elseif ($request->tujuan === 'percetakan') {
-                $toDeptId = $this->getDepartmentIdByName('Percetakan');
-            } elseif ($request->tujuan === 'retur') {
-                $toDeptId = $this->getDepartmentIdByName('Retur / Pengembalian');
-            } elseif (is_numeric($request->tujuan)) {
-                $toDeptId = (int) $request->tujuan;
-            } else {
-                $toDeptId = $this->getDepartmentIdByName('Lain-lain');
-            }
-
-            $mutation = WarehouseMutation::create([
-                'tenant_id'        => $tenantId,
-                'mutation_number'  => $mutationNumber,
-                'type'             => 'out',
-                'to_department_id' => $toDeptId,
-                'mutation_date'    => $request->mutation_date,
-                'status'           => 'approved',
-                'notes'            => $request->notes,
-                'created_by'       => $userId,
-            ]);
-
-            foreach ($request->items as $row) {
-                $item = InventoryItem::where('tenant_id', $tenantId)->findOrFail($row['item_id']);
-                $qty  = (float) $row['quantity'];
-
-                $mutation->items()->create([
-                    'inventory_item_id' => $item->id,
-                    'quantity'          => $qty,
-                    'unit_price'        => $item->cost_price ?: 0,
-                    'notes'             => $row['notes'] ?? null,
-                ]);
-
-                $item->decrement('stock', $qty);
-                $newStock = $item->fresh()->stock;
-
-                StockMovement::create([
-                    'tenant_id'             => $tenantId,
-                    'inventory_item_id'     => $item->id,
-                    'warehouse_mutation_id' => $mutation->id,
-                    'user_id'               => $userId,
-                    'type'                  => 'out',
-                    'quantity'              => -$qty,
-                    'reference'             => 'Pengeluaran Barang V2 (' . $mutationNumber . ')',
-                    'balance_after'         => $newStock,
-                ]);
-            }
-
-            return $mutation;
-        });
-
-        return redirect()->route('v2.barang_keluar.show', $mutation)
-            ->with('success', "✅ Transaksi Pengeluaran Barang ({$mutation->mutation_number}) berhasil disimpan.");
     }
 
     /**

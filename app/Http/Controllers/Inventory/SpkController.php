@@ -361,12 +361,20 @@ class SpkController extends Controller
             'tambahan'          => 'nullable|string',
             'sku_kain'          => 'nullable|string|max:100',
             'link_file_mentah'  => 'nullable|string|max:2048',
-            'image'             => 'nullable|image|max:4096',
-            'referensi_klien'   => 'nullable|image|max:8192',
-            'mockup_final'      => 'nullable|image|max:8192',
+            'image'             => 'nullable|image|max:25600',
+            'referensi_klien'   => 'nullable|image|max:25600',
+            'mockup_final'      => 'nullable|image|max:25600',
             'items'             => 'nullable|array',
             'items.*.sku_produk'=> 'nullable|string|max:255',
             'items.*.qty'       => 'nullable|integer|min:1',
+        ], [
+            'image.max'               => 'Ukuran file foto desain tidak boleh melebihi 25 MB.',
+            'image.image'             => 'File foto desain harus berupa gambar (JPG, PNG, JPEG, WEBP).',
+            'referensi_klien.max'     => 'Ukuran file referensi klien tidak boleh melebihi 25 MB.',
+            'referensi_klien.image'   => 'File referensi klien harus berupa gambar.',
+            'mockup_final.max'        => 'Ukuran file mockup final tidak boleh melebihi 25 MB.',
+            'mockup_final.image'      => 'File mockup final harus berupa gambar.',
+            'deadline.after_or_equal' => 'Deadline tidak boleh sebelum tanggal order.',
         ]);
 
         $imagePath = null;
@@ -1498,9 +1506,16 @@ class SpkController extends Controller
             'instansi'          => 'nullable|string|max:255',
             'nama_pic'          => 'nullable|string|max:255',
             'tambahan'          => 'nullable|string',
-            'image'             => 'nullable|image|max:4096',
-            'referensi_klien'   => 'nullable|image|max:8192',
-            'mockup_final'      => 'nullable|image|max:8192',
+            'image'             => 'nullable|image|max:25600',
+            'referensi_klien'   => 'nullable|image|max:25600',
+            'mockup_final'      => 'nullable|image|max:25600',
+        ], [
+            'image.max'             => 'Ukuran file foto desain tidak boleh melebihi 25 MB.',
+            'image.image'           => 'File foto desain harus berupa gambar (JPG, PNG, JPEG, WEBP).',
+            'referensi_klien.max'   => 'Ukuran file referensi klien tidak boleh melebihi 25 MB.',
+            'referensi_klien.image' => 'File referensi klien harus berupa gambar.',
+            'mockup_final.max'      => 'Ukuran file mockup final tidak boleh melebihi 25 MB.',
+            'mockup_final.image'    => 'File mockup final harus berupa gambar.',
         ]);
 
         DB::transaction(function () use ($request, $spk, $tenantId) {
