@@ -83,6 +83,65 @@ class TitipanBarangController extends Controller
 
         $totalAmountUnsettled = max(0, $totalAmountToPay - $totalAmountSettled);
 
+        // 🎯 REKAPITULASI PER SUPPLIER (Total Titipan Rp, Terjual Rp, Sudah Setor Rp, Sisa Belum Setor Rp)
+        $suppliersList = Supplier::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->when($request->filled('supplier_id'), fn($q) => $q->where('id', $request->supplier_id))
+            ->orderBy('name')
+            ->get();
+
+        $supplierSummaries = [];
+        foreach ($suppliersList as $sup) {
+            $supConsignmentIds = SupplierConsignment::where('tenant_id', $tenantId)
+                ->where('supplier_id', $sup->id)
+                ->where('status', 'approved')
+                ->pluck('id');
+
+            if ($supConsignmentIds->isEmpty()) {
+                continue;
+            }
+
+            $supItemSummary = SupplierConsignmentItem::whereIn('supplier_consignment_id', $supConsignmentIds)
+                ->select(
+                    DB::raw('COALESCE(SUM(qty_received), 0) as total_received'),
+                    DB::raw('COALESCE(SUM(qty_sold), 0) as total_sold'),
+                    DB::raw('COALESCE(SUM(qty_received * unit_cost_price), 0) as total_titipan_rp'),
+                    DB::raw('COALESCE(SUM(qty_sold * unit_cost_price), 0) as total_terjual_rp')
+                )
+                ->first();
+
+            $totalTitipanRp = (float) ($supItemSummary->total_titipan_rp ?? 0);
+            $totalTerjualRp = (float) ($supItemSummary->total_terjual_rp ?? 0);
+            $totalQtyMasuk  = (int) ($supItemSummary->total_received ?? 0);
+            $totalQtyLaku   = (int) ($supItemSummary->total_sold ?? 0);
+
+            // Sudah disetorkan ke supplier ini
+            $setorRp = (float) SupplierConsignmentSettlementItem::whereHas('settlement', function($q) use ($tenantId, $sup) {
+                $q->where('tenant_id', $tenantId)
+                  ->where('supplier_id', $sup->id)
+                  ->where('status', 'approved');
+            })->sum('subtotal');
+
+            // Sisa belum disetorkan (berdasarkan barang laku terjual)
+            $sisaBelumSetorRp = max(0, $totalTerjualRp - $setorRp);
+            // Sisa saldo keseluruhan jika dibandingkan total titipan masuk
+            $sisaTitipanRp = max(0, $totalTitipanRp - $setorRp);
+
+            $supplierSummaries[] = [
+                'supplier_id'         => $sup->id,
+                'supplier_name'       => $sup->name,
+                'supplier_phone'      => $sup->phone,
+                'total_invoices'      => $supConsignmentIds->count(),
+                'total_qty_masuk'     => $totalQtyMasuk,
+                'total_qty_laku'      => $totalQtyLaku,
+                'total_titipan_rp'    => $totalTitipanRp,
+                'total_terjual_rp'    => $totalTerjualRp,
+                'setor_rp'            => $setorRp,
+                'sisa_belum_setor_rp' => $sisaBelumSetorRp,
+                'sisa_titipan_rp'     => $sisaTitipanRp,
+            ];
+        }
+
         return view('v2.titipan_barang.index', compact(
             'consignments',
             'suppliers',
@@ -91,7 +150,8 @@ class TitipanBarangController extends Controller
             'totalQtyTitipAll',
             'totalAmountHppAll',
             'totalAmountSettled',
-            'totalAmountUnsettled'
+            'totalAmountUnsettled',
+            'supplierSummaries'
         ));
     }
 

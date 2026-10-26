@@ -155,7 +155,96 @@
             <i class="bi bi-check2-circle titipan-kpi-icon text-success"></i>
         </div>
     </div>
-</div>
+{{-- ── 🏢 REKAPITULASI TITIPAN & SETORAN PER SUPPLIER ── --}}
+@if(!empty($supplierSummaries) && count($supplierSummaries) > 0)
+    <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white overflow-hidden">
+        <div class="px-3 py-2.5 bg-light-subtle border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span class="fw-bold text-dark small text-uppercase" style="font-size:0.75rem; letter-spacing:0.04em;">
+                <i class="bi bi-building text-primary me-1.5 fs-6"></i>
+                Rekapitulasi Titipan &amp; Setoran per Supplier (Akumulasi Seluruh Nota / Invoice)
+            </span>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-bold rounded-pill" style="font-size:0.72rem;">
+                {{ count($supplierSummaries) }} Supplier
+            </span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.83rem;">
+                <thead class="table-light text-uppercase small fw-bold text-secondary border-bottom">
+                    <tr>
+                        <th class="ps-3" style="width: 25%;">SUPPLIER</th>
+                        <th class="text-center" style="width: 10%;">NOTA</th>
+                        <th class="text-end" style="width: 16%;">TOTAL TITIPAN (RP)</th>
+                        <th class="text-end" style="width: 16%;">SUDAH DISETOR (RP)</th>
+                        <th class="text-end" style="width: 17%;">SISA WAJIB SETOR (RP)</th>
+                        <th class="text-center pe-3" style="width: 16%;">AKSI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($supplierSummaries as $sRow)
+                        <tr>
+                            <td class="ps-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center" style="width:34px; height:34px; min-width:34px;">
+                                        <i class="bi bi-person-badge fs-6"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-bold text-dark d-block" style="font-size:0.88rem;">{{ $sRow['supplier_name'] }}</span>
+                                        <small class="text-muted" style="font-size:0.7rem;">
+                                            <i class="bi bi-telephone me-0.5"></i>{{ $sRow['supplier_phone'] ?: 'Tanpa Kontak' }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-2.5 py-1 fw-semibold">
+                                    {{ $sRow['total_invoices'] }} Nota
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="fw-bold text-dark font-monospace d-block">
+                                    Rp {{ number_format($sRow['total_titipan_rp'], 0, ',', '.') }}
+                                </span>
+                                <small class="text-muted" style="font-size:0.7rem;">
+                                    {{ number_format($sRow['total_qty_masuk']) }} PCS Titip
+                                </small>
+                            </td>
+                            <td class="text-end">
+                                <span class="fw-bold text-success font-monospace d-block">
+                                    Rp {{ number_format($sRow['setor_rp'], 0, ',', '.') }}
+                                </span>
+                                <small class="text-muted" style="font-size:0.7rem;">Telah dibayar</small>
+                            </td>
+                            <td class="text-end">
+                                @if($sRow['sisa_belum_setor_rp'] > 0)
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace px-2.5 py-1.5 fw-bold d-inline-block" style="font-size:0.84rem;">
+                                        Rp {{ number_format($sRow['sisa_belum_setor_rp'], 0, ',', '.') }}
+                                    </span>
+                                    <small class="text-danger d-block mt-0.5" style="font-size:0.68rem; font-weight:600;">
+                                        {{ number_format($sRow['total_qty_laku']) }} PCS Terjual
+                                    </small>
+                                @else
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold" style="font-size:0.75rem;">
+                                        <i class="bi bi-check-circle me-1"></i>Lunas / Belum Laku
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="text-center pe-3">
+                                <div class="d-flex align-items-center justify-content-center gap-1.5">
+                                    <a href="{{ route('supplier_consignments.stock_card', ['supplier_id' => $sRow['supplier_id'], 'supplier' => $sRow['supplier_name']]) }}" class="btn btn-outline-secondary btn-sm py-1 px-2.5 fw-semibold rounded-2" style="font-size:0.75rem;" title="Lihat Kartu Stok Produk Supplier">
+                                        <i class="bi bi-card-checklist me-1"></i>Kartu Stok
+                                    </a>
+                                    <a href="{{ route('v2.titipan_barang.settlement.create', ['supplier_id' => $sRow['supplier_id']]) }}" class="btn btn-success btn-sm py-1 px-2.5 fw-semibold rounded-2" style="font-size:0.75rem;" title="Input Setoran Supplier Ini">
+                                        <i class="bi bi-cash-stack me-1"></i>Setor
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+@endif
 
 {{-- ── Filter Card ── --}}
 <div class="card border-0 shadow-sm rounded-3 mb-3 bg-white">
