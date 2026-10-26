@@ -258,9 +258,9 @@
                                             <span class="badge bg-info text-white rounded-pill ms-0.5" style="font-size:0.62rem;">{{ count($sRow['settlement_history']) }}</span>
                                         @endif
                                     </button>
-                                    <a href="{{ route('v2.titipan_barang.settlement.create', ['supplier_id' => $sRow['supplier_id']]) }}" class="btn btn-success btn-sm py-1.5 px-2.5 rounded-2 shadow-2xs" style="font-size:0.82rem;" title="Input Setoran / Pembayaran">
+                                    <button type="button" class="btn btn-success btn-sm py-1.5 px-2.5 rounded-2 shadow-2xs" style="font-size:0.82rem;" data-bs-toggle="modal" data-bs-target="#modalInputSetoran{{ $sRow['supplier_id'] }}" title="Input Setoran / Pembayaran">
                                         <i class="bi bi-cash-stack"></i>
-                                    </a>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -364,6 +364,115 @@
             </table>
         </div>
     </div>
+@endif
+
+{{-- ── Modals Input Pembayaran Setoran Per Supplier ── --}}
+@if(!empty($supplierSummaries))
+    @foreach($supplierSummaries as $sRow)
+        <div class="modal fade" id="modalInputSetoran{{ $sRow['supplier_id'] }}" tabindex="-1" aria-labelledby="modalLabelSetoran{{ $sRow['supplier_id'] }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow" style="border-radius: 12px; overflow: hidden;">
+                    <div class="modal-header py-3 px-3.5 bg-light border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                <i class="bi bi-cash-stack fs-5"></i>
+                            </div>
+                            <div>
+                                <h6 class="modal-title fw-bold text-dark mb-0" id="modalLabelSetoran{{ $sRow['supplier_id'] }}">
+                                    Input Pembayaran Setoran: {{ $sRow['supplier_name'] }}
+                                </h6>
+                                <small class="text-muted" style="font-size: 0.72rem;">Catat pembayaran hasil penjualan titipan ke supplier</small>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form action="{{ route('supplier_consignments.settlement.store') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="supplier_id" value="{{ $sRow['supplier_id'] }}">
+                        <div class="modal-body p-3.5">
+                            @if($sRow['sisa_belum_setor_rp'] > 0)
+                                <div class="alert alert-warning py-2 px-3 mb-3 d-flex align-items-center justify-content-between small rounded-3 border-0">
+                                    <span><i class="bi bi-info-circle me-1"></i> Wajib Setor (Barang Laku):</span>
+                                    <strong class="font-monospace text-dark">Rp {{ number_format($sRow['sisa_belum_setor_rp'], 0, ',', '.') }}</strong>
+                                </div>
+                            @endif
+
+                            <!-- Tanggal Bayar -->
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-dark mb-1">Tanggal Bayar <span class="text-danger">*</span></label>
+                                <input type="date" name="settlement_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
+                            </div>
+
+                            <!-- Bayar Pakai Apa -->
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-dark mb-1">Bayar Pakai Apa <span class="text-danger">*</span></label>
+                                <select name="payment_method" class="form-select form-select-sm" onchange="toggleModalBank(this, {{ $sRow['supplier_id'] }})" required>
+                                    <option value="transfer">Transfer Bank</option>
+                                    <option value="cash">Tunai / Kas</option>
+                                </select>
+                            </div>
+
+                            <!-- Sumber Rekening Bank -->
+                            <div class="mb-3" id="modal-bank-container-{{ $sRow['supplier_id'] }}">
+                                <label class="form-label small fw-bold text-dark mb-1">Ditransfer Melalui Rekening Bank <span class="text-danger">*</span></label>
+                                <select name="bank_account_id" id="modal-bank-select-{{ $sRow['supplier_id'] }}" class="form-select form-select-sm">
+                                    <option value="">-- Pilih Rekening Bank --</option>
+                                    @foreach ($bankAccounts as $bank)
+                                        <option value="{{ $bank->id }}">
+                                            {{ $bank->bank_name }} - {{ $bank->account_number }} (a.n {{ $bank->account_name }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Jumlah Bayar -->
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-success mb-1">Jumlah Bayar (Rp) <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm mb-1.5">
+                                    <span class="input-group-text bg-light fw-bold text-success font-monospace">Rp</span>
+                                    <input type="text"
+                                        name="total_amount"
+                                        id="modal-amount-{{ $sRow['supplier_id'] }}"
+                                        class="form-control fw-bold text-success font-monospace"
+                                        placeholder="0"
+                                        value="{{ $sRow['sisa_belum_setor_rp'] > 0 ? number_format($sRow['sisa_belum_setor_rp'], 0, ',', '.') : '' }}"
+                                        autocomplete="off"
+                                        required
+                                        oninput="formatRupiahInput(this)">
+                                </div>
+                                @if($sRow['sisa_belum_setor_rp'] > 0 || $sRow['sisa_titipan_rp'] > 0)
+                                    <div class="d-flex gap-1.5 flex-wrap">
+                                        @if($sRow['sisa_belum_setor_rp'] > 0)
+                                            <button type="button" class="btn btn-xs btn-outline-warning py-0.5 px-2 text-dark" style="font-size:0.7rem;" onclick="setModalAmount({{ $sRow['supplier_id'] }}, {{ $sRow['sisa_belum_setor_rp'] }})">
+                                                Isi Barang Laku: Rp {{ number_format($sRow['sisa_belum_setor_rp'], 0, ',', '.') }}
+                                            </button>
+                                        @endif
+                                        @if($sRow['sisa_titipan_rp'] > 0 && $sRow['sisa_titipan_rp'] != $sRow['sisa_belum_setor_rp'])
+                                            <button type="button" class="btn btn-xs btn-outline-success py-0.5 px-2" style="font-size:0.7rem;" onclick="setModalAmount({{ $sRow['supplier_id'] }}, {{ $sRow['sisa_titipan_rp'] }})">
+                                                Isi Semua Titipan: Rp {{ number_format($sRow['sisa_titipan_rp'], 0, ',', '.') }}
+                                            </button>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- Catatan / Keterangan -->
+                            <div class="mb-1">
+                                <label class="form-label small fw-semibold text-muted mb-1">Catatan / Keterangan (Opsional)</label>
+                                <input type="text" name="notes" class="form-control form-control-sm" placeholder="Contoh: Setoran hasil penjualan...">
+                            </div>
+                        </div>
+                        <div class="modal-footer py-2.5 px-3.5 bg-light border-top">
+                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-sm text-white fw-semibold px-3" style="background:#16a34a; border:none;">
+                                <i class="bi bi-check-circle me-1"></i> Simpan Pembayaran
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endforeach
 @endif
 
 {{-- ── Filter Card ── --}}
@@ -510,5 +619,31 @@
             {{ $consignments->links() }}
         </div>
     @endif
-</div>
 @endsection
+
+@push('scripts')
+<script>
+    function toggleModalBank(selectElem, supId) {
+        const container = document.getElementById('modal-bank-container-' + supId);
+        if (container) {
+            container.style.display = (selectElem.value === 'transfer') ? 'block' : 'none';
+        }
+    }
+
+    function setModalAmount(supId, amount) {
+        const input = document.getElementById('modal-amount-' + supId);
+        if (input) {
+            input.value = Math.round(amount).toLocaleString('id-ID');
+        }
+    }
+
+    function formatRupiahInput(input) {
+        let val = input.value.replace(/[^0-9]/g, '');
+        if (val) {
+            input.value = parseInt(val, 10).toLocaleString('id-ID');
+        } else {
+            input.value = '';
+        }
+    }
+</script>
+@endpush

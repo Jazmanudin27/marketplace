@@ -157,9 +157,12 @@ class TitipanBarangController extends Controller
                 ];
             }
 
+            $bankAccounts = BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('bank_name')->get();
+
             return view('v2.titipan_barang.index', compact(
                 'consignments',
                 'suppliers',
+                'bankAccounts',
                 'totalQtySoldAll',
                 'totalAmountToPay',
                 'totalQtyTitipAll',
@@ -178,6 +181,7 @@ class TitipanBarangController extends Controller
             return response()->view('v2.titipan_barang.index', [
                 'consignments'         => SupplierConsignment::where('tenant_id', Auth::user()->tenant_id ?? 0)->paginate(20),
                 'suppliers'            => collect(),
+                'bankAccounts'         => collect(),
                 'totalQtySoldAll'      => 0,
                 'totalAmountToPay'     => 0,
                 'totalQtyTitipAll'     => 0,
@@ -1092,8 +1096,8 @@ class TitipanBarangController extends Controller
                 return $settlement;
             });
 
-            return redirect()->route('v2.titipan_barang.settlement.index', ['supplier_id' => $request->supplier_id])
-                ->with('success', 'Setoran pembayaran ke supplier berhasil disimpan sebesar Rp ' . number_format($settlement->total_amount_paid, 0, ',', '.') . '.');
+            return redirect()->back()
+                ->with('success', 'Setoran pembayaran ke supplier ' . $supplierName . ' berhasil disimpan sebesar Rp ' . number_format($settlement->total_amount_paid, 0, ',', '.') . '.');
         } catch (\Throwable $e) {
             return redirect()->back()
                 ->withInput()
