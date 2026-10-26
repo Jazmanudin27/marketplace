@@ -246,12 +246,113 @@
                             </td>
                             <td class="text-center pe-3.5 py-3">
                                 <div class="d-flex align-items-center justify-content-center gap-1.5">
+                                    <button type="button" class="btn btn-outline-info btn-sm py-1.5 px-2.5 fw-semibold rounded-2 position-relative" style="font-size:0.76rem;" data-bs-toggle="collapse" data-bs-target="#historiBayarSup{{ $sRow['supplier_id'] }}" aria-expanded="false" title="Lihat Histori Pembayaran Setoran">
+                                        <i class="bi bi-clock-history me-1"></i>Histori Bayar
+                                        @if(!empty($sRow['settlement_history']) && count($sRow['settlement_history']) > 0)
+                                            <span class="badge bg-info text-white rounded-pill ms-1" style="font-size:0.65rem;">{{ count($sRow['settlement_history']) }}</span>
+                                        @endif
+                                    </button>
                                     <a href="{{ route('supplier_consignments.stock_card', ['supplier_id' => $sRow['supplier_id'], 'supplier' => $sRow['supplier_name']]) }}" class="btn btn-light btn-sm py-1.5 px-2.5 border fw-semibold rounded-2 text-secondary" style="font-size:0.76rem;" title="Lihat Kartu Stok Produk Supplier Ini">
                                         <i class="bi bi-card-checklist me-1 text-primary"></i>Kartu Stok
                                     </a>
                                     <a href="{{ route('v2.titipan_barang.settlement.create', ['supplier_id' => $sRow['supplier_id']]) }}" class="btn btn-success btn-sm py-1.5 px-3 fw-semibold rounded-2 shadow-2xs" style="font-size:0.76rem;" title="Input Setoran untuk Supplier Ini">
                                         <i class="bi bi-cash-stack me-1"></i>Setor
                                     </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {{-- ── Sub-row: Histori Pembayaran Setoran (Bisa Edit & Hapus) ── --}}
+                        <tr class="collapse bg-light-subtle" id="historiBayarSup{{ $sRow['supplier_id'] }}">
+                            <td colspan="6" class="p-3 bg-slate-50 border-bottom">
+                                <div class="card border border-info border-opacity-25 rounded-3 shadow-none bg-white p-3">
+                                    <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom flex-wrap gap-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1 fw-bold rounded-pill" style="font-size:0.72rem;">
+                                                <i class="bi bi-receipt me-1"></i>Histori Setoran
+                                            </span>
+                                            <span class="fw-bold text-dark small" style="font-size:0.83rem;">
+                                                Riwayat Pembayaran ke {{ $sRow['supplier_name'] }}
+                                            </span>
+                                            <span class="text-muted small" style="font-size:0.73rem;">
+                                                (Total Terbayar: <strong class="text-success font-monospace">Rp {{ number_format($sRow['setor_rp'], 0, ',', '.') }}</strong>)
+                                            </span>
+                                        </div>
+                                        <a href="{{ route('v2.titipan_barang.settlement.index', ['supplier_id' => $sRow['supplier_id']]) }}" class="btn btn-xs btn-outline-secondary py-1 px-2.5 fw-semibold" style="font-size:0.72rem;">
+                                            <i class="bi bi-box-arrow-up-right me-1"></i>Semua Riwayat Setoran
+                                        </a>
+                                    </div>
+
+                                    @if(!empty($sRow['settlement_history']) && count($sRow['settlement_history']) > 0)
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered align-middle mb-0 bg-white" style="font-size: 0.79rem;">
+                                                <thead class="table-light text-secondary text-uppercase fw-semibold" style="font-size:0.71rem;">
+                                                    <tr>
+                                                        <th class="ps-2.5 py-1.5" style="width: 22%;">NO. SETORAN</th>
+                                                        <th class="py-1.5" style="width: 14%;">TANGGAL</th>
+                                                        <th class="py-1.5" style="width: 18%;">METODE</th>
+                                                        <th class="py-1.5" style="width: 18%;">CATATAN / REF</th>
+                                                        <th class="text-end py-1.5" style="width: 16%;">NOMINAL (RP)</th>
+                                                        <th class="text-center pe-2.5 py-1.5" style="width: 12%;">AKSI</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($sRow['settlement_history'] as $hist)
+                                                        <tr>
+                                                            <td class="ps-2.5 py-2 font-monospace fw-bold text-primary">
+                                                                <a href="{{ route('v2.titipan_barang.settlement.show', $hist->id) }}" class="text-decoration-none">
+                                                                    {{ $hist->settlement_number }}
+                                                                </a>
+                                                            </td>
+                                                            <td class="py-2 text-dark">
+                                                                <i class="bi bi-calendar-event me-1 text-muted"></i>
+                                                                {{ $hist->settlement_date ? $hist->settlement_date->format('d/m/Y') : '-' }}
+                                                            </td>
+                                                            <td class="py-2">
+                                                                <span class="badge {{ $hist->payment_method === 'transfer' ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-success-subtle text-success border border-success-subtle' }} px-2 py-0.5" style="font-size: 0.68rem;">
+                                                                    {{ $hist->payment_method === 'transfer' ? 'Transfer Bank' : 'Tunai / Kas' }}
+                                                                </span>
+                                                                @if($hist->bankAccount)
+                                                                    <div class="text-muted small mt-0.5" style="font-size: 0.69rem;">
+                                                                        {{ $hist->bankAccount->bank_name }}
+                                                                    </div>
+                                                                @endif
+                                                            </td>
+                                                            <td class="py-2 text-muted" style="font-size: 0.73rem;">
+                                                                @if($hist->reference_number)
+                                                                    <span class="font-monospace text-dark d-block">Ref: {{ $hist->reference_number }}</span>
+                                                                @endif
+                                                                <span>{{ $hist->notes ?: '-' }}</span>
+                                                            </td>
+                                                            <td class="text-end py-2 font-monospace fw-bold text-success" style="font-size: 0.85rem;">
+                                                                Rp {{ number_format($hist->total_amount_paid, 0, ',', '.') }}
+                                                            </td>
+                                                            <td class="text-center pe-2.5 py-2">
+                                                                <div class="d-inline-flex align-items-center gap-1">
+                                                                    <a href="{{ route('v2.titipan_barang.settlement.show', $hist->id) }}" class="btn btn-xs btn-outline-primary py-0.5 px-1.5 rounded" title="Lihat Bukti Setoran">
+                                                                        <i class="bi bi-eye"></i>
+                                                                    </a>
+                                                                    <a href="{{ route('v2.titipan_barang.settlement.edit', $hist->id) }}" class="btn btn-xs btn-outline-warning py-0.5 px-1.5 rounded text-dark" title="Edit Pembayaran Setoran">
+                                                                        <i class="bi bi-pencil-square"></i>
+                                                                    </a>
+                                                                    <form action="{{ route('supplier_consignments.settlement.destroy', $hist->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus histori setoran {{ $hist->settlement_number }} sebesar Rp {{ number_format($hist->total_amount_paid, 0, \',\', \'.\') }} ini? Mutasi kas pengeluaran terkait juga akan dibatalkan.')">
+                                                                        @csrf
+                                                                        @method('DELETE')
+                                                                        <button type="submit" class="btn btn-xs btn-outline-danger py-0.5 px-1.5 rounded" title="Hapus Bukti Setoran">
+                                                                            <i class="bi bi-trash"></i>
+                                                                        </button>
+                                                                    </form>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    @else
+                                        <div class="text-center py-3 text-muted small">
+                                            <i class="bi bi-info-circle me-1"></i>Belum ada riwayat pembayaran setoran untuk supplier ini.
+                                        </div>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

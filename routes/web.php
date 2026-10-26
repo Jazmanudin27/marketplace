@@ -368,6 +368,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/settlement/create', [\App\Http\Controllers\V2\TitipanBarangController::class, 'createSettlement'])->name('settlement.create');
             Route::post('/settlement', [\App\Http\Controllers\V2\TitipanBarangController::class, 'storeSettlement'])->name('settlement.store');
             Route::get('/settlement/{settlement}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'showSettlement'])->name('settlement.show');
+            Route::get('/settlement/{settlement}/edit', [\App\Http\Controllers\V2\TitipanBarangController::class, 'editSettlement'])->name('settlement.edit');
+            Route::put('/settlement/{settlement}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'updateSettlement'])->name('settlement.update');
             Route::delete('/settlement/{settlement}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'destroySettlement'])->name('settlement.destroy');
 
             // Stok Opname Titipan Barang (Consignment Opname / Stock Adjustment) CRUD
@@ -817,6 +819,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/supplier-consignments/settlement/create', [\App\Http\Controllers\V2\TitipanBarangController::class, 'createSettlement'])->name('supplier_consignments.settlement.create');
         Route::post('/supplier-consignments/settlement', [\App\Http\Controllers\V2\TitipanBarangController::class, 'storeSettlement'])->name('supplier_consignments.settlement.store');
         Route::get('/supplier-consignments/settlement/{settlement}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'showSettlement'])->name('supplier_consignments.settlement.show');
+        Route::get('/supplier-consignments/settlement/{settlement}/edit', [\App\Http\Controllers\V2\TitipanBarangController::class, 'editSettlement'])->name('supplier_consignments.settlement.edit');
+        Route::put('/supplier-consignments/settlement/{settlement}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'updateSettlement'])->name('supplier_consignments.settlement.update');
         Route::delete('/supplier-consignments/settlement/{settlement}', [\App\Http\Controllers\V2\TitipanBarangController::class, 'destroySettlement'])->name('supplier_consignments.settlement.destroy');
         Route::get('/supplier-consignments/{consignment}', [SupplierConsignmentController::class, 'show'])->name('supplier_consignments.show');
         Route::get('/supplier-consignments/{consignment}/print-labels', [SupplierConsignmentController::class, 'printItemLabels'])->name('supplier_consignments.print_labels');

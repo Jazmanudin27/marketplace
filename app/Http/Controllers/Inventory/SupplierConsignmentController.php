@@ -123,6 +123,15 @@ class SupplierConsignmentController extends Controller
             // Sisa saldo keseluruhan jika dibandingkan total titipan masuk
             $sisaTitipanRp = max(0, $totalTitipanRp - $setorRp);
 
+            // 🎯 Ambil Histori Setoran Pembayaran Supplier ini (bisa dilihat, diedit, dan dihapus)
+            $settlementHistory = SupplierConsignmentSettlement::with(['bankAccount'])
+                ->where('tenant_id', $tenantId)
+                ->where('supplier_id', $sup->id)
+                ->orderByDesc('settlement_date')
+                ->orderByDesc('id')
+                ->limit(10)
+                ->get();
+
             $supplierSummaries[] = [
                 'supplier_id'         => $sup->id,
                 'supplier_name'       => $sup->name,
@@ -135,6 +144,7 @@ class SupplierConsignmentController extends Controller
                 'setor_rp'            => $setorRp,
                 'sisa_belum_setor_rp' => $sisaBelumSetorRp,
                 'sisa_titipan_rp'     => $sisaTitipanRp,
+                'settlement_history'  => $settlementHistory,
             ];
         }
 
