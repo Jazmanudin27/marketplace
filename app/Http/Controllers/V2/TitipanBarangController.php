@@ -925,52 +925,46 @@ class TitipanBarangController extends Controller
                         }
                     }
 
-                    if (empty($itemsToSettle)) {
-                        throw new \Exception('Seluruh nota penerimaan titipan dari supplier ini sudah lunas disetorkan sebelumnya.');
-                    }
-
-                    if ($lumpSumPaid > $totalUnsettledAll + 0.01) {
-                        throw new \Exception('Nominal setoran (Rp ' . number_format($lumpSumPaid, 0, ',', '.') . ') melebihi total seluruh sisa tagihan supplier ini (Rp ' . number_format($totalUnsettledAll, 0, ',', '.') . ').');
-                    }
-
                     $remainingPay = $lumpSumPaid;
                     $settledInvoicesMap = [];
 
-                    foreach ($itemsToSettle as $entry) {
-                        if ($remainingPay <= 0.001) {
-                            break;
-                        }
-
-                        $cItem        = $entry['item'];
-                        $consignment  = $entry['consignment'];
-                        $itemRemCost  = $entry['remaining_cost'];
-                        $qtyRemaining = $entry['remaining_qty'];
-                        $costPrice    = $entry['cost_price'];
-
-                        $allocate = min($remainingPay, $itemRemCost);
-                        $remainingPay -= $allocate;
-
-                        if ($allocate >= $itemRemCost) {
-                            $allocatedQty = $qtyRemaining;
-                        } else {
-                            $allocatedQty = $costPrice > 0 ? (int) round($allocate / $costPrice) : 0;
-                            if ($allocatedQty == 0 && $allocate > 0 && $qtyRemaining > 0) {
-                                $allocatedQty = 1;
+                    if (!empty($itemsToSettle)) {
+                        foreach ($itemsToSettle as $entry) {
+                            if ($remainingPay <= 0.001) {
+                                break;
                             }
-                            $allocatedQty = min($allocatedQty, $qtyRemaining);
+
+                            $cItem        = $entry['item'];
+                            $consignment  = $entry['consignment'];
+                            $itemRemCost  = $entry['remaining_cost'];
+                            $qtyRemaining = $entry['remaining_qty'];
+                            $costPrice    = $entry['cost_price'];
+
+                            $allocate = min($remainingPay, $itemRemCost);
+                            $remainingPay -= $allocate;
+
+                            if ($allocate >= $itemRemCost) {
+                                $allocatedQty = $qtyRemaining;
+                            } else {
+                                $allocatedQty = $costPrice > 0 ? (int) round($allocate / $costPrice) : 0;
+                                if ($allocatedQty == 0 && $allocate > 0 && $qtyRemaining > 0) {
+                                    $allocatedQty = 1;
+                                }
+                                $allocatedQty = min($allocatedQty, $qtyRemaining);
+                            }
+                            $totalQtySettled += $allocatedQty;
+
+                            $settlement->items()->create([
+                                'supplier_consignment_item_id' => $cItem->id,
+                                'master_product_id'           => $cItem->master_product_id,
+                                'qty_settled'                 => $allocatedQty,
+                                'unit_cost_price'             => $costPrice,
+                                'subtotal'                    => $allocate,
+                            ]);
+
+                            $ref = $consignment->reference_number;
+                            $settledInvoicesMap[$ref] = ($settledInvoicesMap[$ref] ?? 0) + $allocate;
                         }
-                        $totalQtySettled += $allocatedQty;
-
-                        $settlement->items()->create([
-                            'supplier_consignment_item_id' => $cItem->id,
-                            'master_product_id'           => $cItem->master_product_id,
-                            'qty_settled'                 => $allocatedQty,
-                            'unit_cost_price'             => $costPrice,
-                            'subtotal'                    => $allocate,
-                        ]);
-
-                        $ref = $consignment->reference_number;
-                        $settledInvoicesMap[$ref] = ($settledInvoicesMap[$ref] ?? 0) + $allocate;
                     }
 
                     $totalAmountPaid = $lumpSumPaid;
