@@ -94,8 +94,8 @@ class FinancialReportController extends Controller
             $allExpenseCats = FinanceCategory::where('tenant_id', $tenantId)->expense()->get();
         }
 
-        // Filter kategori pengeluaran modal/HPP yang tidak boleh masuk beban operasional
-        $excludedExpenseCodes = ['pembelian_supplier', 'bahan_baku', 'biaya_produksi', 'supplier_payable'];
+        // Filter kategori pengeluaran modal/HPP/Setoran Titipan yang tidak boleh masuk beban operasional
+        $excludedExpenseCodes = ['pembelian_supplier', 'bahan_baku', 'biaya_produksi', 'supplier_payable', 'setoran barang konsinyasi', 'setoran_barang_konsinyasi'];
 
         $operatingExpenses = $expenses->filter(function ($exp) use ($excludedExpenseCodes) {
             return !in_array(strtolower($exp->category), $excludedExpenseCodes);
