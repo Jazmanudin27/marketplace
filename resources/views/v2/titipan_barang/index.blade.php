@@ -340,7 +340,7 @@
                                                                     <a href="{{ route('v2.titipan_barang.settlement.edit', ['settlement' => $hist->id]) }}" class="btn btn-xs btn-outline-warning py-0.5 px-1.5 rounded text-dark" title="Edit Pembayaran Setoran">
                                                                         <i class="bi bi-pencil-square"></i>
                                                                     </a>
-                                                                    <form action="{{ route('v2.titipan_barang.settlement.destroy', ['settlement' => $hist->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus histori setoran {{ $hist->settlement_number }} sebesar Rp {{ number_format($hist->total_amount_paid ?? 0, 0, \',\', \'.\') }} ini? Mutasi kas pengeluaran terkait juga akan dibatalkan.')">
+                                                                    <form action="{{ route('v2.titipan_barang.settlement.destroy', ['settlement' => $hist->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus histori setoran {{ $hist->settlement_number }} sebesar Rp {{ number_format($hist->total_amount_paid ?? 0, 0, ',', '.') }} ini? Mutasi kas pengeluaran terkait juga akan dibatalkan.')">
                                                                         @csrf
                                                                         @method('DELETE')
                                                                         <button type="submit" class="btn btn-xs btn-outline-danger py-0.5 px-1.5 rounded" title="Hapus Bukti Setoran">
