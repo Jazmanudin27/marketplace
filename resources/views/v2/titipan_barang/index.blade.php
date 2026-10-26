@@ -88,34 +88,71 @@
 
 {{-- ── KPI Summary Cards ── --}}
 <div class="row g-2.5 mb-3">
-    <div class="col-12 col-md-4">
-        <div class="titipan-kpi-card border-start border-warning border-3">
+    {{-- Total Transaksi --}}
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="titipan-kpi-card border-start border-warning border-3 h-100">
             <div class="titipan-kpi-title text-warning">Total Transaksi</div>
-            <div class="titipan-kpi-value text-dark">
-                {{ number_format($consignments->total(), 0, ',', '.') }} Transaksi
+            <div class="titipan-kpi-value text-dark" style="font-size: 1.05rem;">
+                {{ number_format($consignments->total(), 0, ',', '.') }}
             </div>
-            <div class="titipan-kpi-sub">Total penerimaan konsinyasi terdaftar</div>
+            <div class="titipan-kpi-sub">Nota penerimaan</div>
             <i class="bi bi-box-seam titipan-kpi-icon text-warning"></i>
         </div>
     </div>
-    <div class="col-12 col-md-4">
-        <div class="titipan-kpi-card border-start border-success border-3">
-            <div class="titipan-kpi-title text-success">Total Qty Diterima</div>
-            <div class="titipan-kpi-value text-success">
-                {{ number_format($consignments->sum('total_qty_received'), 0, ',', '.') }} PCS
+
+    {{-- Total Qty Diterima --}}
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="titipan-kpi-card border-start border-primary border-3 h-100">
+            <div class="titipan-kpi-title text-primary">Barang Masuk</div>
+            <div class="titipan-kpi-value text-primary" style="font-size: 1.05rem;">
+                {{ number_format($totalQtyTitipAll ?? $consignments->sum('total_qty_received'), 0, ',', '.') }} PCS
             </div>
-            <div class="titipan-kpi-sub">Jumlah pcs barang titipan</div>
-            <i class="bi bi-boxes titipan-kpi-icon text-success"></i>
+            <div class="titipan-kpi-sub">Modal: Rp {{ number_format($totalAmountHppAll ?? $consignments->sum('total_amount_hpp'), 0, ',', '.') }}</div>
+            <i class="bi bi-boxes titipan-kpi-icon text-primary"></i>
         </div>
     </div>
-    <div class="col-12 col-md-4">
-        <div class="titipan-kpi-card border-start border-primary border-3">
-            <div class="titipan-kpi-title text-primary">Total HPP Modal</div>
-            <div class="titipan-kpi-value text-primary font-monospace">
-                Rp {{ number_format($consignments->sum('total_amount_hpp'), 0, ',', '.') }}
+
+    {{-- 🎯 Total Terjual (Qty) --}}
+    <div class="col-6 col-md-4 col-xl-2">
+        <div class="titipan-kpi-card border-start border-info border-3 h-100">
+            <div class="titipan-kpi-title text-info">Total Terjual</div>
+            <div class="titipan-kpi-value text-info" style="font-size: 1.05rem;">
+                {{ number_format($totalQtySoldAll ?? 0, 0, ',', '.') }} PCS
             </div>
-            <div class="titipan-kpi-sub">Akumulasi estimasi nilai modal barang</div>
-            <i class="bi bi-cash-stack titipan-kpi-icon text-primary"></i>
+            <div class="titipan-kpi-sub">Laku terjual ke pembeli</div>
+            <i class="bi bi-bag-check titipan-kpi-icon text-info"></i>
+        </div>
+    </div>
+
+    {{-- 🎯 TOTAL HARUS DISETORKAN (Rp HPP) --}}
+    <div class="col-6 col-md-6 col-xl-3">
+        <div class="titipan-kpi-card border-start border-danger border-3 h-100" style="background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);">
+            <div class="titipan-kpi-title text-danger fw-bold">
+                <i class="bi bi-cash-coin me-1"></i>TOTAL HARUS DISETORKAN
+            </div>
+            <div class="titipan-kpi-value text-danger font-monospace" style="font-size: 1.15rem;">
+                Rp {{ number_format($totalAmountToPay ?? 0, 0, ',', '.') }}
+            </div>
+            <div class="titipan-kpi-sub text-danger fw-semibold">
+                Nilai HPP barang titipan yang sudah laku
+            </div>
+            <i class="bi bi-wallet2 titipan-kpi-icon text-danger"></i>
+        </div>
+    </div>
+
+    {{-- STATUS SETORAN SUPPLIER (Sudah vs Belum) --}}
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="titipan-kpi-card border-start border-success border-3 h-100" style="background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);">
+            <div class="titipan-kpi-title text-success fw-bold">
+                <i class="bi bi-clock-history me-1"></i>SISA BELUM DISETOR
+            </div>
+            <div class="titipan-kpi-value text-success font-monospace" style="font-size: 1.15rem;">
+                Rp {{ number_format($totalAmountUnsettled ?? 0, 0, ',', '.') }}
+            </div>
+            <div class="titipan-kpi-sub text-muted">
+                Sudah disetor: <strong>Rp {{ number_format($totalAmountSettled ?? 0, 0, ',', '.') }}</strong>
+            </div>
+            <i class="bi bi-check2-circle titipan-kpi-icon text-success"></i>
         </div>
     </div>
 </div>
@@ -166,18 +203,24 @@
         <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;">
             <thead class="table-light text-uppercase small fw-bold text-secondary border-bottom">
                 <tr>
-                    <th class="ps-3 text-center" style="width: 50px;">NO</th>
-                    <th style="width: 18%;">NO REFERENSI</th>
-                    <th style="width: 12%;">TANGGAL</th>
-                    <th style="width: 25%;">SUPPLIER</th>
-                    <th class="text-center" style="width: 12%;">TOTAL QTY</th>
-                    <th class="text-end" style="width: 15%;">TOTAL HPP MODAL</th>
-                    <th class="text-center" style="width: 10%;">STATUS</th>
-                    <th class="text-center pe-3" style="width: 12%;">AKSI</th>
+                    <th class="ps-3 text-center" style="width: 40px;">NO</th>
+                    <th style="width: 14%;">NO REFERENSI</th>
+                    <th style="width: 10%;">TANGGAL</th>
+                    <th style="width: 18%;">SUPPLIER</th>
+                    <th class="text-center" style="width: 10%;">QTY MASUK</th>
+                    <th class="text-center" style="width: 10%;">TERJUAL</th>
+                    <th class="text-end" style="width: 14%;">WAJIB DISETOR (RP)</th>
+                    <th class="text-end" style="width: 12%;">TOTAL HPP</th>
+                    <th class="text-center" style="width: 6%;">STATUS</th>
+                    <th class="text-center pe-3" style="width: 6%;">AKSI</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($consignments as $index => $item)
+                    @php
+                        $rowQtySold = (int) $item->items->sum('qty_sold');
+                        $rowAmountToPay = (float) $item->items->sum(fn($it) => (int)($it->qty_sold ?? 0) * (float)$it->unit_cost_price);
+                    @endphp
                     <tr>
                         <td class="ps-3 text-center text-muted fw-semibold">{{ $consignments->firstItem() + $index }}</td>
                         <td>
@@ -191,15 +234,33 @@
                             <small class="text-muted">{{ $item->supplier ? ($item->supplier->phone ?: 'No Contact') : '-' }}</small>
                         </td>
                         <td class="text-center">
-                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1 fw-semibold">
+                            <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-2.5 py-1 fw-semibold">
                                 {{ number_format($item->total_qty_received) }} PCS
                             </span>
                         </td>
-                        <td class="text-end fw-bold text-dark font-monospace">
+                        <td class="text-center">
+                            @if($rowQtySold > 0)
+                                <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-1 fw-bold">
+                                    {{ number_format($rowQtySold) }} PCS
+                                </span>
+                            @else
+                                <span class="text-muted small">0 PCS</span>
+                            @endif
+                        </td>
+                        <td class="text-end font-monospace">
+                            @if($rowAmountToPay > 0)
+                                <span class="fw-bold text-danger">
+                                    Rp {{ number_format($rowAmountToPay, 0, ',', '.') }}
+                                </span>
+                            @else
+                                <span class="text-muted small">Rp 0</span>
+                            @endif
+                        </td>
+                        <td class="text-end fw-semibold text-dark font-monospace" style="font-size:0.8rem;">
                             Rp {{ number_format($item->total_amount_hpp, 0, ',', '.') }}
                         </td>
                         <td class="text-center">
-                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5" style="font-size:0.7rem;">
                                 <i class="bi bi-check-circle me-1"></i>Selesai
                             </span>
                         </td>
@@ -226,7 +287,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">
+                        <td colspan="10" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
                             Belum ada data penerimaan barang konsinyasi. Silakan klik tombol <b>Transaksi Baru</b>.
                         </td>

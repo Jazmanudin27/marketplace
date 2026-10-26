@@ -273,8 +273,8 @@
                             <div class="col-6 col-sm-4 col-md-2">
                                 <div class="p-2 rounded-2 bg-light border text-center">
                                     <span class="text-muted d-block" style="font-size: 0.65rem; font-weight: 600;">SISA GUDANG</span>
-                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-0.5 fw-bold mt-0.5" style="font-size: 0.78rem;">
-                                        {{ number_format($row['current_stock']) }} {{ $row['unit'] }}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-0.5 fw-bold mt-0.5" style="font-size: 0.78rem;" title="Rumus: Masuk ({{ $row['qty_received'] }}) - Terjual ({{ $row['qty_sold'] }})">
+                                        {{ number_format($row['qty_remaining']) }} {{ $row['unit'] }}
                                     </span>
                                 </div>
                             </div>

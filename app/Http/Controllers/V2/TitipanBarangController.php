@@ -29,7 +29,7 @@ class TitipanBarangController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
-        $query = SupplierConsignment::with(['supplier', 'creator', 'approver'])
+        $query = SupplierConsignment::with(['supplier', 'creator', 'approver', 'items'])
             ->where('tenant_id', $tenantId)
             ->orderByDesc('consignment_date')
             ->orderByDesc('id');
@@ -53,7 +53,46 @@ class TitipanBarangController extends Controller
         $consignments = $query->paginate(20)->withQueryString();
         $suppliers    = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
 
-        return view('v2.titipan_barang.index', compact('consignments', 'suppliers'));
+        // 🎯 Hitung Total Terjual yang harus disetorkan (Pcs & Rp HPP)
+        $consignmentIds = SupplierConsignment::where('tenant_id', $tenantId)
+            ->where('status', 'approved')
+            ->when($request->filled('supplier_id'), fn($q) => $q->where('supplier_id', $request->supplier_id))
+            ->pluck('id');
+
+        $itemsSummary = SupplierConsignmentItem::whereIn('supplier_consignment_id', $consignmentIds)
+            ->select(
+                DB::raw('COALESCE(SUM(qty_sold), 0) as total_qty_sold'),
+                DB::raw('COALESCE(SUM(qty_sold * unit_cost_price), 0) as total_amount_sold'),
+                DB::raw('COALESCE(SUM(qty_received), 0) as total_qty_received'),
+                DB::raw('COALESCE(SUM(qty_received * unit_cost_price), 0) as total_amount_received')
+            )
+            ->first();
+
+        $totalQtySoldAll   = (int) ($itemsSummary->total_qty_sold ?? 0);
+        $totalAmountToPay  = (float) ($itemsSummary->total_amount_sold ?? 0); // Total nilai yang harus disetorkan (HPP)
+        $totalQtyTitipAll  = (int) ($itemsSummary->total_qty_received ?? 0);
+        $totalAmountHppAll = (float) ($itemsSummary->total_amount_received ?? 0);
+
+        // Hitung juga nominal yang sudah disetor agar tahu sisa yang belum disetor
+        $totalAmountSettled = (float) SupplierConsignmentSettlementItem::whereHas('settlement', function($q) use ($tenantId, $request) {
+            $q->where('tenant_id', $tenantId)->where('status', 'approved');
+            if ($request->filled('supplier_id')) {
+                $q->where('supplier_id', $request->supplier_id);
+            }
+        })->sum('subtotal');
+
+        $totalAmountUnsettled = max(0, $totalAmountToPay - $totalAmountSettled);
+
+        return view('v2.titipan_barang.index', compact(
+            'consignments',
+            'suppliers',
+            'totalQtySoldAll',
+            'totalAmountToPay',
+            'totalQtyTitipAll',
+            'totalAmountHppAll',
+            'totalAmountSettled',
+            'totalAmountUnsettled'
+        ));
     }
 
     /**
@@ -485,12 +524,9 @@ class TitipanBarangController extends Controller
             })->where('master_product_id', $productId)->sum('qty_settled');
 
             $actualQtySold = (int) $groupItems->sum('qty_sold');
-            $currentStock  = $product->stock;
-            $qtySoldTotal  = $actualQtySold > 0 ? min($qtyReceivedTotal, $actualQtySold) : max(0, $qtyReceivedTotal - $currentStock);
-            if ($qtySoldTotal > $qtyReceivedTotal) {
-                $qtySoldTotal = $qtyReceivedTotal;
-            }
+            $qtySoldTotal  = $actualQtySold;
 
+            // 🎯 Rumus Sisa Gudang: Masuk - Terjual (Group by per SKU/Product)
             $qtyRemainingTotal = max(0, $qtyReceivedTotal - $qtySoldTotal);
             $qtyUnsettledTotal = max(0, $qtySoldTotal - $qtySettledTotal);
 
@@ -515,7 +551,7 @@ class TitipanBarangController extends Controller
                 'unit_cost'         => $unitCost,
                 'unit_selling'      => $unitSelling,
                 'qty_received'      => $qtyReceivedTotal,
-                'current_stock'     => $product->stock,
+                'current_stock'     => $qtyRemainingTotal, // Sisa Gudang = Masuk - Terjual
                 'qty_sold'          => $qtySoldTotal,
                 'qty_remaining'     => $qtyRemainingTotal,
                 'qty_settled'       => $qtySettledTotal,
