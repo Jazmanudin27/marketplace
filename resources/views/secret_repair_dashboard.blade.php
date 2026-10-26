@@ -831,6 +831,64 @@
                     </div>
                 </div>
             </div>
+        <!-- 🔍 TOOL DIAGNOSA & TARIK PESANAN TIKTOK (INSTANT / KILAT / REGULER) -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4 overflow-hidden border-start border-4 border-dark" style="background: #ffffff;">
+            <div class="card-body p-4">
+                <div class="row align-items-center g-3">
+                    <div class="col-lg-7">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-dark text-white fw-bold px-2.5 py-1" style="font-size: 0.72rem;">
+                                <i class="fab fa-tiktok me-1"></i>TIKTOK ORDER INSPECTOR &amp; FORCE SYNC
+                            </span>
+                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-0.5" style="font-size:0.7rem;">
+                                <i class="fas fa-bolt me-1"></i>Pesanan Kilat / Sameday / Reguler
+                            </span>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">Cek Mengapa Pesanan TikTok Belum Masuk &amp; Tarik Langsung ke ERP</h6>
+                        <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.45;">
+                            Masukkan No. Pesanan TikTok (Order ID). Sistem akan langsung menghubungi API TikTok, mendiagnosa status pembayaran, kurir &amp; pengiriman kilat, serta langsung menyimpannya ke database ERP.
+                        </p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="p-3 rounded-3 border" style="background: #f8fafc;">
+                            <form id="formCheckTiktokOrder" onsubmit="event.preventDefault(); submitCheckTiktokOrder();">
+                                <div class="mb-2">
+                                    <label class="form-label small fw-bold text-dark mb-1" style="font-size: 0.76rem;">TikTok Order ID:</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white border-end-0"><i class="fab fa-tiktok text-dark"></i></span>
+                                        <input type="text" id="inputTiktokOrderId" class="form-control font-monospace border-start-0" placeholder="Contoh: 57928374928172938" required autocomplete="off">
+                                        <button type="submit" id="btnSubmitCheckTiktok" class="btn btn-dark fw-semibold px-3">
+                                            <i class="fas fa-search me-1"></i> Cek &amp; Tarik
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between mt-2">
+                                    <div class="form-check form-check-inline mb-0" style="font-size: 0.75rem;">
+                                        <input class="form-check-input" type="checkbox" id="checkTiktokAutoSync" checked>
+                                        <label class="form-check-label text-secondary" for="checkTiktokAutoSync">Otomatis simpan ke ERP jika status valid</label>
+                                    </div>
+                                    <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 text-muted" style="font-size:0.72rem;" onclick="document.getElementById('inputTiktokOrderId').value=''; document.getElementById('tiktokDiagResultBox').style.display='none';">
+                                        Reset
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result Box -->
+                <div id="tiktokDiagResultBox" class="mt-3 pt-3 border-top" style="display: none;">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="fw-bold small text-dark" style="font-size: 0.8rem;">
+                            <i class="fas fa-file-invoice text-primary me-1"></i> Hasil Diagnosa API TikTok:
+                        </span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 0.72rem;" onclick="copyTiktokDiagResult()">
+                            <i class="fas fa-copy me-1"></i> Salin Diagnosa
+                        </button>
+                    </div>
+                    <pre id="tiktokDiagOutput" class="p-3 rounded-2 font-monospace mb-0" style="background:#0d1117; color:#58a6ff; font-size:0.78rem; max-height:280px; overflow-y:auto; white-space:pre-wrap; border:1px solid #30363d;"></pre>
+                </div>
+            </div>
         </div>
 
         <div class="row g-3 mb-4">
@@ -1911,6 +1969,92 @@
             document.getElementById('filterDateToCompleted').value = '';
             document.getElementById('compareDateRangeTextCompleted').textContent = 'Semua waktu';
             loadCompareStatsCompleted();
+        }
+
+        // TikTok Order Inspector AJAX Handler
+        function submitCheckTiktokOrder() {
+            const input = document.getElementById('inputTiktokOrderId');
+            const btn = document.getElementById('btnSubmitCheckTiktok');
+            const autoSync = document.getElementById('checkTiktokAutoSync').checked;
+            const resultBox = document.getElementById('tiktokDiagResultBox');
+            const outputPre = document.getElementById('tiktokDiagOutput');
+
+            const orderId = input.value.trim();
+            if (!orderId) {
+                alert('Silakan masukkan No. Pesanan TikTok terlebih dahulu.');
+                input.focus();
+                return;
+            }
+
+            const originalBtnHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> Memeriksa...`;
+            resultBox.style.display = 'block';
+            outputPre.style.color = '#ffbd2e';
+            outputPre.textContent = `⏳ Menghubungi TikTok Shop API v202309 untuk order [${orderId}]...\nHarap tunggu sebentar...`;
+
+            appendLog(`▶ Memeriksa status TikTok Order [${orderId}]...`, 'info');
+
+            fetch('{{ route("secret_repair.run") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'check_tiktok_order',
+                    order_id: orderId,
+                    auto_sync: autoSync
+                })
+            })
+            .then(async response => {
+                const isJson = response.headers.get('content-type')?.includes('application/json');
+                const data = isJson ? await response.json() : null;
+                if (!response.ok) {
+                    const errorMsg = data?.message || data?.error || 'Server error ' + response.status;
+                    throw new Error(errorMsg);
+                }
+                return data;
+            })
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+
+                if (data.success) {
+                    outputPre.style.color = '#58a6ff';
+                    outputPre.textContent = data.diagnostic_text || JSON.stringify(data, null, 2);
+                    appendLog(`✅ Pemeriksaan TikTok Order [${orderId}] Selesai (${data.duration || '0s'}): ${data.message}`, 'success');
+
+                    // Refresh stats counter jika berhasil sync
+                    if (data.sync_executed) {
+                        const erpCountElem = document.getElementById('statErpCount');
+                        if (erpCountElem) {
+                            let curr = parseInt(erpCountElem.innerText.replace(/\./g, '')) || 0;
+                            erpCountElem.innerText = (curr + 1).toLocaleString('id-ID');
+                        }
+                    }
+                } else {
+                    outputPre.style.color = '#ff5f56';
+                    outputPre.textContent = data.diagnostic_text || data.message || 'Order tidak ditemukan.';
+                    appendLog(`⚠️ Pengecekan TikTok Order [${orderId}]: ${data.message}`, 'warning');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+                outputPre.style.color = '#ff5f56';
+                outputPre.textContent = `❌ Terjadi kesalahan jaringan / server:\n${err.message}`;
+                appendLog(`❌ Gagal memeriksa TikTok Order: ${err.message}`, 'error');
+            });
+        }
+
+        function copyTiktokDiagResult() {
+            const outputText = document.getElementById('tiktokDiagOutput').textContent;
+            if (!outputText) return;
+            navigator.clipboard.writeText(outputText).then(() => {
+                alert('Hasil diagnosa TikTok berhasil disalin ke clipboard!');
+            });
         }
 
         // Auto-load saat halaman dibuka

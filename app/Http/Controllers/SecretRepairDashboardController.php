@@ -433,6 +433,13 @@ class SecretRepairDashboardController extends Controller
                     $output = $this->executeSyncOrderDates($dateFrom, $dateTo);
                     break;
 
+                case 'check_tiktok_order':
+                    $orderIdInput = trim($request->input('order_id', ''));
+                    $storeIdInput = $request->input('store_id');
+                    $autoSync     = filter_var($request->input('auto_sync', true), FILTER_VALIDATE_BOOLEAN);
+                    $result = $this->performCheckTiktokOrder($orderIdInput, $storeIdInput, $autoSync);
+                    return response()->json($result);
+
                 default:
                     return response()->json(['success' => false, 'message' => 'Action tidak dikenali.'], 400);
             }
@@ -2514,6 +2521,230 @@ class SecretRepairDashboardController extends Controller
 
         return redirect('/fix')->with('success', 'Hasil Diagnosa & Fix Order ' . $ref . ":\n\n" . nl2br(e($output)));
     }
+
+    /**
+     * Endpoint langsung / URL browser: GET/POST /fix/check-tiktok-order?order_id=57...
+     */
+    public function checkTiktokOrder(Request $request)
+    {
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+
+        $orderId = trim($request->input('order_id', ''));
+        $storeId = $request->input('store_id');
+        $autoSync = filter_var($request->input('auto_sync', true), FILTER_VALIDATE_BOOLEAN);
+
+        if (empty($orderId)) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Harap masukkan TikTok Order ID.'], 422);
+            }
+            return redirect('/fix')->with('error', 'Harap masukkan TikTok Order ID.');
+        }
+
+        $result = $this->performCheckTiktokOrder($orderId, $storeId, $autoSync);
+
+        if ($request->wantsJson()) {
+            return response()->json($result);
+        }
+
+        $msg = "Hasil Pengecekan TikTok Order [{$orderId}]:\n\n" . ($result['diagnostic_text'] ?? $result['message']);
+        $type = $result['success'] ? 'success' : 'error';
+        return redirect('/fix')->with($type, nl2br(e($msg)));
+    }
+
+    /**
+     * Logika diagnosa & tarik order TikTok spesifik
+     */
+    protected function performCheckTiktokOrder(string $orderId, $storeId = null, bool $autoSync = true): array
+    {
+        $startTime = microtime(true);
+        $orderId = trim($orderId);
+
+        if (empty($orderId)) {
+            return [
+                'success' => false,
+                'message' => 'Order ID TikTok tidak boleh kosong.',
+                'duration' => '0s',
+            ];
+        }
+
+        // 1. Cek keberadaan di ERP Lokal
+        $localOrder = Order::with('items')
+            ->where('order_marketplace_id', $orderId)
+            ->first();
+
+        // 2. Cari toko TikTok
+        $storeQuery = Store::whereHas('channel', fn($q) => $q->whereIn('code', ['tiktok', 'tokopedia']))
+            ->where('status', '!=', 'disconnected');
+
+        if (!empty($storeId)) {
+            $storeQuery->where('id', $storeId);
+        }
+
+        $tiktokStores = $storeQuery->get();
+
+        if ($tiktokStores->isEmpty()) {
+            return [
+                'success' => false,
+                'message' => 'Tidak ada toko TikTok yang terhubung/aktif di sistem.',
+                'order_id' => $orderId,
+                'local_exists' => (bool)$localOrder,
+                'duration' => round(microtime(true) - $startTime, 2) . 's',
+            ];
+        }
+
+        $tiktokService = app(TiktokService::class);
+        $foundOrderData = null;
+        $matchedStore = null;
+        $apiError = null;
+
+        // Cari order di tiap toko yang terhubung
+        foreach ($tiktokStores as $store) {
+            try {
+                $accessToken = $store->getValidAccessToken();
+                $shopCipher = $store->shop_cipher;
+
+                if (empty($shopCipher)) {
+                    continue;
+                }
+
+                $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$orderId]);
+                $orderList = $detailRes['order_list'] ?? $detailRes['orders'] ?? [];
+
+                if (!empty($orderList[0])) {
+                    $foundOrderData = $orderList[0];
+                    $matchedStore = $store;
+                    break;
+                }
+            } catch (\Throwable $e) {
+                $apiError = $e->getMessage();
+            }
+        }
+
+        if (!$foundOrderData || !$matchedStore) {
+            $diag = "❌ Pesanan TikTok dengan ID [{$orderId}] TIDAK DITEMUKAN di API TikTok pada seluruh toko yang terhubung.\n";
+            if ($apiError) {
+                $diag .= "Pesan API Terakhir: " . $apiError . "\n";
+            }
+            $diag .= "Penyebab yang mungkin terjadi:\n";
+            $diag .= "1. ID Pesanan salah ketik atau milik toko TikTok yang belum diotorisasi di ERP.\n";
+            $diag .= "2. Token otorisasi TikTok toko expired / belum refresh.\n";
+            $diag .= "3. Pesanan masih berupa draft / belum checkout di aplikasi pembeli.\n";
+
+            return [
+                'success' => false,
+                'message' => "Order ID [{$orderId}] tidak ditemukan di TikTok Shop API.",
+                'order_id' => $orderId,
+                'local_exists' => (bool)$localOrder,
+                'diagnostic_text' => $diag,
+                'raw_payload' => null,
+                'duration' => round(microtime(true) - $startTime, 2) . 's',
+            ];
+        }
+
+        // Analisa Payload Order
+        $statusRaw = $foundOrderData['status'] ?? $foundOrderData['order_status'] ?? 'UNKNOWN';
+        $shippingType = $foundOrderData['shipping_type'] ?? 'STANDAR';
+        $deliveryOptionName = $foundOrderData['delivery_option_name'] ?? $foundOrderData['delivery_type'] ?? '-';
+        $shippingProvider = $foundOrderData['shipping_provider'] ?? $foundOrderData['shipping_provider_name'] ?? '-';
+        $trackingNumber = $foundOrderData['tracking_number'] ?? $foundOrderData['tracking_no'] ?? '-';
+        $fulfillmentType = $foundOrderData['fulfillment_type'] ?? '-';
+        $totalAmount = (float)($foundOrderData['payment_info']['total_amount'] ?? $foundOrderData['total_amount'] ?? 0);
+        $buyerName = $foundOrderData['recipient_address']['name'] ?? ($foundOrderData['buyer_email'] ?? 'TikTok Buyer');
+        $createTs = $foundOrderData['create_time'] ?? time();
+        if (is_numeric($createTs) && strlen((string)$createTs) >= 13) {
+            $createTs = (int)($createTs / 1000);
+        }
+        $orderDate = date('Y-m-d H:i:s', $createTs);
+
+        // Status mapping standar ERP
+        $statusMap = [
+            'UNPAID' => 'UNPAID (Belum Bayar)',
+            '100' => 'UNPAID (Belum Bayar)',
+            'AWAITING_SHIPMENT' => 'READY_TO_SHIP (Perlu Dikirim / Siap Dikirim)',
+            '111' => 'READY_TO_SHIP (Perlu Dikirim)',
+            'AWAITING_COLLECTION' => 'READY_TO_SHIP (Menunggu Kurir Pick Up)',
+            '112' => 'READY_TO_SHIP (Menunggu Pick Up)',
+            'IN_TRANSIT' => 'SHIPPED (Sedang Dikirim)',
+            '121' => 'SHIPPED (Sedang Dikirim)',
+            'DELIVERED' => 'DELIVERED (Terkirim)',
+            '122' => 'DELIVERED (Terkirim)',
+            'COMPLETED' => 'COMPLETED (Selesai)',
+            '130' => 'COMPLETED (Selesai)',
+            'CANCELLED' => 'CANCELLED (Dibatalkan)',
+            '140' => 'CANCELLED (Dibatalkan)',
+        ];
+        $erpStatusReadable = $statusMap[strtoupper((string)$statusRaw)] ?? strtoupper((string)$statusRaw);
+
+        $isUnpaid = in_array(strtoupper((string)$statusRaw), ['UNPAID', '100', 'PENDING'], true);
+        $syncExecuted = false;
+        $syncMessage = '';
+
+        if ($autoSync) {
+            if ($isUnpaid) {
+                $syncMessage = "⚠️ TIDAK DISINKRONKAN: Pesanan berstatus Belum Bayar (UNPAID). Sistem ERP hanya menyimpan pesanan yang sudah dibayar oleh pembeli.";
+            } else {
+                try {
+                    $job = new PullOrdersFromTiktok($matchedStore, time() - (86400 * 30), time(), false, $orderId);
+                    $reflection = new \ReflectionClass($job);
+                    $method = $reflection->getMethod('processOrder');
+                    $method->setAccessible(true);
+                    $method->invoke($job, $foundOrderData);
+                    $syncExecuted = true;
+                    $syncMessage = "✅ BERHASIL DISINKRONKAN: Pesanan berhasil ditarik & disimpan ke database ERP!";
+                } catch (\Throwable $syncEx) {
+                    $syncMessage = "❌ GAGAL DISINKRONKAN KE ERP: " . $syncEx->getMessage();
+                }
+            }
+        }
+
+        // Cek lagi setelah sync
+        $localOrderAfter = Order::with('items')
+            ->where('order_marketplace_id', $orderId)
+            ->first();
+
+        $diag = "========================================================\n";
+        $diag .= "🔍 HASIL DIAGNOSA PESANAN TIKTOK (API RESMI)\n";
+        $diag .= "========================================================\n";
+        $diag .= "Order ID             : {$orderId}\n";
+        $diag .= "Toko TikTok          : {$matchedStore->store_name} (ID: {$matchedStore->id})\n";
+        $diag .= "Waktu Dibuat         : {$orderDate}\n";
+        $diag .= "Status TikTok API    : {$statusRaw} -> {$erpStatusReadable}\n";
+        $diag .= "Metode Pengiriman    : {$deliveryOptionName} (Shipping Type: {$shippingType})\n";
+        $diag .= "Fulfillment Type     : {$fulfillmentType}\n";
+        $diag .= "Kurir & Resi         : {$shippingProvider} | Resi: {$trackingNumber}\n";
+        $diag .= "Nama Pembeli         : {$buyerName}\n";
+        $diag .= "Total Transaksi      : Rp " . number_format($totalAmount, 0, ',', '.') . "\n";
+        $diag .= "--------------------------------------------------------\n";
+        $diag .= "STATUS DATABASE ERP  : " . ($localOrderAfter ? "SUDAH TERSIMPAN (ID: {$localOrderAfter->id}, Status: {$localOrderAfter->order_status})" : "BELUM ADA DI ERP") . "\n";
+        if ($syncMessage) {
+            $diag .= "AKSI SINKRONISASI    : {$syncMessage}\n";
+        }
+        $diag .= "========================================================\n";
+
+        return [
+            'success' => true,
+            'message' => $syncExecuted ? 'Pesanan berhasil ditemukan di TikTok API dan disimpan ke ERP.' : 'Pesanan ditemukan di TikTok API.',
+            'order_id' => $orderId,
+            'store_name' => $matchedStore->store_name,
+            'store_id' => $matchedStore->id,
+            'order_status' => $statusRaw,
+            'erp_status' => $erpStatusReadable,
+            'is_unpaid' => $isUnpaid,
+            'shipping_type' => $shippingType,
+            'delivery_option' => $deliveryOptionName,
+            'shipping_provider' => $shippingProvider,
+            'tracking_number' => $trackingNumber,
+            'sync_executed' => $syncExecuted,
+            'sync_message' => $syncMessage,
+            'local_order_id' => $localOrderAfter?->id,
+            'diagnostic_text' => $diag,
+            'raw_payload' => $foundOrderData,
+            'duration' => round(microtime(true) - $startTime, 2) . 's',
+        ];
+    }
 }
+
 
 

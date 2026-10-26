@@ -1280,6 +1280,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/fix/sync-mismatches', [\App\Http\Controllers\SecretRepairDashboardController::class, 'syncMismatches'])->name('secret_repair.sync_mismatches');
     Route::match(['get', 'post'], '/fix/update-hpp', [\App\Http\Controllers\SecretRepairDashboardController::class, 'recalculateHpp'])->name('secret_repair.update_hpp');
     Route::match(['get', 'post'], '/fix/diagnose-order', [\App\Http\Controllers\SecretRepairDashboardController::class, 'diagnoseOrder'])->name('secret_repair.diagnose_order');
+    Route::match(['get', 'post'], '/fix/check-tiktok-order', [\App\Http\Controllers\SecretRepairDashboardController::class, 'checkTiktokOrder'])->name('secret_repair.check_tiktok_order');
 });
 
 
