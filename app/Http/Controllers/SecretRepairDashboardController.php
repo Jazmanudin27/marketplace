@@ -708,6 +708,9 @@ class SecretRepairDashboardController extends Controller
 
     private function executeSyncActiveTrackingAndStatus()
     {
+        @set_time_limit(300);
+        @ini_set('max_execution_time', '300');
+
         $tenantId = auth()->user()->tenant_id;
         $shopeeService = app(ShopeeService::class);
         $tiktokService = app(TiktokService::class);
@@ -719,9 +722,10 @@ class SecretRepairDashboardController extends Controller
 
         $targetStatuses = ['READY_TO_SHIP', 'UNPAID', 'PENDING', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP'];
 
-        // Ambil pesanan aktif tenant yang belum selesai/batal
+        // Ambil pesanan aktif tenant yang belum selesai/batal (dibatasi 30 hari terakhir agar cepat dan terhindar timeout 504)
         $activeOrders = Order::where('tenant_id', $tenantId)
             ->whereNotNull('order_marketplace_id')
+            ->where('order_date', '>=', now()->subDays(30)->startOfDay())
             ->where(function($q) use ($targetStatuses) {
                 $q->whereIn(\DB::raw('UPPER(order_status)'), $targetStatuses)
                   ->orWhereNull('tracking_number')
@@ -729,6 +733,8 @@ class SecretRepairDashboardController extends Controller
             })
             ->whereNotIn('order_status', ['COMPLETED', 'FINISHED', 'SELESAI', 'CANCELLED', 'BATAL'])
             ->with(['store.channel'])
+            ->orderByDesc('order_date')
+            ->limit(100)
             ->get();
 
         if ($activeOrders->isEmpty()) {
