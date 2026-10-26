@@ -406,7 +406,7 @@
                             <!-- Bayar Pakai Apa -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-dark mb-1">Bayar Pakai Apa <span class="text-danger">*</span></label>
-                                <select name="payment_method" class="form-select form-select-sm" onchange="toggleModalBank(this, {{ $sRow['supplier_id'] }})" required>
+                                <select name="payment_method" class="form-select form-select-sm no-select2" onchange="toggleModalBank(this, {{ $sRow['supplier_id'] }})" required>
                                     <option value="transfer">Transfer Bank</option>
                                     <option value="cash">Tunai / Kas</option>
                                 </select>
@@ -415,7 +415,7 @@
                             <!-- Sumber Rekening Bank -->
                             <div class="mb-3" id="modal-bank-container-{{ $sRow['supplier_id'] }}">
                                 <label class="form-label small fw-bold text-dark mb-1">Ditransfer Melalui Rekening Bank <span class="text-danger">*</span></label>
-                                <select name="bank_account_id" id="modal-bank-select-{{ $sRow['supplier_id'] }}" class="form-select form-select-sm">
+                                <select name="bank_account_id" id="modal-bank-select-{{ $sRow['supplier_id'] }}" class="form-select form-select-sm no-select2">
                                     <option value="">-- Pilih Rekening Bank --</option>
                                     @foreach ($bankAccounts as $bank)
                                         <option value="{{ $bank->id }}">

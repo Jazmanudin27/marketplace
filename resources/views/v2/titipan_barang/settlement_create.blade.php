@@ -67,7 +67,7 @@
                 <!-- Bayar Pakai Apa (Metode Pembayaran) -->
                 <div class="mb-3">
                     <label class="form-label small fw-bold text-dark mb-1">Bayar Pakai Apa <span class="text-danger">*</span></label>
-                    <select name="payment_method" id="payment_method" class="form-select @error('payment_method') is-invalid @enderror" onchange="toggleBank(this.value)" required>
+                    <select name="payment_method" id="payment_method" class="form-select no-select2 @error('payment_method') is-invalid @enderror" onchange="toggleBank(this.value)" required>
                         <option value="transfer" {{ old('payment_method', 'transfer') === 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
                         <option value="cash" {{ old('payment_method') === 'cash' ? 'selected' : '' }}>Tunai / Kas</option>
                     </select>
@@ -76,7 +76,7 @@
                 <!-- Sumber Rekening Bank (Ditampilkan jika Transfer Bank) -->
                 <div class="mb-3" id="bank-container">
                     <label class="form-label small fw-bold text-dark mb-1">Ditransfer Melalui Rekening Bank <span class="text-danger">*</span></label>
-                    <select name="bank_account_id" id="bank_account_id" class="form-select @error('bank_account_id') is-invalid @enderror">
+                    <select name="bank_account_id" id="bank_account_id" class="form-select no-select2 @error('bank_account_id') is-invalid @enderror">
                         <option value="">-- Pilih Rekening Bank --</option>
                         @foreach ($bankAccounts as $bank)
                             <option value="{{ $bank->id }}" {{ old('bank_account_id') == $bank->id ? 'selected' : '' }}>
