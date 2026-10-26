@@ -299,13 +299,13 @@
                                                     @foreach($sRow['settlement_history'] as $hist)
                                                         <tr>
                                                             <td class="ps-2.5 py-2 font-monospace fw-bold text-primary">
-                                                                <a href="{{ route('v2.titipan_barang.settlement.show', $hist->id) }}" class="text-decoration-none">
+                                                                <a href="{{ route('v2.titipan_barang.settlement.show', ['settlement' => $hist->id]) }}" class="text-decoration-none">
                                                                     {{ $hist->settlement_number }}
                                                                 </a>
                                                             </td>
                                                             <td class="py-2 text-dark">
                                                                 <i class="bi bi-calendar-event me-1 text-muted"></i>
-                                                                {{ $hist->settlement_date ? $hist->settlement_date->format('d/m/Y') : '-' }}
+                                                                {{ !empty($hist->settlement_date) ? \Carbon\Carbon::parse($hist->settlement_date)->format('d/m/Y') : '-' }}
                                                             </td>
                                                             <td class="py-2">
                                                                 <span class="badge {{ $hist->payment_method === 'transfer' ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-success-subtle text-success border border-success-subtle' }} px-2 py-0.5" style="font-size: 0.68rem;">
@@ -324,17 +324,17 @@
                                                                 <span>{{ $hist->notes ?: '-' }}</span>
                                                             </td>
                                                             <td class="text-end py-2 font-monospace fw-bold text-success" style="font-size: 0.85rem;">
-                                                                Rp {{ number_format($hist->total_amount_paid, 0, ',', '.') }}
+                                                                Rp {{ number_format($hist->total_amount_paid ?? 0, 0, ',', '.') }}
                                                             </td>
                                                             <td class="text-center pe-2.5 py-2">
                                                                 <div class="d-inline-flex align-items-center gap-1">
-                                                                    <a href="{{ route('v2.titipan_barang.settlement.show', $hist->id) }}" class="btn btn-xs btn-outline-primary py-0.5 px-1.5 rounded" title="Lihat Bukti Setoran">
+                                                                    <a href="{{ route('v2.titipan_barang.settlement.show', ['settlement' => $hist->id]) }}" class="btn btn-xs btn-outline-primary py-0.5 px-1.5 rounded" title="Lihat Bukti Setoran">
                                                                         <i class="bi bi-eye"></i>
                                                                     </a>
-                                                                    <a href="{{ route('v2.titipan_barang.settlement.edit', $hist->id) }}" class="btn btn-xs btn-outline-warning py-0.5 px-1.5 rounded text-dark" title="Edit Pembayaran Setoran">
+                                                                    <a href="{{ route('v2.titipan_barang.settlement.edit', ['settlement' => $hist->id]) }}" class="btn btn-xs btn-outline-warning py-0.5 px-1.5 rounded text-dark" title="Edit Pembayaran Setoran">
                                                                         <i class="bi bi-pencil-square"></i>
                                                                     </a>
-                                                                    <form action="{{ route('supplier_consignments.settlement.destroy', $hist->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus histori setoran {{ $hist->settlement_number }} sebesar Rp {{ number_format($hist->total_amount_paid, 0, \',\', \'.\') }} ini? Mutasi kas pengeluaran terkait juga akan dibatalkan.')">
+                                                                    <form action="{{ route('v2.titipan_barang.settlement.destroy', ['settlement' => $hist->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus histori setoran {{ $hist->settlement_number }} sebesar Rp {{ number_format($hist->total_amount_paid ?? 0, 0, \',\', \'.\') }} ini? Mutasi kas pengeluaran terkait juga akan dibatalkan.')">
                                                                         @csrf
                                                                         @method('DELETE')
                                                                         <button type="submit" class="btn btn-xs btn-outline-danger py-0.5 px-1.5 rounded" title="Hapus Bukti Setoran">

@@ -117,6 +117,8 @@ class TargetKomisiController extends Controller
     /**
      * Simpan Tim Marketing baru & Targetnya
      */
+    public function store(Request $request)
+    {
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([

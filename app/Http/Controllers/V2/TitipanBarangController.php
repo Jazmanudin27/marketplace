@@ -128,13 +128,17 @@ class TitipanBarangController extends Controller
             $sisaTitipanRp = max(0, $totalTitipanRp - $setorRp);
 
             // 🎯 Ambil Histori Setoran Pembayaran Supplier ini (bisa dilihat, diedit, dan dihapus)
-            $settlementHistory = SupplierConsignmentSettlement::with(['bankAccount'])
-                ->where('tenant_id', $tenantId)
-                ->where('supplier_id', $sup->id)
-                ->orderByDesc('settlement_date')
-                ->orderByDesc('id')
-                ->limit(10)
-                ->get();
+            try {
+                $settlementHistory = SupplierConsignmentSettlement::with(['bankAccount'])
+                    ->where('tenant_id', $tenantId)
+                    ->where('supplier_id', $sup->id)
+                    ->orderByDesc('settlement_date')
+                    ->orderByDesc('id')
+                    ->limit(10)
+                    ->get();
+            } catch (\Throwable $e) {
+                $settlementHistory = collect();
+            }
 
             $supplierSummaries[] = [
                 'supplier_id'         => $sup->id,
