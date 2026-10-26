@@ -36,62 +36,62 @@
 <form action="{{ route('v2.dropship.update', $order->id) }}" method="POST" id="dropshipForm">
     @csrf
     @method('PUT')
-    <div class="row g-3">
+    <div class="row g-4">
         {{-- Kiri: Informasi Utama Pesanan --}}
         <div class="col-12 col-lg-4">
-            <div class="card border-0 shadow-sm rounded-4 p-3.5 bg-white h-100 d-flex flex-column" style="border: 1px solid #eef2f6 !important;">
-                <h6 class="fw-bold text-dark border-bottom pb-2.5 mb-3 d-flex align-items-center gap-2" style="font-size:0.9rem;">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 d-flex flex-column" style="border: 1px solid #e2e8f0 !important;">
+                <h6 class="fw-bold text-dark border-bottom pb-3 mb-3.5 d-flex align-items-center gap-2" style="font-size:0.95rem;">
                     <i class="bi bi-info-circle text-primary"></i> Data Utama Pesanan
                 </h6>
 
                 <!-- No. Nota -->
-                <div class="mb-2.5">
-                    <label class="form-label small fw-semibold text-secondary mb-1">No. Nota / Referensi</label>
-                    <input type="text" class="form-control form-control-sm bg-light font-monospace fw-bold" value="{{ $order->order_number }}" readonly>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary mb-1.5">No. Nota / Referensi</label>
+                    <input type="text" class="form-control form-control-sm bg-light font-monospace fw-bold py-2 px-2.5" value="{{ $order->order_number }}" readonly>
                 </div>
 
                 <!-- Status / Saluran: Dropship atau Lazada -->
-                <div class="mb-2.5">
-                    <label class="form-label small fw-semibold text-dark mb-1">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark mb-1.5">
                         Saluran Pesanan <span class="text-danger">*</span>
                     </label>
-                    <select name="channel_type" id="channel_type" class="form-select form-select-sm fw-bold @error('channel_type') is-invalid @enderror" onchange="onChannelChange(this.value)" required>
+                    <select name="channel_type" id="channel_type" class="form-select form-select-sm fw-bold py-2 px-2.5 @error('channel_type') is-invalid @enderror" onchange="onChannelChange(this.value)" required>
                         <option value="dropship" {{ old('channel_type', $order->channel_type) === 'dropship' ? 'selected' : '' }}>Dropship</option>
                         <option value="lazada" {{ old('channel_type', $order->channel_type) === 'lazada' ? 'selected' : '' }}>Lazada</option>
                     </select>
                 </div>
 
                 <!-- Tanggal Pesanan -->
-                <div class="mb-2.5">
-                    <label class="form-label small fw-semibold text-dark mb-1">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark mb-1.5">
                         Tanggal Pesanan <span class="text-danger">*</span>
                     </label>
-                    <input type="date" name="order_date" class="form-control form-control-sm @error('order_date') is-invalid @enderror" value="{{ old('order_date', $order->order_date ? $order->order_date->format('Y-m-d') : date('Y-m-d')) }}" required>
+                    <input type="date" name="order_date" class="form-control form-control-sm py-2 px-2.5 @error('order_date') is-invalid @enderror" value="{{ old('order_date', $order->order_date ? $order->order_date->format('Y-m-d') : date('Y-m-d')) }}" required>
                 </div>
 
                 <!-- Nama Pelanggan (Input Manual) -->
-                <div class="mb-2.5">
-                    <label class="form-label small fw-semibold text-dark mb-1">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark mb-1.5">
                         Nama Pelanggan (Input Manual) <span class="text-danger">*</span>
                     </label>
-                    <input type="text" name="customer_name" class="form-control form-control-sm @error('customer_name') is-invalid @enderror" placeholder="Contoh: Gilang / Toko Berkah" value="{{ old('customer_name', $order->customer_name) }}" required>
+                    <input type="text" name="customer_name" class="form-control form-control-sm py-2 px-2.5 @error('customer_name') is-invalid @enderror" placeholder="Contoh: Gilang / Toko Berkah" value="{{ old('customer_name', $order->customer_name) }}" required>
                 </div>
 
                 <!-- No. Telp / HP Pelanggan -->
-                <div class="mb-2.5">
-                    <label class="form-label small fw-semibold text-secondary mb-1">No. HP / WhatsApp (Opsional)</label>
-                    <input type="text" name="customer_phone" class="form-control form-control-sm" placeholder="Contoh: 08123456789" value="{{ old('customer_phone', $order->customer_phone) }}">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary mb-1.5">No. HP / WhatsApp (Opsional)</label>
+                    <input type="text" name="customer_phone" class="form-control form-control-sm py-2 px-2.5" placeholder="Contoh: 08123456789" value="{{ old('customer_phone', $order->customer_phone) }}">
                 </div>
 
                 <!-- Keterangan -->
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold text-secondary mb-1">Keterangan / Catatan</label>
-                    <textarea name="notes" class="form-control form-control-sm" rows="3" placeholder="Catatan pesanan, alamat, nomor resi, dll...">{{ old('notes', $order->notes) }}</textarea>
+                <div class="mb-3.5">
+                    <label class="form-label small fw-semibold text-secondary mb-1.5">Keterangan / Catatan</label>
+                    <textarea name="notes" class="form-control form-control-sm py-2 px-2.5" rows="3" placeholder="Catatan pesanan, alamat, nomor resi, dll...">{{ old('notes', $order->notes) }}</textarea>
                 </div>
 
                 <!-- Ringkasan Box -->
-                <div class="p-3 bg-light rounded-3 border mt-auto">
-                    <div class="d-flex justify-content-between align-items-center text-muted small mb-1">
+                <div class="p-3.5 bg-light rounded-3 border mt-auto">
+                    <div class="d-flex justify-content-between align-items-center text-muted small mb-1.5">
                         <span>Total Kuantitas:</span>
                         <strong id="summary-total-qty" class="text-dark font-monospace">0 PCS</strong>
                     </div>
@@ -105,28 +105,28 @@
 
         {{-- Kanan: Detail Produk, Qty, Harga, Jumlah --}}
         <div class="col-12 col-lg-8">
-            <div class="card border-0 shadow-sm rounded-4 p-3.5 bg-white h-100 d-flex flex-column" style="border: 1px solid #eef2f6 !important;">
-                <div class="d-flex justify-content-between align-items-center border-bottom pb-2.5 mb-3 flex-wrap gap-2">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 d-flex flex-column" style="border: 1px solid #e2e8f0 !important;">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3.5 flex-wrap gap-2">
                     <div>
-                        <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2" style="font-size:0.9rem;">
+                        <h6 class="fw-bold text-dark mb-0.5 d-flex align-items-center gap-2" style="font-size:0.95rem;">
                             <i class="bi bi-box-seam text-success"></i> Rincian Produk Pesanan
                         </h6>
-                        <small class="text-muted" style="font-size: 0.73rem;">Pilih produk, kuantitas, dan harga satuan.</small>
+                        <small class="text-muted" style="font-size: 0.75rem;">Pilih produk, kuantitas, dan harga satuan.</small>
                     </div>
-                    <button type="button" class="btn btn-sm btn-primary py-1 px-3 fw-semibold rounded-2 shadow-2xs" onclick="addRowItem()">
+                    <button type="button" class="btn btn-sm btn-primary py-1.5 px-3.5 fw-semibold rounded-2 shadow-2xs" onclick="addRowItem()">
                         <i class="bi bi-plus-lg me-1"></i> Tambah Baris Produk
                     </button>
                 </div>
 
-                <div class="table-responsive flex-grow-1 mb-3">
-                    <table class="table table-bordered table-hover align-middle mb-0" id="itemsTable" style="font-size: 0.82rem;">
+                <div class="table-responsive flex-grow-1 mb-3.5">
+                    <table class="table table-bordered table-hover align-middle mb-0" id="itemsTable" style="font-size: 0.83rem;">
                         <thead class="bg-light text-secondary text-uppercase fw-semibold" style="font-size: 0.72rem;">
                             <tr>
-                                <th style="width: 44%;">PRODUK</th>
-                                <th class="text-center" style="width: 14%;">QTY</th>
-                                <th class="text-end" style="width: 18%;">HARGA (RP)</th>
-                                <th class="text-end" style="width: 18%;">JUMLAH (RP)</th>
-                                <th class="text-center" style="width: 6%;"></th>
+                                <th class="p-2.5" style="width: 44%;">PRODUK</th>
+                                <th class="p-2.5 text-center" style="width: 14%;">QTY</th>
+                                <th class="p-2.5 text-end" style="width: 18%;">HARGA (RP)</th>
+                                <th class="p-2.5 text-end" style="width: 18%;">JUMLAH (RP)</th>
+                                <th class="p-2.5 text-center" style="width: 6%;"></th>
                             </tr>
                         </thead>
                         <tbody id="itemsTableBody">
@@ -136,15 +136,15 @@
                 </div>
 
                 {{-- Action Footer --}}
-                <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-auto">
+                <div class="d-flex justify-content-between align-items-center pt-3.5 border-top mt-auto flex-wrap gap-2">
                     <span class="small text-muted">
                         Perubahan kuantitas produk akan otomatis mengkoreksi stok gudang master.
                     </span>
                     <div class="d-flex gap-2">
-                        <a href="{{ route('v2.dropship.index') }}" class="btn btn-sm btn-outline-secondary px-3.5 fw-semibold">
+                        <a href="{{ route('v2.dropship.index') }}" class="btn btn-sm btn-outline-secondary px-4 py-1.5 fw-semibold">
                             Batal
                         </a>
-                        <button type="submit" class="btn btn-sm btn-warning text-dark px-4 fw-bold shadow-sm">
+                        <button type="submit" class="btn btn-sm btn-warning text-dark px-4 py-1.5 fw-bold shadow-sm">
                             <i class="bi bi-check2-circle me-1"></i> Simpan Perubahan
                         </button>
                     </div>

@@ -22,22 +22,22 @@
     </div>
 </div>
 
-<div class="row g-3">
+<div class="row g-4">
     {{-- Info Card --}}
     <div class="col-12 col-lg-4">
-        <div class="card border-0 shadow-sm rounded-4 p-3.5 bg-white h-100" style="border: 1px solid #eef2f6 !important;">
-            <h6 class="fw-bold text-dark border-bottom pb-2.5 mb-3" style="font-size:0.9rem;">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100" style="border: 1px solid #e2e8f0 !important;">
+            <h6 class="fw-bold text-dark border-bottom pb-3 mb-3.5" style="font-size:0.95rem;">
                 <i class="bi bi-info-circle text-primary me-1"></i> Informasi Pesanan
             </h6>
 
-            <table class="table table-sm table-borderless mb-0" style="font-size:0.83rem;">
+            <table class="table table-sm table-borderless mb-0" style="font-size:0.84rem;">
                 <tr>
-                    <td class="text-muted py-1.5" style="width: 40%;">No. Nota</td>
-                    <td class="fw-bold font-monospace text-primary py-1.5">: {{ $order->order_number }}</td>
+                    <td class="text-muted py-2" style="width: 40%;">No. Nota</td>
+                    <td class="fw-bold font-monospace text-primary py-2">: {{ $order->order_number }}</td>
                 </tr>
                 <tr>
-                    <td class="text-muted py-1.5">Saluran / Status</td>
-                    <td class="py-1.5">: 
+                    <td class="text-muted py-2">Saluran / Status</td>
+                    <td class="py-2">: 
                         @if($order->channel_type === 'lazada')
                             <span class="badge bg-dark-subtle text-dark border border-dark-subtle rounded-pill px-2.5 py-0.5 fw-bold">
                                 <i class="bi bi-bag-fill me-1 text-danger"></i>Lazada
@@ -50,33 +50,33 @@
                     </td>
                 </tr>
                 <tr>
-                    <td class="text-muted py-1.5">Tanggal Pesanan</td>
-                    <td class="fw-semibold text-dark py-1.5">: {{ $order->order_date ? $order->order_date->format('d/m/Y') : '-' }}</td>
+                    <td class="text-muted py-2">Tanggal Pesanan</td>
+                    <td class="fw-semibold text-dark py-2">: {{ $order->order_date ? $order->order_date->format('d/m/Y') : '-' }}</td>
                 </tr>
                 <tr>
-                    <td class="text-muted py-1.5">Nama Pelanggan</td>
-                    <td class="fw-bold text-dark py-1.5">: {{ $order->customer_name }}</td>
+                    <td class="text-muted py-2">Nama Pelanggan</td>
+                    <td class="fw-bold text-dark py-2">: {{ $order->customer_name }}</td>
                 </tr>
                 <tr>
-                    <td class="text-muted py-1.5">No. Telp / HP</td>
-                    <td class="text-dark py-1.5">: {{ $order->customer_phone ?: '-' }}</td>
+                    <td class="text-muted py-2">No. Telp / HP</td>
+                    <td class="text-dark py-2">: {{ $order->customer_phone ?: '-' }}</td>
                 </tr>
                 <tr>
-                    <td class="text-muted py-1.5">Keterangan</td>
-                    <td class="text-dark py-1.5">: {{ $order->notes ?: '-' }}</td>
+                    <td class="text-muted py-2">Keterangan</td>
+                    <td class="text-dark py-2">: {{ $order->notes ?: '-' }}</td>
                 </tr>
                 <tr>
-                    <td class="text-muted py-1.5">Dicatat Oleh</td>
-                    <td class="text-dark py-1.5">: {{ $order->user ? $order->user->name : 'Sistem' }}</td>
+                    <td class="text-muted py-2">Dicatat Oleh</td>
+                    <td class="text-dark py-2">: {{ $order->user ? $order->user->name : 'Sistem' }}</td>
                 </tr>
                 <tr>
-                    <td class="text-muted py-1.5">Dibuat Pada</td>
-                    <td class="text-muted py-1.5">: {{ $order->created_at ? $order->created_at->format('d/m/Y H:i') : '-' }}</td>
+                    <td class="text-muted py-2">Dibuat Pada</td>
+                    <td class="text-muted py-2">: {{ $order->created_at ? $order->created_at->format('d/m/Y H:i') : '-' }}</td>
                 </tr>
             </table>
 
-            <div class="p-3 bg-light rounded-3 border mt-4">
-                <div class="d-flex justify-content-between align-items-center text-muted small mb-1">
+            <div class="p-3.5 bg-light rounded-3 border mt-4">
+                <div class="d-flex justify-content-between align-items-center text-muted small mb-1.5">
                     <span>Total Kuantitas:</span>
                     <strong class="text-dark font-monospace">{{ number_format($order->total_qty) }} PCS</strong>
                 </div>
@@ -90,8 +90,8 @@
 
     {{-- Detail Produk Card --}}
     <div class="col-12 col-lg-8">
-        <div class="card border-0 shadow-sm rounded-4 p-3.5 bg-white h-100" style="border: 1px solid #eef2f6 !important;">
-            <h6 class="fw-bold text-dark border-bottom pb-2.5 mb-3" style="font-size:0.9rem;">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100" style="border: 1px solid #e2e8f0 !important;">
+            <h6 class="fw-bold text-dark border-bottom pb-3 mb-3.5" style="font-size:0.95rem;">
                 <i class="bi bi-box-seam text-success me-1"></i> Rincian Produk ({{ $order->items->count() }} Jenis)
             </h6>
 
