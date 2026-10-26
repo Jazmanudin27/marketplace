@@ -27,146 +27,167 @@ class TitipanBarangController extends Controller
      */
     public function index(Request $request)
     {
-        $tenantId = Auth::user()->tenant_id;
+        try {
+            $tenantId = Auth::user()->tenant_id;
 
-        $query = SupplierConsignment::with(['supplier', 'creator', 'approver', 'items'])
-            ->where('tenant_id', $tenantId)
-            ->orderByDesc('consignment_date')
-            ->orderByDesc('id');
+            $query = SupplierConsignment::with(['supplier', 'creator', 'approver', 'items'])
+                ->where('tenant_id', $tenantId)
+                ->orderByDesc('consignment_date')
+                ->orderByDesc('id');
 
-        if ($request->filled('supplier_id')) {
-            $query->where('supplier_id', $request->supplier_id);
-        }
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-        if ($request->filled('search')) {
-            $query->where('reference_number', 'like', '%' . $request->search . '%');
-        }
-        if ($request->filled('date_from')) {
-            $query->whereDate('consignment_date', '>=', $request->date_from);
-        }
-        if ($request->filled('date_to')) {
-            $query->whereDate('consignment_date', '<=', $request->date_to);
-        }
-
-        $consignments = $query->paginate(20)->withQueryString();
-        $suppliers    = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
-
-        // 🎯 Hitung Total Terjual yang harus disetorkan (Pcs & Rp HPP)
-        $consignmentIds = SupplierConsignment::where('tenant_id', $tenantId)
-            ->where('status', 'approved')
-            ->when($request->filled('supplier_id'), fn($q) => $q->where('supplier_id', $request->supplier_id))
-            ->pluck('id');
-
-        $itemsSummary = SupplierConsignmentItem::whereIn('supplier_consignment_id', $consignmentIds)
-            ->select(
-                DB::raw('COALESCE(SUM(qty_sold), 0) as total_qty_sold'),
-                DB::raw('COALESCE(SUM(qty_sold * unit_cost_price), 0) as total_amount_sold'),
-                DB::raw('COALESCE(SUM(qty_received), 0) as total_qty_received'),
-                DB::raw('COALESCE(SUM(qty_received * unit_cost_price), 0) as total_amount_received')
-            )
-            ->first();
-
-        $totalQtySoldAll   = (int) ($itemsSummary->total_qty_sold ?? 0);
-        $totalAmountToPay  = (float) ($itemsSummary->total_amount_sold ?? 0); // Total nilai yang harus disetorkan (HPP)
-        $totalQtyTitipAll  = (int) ($itemsSummary->total_qty_received ?? 0);
-        $totalAmountHppAll = (float) ($itemsSummary->total_amount_received ?? 0);
-
-        // Hitung juga nominal yang sudah disetor agar tahu sisa yang belum disetor
-        $totalAmountSettled = (float) SupplierConsignmentSettlementItem::whereHas('settlement', function($q) use ($tenantId, $request) {
-            $q->where('tenant_id', $tenantId)->where('status', 'approved');
             if ($request->filled('supplier_id')) {
-                $q->where('supplier_id', $request->supplier_id);
+                $query->where('supplier_id', $request->supplier_id);
             }
-        })->sum('subtotal');
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+            if ($request->filled('search')) {
+                $query->where('reference_number', 'like', '%' . $request->search . '%');
+            }
+            if ($request->filled('date_from')) {
+                $query->whereDate('consignment_date', '>=', $request->date_from);
+            }
+            if ($request->filled('date_to')) {
+                $query->whereDate('consignment_date', '<=', $request->date_to);
+            }
 
-        $totalAmountUnsettled = max(0, $totalAmountToPay - $totalAmountSettled);
+            $consignments = $query->paginate(20)->withQueryString();
+            $suppliers    = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
 
-        // 🎯 REKAPITULASI PER SUPPLIER (Total Titipan Rp, Terjual Rp, Sudah Setor Rp, Sisa Belum Setor Rp)
-        $suppliersList = Supplier::where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->when($request->filled('supplier_id'), fn($q) => $q->where('id', $request->supplier_id))
-            ->orderBy('name')
-            ->get();
-
-        $supplierSummaries = [];
-        foreach ($suppliersList as $sup) {
-            $supConsignmentIds = SupplierConsignment::where('tenant_id', $tenantId)
-                ->where('supplier_id', $sup->id)
+            // 🎯 Hitung Total Terjual yang harus disetorkan (Pcs & Rp HPP)
+            $consignmentIds = SupplierConsignment::where('tenant_id', $tenantId)
                 ->where('status', 'approved')
+                ->when($request->filled('supplier_id'), fn($q) => $q->where('supplier_id', $request->supplier_id))
                 ->pluck('id');
 
-            if ($supConsignmentIds->isEmpty()) {
-                continue;
-            }
-
-            $supItemSummary = SupplierConsignmentItem::whereIn('supplier_consignment_id', $supConsignmentIds)
+            $itemsSummary = SupplierConsignmentItem::whereIn('supplier_consignment_id', $consignmentIds)
                 ->select(
-                    DB::raw('COALESCE(SUM(qty_received), 0) as total_received'),
-                    DB::raw('COALESCE(SUM(qty_sold), 0) as total_sold'),
-                    DB::raw('COALESCE(SUM(qty_received * unit_cost_price), 0) as total_titipan_rp'),
-                    DB::raw('COALESCE(SUM(qty_sold * unit_cost_price), 0) as total_terjual_rp')
+                    DB::raw('COALESCE(SUM(qty_sold), 0) as total_qty_sold'),
+                    DB::raw('COALESCE(SUM(qty_sold * unit_cost_price), 0) as total_amount_sold'),
+                    DB::raw('COALESCE(SUM(qty_received), 0) as total_qty_received'),
+                    DB::raw('COALESCE(SUM(qty_received * unit_cost_price), 0) as total_amount_received')
                 )
                 ->first();
 
-            $totalTitipanRp = (float) ($supItemSummary->total_titipan_rp ?? 0);
-            $totalTerjualRp = (float) ($supItemSummary->total_terjual_rp ?? 0);
-            $totalQtyMasuk  = (int) ($supItemSummary->total_received ?? 0);
-            $totalQtyLaku   = (int) ($supItemSummary->total_sold ?? 0);
+            $totalQtySoldAll   = (int) ($itemsSummary->total_qty_sold ?? 0);
+            $totalAmountToPay  = (float) ($itemsSummary->total_amount_sold ?? 0); // Total nilai yang harus disetorkan (HPP)
+            $totalQtyTitipAll  = (int) ($itemsSummary->total_qty_received ?? 0);
+            $totalAmountHppAll = (float) ($itemsSummary->total_amount_received ?? 0);
 
-            // Sudah disetorkan ke supplier ini
-            $setorRp = (float) SupplierConsignmentSettlementItem::whereHas('settlement', function($q) use ($tenantId, $sup) {
-                $q->where('tenant_id', $tenantId)
-                  ->where('supplier_id', $sup->id)
-                  ->where('status', 'approved');
+            // Hitung juga nominal yang sudah disetor agar tahu sisa yang belum disetor
+            $totalAmountSettled = (float) SupplierConsignmentSettlementItem::whereHas('settlement', function($q) use ($tenantId, $request) {
+                $q->where('tenant_id', $tenantId)->where('status', 'approved');
+                if ($request->filled('supplier_id')) {
+                    $q->where('supplier_id', $request->supplier_id);
+                }
             })->sum('subtotal');
 
-            // Sisa belum disetorkan (berdasarkan barang laku terjual)
-            $sisaBelumSetorRp = max(0, $totalTerjualRp - $setorRp);
-            // Sisa saldo keseluruhan jika dibandingkan total titipan masuk
-            $sisaTitipanRp = max(0, $totalTitipanRp - $setorRp);
+            $totalAmountUnsettled = max(0, $totalAmountToPay - $totalAmountSettled);
 
-            // 🎯 Ambil Histori Setoran Pembayaran Supplier ini (bisa dilihat, diedit, dan dihapus)
-            try {
-                $settlementHistory = SupplierConsignmentSettlement::with(['bankAccount'])
-                    ->where('tenant_id', $tenantId)
+            // 🎯 REKAPITULASI PER SUPPLIER (Total Titipan Rp, Terjual Rp, Sudah Setor Rp, Sisa Belum Setor Rp)
+            $suppliersList = Supplier::where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->when($request->filled('supplier_id'), fn($q) => $q->where('id', $request->supplier_id))
+                ->orderBy('name')
+                ->get();
+
+            $supplierSummaries = [];
+            foreach ($suppliersList as $sup) {
+                $supConsignmentIds = SupplierConsignment::where('tenant_id', $tenantId)
                     ->where('supplier_id', $sup->id)
-                    ->orderByDesc('settlement_date')
-                    ->orderByDesc('id')
-                    ->limit(10)
-                    ->get();
-            } catch (\Throwable $e) {
-                $settlementHistory = collect();
+                    ->where('status', 'approved')
+                    ->pluck('id');
+
+                if ($supConsignmentIds->isEmpty()) {
+                    continue;
+                }
+
+                $supItemSummary = SupplierConsignmentItem::whereIn('supplier_consignment_id', $supConsignmentIds)
+                    ->select(
+                        DB::raw('COALESCE(SUM(qty_received), 0) as total_received'),
+                        DB::raw('COALESCE(SUM(qty_sold), 0) as total_sold'),
+                        DB::raw('COALESCE(SUM(qty_received * unit_cost_price), 0) as total_titipan_rp'),
+                        DB::raw('COALESCE(SUM(qty_sold * unit_cost_price), 0) as total_terjual_rp')
+                    )
+                    ->first();
+
+                $totalTitipanRp = (float) ($supItemSummary->total_titipan_rp ?? 0);
+                $totalTerjualRp = (float) ($supItemSummary->total_terjual_rp ?? 0);
+                $totalQtyMasuk  = (int) ($supItemSummary->total_received ?? 0);
+                $totalQtyLaku   = (int) ($supItemSummary->total_sold ?? 0);
+
+                // Sudah disetorkan ke supplier ini
+                $setorRp = (float) SupplierConsignmentSettlementItem::whereHas('settlement', function($q) use ($tenantId, $sup) {
+                    $q->where('tenant_id', $tenantId)
+                      ->where('supplier_id', $sup->id)
+                      ->where('status', 'approved');
+                })->sum('subtotal');
+
+                // Sisa belum disetorkan (berdasarkan barang laku terjual)
+                $sisaBelumSetorRp = max(0, $totalTerjualRp - $setorRp);
+                // Sisa saldo keseluruhan jika dibandingkan total titipan masuk
+                $sisaTitipanRp = max(0, $totalTitipanRp - $setorRp);
+
+                // 🎯 Ambil Histori Setoran Pembayaran Supplier ini (bisa dilihat, diedit, dan dihapus)
+                try {
+                    $settlementHistory = SupplierConsignmentSettlement::with(['bankAccount'])
+                        ->where('tenant_id', $tenantId)
+                        ->where('supplier_id', $sup->id)
+                        ->orderByDesc('settlement_date')
+                        ->orderByDesc('id')
+                        ->limit(10)
+                        ->get();
+                } catch (\Throwable $e) {
+                    $settlementHistory = collect();
+                }
+
+                $supplierSummaries[] = [
+                    'supplier_id'         => $sup->id,
+                    'supplier_name'       => $sup->name,
+                    'supplier_phone'      => $sup->phone,
+                    'total_invoices'      => $supConsignmentIds->count(),
+                    'total_qty_masuk'     => $totalQtyMasuk,
+                    'total_qty_laku'      => $totalQtyLaku,
+                    'total_titipan_rp'    => $totalTitipanRp,
+                    'total_terjual_rp'    => $totalTerjualRp,
+                    'setor_rp'            => $setorRp,
+                    'sisa_belum_setor_rp' => $sisaBelumSetorRp,
+                    'sisa_titipan_rp'     => $sisaTitipanRp,
+                    'settlement_history'  => $settlementHistory,
+                ];
             }
 
-            $supplierSummaries[] = [
-                'supplier_id'         => $sup->id,
-                'supplier_name'       => $sup->name,
-                'supplier_phone'      => $sup->phone,
-                'total_invoices'      => $supConsignmentIds->count(),
-                'total_qty_masuk'     => $totalQtyMasuk,
-                'total_qty_laku'      => $totalQtyLaku,
-                'total_titipan_rp'    => $totalTitipanRp,
-                'total_terjual_rp'    => $totalTerjualRp,
-                'setor_rp'            => $setorRp,
-                'sisa_belum_setor_rp' => $sisaBelumSetorRp,
-                'sisa_titipan_rp'     => $sisaTitipanRp,
-                'settlement_history'  => $settlementHistory,
-            ];
-        }
+            return view('v2.titipan_barang.index', compact(
+                'consignments',
+                'suppliers',
+                'totalQtySoldAll',
+                'totalAmountToPay',
+                'totalQtyTitipAll',
+                'totalAmountHppAll',
+                'totalAmountSettled',
+                'totalAmountUnsettled',
+                'supplierSummaries'
+            ));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Error loading /v2/titipan-barang: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
-        return view('v2.titipan_barang.index', compact(
-            'consignments',
-            'suppliers',
-            'totalQtySoldAll',
-            'totalAmountToPay',
-            'totalQtyTitipAll',
-            'totalAmountHppAll',
-            'totalAmountSettled',
-            'totalAmountUnsettled',
-            'supplierSummaries'
-        ));
+            return response()->view('v2.titipan_barang.index', [
+                'consignments'         => SupplierConsignment::where('tenant_id', Auth::user()->tenant_id ?? 0)->paginate(20),
+                'suppliers'            => collect(),
+                'totalQtySoldAll'      => 0,
+                'totalAmountToPay'     => 0,
+                'totalQtyTitipAll'     => 0,
+                'totalAmountHppAll'    => 0,
+                'totalAmountSettled'   => 0,
+                'totalAmountUnsettled' => 0,
+                'supplierSummaries'    => [],
+                'errorMessage'         => 'Terjadi kendala memuat data konsinyasi: ' . $e->getMessage() . ' (Line: ' . $e->getLine() . ')',
+            ]);
+        }
     }
 
     /**

@@ -85,6 +85,12 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 @endif
+@if(!empty($errorMessage))
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 mb-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ $errorMessage }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 
 {{-- ── KPI Summary Cards ── --}}
 <div class="row g-2.5 mb-3">
@@ -434,7 +440,7 @@
                                 {{ $item->reference_number }}
                             </a>
                         </td>
-                        <td class="text-secondary fw-medium">{{ $item->consignment_date->format('d/m/Y') }}</td>
+                        <td class="text-secondary fw-medium">{{ $item->consignment_date ? \Carbon\Carbon::parse($item->consignment_date)->format('d/m/Y') : '-' }}</td>
                         <td>
                             <span class="fw-bold text-dark d-block">{{ $item->supplier ? $item->supplier->name : '-' }}</span>
                             <small class="text-muted">{{ $item->supplier ? ($item->supplier->phone ?: 'No Contact') : '-' }}</small>
