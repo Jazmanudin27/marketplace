@@ -408,6 +408,7 @@ $(document).ready(function() {
     let currentOrder = null;
     let scannedItems = {}; // { order_item_id: scanned_qty }
     let scannedSources = {}; // { order_item_id: [ { source, consignment_item_id, barcode } ] }
+    let isSubmittingComplete = false;
 
     // -------------------------------------------------------------
     // Web Audio Synthesizer (Zero asset dependency)
@@ -963,6 +964,16 @@ $(document).ready(function() {
         if (totalScannedPcs >= totalRequiredPcs && totalRequiredPcs > 0) {
             $('#btnCompletePack').prop('disabled', false).removeClass('btn-secondary').addClass('btn-success pulse-green');
             playFanfare();
+
+            // Auto-simpan otomatis tanpa konfirmasi saat semua produk selesai discan
+            if (!isSubmittingComplete && currentOrder) {
+                isSubmittingComplete = true;
+                $('#inputScanItem').prop('disabled', true);
+                setTimeout(() => {
+                    const autoShip = $('#autoShipToggle').is(':checked');
+                    submitCompletePack(autoShip);
+                }, 300);
+            }
         } else {
             $('#btnCompletePack').prop('disabled', true).removeClass('btn-success pulse-green').addClass('btn-secondary');
         }
@@ -972,32 +983,27 @@ $(document).ready(function() {
     // Selesai & Simpan Kemasan
     // -------------------------------------------------------------
     $('#btnCompletePack').on('click', function() {
-        if (!currentOrder) return;
+        if (!currentOrder || isSubmittingComplete) return;
 
+        isSubmittingComplete = true;
         const autoShip = $('#autoShipToggle').is(':checked');
-
-        Swal.fire({
-            title: 'Konfirmasi Verifikasi Kemasan',
-            text: `Apakah Anda yakin ingin menyelesaikan kemasan pesanan invoice '${currentOrder.invoice_number}'?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#10b981',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Ya, Selesai Kemas!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                submitCompletePack(autoShip);
-            }
-        });
+        submitCompletePack(autoShip);
     });
 
     function submitCompletePack(autoShip) {
+        if (!currentOrder) return;
+
+        $('#btnCompletePack').prop('disabled', true).removeClass('pulse-green').addClass('btn-secondary')
+            .html('<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...');
+
+        // Toast notifikasi proses singkat
         Swal.fire({
-            title: 'Menyimpan Kemasan...',
-            text: 'Memproses pengurangan stok & verifikasi.',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: 'Menyimpan kemasan otomatis...',
+            showConfirmButton: false,
+            timer: 1000
         });
 
         $.ajax({
@@ -1012,29 +1018,30 @@ $(document).ready(function() {
             },
             dataType: 'json',
             success: function(res) {
-                Swal.close();
                 if (res.success) {
                     playFanfare();
+                    // Notifikasi sukses toast saja, tanpa popup konfirmasi
                     Swal.fire({
+                        toast: true,
+                        position: 'top-end',
                         icon: 'success',
-                        title: 'Berhasil Kemas!',
-                        text: res.message,
-                        timer: 1500,
+                        title: 'Tersimpan Otomatis!',
+                        text: res.message || 'Kemasan selesai & data tersimpan.',
+                        timer: 2000,
                         showConfirmButton: false,
-                        returnFocus: false,
-                        didClose: () => {
-                            resetScannerState();
-                            focusOrderInput();
-                        }
-                    }).then(() => {
-                        resetScannerState();
-                        focusOrderInput();
+                        timerProgressBar: true
                     });
+                    resetScannerState();
+                    focusOrderInput();
                 } else {
+                    isSubmittingComplete = false;
                     playErrorBuzzer();
+                    $('#btnCompletePack').prop('disabled', false).removeClass('btn-secondary').addClass('btn-success pulse-green')
+                        .html('<i class="bi bi-check-circle-fill fs-5"></i> Selesai & Simpan Kemasan');
+                    $('#inputScanItem').prop('disabled', false);
                     Swal.fire({
                         icon: 'error',
-                        title: 'Gagal',
+                        title: 'Gagal Menyimpan',
                         text: res.message || 'Gagal menyelesaikan verifikasi kemasan.',
                         returnFocus: false
                     }).then(() => {
@@ -1047,9 +1054,12 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr) {
-                Swal.close();
+                isSubmittingComplete = false;
                 playErrorBuzzer();
-                let msg = 'Terjadi kesalahan server.';
+                $('#btnCompletePack').prop('disabled', false).removeClass('btn-secondary').addClass('btn-success pulse-green')
+                    .html('<i class="bi bi-check-circle-fill fs-5"></i> Selesai & Simpan Kemasan');
+                $('#inputScanItem').prop('disabled', false);
+                let msg = 'Terjadi kesalahan server saat menyimpan kemasan.';
                 if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
                 Swal.fire({
                     icon: 'error',
@@ -1068,6 +1078,7 @@ $(document).ready(function() {
     }
 
     function resetScannerState() {
+        isSubmittingComplete = false;
         currentOrder = null;
         scannedItems = {};
         scannedSources = {};
@@ -1084,7 +1095,8 @@ $(document).ready(function() {
         $('#scanProgressBadge').text('0 / 0 SKU');
         $('#txtProgressPercent').text('0%');
         $('#progressBarPacking').css('width', '0%');
-        $('#btnCompletePack').prop('disabled', true).removeClass('pulse-green').addClass('btn-secondary');
+        $('#btnCompletePack').prop('disabled', true).removeClass('pulse-green btn-success').addClass('btn-secondary')
+            .html('<i class="bi bi-check-circle-fill fs-5"></i> Selesai & Simpan Kemasan');
 
         $('#itemsContainer').empty().addClass('d-none');
         $('#emptyItemsState').removeClass('d-none');

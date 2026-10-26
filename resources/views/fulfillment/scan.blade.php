@@ -418,6 +418,26 @@
             let activeOrder = null;
             let scanCounts = {}; // order_item_id -> count of scans
             let itemSources = {}; // order_item_id -> array of { source: 'warehouse'|'consignment'|'spk', consignment_item_id, consignment_ref, barcode }
+            let isFulfillmentSubmitting = false;
+
+            function showToastNotification(msg, isSuccess = true) {
+                let toast = document.getElementById('scanToastNotify');
+                if (!toast) {
+                    toast = document.createElement('div');
+                    toast.id = 'scanToastNotify';
+                    toast.style.cssText = 'position:fixed; top:20px; right:20px; z-index:99999; min-width:280px; padding:12px 18px; border-radius:10px; font-weight:700; font-size:14px; box-shadow:0 4px 15px rgba(0,0,0,0.15); transition:all .3s ease;';
+                    document.body.appendChild(toast);
+                }
+                toast.style.backgroundColor = isSuccess ? '#10b981' : '#ef4444';
+                toast.style.color = '#ffffff';
+                toast.innerHTML = (isSuccess ? '<i class="fas fa-check-circle me-2"></i>' : '<i class="fas fa-exclamation-triangle me-2"></i>') + msg;
+                toast.style.display = 'block';
+                toast.style.opacity = '1';
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => { toast.style.display = 'none'; }, 300);
+                }, 2200);
+            }
 
             // Web Audio API Synthesis
             let audioCtx = null;
@@ -1033,11 +1053,12 @@
                     btnSubmit.classList.remove('d-none');
                     skuInput.disabled = true;
 
-                    // Jika checkbox Auto-Ship aktif, kirim submit otomatis
-                    if (autoShipToggle.checked) {
+                    // Otomatis simpan langsung tanpa konfirmasi saat semua produk lengkap
+                    if (!isFulfillmentSubmitting) {
+                        isFulfillmentSubmitting = true;
                         setTimeout(() => {
                             submitFulfillment();
-                        }, 800);
+                        }, 300);
                     }
                 } else {
                     btnSubmit.classList.add('d-none');
@@ -1051,7 +1072,7 @@
 
                 // Tampilkan loading state
                 btnSubmit.disabled = true;
-                btnSubmit.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
+                btnSubmit.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...`;
 
                 fetch(`/fulfillment/order/${activeOrder.id}/complete`, {
                         method: 'POST',
@@ -1067,27 +1088,28 @@
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
-                            // Suksess
-                            alert(data.message);
-
+                            showToastNotification(data.message || 'Kemasan selesai & tersimpan otomatis!', true);
                             resetAll(true); // Reset all and focus to invoice
                         } else {
                             playError();
-                            alert(data.message || "Gagal menyimpan hasil verifikasi.");
+                            isFulfillmentSubmitting = false;
+                            showToastNotification(data.message || "Gagal menyimpan hasil verifikasi.", false);
                             btnSubmit.disabled = false;
-                            btnSubmit.innerHTML = `<i class="fas fa-check-circle"></i> Konfirmasi Kemas`;
+                            btnSubmit.innerHTML = `<i class="fas fa-check-circle me-1"></i> Selesai & Simpan Kemasan`;
                         }
                     })
                     .catch(err => {
                         playError();
+                        isFulfillmentSubmitting = false;
                         console.error(err);
-                        alert("Terjadi kesalahan jaringan atau server.");
+                        showToastNotification("Terjadi kesalahan jaringan atau server.", false);
                         btnSubmit.disabled = false;
-                        btnSubmit.innerHTML = `<i class="fas fa-check-circle"></i> Konfirmasi Kemas`;
+                        btnSubmit.innerHTML = `<i class="fas fa-check-circle me-1"></i> Selesai & Simpan Kemasan`;
                     });
             }
 
             function resetAll(clearInvoiceInput = true) {
+                isFulfillmentSubmitting = false;
                 activeOrder = null;
                 scanCounts = {};
                 itemSources = {};
@@ -1100,7 +1122,7 @@
 
                 btnSubmit.classList.add('d-none');
                 btnSubmit.disabled = false;
-                btnSubmit.innerHTML = `<i class="fas fa-check-circle"></i> Konfirmasi Kemas`;
+                btnSubmit.innerHTML = `<i class="fas fa-check-circle me-1"></i> Selesai & Simpan Kemasan`;
 
                 if (clearInvoiceInput) {
                     invoiceInput.value = '';
