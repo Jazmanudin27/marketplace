@@ -741,6 +741,9 @@ class OfflineSaleController extends Controller
             }
 
             $offlineSale->update($updateFields);
+
+            // 7. Sinkronisasi perubahan produk & data pesanan ke SPK Produksi terkait
+            $offlineSale->syncSpks();
         });
 
         return redirect()->route('offline_sales.show', $offlineSale->id)

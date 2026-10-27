@@ -363,5 +363,141 @@ class OfflineSale extends Model
 
         return 'Non-Tunai (' . strtoupper($this->payment_method ?? 'POS') . ')';
     }
+
+    /**
+     * Sinkronisasi perubahan produk & data pesanan ke SPK Produksi terkait.
+     */
+    public function syncSpks(): void
+    {
+        $spks = $this->spks()->with('items')->get();
+        if ($spks->isEmpty()) {
+            return;
+        }
+
+        $activeSpks = $spks->where('is_batal', false);
+        $primarySpk = $activeSpks->first() ?? $spks->first();
+
+        $saleItems = $this->items()->get();
+
+        // 1. Jika SPK utama tadinya batal tapi sekarang ada item di penjualan, aktifkan kembali
+        if ($primarySpk && $primarySpk->is_batal && $saleItems->isNotEmpty()) {
+            $primarySpk->update([
+                'is_batal'       => false,
+                'alasan_batal'   => null,
+                'batal_at'       => null,
+                'batal_by'       => null,
+                'tahap_saat_ini' => 'Antrian & Sampling',
+            ]);
+            $activeSpks = $spks->fresh()->where('is_batal', false);
+        }
+
+        // 2. Perbarui info pemesan & instansi pada semua SPK aktif
+        foreach ($activeSpks as $spk) {
+            $spk->update([
+                'pemesan'       => $this->buyer_name ?: 'Pelanggan PO',
+                'no_hp_pemesan' => $this->buyer_phone ?: '',
+                'instansi'      => $this->institution_name ?: ('Penjualan PO #' . $this->sale_number),
+            ]);
+        }
+
+        // 3. Sinkronisasi rincian produk ke SpkItem
+        $allSpkItems = $spks->flatMap->items;
+        $usedSpkItemIds = [];
+
+        foreach ($saleItems as $item) {
+            $masterProductId = $item->master_product_id;
+            $productName     = $item->product_name;
+            $sku             = $item->sku;
+            $qty             = (int) $item->quantity;
+            $unitPrice       = (float) $item->unit_price;
+
+            $ukuran = null;
+            if (preg_match('/\b(XS|S|M|L|XL|XXL|XXXL|2XL|3XL|4XL|5XL)\b/i', (string) $productName, $m)) {
+                $ukuran = strtoupper($m[1]);
+            }
+
+            $estKainVal = 0;
+            if (!empty($masterProductId)) {
+                $mp = MasterProduct::find($masterProductId);
+                if ($mp && $mp->est_kain > 0) {
+                    $estKainVal = (float) $mp->est_kain * $qty;
+                }
+            }
+
+            // Cari SpkItem yang cocok dan belum dipakai
+            $matchedSpkItem = null;
+            if (!empty($masterProductId)) {
+                $matchedSpkItem = $allSpkItems->first(function ($si) use ($masterProductId, $usedSpkItemIds) {
+                    return !in_array($si->id, $usedSpkItemIds) && (int) $si->master_product_id === (int) $masterProductId;
+                });
+            }
+
+            if (!$matchedSpkItem && !empty($productName)) {
+                $matchedSpkItem = $allSpkItems->first(function ($si) use ($productName, $usedSpkItemIds) {
+                    return !in_array($si->id, $usedSpkItemIds) && trim((string) $si->nama_produk) === trim((string) $productName);
+                });
+            }
+
+            if ($matchedSpkItem) {
+                $matchedSpkItem->update([
+                    'master_product_id' => $masterProductId,
+                    'nama_produk'       => $productName,
+                    'sku'               => $sku,
+                    'ukuran'            => $ukuran ?: $matchedSpkItem->ukuran,
+                    'quantity'          => $qty,
+                    'est_kain'          => $estKainVal > 0 ? $estKainVal : $matchedSpkItem->est_kain,
+                    'hpp'               => $unitPrice,
+                ]);
+                $usedSpkItemIds[] = $matchedSpkItem->id;
+            } else {
+                // Item baru: masukkan ke SPK aktif utama
+                $targetSpk = $activeSpks->first() ?? $spks->first();
+                if ($targetSpk) {
+                    $newSpkItem = SpkItem::create([
+                        'spk_id'            => $targetSpk->id,
+                        'master_product_id' => $masterProductId,
+                        'nama_produk'       => $productName,
+                        'sku'               => $sku,
+                        'ukuran'            => $ukuran,
+                        'quantity'          => $qty,
+                        'est_kain'          => $estKainVal,
+                        'hpp'               => $unitPrice,
+                        'status'            => 'Pending',
+                    ]);
+                    $usedSpkItemIds[] = $newSpkItem->id;
+                }
+            }
+        }
+
+        // 4. Hapus SpkItem yang sudah dibuang dari keranjang penjualan offline
+        $unmatchedSpkItems = $allSpkItems->filter(function ($si) use ($usedSpkItemIds) {
+            return !in_array($si->id, $usedSpkItemIds);
+        });
+
+        foreach ($unmatchedSpkItems as $removedItem) {
+            $removedItem->delete();
+        }
+
+        // 5. Cek ulang kategori & status SPK setelah item diperbarui
+        foreach ($spks as $spk) {
+            $currentItems = $spk->items()->get();
+            $remainingCount = $currentItems->count();
+
+            if ($remainingCount === 0 && !$spk->is_batal) {
+                $spk->update([
+                    'is_batal'       => true,
+                    'alasan_batal'   => 'Semua item pesanan dihapus pada revisi Penjualan Offline #' . $this->sale_number,
+                    'batal_at'       => now(),
+                    'batal_by'       => \Illuminate\Support\Facades\Auth::id(),
+                    'tahap_saat_ini' => 'Batal',
+                ]);
+            } elseif ($remainingCount === 1) {
+                $firstItm = $currentItems->first();
+                if ($firstItm && (empty($spk->kategori) || $spk->kategori === 'Produk SPK' || $allSpkItems->pluck('nama_produk')->contains($spk->kategori))) {
+                    $spk->update(['kategori' => $firstItm->nama_produk]);
+                }
+            }
+        }
+    }
 }
 
