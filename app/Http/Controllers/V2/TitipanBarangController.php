@@ -332,7 +332,7 @@ class TitipanBarangController extends Controller
             return $consignment;
         });
 
-        return redirect()->route('supplier_consignments.show', $consignment)
+        return redirect()->route('v2.titipan_barang.show', $consignment)
             ->with('success', 'Penerimaan barang konsinyasi berhasil disimpan dan stok master produk telah langsung bertambah.');
     }
 

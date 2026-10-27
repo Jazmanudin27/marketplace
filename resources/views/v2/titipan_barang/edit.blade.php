@@ -13,7 +13,7 @@
             <p class="text-muted small mb-0">Perbarui data transaksi penerimaan barang konsinyasi {{ $consignment->reference_number }}</p>
         </div>
         <div>
-            <a href="{{ route('supplier_consignments.show', $consignment) }}" class="btn btn-sm text-white py-1.5 px-3 fw-semibold"
+            <a href="{{ route('v2.titipan_barang.show', $consignment) }}" class="btn btn-sm text-white py-1.5 px-3 fw-semibold"
                 style="background:#64748b; border:none;">
                 <i class="bi bi-arrow-left me-1"></i> Batal / Kembali
             </a>
@@ -43,7 +43,7 @@
     @endif
 
     {{-- Form --}}
-    <form action="{{ route('supplier_consignments.update', $consignment) }}" method="POST" id="consignment-form">
+    <form action="{{ route('v2.titipan_barang.update', $consignment) }}" method="POST" id="consignment-form">
         @csrf
         @method('PUT')
 
@@ -146,7 +146,7 @@
 
                     {{-- Action Buttons --}}
                     <div class="d-flex justify-content-end gap-2 pt-2 border-top">
-                        <a href="{{ route('supplier_consignments.show', $consignment) }}" class="btn btn-sm text-white fw-semibold"
+                        <a href="{{ route('v2.titipan_barang.show', $consignment) }}" class="btn btn-sm text-white fw-semibold"
                             style="background:#64748b; border:none;">
                             Batal
                         </a>

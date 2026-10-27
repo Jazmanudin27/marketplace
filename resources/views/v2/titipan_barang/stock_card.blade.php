@@ -61,11 +61,11 @@
         <a href="{{ route('v2.titipan_barang.deductions.index') }}" class="btn btn-sm btn-outline-primary fw-semibold px-3">
             <i class="bi bi-clipboard-check me-1"></i> Stok Opname Titipan
         </a>
-        <a href="{{ route('supplier_consignments.index') }}" class="btn btn-sm btn-outline-secondary fw-semibold px-3">
+        <a href="{{ route('v2.titipan_barang.index') }}" class="btn btn-sm btn-outline-secondary fw-semibold px-3">
             <i class="bi bi-box-seam me-1"></i> Penerimaan Barang
         </a>
         @if($selectedSupplierId)
-            <a href="{{ route('supplier_consignments.settlement.create', ['supplier_id' => $selectedSupplierId]) }}"
+            <a href="{{ route('v2.titipan_barang.settlement.create', ['supplier_id' => $selectedSupplierId]) }}"
                 class="btn btn-sm py-1.5 px-3 shadow-sm fw-semibold text-white" style="background:#16a34a; border:none;">
                 <i class="bi bi-cash-stack me-1"></i> Form Setoran Supplier
             </a>
@@ -83,7 +83,7 @@
 
 {{-- ── Filter Supplier (Ketik Nama / Cari Supplier) ── --}}
 <div class="v2-card p-3 mb-3 shadow-sm">
-    <form method="GET" action="{{ route('supplier_consignments.stock_card') }}" class="row g-2 align-items-center">
+    <form method="GET" action="{{ route('v2.titipan_barang.stock_card') }}" class="row g-2 align-items-center">
         <div class="col-12 col-md-6 col-lg-5">
             <label class="form-label small fw-semibold text-muted mb-1">Cari Supplier Penitip Barang</label>
             <div class="input-group input-group-sm">
@@ -92,7 +92,7 @@
                     <i class="bi bi-search me-1"></i> Cari
                 </button>
                 @if(request()->filled('supplier') || request()->filled('supplier_id'))
-                    <a href="{{ route('supplier_consignments.stock_card') }}" class="btn btn-outline-secondary" title="Reset Filter">
+                    <a href="{{ route('v2.titipan_barang.stock_card') }}" class="btn btn-outline-secondary" title="Reset Filter">
                         <i class="bi bi-x-circle me-1"></i> Reset
                     </a>
                 @endif
@@ -117,7 +117,7 @@
             <div class="small text-muted mb-2"><i class="bi bi-info-circle me-1"></i>Ditemukan {{ $suppliers->count() }} supplier yang cocok, silakan pilih salah satu:</div>
             <div class="d-flex flex-wrap gap-2">
                 @foreach($suppliers as $sup)
-                    <a href="{{ route('supplier_consignments.stock_card', ['supplier_id' => $sup->id, 'supplier' => $sup->name]) }}" class="btn btn-sm btn-outline-primary fw-semibold">
+                    <a href="{{ route('v2.titipan_barang.stock_card', ['supplier_id' => $sup->id, 'supplier' => $sup->name]) }}" class="btn btn-sm btn-outline-primary fw-semibold">
                         <i class="bi bi-building me-1"></i>{{ $sup->name }}
                     </a>
                 @endforeach

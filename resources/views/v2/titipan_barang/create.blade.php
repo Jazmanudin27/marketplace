@@ -13,7 +13,7 @@
             <p class="text-muted small mb-0">Catat transaksi masuk barang titipan supplier ke persediaan gudang master</p>
         </div>
         <div>
-            <a href="{{ route('supplier_consignments.index') }}" class="btn btn-sm text-white py-1.5 px-3 fw-semibold"
+            <a href="{{ route('v2.titipan_barang.index') }}" class="btn btn-sm text-white py-1.5 px-3 fw-semibold"
                 style="background:#64748b; border:none;">
                 <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
             </a>
@@ -43,7 +43,7 @@
     @endif
 
     {{-- Form --}}
-    <form action="{{ route('supplier_consignments.store') }}" method="POST" id="consignment-form">
+    <form action="{{ route('v2.titipan_barang.store') }}" method="POST" id="consignment-form">
         @csrf
         <div class="row g-3">
             {{-- Kiri: Form Header & Informasi Transaksi --}}
@@ -148,7 +148,7 @@
 
                     {{-- Action Buttons --}}
                     <div class="d-flex justify-content-end gap-2 pt-2 border-top">
-                        <a href="{{ route('supplier_consignments.index') }}" class="btn btn-sm text-white fw-semibold"
+                        <a href="{{ route('v2.titipan_barang.index') }}" class="btn btn-sm text-white fw-semibold"
                             style="background:#64748b; border:none;">
                             Batal
                         </a>

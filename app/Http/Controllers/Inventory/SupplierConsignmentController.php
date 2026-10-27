@@ -166,13 +166,7 @@ class SupplierConsignmentController extends Controller
      */
     public function create()
     {
-        $tenantId = Auth::user()->tenant_id;
-
-        $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
-        $refNumber = SupplierConsignment::generateReferenceNumber();
-        $products  = MasterProduct::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->limit(500)->get(['id', 'sku', 'name', 'stock', 'unit', 'cost_price', 'price']);
-
-        return view('v2.titipan_barang.create', compact('suppliers', 'refNumber', 'products'));
+        return redirect()->route('v2.titipan_barang.create');
     }
 
     /**
@@ -301,7 +295,7 @@ class SupplierConsignmentController extends Controller
             return $consignment;
         });
 
-        return redirect()->route('supplier_consignments.show', $consignment)
+        return redirect()->route('v2.titipan_barang.show', $consignment)
             ->with('success', 'Penerimaan barang konsinyasi berhasil disimpan dan stok master produk telah langsung bertambah.');
     }
 

@@ -12,7 +12,7 @@
         </h1>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
-        <a href="{{ route('supplier_consignments.print_labels', $consignment) }}" target="_blank"
+        <a href="{{ route('v2.titipan_barang.print_labels', $consignment) }}" target="_blank"
             class="btn btn-sm btn-outline-primary fw-semibold px-3">
             <i class="bi bi-upc-scan me-1"></i> Barcode Label
         </a>
@@ -23,11 +23,11 @@
             class="btn btn-sm btn-outline-primary fw-semibold px-3">
             <i class="bi bi-qr-code-scan me-1"></i> Scan Stok Opname
         </a>
-        <a href="{{ route('supplier_consignments.edit', $consignment) }}"
+        <a href="{{ route('v2.titipan_barang.edit', $consignment) }}"
             class="btn btn-sm fw-semibold text-dark px-3" style="background:#fbbf24; border:none;">
             <i class="bi bi-pencil me-1"></i> Edit
         </a>
-        <form action="{{ route('supplier_consignments.destroy', $consignment) }}" method="POST" class="d-inline"
+        <form action="{{ route('v2.titipan_barang.destroy', $consignment) }}" method="POST" class="d-inline"
             onsubmit="return confirm('Hapus transaksi {{ $consignment->reference_number }}? Stok akan dikurangi kembali.')">
             @csrf
             @method('DELETE')
@@ -35,7 +35,7 @@
                 <i class="bi bi-trash me-1"></i> Hapus
             </button>
         </form>
-        <a href="{{ route('supplier_consignments.index') }}" class="btn btn-sm text-white fw-semibold py-1.5 px-3" style="background:#64748b; border:none;">
+        <a href="{{ route('v2.titipan_barang.index') }}" class="btn btn-sm text-white fw-semibold py-1.5 px-3" style="background:#64748b; border:none;">
             <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
     </div>

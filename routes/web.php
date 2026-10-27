@@ -822,8 +822,12 @@ Route::middleware('auth')->group(function () {
         Route::delete('/supplier-payables/{supplierPayable}', [SupplierPayableController::class, 'destroy'])->name('supplier_payables.destroy');
 
         // ── BARANG JADI KONSINYASI SUPPLIER ───────────────────────────────────
-        Route::get('/supplier-consignments', [SupplierConsignmentController::class, 'index'])->name('supplier_consignments.index');
-        Route::get('/supplier-consignments/create', [SupplierConsignmentController::class, 'create'])->name('supplier_consignments.create');
+        Route::get('/supplier-consignments', function () {
+            return redirect()->route('v2.titipan_barang.index');
+        })->name('supplier_consignments.index');
+        Route::get('/supplier-consignments/create', function () {
+            return redirect()->route('v2.titipan_barang.create');
+        })->name('supplier_consignments.create');
         Route::post('/supplier-consignments', [SupplierConsignmentController::class, 'store'])->name('supplier_consignments.store');
         Route::get('/supplier-consignments/search-products', [SupplierConsignmentController::class, 'searchProducts'])->name('supplier_consignments.search_products');
         Route::get('/supplier-consignments/stock-card', [SupplierConsignmentController::class, 'stockCard'])->name('supplier_consignments.stock_card');
