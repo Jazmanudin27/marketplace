@@ -241,8 +241,6 @@ class PenjualanOfflineController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         $products = MasterProduct::where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->nonBundle()
             ->orderBy('name')
             ->get();
 
@@ -355,8 +353,6 @@ class PenjualanOfflineController extends Controller
         }
 
         $products = MasterProduct::where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->nonBundle()
             ->orderBy('name')
             ->get();
 

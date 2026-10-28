@@ -118,8 +118,6 @@ class OfflineSaleController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         $products = MasterProduct::where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->nonBundle()
             ->orderBy('name')
             ->get();
 
@@ -476,8 +474,6 @@ class OfflineSaleController extends Controller
         $offlineSale->load(['items.masterProduct', 'customer', 'spks']);
 
         $products = MasterProduct::where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->nonBundle()
             ->orderBy('name')
             ->get();
 
