@@ -369,9 +369,30 @@ class OfflineSale extends Model
      */
     public function syncSpks(): void
     {
-        $spks = $this->spks()->with('items')->get();
+        $this->unsetRelation('spks');
+        $this->unsetRelation('items');
+
+        $saleNumber = trim((string) $this->sale_number);
+        $cleanNumber = ltrim($saleNumber, '#');
+
+        $spks = Spk::where('tenant_id', $this->tenant_id)
+            ->where(function ($q) use ($saleNumber, $cleanNumber) {
+                $q->where('no_pesanan', $saleNumber)
+                  ->orWhere('no_pesanan', '#' . $cleanNumber)
+                  ->orWhere('no_pesanan', $cleanNumber);
+            })
+            ->with(['items'])
+            ->get();
+
         if ($spks->isEmpty()) {
             return;
+        }
+
+        // Standarisasi nomor pesanan pada SPK
+        foreach ($spks as $spk) {
+            if ($spk->no_pesanan !== $saleNumber) {
+                $spk->update(['no_pesanan' => $saleNumber]);
+            }
         }
 
         $activeSpks = $spks->where('is_batal', false);
@@ -396,14 +417,16 @@ class OfflineSale extends Model
             $spk->update([
                 'pemesan'       => $this->buyer_name ?: 'Pelanggan PO',
                 'no_hp_pemesan' => $this->buyer_phone ?: '',
-                'instansi'      => $this->institution_name ?: ('Penjualan PO #' . $this->sale_number),
+                'instansi'      => $this->institution_name ?: ('Penjualan PO #' . $saleNumber),
             ]);
         }
 
         // 3. Sinkronisasi rincian produk ke SpkItem
         $allSpkItems = $spks->flatMap->items;
         $usedSpkItemIds = [];
+        $unmatchedSaleItems = [];
 
+        // Pass 1: Cocokkan item yang identik (master_product_id / SKU / nama produk yang sama)
         foreach ($saleItems as $item) {
             $masterProductId = $item->master_product_id;
             $productName     = $item->product_name;
@@ -424,7 +447,7 @@ class OfflineSale extends Model
                 }
             }
 
-            // Cari SpkItem yang cocok dan belum dipakai
+            // Cari SpkItem yang cocok berdasarkan master_product_id
             $matchedSpkItem = null;
             if (!empty($masterProductId)) {
                 $matchedSpkItem = $allSpkItems->first(function ($si) use ($masterProductId, $usedSpkItemIds) {
@@ -432,6 +455,14 @@ class OfflineSale extends Model
                 });
             }
 
+            // Fallback match berdasarkan SKU jika belum cocok
+            if (!$matchedSpkItem && !empty($sku)) {
+                $matchedSpkItem = $allSpkItems->first(function ($si) use ($sku, $usedSpkItemIds) {
+                    return !in_array($si->id, $usedSpkItemIds) && !empty($si->sku) && strtolower(trim((string) $si->sku)) === strtolower(trim((string) $sku));
+                });
+            }
+
+            // Fallback match berdasarkan nama produk jika belum cocok
             if (!$matchedSpkItem && !empty($productName)) {
                 $matchedSpkItem = $allSpkItems->first(function ($si) use ($productName, $usedSpkItemIds) {
                     return !in_array($si->id, $usedSpkItemIds) && trim((string) $si->nama_produk) === trim((string) $productName);
@@ -450,26 +481,75 @@ class OfflineSale extends Model
                 ]);
                 $usedSpkItemIds[] = $matchedSpkItem->id;
             } else {
-                // Item baru: masukkan ke SPK aktif utama
-                $targetSpk = $activeSpks->first() ?? $spks->first();
-                if ($targetSpk) {
-                    $newSpkItem = SpkItem::create([
-                        'spk_id'            => $targetSpk->id,
-                        'master_product_id' => $masterProductId,
-                        'nama_produk'       => $productName,
-                        'sku'               => $sku,
-                        'ukuran'            => $ukuran,
-                        'quantity'          => $qty,
-                        'est_kain'          => $estKainVal,
-                        'hpp'               => $unitPrice,
-                        'status'            => 'Pending',
-                    ]);
-                    $usedSpkItemIds[] = $newSpkItem->id;
-                }
+                $unmatchedSaleItems[] = [
+                    'item'       => $item,
+                    'ukuran'     => $ukuran,
+                    'estKainVal' => $estKainVal,
+                ];
             }
         }
 
-        // 4. Hapus SpkItem yang sudah dibuang dari keranjang penjualan offline
+        // Pass 2: Jika ada item produk yang diganti/diedit di keranjang penjualan (misal ganti dari produk A ke B),
+        // update SpkItem lama yang tersisa secara in-place agar histori proses & tracking tetap terjaga
+        $availableSpkItems = $allSpkItems->filter(fn($si) => !in_array($si->id, $usedSpkItemIds))->values();
+        $newItemsToCreate = [];
+
+        foreach ($unmatchedSaleItems as $unmatched) {
+            $item            = $unmatched['item'];
+            $ukuran          = $unmatched['ukuran'];
+            $estKainVal      = $unmatched['estKainVal'];
+            $masterProductId = $item->master_product_id;
+            $productName     = $item->product_name;
+            $sku             = $item->sku;
+            $qty             = (int) $item->quantity;
+            $unitPrice       = (float) $item->unit_price;
+
+            if ($availableSpkItems->isNotEmpty()) {
+                $spkItemToReuse = $availableSpkItems->shift();
+                $spkItemToReuse->update([
+                    'master_product_id' => $masterProductId,
+                    'nama_produk'       => $productName,
+                    'sku'               => $sku,
+                    'ukuran'            => $ukuran ?: $spkItemToReuse->ukuran,
+                    'quantity'          => $qty,
+                    'est_kain'          => $estKainVal > 0 ? $estKainVal : $spkItemToReuse->est_kain,
+                    'hpp'               => $unitPrice,
+                ]);
+                $usedSpkItemIds[] = $spkItemToReuse->id;
+            } else {
+                $newItemsToCreate[] = $unmatched;
+            }
+        }
+
+        // Pass 3: Jika item penjualan bertambah melebihi SpkItem yang ada, buat SpkItem baru
+        foreach ($newItemsToCreate as $newItem) {
+            $item            = $newItem['item'];
+            $ukuran          = $newItem['ukuran'];
+            $estKainVal      = $newItem['estKainVal'];
+            $masterProductId = $item->master_product_id;
+            $productName     = $item->product_name;
+            $sku             = $item->sku;
+            $qty             = (int) $item->quantity;
+            $unitPrice       = (float) $item->unit_price;
+
+            $targetSpk = $activeSpks->first() ?? $spks->first();
+            if ($targetSpk) {
+                $createdItem = SpkItem::create([
+                    'spk_id'            => $targetSpk->id,
+                    'master_product_id' => $masterProductId,
+                    'nama_produk'       => $productName,
+                    'sku'               => $sku,
+                    'ukuran'            => $ukuran,
+                    'quantity'          => $qty,
+                    'est_kain'          => $estKainVal,
+                    'hpp'               => $unitPrice,
+                    'status'            => 'Pending',
+                ]);
+                $usedSpkItemIds[] = $createdItem->id;
+            }
+        }
+
+        // Pass 4: Hapus SpkItem yang tidak lagi ada di keranjang penjualan offline
         $unmatchedSpkItems = $allSpkItems->filter(function ($si) use ($usedSpkItemIds) {
             return !in_array($si->id, $usedSpkItemIds);
         });
@@ -478,24 +558,27 @@ class OfflineSale extends Model
             $removedItem->delete();
         }
 
-        // 5. Cek ulang kategori & status SPK setelah item diperbarui
+        // Pass 5: Cek ulang kategori & status SPK setelah seluruh item diperbarui
         foreach ($spks as $spk) {
+            $spk->unsetRelation('items');
             $currentItems = $spk->items()->get();
             $remainingCount = $currentItems->count();
 
             if ($remainingCount === 0 && !$spk->is_batal) {
                 $spk->update([
                     'is_batal'       => true,
-                    'alasan_batal'   => 'Semua item pesanan dihapus pada revisi Penjualan Offline #' . $this->sale_number,
+                    'alasan_batal'   => 'Semua item pesanan dihapus pada revisi Penjualan Offline #' . $saleNumber,
                     'batal_at'       => now(),
                     'batal_by'       => \Illuminate\Support\Facades\Auth::id(),
                     'tahap_saat_ini' => 'Batal',
                 ]);
-            } elseif ($remainingCount === 1) {
-                $firstItm = $currentItems->first();
-                if ($firstItm && (empty($spk->kategori) || $spk->kategori === 'Produk SPK' || $allSpkItems->pluck('nama_produk')->contains($spk->kategori))) {
-                    $spk->update(['kategori' => $firstItm->nama_produk]);
-                }
+            } elseif ($remainingCount > 0) {
+                $firstItemName = $currentItems->first()->nama_produk;
+                $newKategori = ($remainingCount === 1)
+                    ? $firstItemName
+                    : $currentItems->pluck('nama_produk')->unique()->implode(', ');
+
+                $spk->update(['kategori' => $newKategori]);
             }
         }
     }

@@ -419,24 +419,42 @@ class PullOrdersFromShopee implements ShouldQueue
                     $itemSku = $masterProduct->sku;
                 }
 
-                $insertRows[] = [
-                    'order_id' => $order->id,
-                    'marketplace_product_id' => $mp ? $mp->id : null,
-                    'master_product_id' => $masterProduct ? $masterProduct->id : null,
-                    'product_name' => mb_substr($item['item_name'] . ($item['model_name'] ? " ({$item['model_name']})" : ''), 0, 250),
-                    'sku' => $itemSku,
-                    'price' => $price,
-                    'total_price' => $price * $qty,
-                    'cost_price' => $masterProduct ? (float) $masterProduct->cost_price : 0,
-                    'hpp_subtotal' => ($masterProduct ? (float) $masterProduct->cost_price : 0) * $qty,
-                    'quantity' => $qty,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+                $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
+                $masterProductId = $masterProduct ? $masterProduct->id : null;
+                $marketplaceProductId = $mp ? $mp->id : null;
+
+                // 🚀 AUTO-MERGE: Gabungkan baris jika SKU / master_product_id sama dalam 1 pesanan
+                $groupKey = $masterProductId ? 'm_' . $masterProductId : ($itemSku ? 'sku_' . trim($itemSku) : 'item_' . $item['item_id'] . '_' . ($modelId ?? '0'));
+
+                if (isset($insertRows[$groupKey])) {
+                    $newQty = $insertRows[$groupKey]['quantity'] + $qty;
+                    $newTotalPrice = $insertRows[$groupKey]['total_price'] + ($price * $qty);
+                    $insertRows[$groupKey]['quantity'] = $newQty;
+                    $insertRows[$groupKey]['total_price'] = $newTotalPrice;
+                    $insertRows[$groupKey]['hpp_subtotal'] += ($costPrice * $qty);
+                    if ($newQty > 0) {
+                        $insertRows[$groupKey]['price'] = round($newTotalPrice / $newQty, 2);
+                    }
+                } else {
+                    $insertRows[$groupKey] = [
+                        'order_id' => $order->id,
+                        'marketplace_product_id' => $marketplaceProductId,
+                        'master_product_id' => $masterProductId,
+                        'product_name' => mb_substr($item['item_name'] . ($item['model_name'] ? " ({$item['model_name']})" : ''), 0, 250),
+                        'sku' => $itemSku,
+                        'price' => $price,
+                        'total_price' => $price * $qty,
+                        'cost_price' => $costPrice,
+                        'hpp_subtotal' => $costPrice * $qty,
+                        'quantity' => $qty,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
             }
 
             if (!empty($insertRows)) {
-                \Illuminate\Support\Facades\DB::table('order_items')->insert($insertRows);
+                \Illuminate\Support\Facades\DB::table('order_items')->insert(array_values($insertRows));
             }
         }
 

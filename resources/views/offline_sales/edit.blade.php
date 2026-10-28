@@ -40,6 +40,7 @@
     <form id="offline-form" action="{{ route('offline_sales.update', $offlineSale->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
+        <input type="hidden" name="is_po" value="{{ $offlineSale->is_po ? '1' : '0' }}">
 
         {{-- ========================================================================= --}}
         {{-- BARIS 1: DATA PELANGGAN & RINGKASAN TOTAL                                 --}}
@@ -769,6 +770,8 @@
                         <div class="fw-semibold text-dark">${item.name}</div>
                         <div class="text-muted small font-monospace">${item.sku || '-'}</div>
                         <input type="hidden" name="items[${index}][master_product_id]" value="${item.id}">
+                        <input type="hidden" name="items[${index}][product_name]" value="${item.name}">
+                        <input type="hidden" name="items[${index}][sku]" value="${item.sku || ''}">
                     </td>
                     <td class="text-center">
                         <input class="form-check-input promo-checkbox" type="checkbox" data-id="${item.id}" ${item.is_promo ? 'checked' : ''} title="Set sebagai barang promo (Rp 0)">

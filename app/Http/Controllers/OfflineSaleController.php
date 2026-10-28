@@ -499,6 +499,32 @@ class OfflineSaleController extends Controller
                 ->with('error', 'Transaksi yang telah dibatalkan tidak dapat diedit.');
         }
 
+        $rawInput = $request->all();
+        $inputModified = false;
+        if (isset($rawInput['discount_amount']) && is_string($rawInput['discount_amount'])) {
+            $rawInput['discount_amount'] = (float) preg_replace('/[^0-9]/', '', $rawInput['discount_amount']);
+            $inputModified = true;
+        }
+        if (isset($rawInput['paid_amount']) && is_string($rawInput['paid_amount'])) {
+            $rawInput['paid_amount'] = (float) preg_replace('/[^0-9]/', '', $rawInput['paid_amount']);
+            $inputModified = true;
+        }
+        if (isset($rawInput['items']) && is_array($rawInput['items'])) {
+            foreach ($rawInput['items'] as $k => $item) {
+                if (isset($item['unit_price']) && is_string($item['unit_price'])) {
+                    $rawInput['items'][$k]['unit_price'] = (float) preg_replace('/[^0-9]/', '', (string) $item['unit_price']);
+                    $inputModified = true;
+                }
+                if (isset($item['quantity']) && is_string($item['quantity'])) {
+                    $rawInput['items'][$k]['quantity'] = (int) preg_replace('/[^0-9]/', '', (string) $item['quantity']);
+                    $inputModified = true;
+                }
+            }
+        }
+        if ($inputModified) {
+            $request->merge($rawInput);
+        }
+
         $rules = [
             'customer_id'               => 'nullable|exists:customers,id',
             'store_id'                  => 'nullable|exists:stores,id',
@@ -523,8 +549,13 @@ class OfflineSaleController extends Controller
             'sold_at'                   => 'nullable|date',
         ];
 
+        $isPo = $request->has('is_po') ? $request->boolean('is_po') : (bool) $offlineSale->is_po;
+        if ($offlineSale->spks()->exists()) {
+            $isPo = true;
+        }
+
         $paymentMethod = $request->payment_method ?: $offlineSale->payment_method ?: 'piutang';
-        if (!$request->boolean('is_po') && !$request->filled('customer_id')) {
+        if (!$isPo && !$request->filled('customer_id')) {
             if ($paymentMethod === 'piutang') {
                 $rules['buyer_name']  = 'required|string|max:100';
                 $rules['buyer_phone'] = 'required|string|max:20';
@@ -551,7 +582,7 @@ class OfflineSaleController extends Controller
             }
         }
 
-        DB::transaction(function () use ($request, $offlineSale, $tenantId, $resiFilePath) {
+        DB::transaction(function () use ($request, $offlineSale, $tenantId, $resiFilePath, $isPo) {
             $offlineSale->load('items');
 
             // 1. Reversi stok barang lama jika transaksi ini sebelumnya non-PO (stok sudah pernah dipotong)
@@ -576,7 +607,6 @@ class OfflineSaleController extends Controller
             $globalDiscType = $request->discount_type ?? $offlineSale->discount_type ?? 'fixed';
             $globalDiscVal  = (float) ($request->discount_value ?? $request->discount_amount ?? 0);
             $itemsData      = [];
-            $isPo           = $request->boolean('is_po');
 
             foreach ($request->items as $item) {
                 $product = MasterProduct::where('tenant_id', $tenantId)

@@ -547,12 +547,11 @@ class ScannerGudangController extends Controller
     }
 
     /**
-     * Terapkan Substitusi Produk pada Order Item V2.
+     * Terapkan Substitusi Produk pada Order Item / Offline Sale Item V2.
      */
-    public function substituteItem(Request $request, OrderItem $orderItem)
+    public function substituteItem(Request $request, $itemId)
     {
         $tenantId = Auth::user()->tenant_id;
-        abort_unless($orderItem->order->tenant_id === $tenantId, 403);
 
         $request->validate([
             'new_master_product_id' => 'required|exists:master_products,id',
@@ -563,30 +562,77 @@ class ScannerGudangController extends Controller
             ->where('id', $request->new_master_product_id)
             ->firstOrFail();
 
-        $originalSku  = $orderItem->original_sku ?: $orderItem->sku;
-        $originalName = $orderItem->original_product_name ?: $orderItem->product_name;
+        // Parse jika compound ID dari bundle item (misal: 15-20)
+        $cleanId = $itemId;
+        if (str_contains((string) $itemId, '-')) {
+            $parts = explode('-', (string) $itemId);
+            $cleanId = (int) $parts[0];
+        }
 
-        $orderItem->update([
-            'master_product_id'     => $newProduct->id,
-            'sku'                   => $newProduct->sku,
-            'product_name'          => $newProduct->name,
-            'is_substituted'        => true,
-            'original_sku'          => $originalSku,
-            'original_product_name' => $originalName,
-            'substitution_note'     => $request->note ?: 'Ditukar melalui Layar Scanner Gudang V2',
-        ]);
+        // 1. Coba cari di OrderItem (Pesanan Online Marketplace)
+        $orderItem = OrderItem::with('order')->find($cleanId);
+        if ($orderItem) {
+            abort_unless($orderItem->order && $orderItem->order->tenant_id === $tenantId, 403);
+
+            $originalSku  = $orderItem->original_sku ?: $orderItem->sku;
+            $originalName = $orderItem->original_product_name ?: $orderItem->product_name;
+
+            $updateData = [
+                'master_product_id' => $newProduct->id,
+                'sku'               => $newProduct->sku,
+                'product_name'      => $newProduct->name,
+            ];
+
+            if (Schema::hasColumn('order_items', 'is_substituted')) {
+                $updateData['is_substituted']        = true;
+                $updateData['original_sku']          = $originalSku;
+                $updateData['original_product_name'] = $originalName;
+                $updateData['substitution_note']     = $request->note ?: 'Ditukar melalui Layar Scanner Gudang V2';
+            }
+
+            $orderItem->update($updateData);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Produk berhasil ditukar ke '{$newProduct->name}' [SKU: {$newProduct->sku}].",
+                'item'    => [
+                    'id'           => $itemId,
+                    'sku'          => $newProduct->sku,
+                    'barcode'      => $newProduct->barcode,
+                    'name'         => $newProduct->name,
+                    'gudang_stock' => (int) $newProduct->stock,
+                ]
+            ]);
+        }
+
+        // 2. Coba cari di OfflineSaleItem (Pesanan / Nota POS Kasir)
+        $offlineItem = OfflineSaleItem::with('offlineSale')->find($cleanId);
+        if ($offlineItem) {
+            abort_unless($offlineItem->offlineSale && $offlineItem->offlineSale->tenant_id === $tenantId, 403);
+
+            $offlineItem->update([
+                'master_product_id' => $newProduct->id,
+                'sku'               => $newProduct->sku,
+                'product_name'      => $newProduct->name,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Produk offline berhasil ditukar ke '{$newProduct->name}' [SKU: {$newProduct->sku}].",
+                'item'    => [
+                    'id'           => $itemId,
+                    'sku'          => $newProduct->sku,
+                    'barcode'      => $newProduct->barcode,
+                    'name'         => $newProduct->name,
+                    'gudang_stock' => (int) $newProduct->stock,
+                ]
+            ]);
+        }
 
         return response()->json([
-            'success' => true,
-            'message' => "Produk berhasil ditukar ke '{$newProduct->name}' [SKU: {$newProduct->sku}].",
-            'item'    => [
-                'id'           => $orderItem->id,
-                'sku'          => $newProduct->sku,
-                'barcode'      => $newProduct->barcode,
-                'name'         => $newProduct->name,
-                'gudang_stock' => (int) $newProduct->stock,
-            ]
-        ]);
+            'success' => false,
+            'message' => "Item pesanan dengan ID '{$itemId}' tidak ditemukan dalam database."
+        ], 404);
     }
 
     /**

@@ -411,6 +411,9 @@ class PenjualanOfflineController extends Controller
                 if (isset($item['unit_price'])) {
                     $input['items'][$k]['unit_price'] = (float) preg_replace('/[^0-9]/', '', (string) $item['unit_price']);
                 }
+                if (isset($item['quantity'])) {
+                    $input['items'][$k]['quantity'] = (int) preg_replace('/[^0-9]/', '', (string) $item['quantity']);
+                }
             }
         }
         $request->merge($input);

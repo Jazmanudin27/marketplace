@@ -487,31 +487,48 @@ class PullOrdersFromTiktok implements ShouldQueue
 
                 $pName = $item['product_name'] ?? $item['item_name'] ?? 'Produk TikTok';
                 $vName = $item['sku_name'] ?? $item['variant_name'] ?? '';
+                $finalSku = $sellerSku ?: $skuId;
 
-                $insertRows[] = [
-                    'order_id'               => $order->id,
-                    'sku'                    => $sellerSku ?: $skuId,
-                    'seller_sku'             => $sellerSku,
-                    'sku_id'                 => $skuId,
-                    'sku_name'               => $skuName ?: $vName,
-                    'marketplace_product_id' => $marketplaceProductId,
-                    'master_product_id'      => $masterProductId,
-                    'product_name'           => mb_substr($pName . ($vName ? ' - ' . $vName : ''), 0, 250),
-                    'price'                  => $unitPrice,
-                    'original_price'         => $origPrice,
-                    'seller_discount'        => $sDisc,
-                    'platform_discount'      => $pDisc,
-                    'quantity'               => $qty,
-                    'total_price'            => $unitPrice * $qty,
-                    'cost_price'             => $costPrice,
-                    'hpp_subtotal'           => $costPrice * $qty,
-                    'created_at'             => now(),
-                    'updated_at'             => now(),
-                ];
+                // 🚀 AUTO-MERGE: Gabungkan baris jika SKU / master_product_id sama dalam 1 pesanan
+                $groupKey = $masterProductId ? 'm_' . $masterProductId : ($finalSku ? 'sku_' . trim($finalSku) : ($skuId ? 'id_' . $skuId : 'item_' . $productId));
+
+                if (isset($insertRows[$groupKey])) {
+                    $newQty = $insertRows[$groupKey]['quantity'] + $qty;
+                    $newTotalPrice = $insertRows[$groupKey]['total_price'] + ($unitPrice * $qty);
+                    $insertRows[$groupKey]['quantity'] = $newQty;
+                    $insertRows[$groupKey]['total_price'] = $newTotalPrice;
+                    $insertRows[$groupKey]['seller_discount'] += $sDisc;
+                    $insertRows[$groupKey]['platform_discount'] += $pDisc;
+                    $insertRows[$groupKey]['hpp_subtotal'] += ($costPrice * $qty);
+                    if ($newQty > 0) {
+                        $insertRows[$groupKey]['price'] = round($newTotalPrice / $newQty, 2);
+                    }
+                } else {
+                    $insertRows[$groupKey] = [
+                        'order_id'               => $order->id,
+                        'sku'                    => $finalSku,
+                        'seller_sku'             => $sellerSku,
+                        'sku_id'                 => $skuId,
+                        'sku_name'               => $skuName ?: $vName,
+                        'marketplace_product_id' => $marketplaceProductId,
+                        'master_product_id'      => $masterProductId,
+                        'product_name'           => mb_substr($pName . ($vName ? ' - ' . $vName : ''), 0, 250),
+                        'price'                  => $unitPrice,
+                        'original_price'         => $origPrice,
+                        'seller_discount'        => $sDisc,
+                        'platform_discount'      => $pDisc,
+                        'quantity'               => $qty,
+                        'total_price'            => $unitPrice * $qty,
+                        'cost_price'             => $costPrice,
+                        'hpp_subtotal'           => $costPrice * $qty,
+                        'created_at'             => now(),
+                        'updated_at'             => now(),
+                    ];
+                }
             }
 
             if (!empty($insertRows)) {
-                \Illuminate\Support\Facades\DB::table('order_items')->insert($insertRows);
+                \Illuminate\Support\Facades\DB::table('order_items')->insert(array_values($insertRows));
             }
         }
 

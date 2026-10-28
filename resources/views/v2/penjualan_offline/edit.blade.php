@@ -56,6 +56,7 @@
 <form action="{{ route('v2.penjualan_offline.update', $offlineSale->id) }}" method="POST" id="posEditForm">
     @csrf
     @method('PUT')
+    <input type="hidden" name="is_po" value="{{ $offlineSale->is_po ? '1' : '0' }}">
 
     <div class="row g-3 mb-4">
         {{-- ── Left Column: Product Selection & Cart Items (65%) ── --}}
@@ -430,6 +431,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="fw-bold text-dark">${escapeHtml(item.name)}</div>
                         <small class="text-muted font-monospace">SKU: ${escapeHtml(item.sku || '-')}</small>
                         <input type="hidden" name="items[${index}][master_product_id]" value="${item.id}">
+                        <input type="hidden" name="items[${index}][product_name]" value="${escapeHtml(item.name)}">
+                        <input type="hidden" name="items[${index}][sku]" value="${escapeHtml(item.sku || '')}">
                     </td>
                     <td class="text-center">
                         <input type="text" name="items[${index}][quantity]" value="${formatRupiah(item.qty)}" inputmode="numeric"
