@@ -18,6 +18,9 @@ class DropshipOrder extends Model
         'customer_phone',
         'notes',
         'total_amount',
+        'paid_amount',
+        'payment_status', // 'unpaid', 'partial', 'paid'
+        'payment_method',
         'total_qty',
         'status', // 'completed', 'pending', 'cancelled'
     ];
@@ -25,6 +28,7 @@ class DropshipOrder extends Model
     protected $casts = [
         'order_date'   => 'date',
         'total_amount' => 'decimal:2',
+        'paid_amount'  => 'decimal:2',
         'total_qty'    => 'integer',
     ];
 
@@ -41,6 +45,67 @@ class DropshipOrder extends Model
     public function items(): HasMany
     {
         return $this->hasMany(DropshipOrderItem::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(DropshipOrderPayment::class)->orderByDesc('payment_date')->orderByDesc('id');
+    }
+
+    public function getRemainingAmountAttribute(): float
+    {
+        return max(0, (float) $this->total_amount - (float) $this->paid_amount);
+    }
+
+    public function getIsPaidAttribute(): bool
+    {
+        return (float) $this->paid_amount >= (float) $this->total_amount && (float) $this->total_amount > 0;
+    }
+
+    public function getPaymentStatusLabelAttribute(): string
+    {
+        if ($this->is_paid) {
+            return 'Lunas';
+        }
+        if ((float) $this->paid_amount > 0) {
+            return 'Dicicil';
+        }
+        return 'Belum Lunas';
+    }
+
+    public function getPaymentStatusBadgeAttribute(): string
+    {
+        if ($this->is_paid) {
+            return 'success';
+        }
+        if ((float) $this->paid_amount > 0) {
+            return 'warning text-dark';
+        }
+        return 'danger';
+    }
+
+    /**
+     * Hitung ulang total pembayaran dan update status lunas.
+     */
+    public function recalculatePaymentStatus(): void
+    {
+        $totalPaid = (float) $this->payments()->sum('amount');
+        $totalAmount = (float) $this->total_amount;
+
+        $status = 'unpaid';
+        if ($totalPaid >= $totalAmount && $totalAmount > 0) {
+            $status = 'paid';
+        } elseif ($totalPaid > 0) {
+            $status = 'partial';
+        }
+
+        $lastPayment = $this->payments()->latest('payment_date')->first();
+
+        $this->update([
+            'paid_amount'    => $totalPaid,
+            'payment_status' => $status,
+            'payment_method' => $lastPayment ? $lastPayment->payment_method : $this->payment_method,
+        ]);
     }
 
     public static function generateOrderNumber(string $channelType = 'dropship'): string

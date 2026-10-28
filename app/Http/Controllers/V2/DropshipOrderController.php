@@ -5,7 +5,9 @@ namespace App\Http\Controllers\V2;
 use App\Http\Controllers\Controller;
 use App\Models\DropshipOrder;
 use App\Models\DropshipOrderItem;
+use App\Models\DropshipOrderPayment;
 use App\Models\MasterProduct;
+use App\Models\BankAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +37,9 @@ class DropshipOrderController extends Controller
                     `customer_phone` varchar(50) DEFAULT NULL,
                     `notes` text DEFAULT NULL,
                     `total_amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+                    `paid_amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+                    `payment_status` varchar(30) NOT NULL DEFAULT 'unpaid',
+                    `payment_method` varchar(50) DEFAULT NULL,
                     `total_qty` int(11) NOT NULL DEFAULT 0,
                     `status` varchar(30) NOT NULL DEFAULT 'completed',
                     `created_at` timestamp NULL DEFAULT NULL,
@@ -44,6 +49,24 @@ class DropshipOrderController extends Controller
                     KEY `dropship_orders_tenant_id_order_date_index` (`tenant_id`,`order_date`),
                     KEY `dropship_orders_tenant_id_channel_type_index` (`tenant_id`,`channel_type`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            }
+        }
+
+        if (Schema::hasTable('dropship_orders')) {
+            if (!Schema::hasColumn('dropship_orders', 'paid_amount')) {
+                try {
+                    DB::statement("ALTER TABLE `dropship_orders` ADD COLUMN `paid_amount` DECIMAL(15,2) NOT NULL DEFAULT 0.00 AFTER `total_amount`");
+                } catch (\Throwable $e) {}
+            }
+            if (!Schema::hasColumn('dropship_orders', 'payment_status')) {
+                try {
+                    DB::statement("ALTER TABLE `dropship_orders` ADD COLUMN `payment_status` VARCHAR(30) NOT NULL DEFAULT 'unpaid' AFTER `paid_amount`");
+                } catch (\Throwable $e) {}
+            }
+            if (!Schema::hasColumn('dropship_orders', 'payment_method')) {
+                try {
+                    DB::statement("ALTER TABLE `dropship_orders` ADD COLUMN `payment_method` VARCHAR(50) NULL AFTER `payment_status`");
+                } catch (\Throwable $e) {}
             }
         }
 
@@ -64,6 +87,29 @@ class DropshipOrderController extends Controller
                 KEY `dropship_order_items_master_product_id_index` (`master_product_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         }
+
+        if (!Schema::hasTable('dropship_order_payments')) {
+            try {
+                DB::statement("CREATE TABLE IF NOT EXISTS `dropship_order_payments` (
+                    `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                    `tenant_id` bigint(20) unsigned NOT NULL,
+                    `dropship_order_id` bigint(20) unsigned NOT NULL,
+                    `payment_number` varchar(50) NOT NULL,
+                    `payment_date` date NOT NULL,
+                    `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+                    `payment_method` varchar(50) NOT NULL DEFAULT 'tunai',
+                    `payment_destination` varchar(100) DEFAULT NULL,
+                    `reference_number` varchar(100) DEFAULT NULL,
+                    `notes` text DEFAULT NULL,
+                    `created_by` bigint(20) unsigned DEFAULT NULL,
+                    `created_at` timestamp NULL DEFAULT NULL,
+                    `updated_at` timestamp NULL DEFAULT NULL,
+                    PRIMARY KEY (`id`),
+                    KEY `dropship_order_payments_tenant_id_dropship_order_id_index` (`tenant_id`,`dropship_order_id`),
+                    KEY `dropship_order_payments_payment_number_index` (`payment_number`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            } catch (\Throwable $e) {}
+        }
     }
 
     /**
@@ -75,14 +121,31 @@ class DropshipOrderController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         $channelType = $request->input('channel_type', 'all');
+        $paymentStatus = $request->input('payment_status', 'all');
 
-        $query = DropshipOrder::with(['items.masterProduct', 'user'])
+        $query = DropshipOrder::with(['items.masterProduct', 'user', 'payments'])
             ->where('tenant_id', $tenantId)
             ->orderByDesc('order_date')
             ->orderByDesc('id');
 
         if ($channelType !== 'all' && !empty($channelType)) {
             $query->where('channel_type', $channelType);
+        }
+
+        if ($paymentStatus === 'paid') {
+            $query->where(function ($q) {
+                $q->where('payment_status', 'paid')
+                  ->orWhereRaw('paid_amount >= total_amount AND total_amount > 0');
+            });
+        } elseif ($paymentStatus === 'unpaid') {
+            $query->where(function ($q) {
+                $q->where('payment_status', 'unpaid')
+                  ->orWhereNull('payment_status')
+                  ->orWhereRaw('paid_amount = 0');
+            });
+        } elseif ($paymentStatus === 'partial') {
+            $query->where('payment_status', 'partial')
+                  ->whereRaw('paid_amount > 0 AND paid_amount < total_amount');
         }
 
         if ($request->filled('search')) {
@@ -123,14 +186,19 @@ class DropshipOrderController extends Controller
         $kpiQuery = clone $query;
         $totalOrdersCount = $kpiQuery->count();
         $totalOmset       = (float) (clone $countBase)->sum('total_amount');
+        $totalPaidOmset   = (float) (clone $countBase)->sum('paid_amount');
+        $totalUnpaidOmset = max(0, $totalOmset - $totalPaidOmset);
         $totalQty         = (int) (clone $countBase)->sum('total_qty');
 
         return view('v2.marketing.dropship.index', compact(
             'orders',
             'tabCounts',
             'channelType',
+            'paymentStatus',
             'totalOrdersCount',
             'totalOmset',
+            'totalPaidOmset',
+            'totalUnpaidOmset',
             'totalQty'
         ));
     }
@@ -157,7 +225,12 @@ class DropshipOrderController extends Controller
             ->limit(500)
             ->get(['id', 'sku', 'name', 'stock', 'price', 'cost_price', 'lazada_price', 'lazada_dropship_price', 'shopee_dropship_price']);
 
-        return view('v2.marketing.dropship.create', compact('defaultChannel', 'orderNumber', 'products'));
+        $bankAccounts = BankAccount::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('bank_name')
+            ->get();
+
+        return view('v2.marketing.dropship.create', compact('defaultChannel', 'orderNumber', 'products', 'bankAccounts'));
     }
 
     /**
@@ -178,6 +251,10 @@ class DropshipOrderController extends Controller
             'items.*.master_product_id' => 'required|exists:master_products,id',
             'items.*.quantity'          => 'required|integer|min:1',
             'items.*.unit_price'        => 'required|numeric|min:0',
+            'paid_amount'        => 'nullable|numeric|min:0',
+            'payment_method'     => 'nullable|string|max:50',
+            'payment_destination'=> 'nullable|string|max:100',
+            'reference_number'   => 'nullable|string|max:100',
         ], [
             'customer_name.required' => 'Nama Pelanggan wajib diisi manual.',
             'items.required'         => 'Minimal satu produk pesanan harus diisikan.',
@@ -185,7 +262,8 @@ class DropshipOrderController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($request, $tenantId) {
+            $createdOrder = null;
+            DB::transaction(function () use ($request, $tenantId, &$createdOrder) {
                 $orderNumber = DropshipOrder::generateOrderNumber($request->channel_type);
                 $totalAmount = 0;
                 $totalQty    = 0;
@@ -225,6 +303,8 @@ class DropshipOrderController extends Controller
                     'customer_phone' => trim($request->customer_phone ?? ''),
                     'notes'          => $request->notes,
                     'total_amount'   => $totalAmount,
+                    'paid_amount'    => 0,
+                    'payment_status' => 'unpaid',
                     'total_qty'      => $totalQty,
                     'status'         => 'completed',
                 ]);
@@ -243,9 +323,31 @@ class DropshipOrderController extends Controller
                         );
                     }
                 }
+
+                // Catat pembayaran awal jika ada
+                $initPaid = (float) $request->input('paid_amount', 0);
+                if ($initPaid > 0) {
+                    $paidAmount = min($initPaid, $totalAmount);
+                    DropshipOrderPayment::create([
+                        'tenant_id'           => $tenantId,
+                        'dropship_order_id'   => $order->id,
+                        'payment_number'      => DropshipOrderPayment::generatePaymentNumber(),
+                        'payment_date'        => $request->order_date,
+                        'amount'              => $paidAmount,
+                        'payment_method'      => $request->input('payment_method', 'tunai'),
+                        'payment_destination' => $request->input('payment_destination'),
+                        'reference_number'    => $request->input('reference_number'),
+                        'notes'               => 'Pembayaran awal saat pembuatan pesanan',
+                        'created_by'          => Auth::id(),
+                    ]);
+
+                    $order->recalculatePaymentStatus();
+                }
+
+                $createdOrder = $order;
             });
 
-            return redirect()->route('v2.marketing.dropship.index', ['channel_type' => $request->channel_type])
+            return redirect()->route('v2.marketing.dropship.show', $createdOrder->id)
                 ->with('success', 'Pesanan ' . ucfirst($request->channel_type) . ' untuk pelanggan "' . $request->customer_name . '" berhasil disimpan!');
         } catch (\Throwable $e) {
             return redirect()->back()
@@ -262,11 +364,16 @@ class DropshipOrderController extends Controller
         $this->ensureTableExists();
         $tenantId = Auth::user()->tenant_id;
 
-        $order = DropshipOrder::with(['items.masterProduct', 'user'])
+        $order = DropshipOrder::with(['items.masterProduct', 'user', 'payments.user'])
             ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
-        return view('v2.marketing.dropship.show', compact('order'));
+        $bankAccounts = BankAccount::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('bank_name')
+            ->get();
+
+        return view('v2.marketing.dropship.show', compact('order', 'bankAccounts'));
     }
 
     /**
@@ -383,6 +490,8 @@ class DropshipOrderController extends Controller
                         );
                     }
                 }
+
+                $order->recalculatePaymentStatus();
             });
 
             return redirect()->route('v2.marketing.dropship.index', ['channel_type' => $order->channel_type])
@@ -423,11 +532,97 @@ class DropshipOrderController extends Controller
             }
 
             $order->items()->delete();
+            $order->payments()->delete();
             $order->delete();
         });
 
         return redirect()->route('v2.marketing.dropship.index')
             ->with('success', 'Pesanan ' . $order->order_number . ' berhasil dihapus dan stok produk telah dikembalikan.');
+    }
+
+    /**
+     * Catat Pembayaran Baru untuk Pesanan Dropship.
+     */
+    public function storePayment(Request $request, $id)
+    {
+        $this->ensureTableExists();
+        $tenantId = Auth::user()->tenant_id;
+
+        $order = DropshipOrder::where('tenant_id', $tenantId)->findOrFail($id);
+
+        $remaining = max(0, (float) $order->total_amount - (float) $order->paid_amount);
+
+        $request->validate([
+            'payment_date'        => 'required|date',
+            'amount'              => 'required|numeric|min:1',
+            'payment_method'      => 'required|string|max:50',
+            'payment_destination' => 'nullable|string|max:100',
+            'reference_number'    => 'nullable|string|max:100',
+            'notes'               => 'nullable|string|max:500',
+        ], [
+            'amount.required' => 'Nominal pembayaran wajib diisi.',
+            'amount.min'      => 'Nominal pembayaran minimal Rp 1.',
+        ]);
+
+        $amount = (float) $request->amount;
+        if ($remaining > 0 && $amount > ($remaining + 100)) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['amount' => 'Nominal pembayaran melebihi sisa tagihan (Sisa: Rp ' . number_format($remaining, 0, ',', '.') . ').']);
+        }
+
+        try {
+            DB::transaction(function () use ($request, $order, $tenantId, $amount) {
+                DropshipOrderPayment::create([
+                    'tenant_id'           => $tenantId,
+                    'dropship_order_id'   => $order->id,
+                    'payment_number'      => DropshipOrderPayment::generatePaymentNumber(),
+                    'payment_date'        => $request->payment_date,
+                    'amount'              => $amount,
+                    'payment_method'      => $request->payment_method,
+                    'payment_destination' => $request->payment_destination,
+                    'reference_number'    => $request->reference_number,
+                    'notes'               => $request->notes,
+                    'created_by'          => Auth::id(),
+                ]);
+
+                $order->recalculatePaymentStatus();
+            });
+
+            return redirect()->route('v2.marketing.dropship.show', $order->id)
+                ->with('success', 'Pembayaran sebesar Rp ' . number_format($amount, 0, ',', '.') . ' berhasil dicatat.');
+        } catch (\Throwable $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Gagal mencatat pembayaran: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Hapus Riwayat Pembayaran.
+     */
+    public function destroyPayment(Request $request, $id, $paymentId)
+    {
+        $this->ensureTableExists();
+        $tenantId = Auth::user()->tenant_id;
+
+        $order = DropshipOrder::where('tenant_id', $tenantId)->findOrFail($id);
+        $payment = DropshipOrderPayment::where('tenant_id', $tenantId)
+            ->where('dropship_order_id', $order->id)
+            ->findOrFail($paymentId);
+
+        try {
+            DB::transaction(function () use ($payment, $order) {
+                $payment->delete();
+                $order->recalculatePaymentStatus();
+            });
+
+            return redirect()->route('v2.marketing.dropship.show', $order->id)
+                ->with('success', 'Data pembayaran ' . $payment->payment_number . ' berhasil dihapus.');
+        } catch (\Throwable $e) {
+            return redirect()->back()
+                ->withErrors(['error' => 'Gagal menghapus pembayaran: ' . $e->getMessage()]);
+        }
     }
 
     /**

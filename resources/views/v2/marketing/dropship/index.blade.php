@@ -95,34 +95,44 @@
 
 {{-- ── KPI Cards ── --}}
 <div class="row g-2.5 mb-3">
-    <div class="col-12 col-md-4">
+    <div class="col-6 col-md-3">
         <div class="dropship-kpi-card border-start border-primary border-3">
             <div class="dropship-kpi-title text-primary">Total Pesanan</div>
             <div class="dropship-kpi-value text-dark">
-                {{ number_format($totalOrdersCount, 0, ',', '.') }} Transaksi
+                {{ number_format($totalOrdersCount, 0, ',', '.') }}
             </div>
-            <div class="dropship-kpi-sub">Jumlah pesanan tercatat</div>
+            <div class="dropship-kpi-sub">Jumlah transaksi tercatat</div>
             <i class="bi bi-receipt dropship-kpi-icon text-primary"></i>
         </div>
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-6 col-md-3">
         <div class="dropship-kpi-card border-start border-info border-3">
             <div class="dropship-kpi-title text-info">Total Kuantitas</div>
             <div class="dropship-kpi-value text-info font-monospace">
                 {{ number_format($totalQty, 0, ',', '.') }} PCS
             </div>
-            <div class="dropship-kpi-sub">Total barang terjual</div>
+            <div class="dropship-kpi-sub">Total unit barang terjual</div>
             <i class="bi bi-boxes dropship-kpi-icon text-info"></i>
         </div>
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-6 col-md-3">
         <div class="dropship-kpi-card border-start border-success border-3">
-            <div class="dropship-kpi-title text-success">Total Omset Penjualan</div>
+            <div class="dropship-kpi-title text-success">Total Omset</div>
             <div class="dropship-kpi-value text-success font-monospace">
                 Rp {{ number_format($totalOmset, 0, ',', '.') }}
             </div>
-            <div class="dropship-kpi-sub">Total nilai akumulasi tagihan</div>
+            <div class="dropship-kpi-sub">Terbayar: Rp {{ number_format($totalPaidOmset, 0, ',', '.') }}</div>
             <i class="bi bi-cash-stack dropship-kpi-icon text-success"></i>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="dropship-kpi-card border-start border-danger border-3">
+            <div class="dropship-kpi-title text-danger">Belum Lunas / Piutang</div>
+            <div class="dropship-kpi-value text-danger font-monospace">
+                Rp {{ number_format($totalUnpaidOmset, 0, ',', '.') }}
+            </div>
+            <div class="dropship-kpi-sub">Tagihan belum diterima</div>
+            <i class="bi bi-exclamation-circle dropship-kpi-icon text-danger"></i>
         </div>
     </div>
 </div>
@@ -152,7 +162,16 @@
         {{-- Filter Bar --}}
         <form method="GET" action="{{ route('v2.dropship.index') }}" class="d-flex align-items-center gap-2 flex-wrap">
             <input type="hidden" name="channel_type" value="{{ $channelType }}">
-            <div class="input-group input-group-sm" style="width: 220px;">
+            
+            {{-- Filter Status Pembayaran --}}
+            <select name="payment_status" class="form-select form-select-sm" style="width: 140px;" onchange="this.form.submit()">
+                <option value="all" {{ request('payment_status') == 'all' ? 'selected' : '' }}>Semua Bayar</option>
+                <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>Belum Lunas</option>
+                <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>Dicicil (DP)</option>
+                <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Lunas</option>
+            </select>
+
+            <div class="input-group input-group-sm" style="width: 200px;">
                 <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
                 <input type="text" name="search" class="form-control form-control-sm border-start-0" placeholder="Cari nota / nama / hp..." value="{{ request('search') }}">
             </div>
@@ -162,7 +181,7 @@
             <button type="submit" class="btn btn-sm btn-primary px-2.5 fw-semibold">
                 <i class="bi bi-funnel"></i>
             </button>
-            @if(request()->hasAny(['search', 'date_from', 'date_to']))
+            @if(request()->hasAny(['search', 'date_from', 'date_to', 'payment_status']))
                 <a href="{{ route('v2.dropship.index', ['channel_type' => $channelType]) }}" class="btn btn-sm btn-outline-secondary px-2" title="Reset Filter">
                     <i class="bi bi-x-circle"></i>
                 </a>
@@ -175,12 +194,12 @@
         <table class="table table-hover align-middle mb-0" style="font-size: 0.83rem;">
             <thead class="bg-light text-secondary text-uppercase fw-bold border-bottom" style="font-size: 0.72rem; letter-spacing: 0.04em;">
                 <tr>
-                    <th class="ps-3.5 py-2.5" style="width: 16%;">NO. NOTA</th>
-                    <th class="py-2.5 text-center" style="width: 11%;">STATUS / SALURAN</th>
-                    <th class="py-2.5 text-center" style="width: 11%;">TANGGAL</th>
-                    <th class="py-2.5" style="width: 18%;">PELANGGAN</th>
+                    <th class="ps-3.5 py-2.5" style="width: 15%;">NO. NOTA</th>
+                    <th class="py-2.5 text-center" style="width: 13%;">SALURAN &amp; STATUS</th>
+                    <th class="py-2.5 text-center" style="width: 10%;">TANGGAL</th>
+                    <th class="py-2.5" style="width: 17%;">PELANGGAN</th>
                     <th class="py-2.5" style="width: 20%;">DETAIL PRODUK</th>
-                    <th class="py-2.5 text-end" style="width: 14%;">TOTAL (RP)</th>
+                    <th class="py-2.5 text-end" style="width: 15%;">TAGIHAN &amp; BAYAR</th>
                     <th class="pe-3.5 py-2.5 text-center" style="width: 10%;">AKSI</th>
                 </tr>
             </thead>
@@ -198,15 +217,32 @@
                             @endif
                         </td>
                         <td class="text-center py-3">
-                            @if($order->channel_type === 'lazada')
-                                <span class="badge bg-dark-subtle text-dark border border-dark-subtle rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.72rem;">
-                                    <i class="bi bi-bag-fill me-1 text-danger"></i>Lazada
-                                </span>
-                            @else
-                                <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.72rem;">
-                                    <i class="bi bi-truck me-1"></i>Dropship
-                                </span>
-                            @endif
+                            <div class="d-flex flex-column align-items-center gap-1">
+                                @if($order->channel_type === 'lazada')
+                                    <span class="badge bg-dark-subtle text-dark border border-dark-subtle rounded-pill px-2.5 py-0.5 fw-bold" style="font-size: 0.7rem;">
+                                        <i class="bi bi-bag-fill me-1 text-danger"></i>Lazada
+                                    </span>
+                                @else
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-0.5 fw-bold" style="font-size: 0.7rem;">
+                                        <i class="bi bi-truck me-1"></i>Dropship
+                                    </span>
+                                @endif
+
+                                {{-- Payment Status Badge --}}
+                                @if($order->payment_status === 'paid' || ($order->paid_amount >= $order->total_amount && $order->total_amount > 0))
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 0.68rem;">
+                                        <i class="bi bi-check-circle-fill me-0.5"></i> Lunas
+                                    </span>
+                                @elseif($order->payment_status === 'partial' || ($order->paid_amount > 0 && $order->paid_amount < $order->total_amount))
+                                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 0.68rem;">
+                                        <i class="bi bi-pie-chart-fill me-0.5 text-warning"></i> Dicicil
+                                    </span>
+                                @else
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 0.68rem;">
+                                        <i class="bi bi-clock-history me-0.5"></i> Belum Lunas
+                                    </span>
+                                @endif
+                            </div>
                         </td>
                         <td class="text-center py-3 text-secondary">
                             <i class="bi bi-calendar3 me-1 text-muted"></i>
@@ -240,16 +276,25 @@
                             </div>
                         </td>
                         <td class="text-end py-3">
-                            <span class="fw-bold text-success font-monospace d-block" style="font-size:0.9rem;">
+                            <span class="fw-bold text-dark font-monospace d-block" style="font-size:0.88rem;">
                                 Rp {{ number_format($order->total_amount, 0, ',', '.') }}
                             </span>
-                            <small class="text-muted" style="font-size: 0.72rem;">
-                                Total <strong>{{ number_format($order->total_qty) }}</strong> PCS
+                            @if($order->payment_status === 'paid' || ($order->paid_amount >= $order->total_amount && $order->total_amount > 0))
+                                <small class="text-success fw-semibold" style="font-size: 0.72rem;">
+                                    <i class="bi bi-check2"></i> Terbayar Penuh
+                                </small>
+                            @else
+                                <small class="text-danger fw-semibold" style="font-size: 0.72rem;">
+                                    Sisa: Rp {{ number_format(max(0, $order->total_amount - $order->paid_amount), 0, ',', '.') }}
+                                </small>
+                            @endif
+                            <small class="text-muted d-block" style="font-size: 0.7rem;">
+                                Total {{ number_format($order->total_qty) }} PCS
                             </small>
                         </td>
                         <td class="text-center pe-3.5 py-3">
                             <div class="d-inline-flex align-items-center gap-1">
-                                <a href="{{ route('v2.dropship.show', $order->id) }}" class="btn btn-xs btn-outline-primary py-1 px-1.5 rounded" title="Lihat Detail">
+                                <a href="{{ route('v2.dropship.show', $order->id) }}" class="btn btn-xs btn-outline-primary py-1 px-1.5 rounded" title="Lihat Detail & Pembayaran">
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 <a href="{{ route('v2.dropship.edit', $order->id) }}" class="btn btn-xs btn-outline-warning py-1 px-1.5 rounded text-dark" title="Edit Pesanan">

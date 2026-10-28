@@ -83,9 +83,66 @@
                 </div>
 
                 <!-- Keterangan -->
-                <div class="mb-3.5">
+                <div class="mb-3">
                     <label class="form-label small fw-semibold text-secondary mb-1.5">Keterangan / Catatan</label>
-                    <textarea name="notes" class="form-control form-control-sm py-2 px-2.5" rows="3" placeholder="Catatan pesanan, alamat, nomor resi, dll...">{{ old('notes') }}</textarea>
+                    <textarea name="notes" class="form-control form-control-sm py-2 px-2.5" rows="2" placeholder="Catatan pesanan, alamat, nomor resi, dll...">{{ old('notes') }}</textarea>
+                </div>
+
+                <!-- Pembayaran Awal (Opsional) -->
+                <div class="mb-3 border rounded-3 p-3 bg-light bg-opacity-50">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <label class="form-label small fw-bold text-dark mb-0 cursor-pointer" for="togglePayment">
+                            <i class="bi bi-wallet2 text-success me-1"></i> Catat Pembayaran Awal
+                        </label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="togglePayment" onchange="togglePaymentSection(this.checked)">
+                        </div>
+                    </div>
+                    
+                    <div id="paymentFields" style="display: none;" class="mt-2.5 pt-2.5 border-top">
+                        <div class="mb-2">
+                            <div class="btn-group btn-group-sm w-100" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-success active" id="btnPayFull" onclick="setPayOption('full')">
+                                    <i class="bi bi-check-circle me-1"></i>Lunas Langsung
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="btnPayCustom" onclick="setPayOption('custom')">
+                                    <i class="bi bi-pie-chart me-1"></i>DP / Sebagian
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold text-secondary mb-1">Nominal Dibayar (Rp)</label>
+                            <input type="number" step="0.01" min="0" name="paid_amount" id="paid_amount" class="form-control form-control-sm font-monospace fw-bold" placeholder="0">
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold text-secondary mb-1">Metode</label>
+                                <select name="payment_method" class="form-select form-select-sm">
+                                    <option value="transfer">Transfer Bank</option>
+                                    <option value="tunai">Tunai / Cash</option>
+                                    <option value="qris">QRIS</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold text-secondary mb-1">Tujuan Kas</label>
+                                <select name="payment_destination" class="form-select form-select-sm">
+                                    <option value="Kas Tunai">Kas Tunai</option>
+                                    @foreach($bankAccounts ?? [] as $bank)
+                                        <option value="{{ $bank->bank_name }} - {{ $bank->account_number }}">
+                                            {{ $bank->bank_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-1">
+                            <label class="form-label small fw-semibold text-secondary mb-1">No. Ref / Bukti</label>
+                            <input type="text" name="reference_number" class="form-control form-control-sm" placeholder="Contoh: TRF-001">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Ringkasan Box -->
@@ -271,6 +328,54 @@
         calculateGrandTotal();
     }
 
+    let payOption = 'full';
+    let currentGrandTotal = 0;
+
+    function togglePaymentSection(show) {
+        const fields = document.getElementById('paymentFields');
+        if (fields) {
+            fields.style.display = show ? 'block' : 'none';
+        }
+        if (show) {
+            syncPaidAmount();
+        } else {
+            const paidInput = document.getElementById('paid_amount');
+            if (paidInput) paidInput.value = '';
+        }
+    }
+
+    function setPayOption(opt) {
+        payOption = opt;
+        const btnFull = document.getElementById('btnPayFull');
+        const btnCustom = document.getElementById('btnPayCustom');
+        const paidInput = document.getElementById('paid_amount');
+
+        if (opt === 'full') {
+            btnFull?.classList.add('active');
+            btnCustom?.classList.remove('active');
+            if (paidInput) {
+                paidInput.value = currentGrandTotal;
+                paidInput.readOnly = true;
+            }
+        } else {
+            btnCustom?.classList.add('active');
+            btnFull?.classList.remove('active');
+            if (paidInput) {
+                paidInput.readOnly = false;
+                paidInput.focus();
+            }
+        }
+    }
+
+    function syncPaidAmount() {
+        if (payOption === 'full') {
+            const paidInput = document.getElementById('paid_amount');
+            if (paidInput) {
+                paidInput.value = currentGrandTotal;
+            }
+        }
+    }
+
     function calculateGrandTotal() {
         let totalAmount = 0;
         let totalQty = 0;
@@ -282,11 +387,18 @@
             totalAmount += (qty * price);
         });
 
+        currentGrandTotal = Math.round(totalAmount);
+
         const qtyElem = document.getElementById('summary-total-qty');
         if (qtyElem) qtyElem.innerText = totalQty.toLocaleString('id-ID') + ' PCS';
 
         const amountElem = document.getElementById('summary-total-amount');
-        if (amountElem) amountElem.innerText = 'Rp ' + Math.round(totalAmount).toLocaleString('id-ID');
+        if (amountElem) amountElem.innerText = 'Rp ' + currentGrandTotal.toLocaleString('id-ID');
+
+        const isChecked = document.getElementById('togglePayment')?.checked;
+        if (isChecked) {
+            syncPaidAmount();
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function() {

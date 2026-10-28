@@ -265,6 +265,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/{id}/edit', [\App\Http\Controllers\V2\DropshipOrderController::class, 'edit'])->name('edit');
             Route::put('/{id}', [\App\Http\Controllers\V2\DropshipOrderController::class, 'update'])->name('update');
             Route::delete('/{id}', [\App\Http\Controllers\V2\DropshipOrderController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/payment', [\App\Http\Controllers\V2\DropshipOrderController::class, 'storePayment'])->name('payment.store');
+            Route::delete('/{id}/payment/{paymentId}', [\App\Http\Controllers\V2\DropshipOrderController::class, 'destroyPayment'])->name('payment.destroy');
         });
 
         // Pesanan Retur V2
