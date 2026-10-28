@@ -60,9 +60,9 @@
                 <div class="card-body p-3">
                     <div class="row g-2 align-items-end">
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-secondary mb-1">Cari / Pilih Produk Master</label>
-                            <select id="select_product" class="form-select form-select-sm select2" data-placeholder="-- Ketik Nama Produk atau SKU --">
-                                <option value="">-- Ketik Nama Produk atau SKU --</option>
+                            <label class="form-label small fw-semibold text-secondary mb-1">Cari / Pilih Produk Master <span class="badge bg-light text-muted border py-0 px-1" style="font-size: 0.68rem;">Maks. 100</span></label>
+                            <select id="select_product" class="form-select form-select-sm select2" data-placeholder="-- Ketik Nama Produk atau SKU (Maks. 100 Produk) --">
+                                <option value="">-- Ketik Nama Produk atau SKU (Maks. 100 Produk) --</option>
                                 @foreach($products as $prod)
                                     <option value="{{ $prod->id }}"
                                             data-name="{{ $prod->name }}"

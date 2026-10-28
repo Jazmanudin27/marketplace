@@ -217,9 +217,13 @@
                     <div class="card-body p-3">
                         {{-- Pencarian Produk --}}
                         <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small fw-semibold text-secondary mb-0">Cari Produk <span class="text-danger">*</span></label>
+                                <span class="badge bg-light text-muted border py-0 px-1" style="font-size: 0.68rem;">Maks. 100 Produk</span>
+                            </div>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light"><i class="fas fa-search text-muted"></i></span>
-                                <input type="text" id="product-search" class="form-control form-control-sm" placeholder="Cari nama produk atau SKU...">
+                                <input type="text" id="product-search" class="form-control form-control-sm" placeholder="Cari nama produk atau SKU (100 produk)...">
                             </div>
                         </div>
 

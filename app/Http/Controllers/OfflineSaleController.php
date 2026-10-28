@@ -118,7 +118,9 @@ class OfflineSaleController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         $products = MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_active', true)
             ->orderBy('name')
+            ->limit(100)
             ->get();
 
         $customers = \App\Models\Customer::where('tenant_id', $tenantId)
@@ -473,9 +475,19 @@ class OfflineSaleController extends Controller
 
         $offlineSale->load(['items.masterProduct', 'customer', 'spks']);
 
-        $products = MasterProduct::where('tenant_id', $tenantId)
-            ->orderBy('name')
+        $existingProductIds = $offlineSale->items->pluck('master_product_id')->filter()->unique();
+        $existingProducts = MasterProduct::where('tenant_id', $tenantId)
+            ->whereIn('id', $existingProductIds)
             ->get();
+
+        $otherProducts = MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->whereNotIn('id', $existingProductIds)
+            ->orderBy('name')
+            ->limit(100)
+            ->get();
+
+        $products = $existingProducts->merge($otherProducts);
 
         $customers = \App\Models\Customer::where('tenant_id', $tenantId)
             ->offline()
