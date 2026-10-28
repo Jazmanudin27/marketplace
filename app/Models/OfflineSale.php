@@ -573,12 +573,14 @@ class OfflineSale extends Model
                     'tahap_saat_ini' => 'Batal',
                 ]);
             } elseif ($remainingCount > 0) {
-                $firstItemName = $currentItems->first()->nama_produk;
+                $firstItemName = (string) ($currentItems->first()->nama_produk ?? 'Produk SPK');
                 $newKategori = ($remainingCount === 1)
                     ? $firstItemName
-                    : $currentItems->pluck('nama_produk')->unique()->implode(', ');
+                    : ($spk->kategori ?: $firstItemName);
 
-                $spk->update(['kategori' => $newKategori]);
+                $spk->update([
+                    'kategori' => mb_substr(trim((string) $newKategori), 0, 50),
+                ]);
             }
         }
     }
