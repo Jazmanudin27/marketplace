@@ -58,6 +58,10 @@
         <p class="text-muted small mb-0 mt-1">Laporan mutasi persediaan, penjualan, sisa stok, setoran supplier, dan profit toko</p>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
+        <a href="{{ route('v2.titipan_barang.stock_card.print', ['supplier_id' => $selectedSupplierId]) }}" target="_blank"
+            class="btn btn-sm btn-outline-dark fw-semibold px-3">
+            <i class="bi bi-printer me-1"></i> Cetak Laporan
+        </a>
         <a href="{{ route('v2.titipan_barang.deductions.index') }}" class="btn btn-sm btn-outline-primary fw-semibold px-3">
             <i class="bi bi-clipboard-check me-1"></i> Stok Opname Titipan
         </a>

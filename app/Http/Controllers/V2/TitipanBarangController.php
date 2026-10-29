@@ -644,6 +644,8 @@ class TitipanBarangController extends Controller
             $subtotalHpp      = $qtyReceivedTotal * $unitCost;
             $subtotalHppRem   = $qtyRemainingTotal * $unitCost;
 
+            $subtotalSoldHpp  = $qtySoldTotal * $unitCost;
+
             $totalReceivedAll     += $qtyReceivedTotal;
             $totalSoldAll         += $qtySoldTotal;
             $totalRemainingAll    += $qtyRemainingTotal;
@@ -655,7 +657,7 @@ class TitipanBarangController extends Controller
 
             $reportData[] = [
                 'product_id'        => $product->id,
-                'sku'               => $product->sku,
+                'sku'               => $product->sku ?: '-',
                 'name'              => $product->name,
                 'supplier_name'     => $supplierName,
                 'unit'              => $product->unit ?: 'PCS',
@@ -665,6 +667,7 @@ class TitipanBarangController extends Controller
                 'qty_sold'          => $qtySoldTotal,
                 'qty_remaining'     => $qtyRemainingTotal,
                 'subtotal_hpp'      => $subtotalHpp,
+                'subtotal_sold_hpp' => $subtotalSoldHpp,
                 'subtotal_hpp_rem'  => $subtotalHppRem,
                 'qty_settled'       => $qtySettledTotal,
                 'qty_unsettled'     => $qtyUnsettledTotal,
@@ -672,6 +675,11 @@ class TitipanBarangController extends Controller
                 'nominal_unsettled' => $nominalUnsettled,
             ];
         }
+
+        // Urutkan data berdasarkan SKU secara alfabetis
+        usort($reportData, function ($a, $b) {
+            return strnatcasecmp($a['sku'] ?? '', $b['sku'] ?? '');
+        });
 
         $settlements = SupplierConsignmentSettlement::where('tenant_id', $tenantId)
             ->when($selectedSupplierId, function ($q) use ($selectedSupplierId) {
@@ -698,6 +706,86 @@ class TitipanBarangController extends Controller
             'totalSettledAll',
             'totalUnsettledAll',
             'totalPaidAmountAll'
+        ));
+    }
+
+    /**
+     * Cetak Laporan Kartu Stok Titipan Barang (Sorted by SKU)
+     */
+    public function printStockCard(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $selectedSupplierId = $request->supplier_id;
+
+        $itemsQuery = SupplierConsignmentItem::whereHas('consignment', function ($q) use ($tenantId, $selectedSupplierId) {
+            $q->where('tenant_id', $tenantId)
+              ->where('status', 'approved');
+            if ($selectedSupplierId) {
+                $q->where('supplier_id', $selectedSupplierId);
+            }
+        })->with(['masterProduct', 'consignment.supplier']);
+
+        $items   = $itemsQuery->get();
+        $grouped = $items->groupBy('master_product_id');
+
+        $reportData             = [];
+        $totalReceivedAll       = 0;
+        $totalSoldAll           = 0;
+        $totalRemainingAll      = 0;
+        $totalHppAll            = 0;
+        $totalSoldHppAll        = 0;
+        $totalHppRemainingAll   = 0;
+
+        foreach ($grouped as $productId => $groupItems) {
+            $product = MasterProduct::find($productId);
+            if (!$product) continue;
+
+            $qtyReceivedTotal = $groupItems->sum('qty_received');
+            $unitCost         = $groupItems->avg('unit_cost_price') ?: $product->cost_price;
+            $qtySoldTotal     = (int) $groupItems->sum('qty_sold');
+            $qtyRemainingTotal= max(0, $qtyReceivedTotal - $qtySoldTotal);
+
+            $subtotalHpp     = $qtyReceivedTotal * $unitCost;
+            $subtotalSoldHpp = $qtySoldTotal * $unitCost;
+            $subtotalHppRem  = $qtyRemainingTotal * $unitCost;
+
+            $totalReceivedAll     += $qtyReceivedTotal;
+            $totalSoldAll         += $qtySoldTotal;
+            $totalRemainingAll    += $qtyRemainingTotal;
+            $totalHppAll          += $subtotalHpp;
+            $totalSoldHppAll      += $subtotalSoldHpp;
+            $totalHppRemainingAll += $subtotalHppRem;
+
+            $reportData[] = [
+                'sku'               => $product->sku ?: '-',
+                'name'              => $product->name,
+                'unit'              => $product->unit ?: 'PCS',
+                'unit_cost'         => $unitCost,
+                'qty_received'      => $qtyReceivedTotal,
+                'subtotal_hpp'      => $subtotalHpp,
+                'qty_sold'          => $qtySoldTotal,
+                'subtotal_sold_hpp' => $subtotalSoldHpp,
+                'qty_remaining'     => $qtyRemainingTotal,
+                'subtotal_hpp_rem'  => $subtotalHppRem,
+            ];
+        }
+
+        // Urutkan berdasarkan SKU (Natural case comparison)
+        usort($reportData, function ($a, $b) {
+            return strnatcasecmp($a['sku'] ?? '', $b['sku'] ?? '');
+        });
+
+        $selectedSupplier = $selectedSupplierId ? Supplier::find($selectedSupplierId) : null;
+
+        return view('v2.titipan_barang.print_stock_card', compact(
+            'selectedSupplier',
+            'reportData',
+            'totalReceivedAll',
+            'totalSoldAll',
+            'totalRemainingAll',
+            'totalHppAll',
+            'totalSoldHppAll',
+            'totalHppRemainingAll'
         ));
     }
 

@@ -377,6 +377,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/', [\App\Http\Controllers\V2\TitipanBarangController::class, 'store'])->name('store');
             Route::get('/search-products', [\App\Http\Controllers\V2\TitipanBarangController::class, 'searchProducts'])->name('search_products');
             Route::get('/stock-card', [\App\Http\Controllers\V2\TitipanBarangController::class, 'stockCard'])->name('stock_card');
+            Route::get('/stock-card/print', [\App\Http\Controllers\V2\TitipanBarangController::class, 'printStockCard'])->name('stock_card.print');
 
             // Settlement / Setoran Supplier
             Route::get('/settlement', [\App\Http\Controllers\V2\TitipanBarangController::class, 'indexSettlement'])->name('settlement.index');
