@@ -93,6 +93,12 @@ class OfflineSale extends Model
         return $this->hasMany(Spk::class, 'no_pesanan', 'sale_number');
     }
 
+    public function activeSpks(): HasMany
+    {
+        return $this->hasMany(Spk::class, 'no_pesanan', 'sale_number')->where('is_batal', false);
+    }
+
+
     public function packer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'packed_by');

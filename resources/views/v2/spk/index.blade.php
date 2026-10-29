@@ -549,25 +549,14 @@
                                         </a>
                                     </div>
                                     <div class="col-6">
-                                        @if($row->is_batal || strtolower($row->tahap_saat_ini ?? '') === 'batal')
-                                            <button type="button"
-                                                class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1.5 transition-all"
-                                                style="font-size: 0.8rem; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; opacity: 0.85;"
-                                                data-bs-toggle="modal" data-bs-target="#modalBatalInfo{{ $row->id }}"
-                                                title="Lihat Alasan Pembatalan">
-                                                <i class="fas fa-ban"></i>
-                                                <span>Dibatalkan</span>
-                                            </button>
-                                        @else
-                                            <button type="button"
-                                                class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1.5 text-danger transition-all hover-shadow"
-                                                style="font-size: 0.8rem; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca;"
-                                                data-bs-toggle="modal" data-bs-target="#modalBatalSpk{{ $row->id }}"
-                                                title="Batalkan SPK Ini">
-                                                <i class="fas fa-ban"></i>
-                                                <span>Batal SPK</span>
-                                            </button>
-                                        @endif
+                                        <button type="button"
+                                            class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1.5 text-danger transition-all hover-shadow"
+                                            style="font-size: 0.8rem; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca;"
+                                            data-bs-toggle="modal" data-bs-target="#modalBatalSpk{{ $row->id }}"
+                                            title="Hapus SPK Ini Permanen">
+                                            <i class="fas fa-trash-alt"></i>
+                                            <span>Hapus SPK</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -575,71 +564,33 @@
                         </div>
                     </div>
 
-                    {{-- Modal Batalkan SPK & Info Batal --}}
-                    @if(!$row->is_batal && strtolower($row->tahap_saat_ini ?? '') !== 'batal')
-                        <div class="modal fade text-start" id="modalBatalSpk{{ $row->id }}" tabindex="-1" aria-labelledby="modalBatalSpkLabel{{ $row->id }}" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content rounded-4 border-0 shadow">
-                                    <form action="{{ route('spks.batal', $row) }}" method="POST">
-                                        @csrf
-                                        <div class="modal-header border-0 pb-0">
-                                            <h6 class="modal-title fw-bold text-danger d-flex align-items-center gap-2" id="modalBatalSpkLabel{{ $row->id }}">
-                                                <i class="fas fa-exclamation-triangle"></i> Batalkan SPK {{ $row->no_produksi ?: $row->no_spk }}
-                                            </h6>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body py-3">
-                                            <div class="alert alert-warning border-0 rounded-3 small mb-3">
-                                                <i class="fas fa-info-circle me-1"></i> Data SPK <strong>tidak dihapus permanen</strong>, status akan dialihkan ke <strong>Dibatalkan</strong> dan alokasi stok bahan dikembalikan ke gudang.
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label fw-bold small text-dark">Alasan Pembatalan <span class="text-danger">*</span></label>
-                                                <textarea name="alasan_batal" class="form-control rounded-3" rows="3" placeholder="Tuliskan alasan pembatalan SPK ini (contoh: Klien membatalkan pesanan, salah input ukuran/produk, dll)..." required minlength="3"></textarea>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer border-0 pt-0">
-                                            <button type="button" class="btn btn-light rounded-3 fw-semibold px-3" data-bs-dismiss="modal">Kembali</button>
-                                            <button type="submit" class="btn btn-danger rounded-3 fw-bold px-3">
-                                                <i class="fas fa-ban me-1"></i> Konfirmasi Batal SPK
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    @else
-                        <div class="modal fade text-start" id="modalBatalInfo{{ $row->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content rounded-4 border-0 shadow">
+                    {{-- Modal Hapus SPK Permanen --}}
+                    <div class="modal fade text-start" id="modalBatalSpk{{ $row->id }}" tabindex="-1" aria-labelledby="modalBatalSpkLabel{{ $row->id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content rounded-4 border-0 shadow">
+                                <form action="{{ route('spks.batal', $row) }}" method="POST">
+                                    @csrf
                                     <div class="modal-header border-0 pb-0">
-                                        <h6 class="modal-title fw-bold text-danger d-flex align-items-center gap-2">
-                                            <i class="fas fa-ban"></i> Informasi Pembatalan SPK
+                                        <h6 class="modal-title fw-bold text-danger d-flex align-items-center gap-2" id="modalBatalSpkLabel{{ $row->id }}">
+                                            <i class="fas fa-trash-alt"></i> Hapus SPK {{ $row->no_produksi ?: $row->no_spk }}
                                         </h6>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body py-3">
-                                        <div class="p-3 bg-light rounded-3">
-                                            <div class="mb-2">
-                                                <small class="text-muted d-block">Waktu Pembatalan:</small>
-                                                <strong>{{ $row->batal_at ? $row->batal_at->format('d M Y H:i') : '-' }}</strong>
-                                            </div>
-                                            <div class="mb-2">
-                                                <small class="text-muted d-block">Dibatalkan Oleh:</small>
-                                                <strong>{{ $row->dibatalkanOleh->name ?? 'User' }}</strong>
-                                            </div>
-                                            <div>
-                                                <small class="text-muted d-block">Alasan Pembatalan:</small>
-                                                <div class="text-danger fw-semibold mt-1">{{ $row->alasan_batal ?: 'Tidak ada alasan tercatat.' }}</div>
-                                            </div>
+                                        <div class="alert alert-danger border-0 rounded-3 small mb-0">
+                                            <i class="fas fa-exclamation-triangle me-1"></i> Data SPK <strong>#{{ $row->no_spk }}</strong> akan <strong>dihapus permanen</strong> dari database. Alokasi stok bahan baku akan dikembalikan ke gudang dan tombol Buat SPK pada Penjualan Offline akan aktif kembali.
                                         </div>
                                     </div>
                                     <div class="modal-footer border-0 pt-0">
-                                        <button type="button" class="btn btn-secondary rounded-3 px-3" data-bs-dismiss="modal">Tutup</button>
+                                        <button type="button" class="btn btn-light rounded-3 fw-semibold px-3" data-bs-dismiss="modal">Kembali</button>
+                                        <button type="submit" class="btn btn-danger rounded-3 fw-bold px-3">
+                                            <i class="fas fa-trash-alt me-1"></i> Ya, Hapus SPK
+                                        </button>
                                     </div>
-                                </div>
+                                </form>
                             </div>
                         </div>
-                    @endif
+                    </div>
                 </div>
             @empty
                 <div class="col-12 py-5">

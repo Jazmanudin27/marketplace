@@ -613,7 +613,7 @@ class OfflineSaleController extends Controller
         ];
 
         $isPo = $request->has('is_po') ? $request->boolean('is_po') : (bool) $offlineSale->is_po;
-        if ($offlineSale->spks()->exists()) {
+        if ($offlineSale->activeSpks()->exists()) {
             $isPo = true;
         }
 
@@ -793,7 +793,7 @@ class OfflineSaleController extends Controller
             if ($offlineSale->status === OfflineSale::STATUS_SPK_PROCESSING) {
                 $newStatus = OfflineSale::STATUS_SPK_PROCESSING;
             } elseif ($isPo) {
-                if ($offlineSale->spks()->exists()) {
+                if ($offlineSale->activeSpks()->exists()) {
                     $newStatus = OfflineSale::STATUS_SPK_PROCESSING;
                 } elseif ($paidAmount > 0) {
                     $newStatus = OfflineSale::STATUS_PENDING_SPK;

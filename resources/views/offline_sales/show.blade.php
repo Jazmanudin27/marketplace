@@ -40,7 +40,7 @@
                     @endif
                     @php
                         $showCreateSpkShowBtn = $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED 
-                            && $offlineSale->spks->isEmpty();
+                            && $offlineSale->spks->where('is_batal', false)->isEmpty();
                     @endphp
                     @if ($showCreateSpkShowBtn)
                         <button type="button" class="btn btn-warning btn-sm px-3 text-dark fw-bold" data-bs-toggle="modal" data-bs-target="#modalCreateSpkShow">
@@ -96,7 +96,10 @@
             @endif
 
             {{-- Banner Belum Dibuat SPK --}}
-            @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK || ($offlineSale->is_po && $offlineSale->spks->isEmpty() && (float) $offlineSale->paid_amount > 0 && $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED))
+            @php
+                $activeSpks = $offlineSale->spks->where('is_batal', false);
+            @endphp
+            @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK || ($offlineSale->is_po && $activeSpks->isEmpty() && (float) $offlineSale->paid_amount > 0 && $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED))
                 <div class="alert alert-warning d-flex align-items-center justify-content-between gap-3 mb-3 py-3" style="background-color: #fef3c7; border-color: #fcd34d; color: #92400e;">
                     <div class="d-flex align-items-center gap-3">
                         <i class="fas fa-hammer fa-2x text-warning"></i>
@@ -112,9 +115,9 @@
             @endif
 
             {{-- Banner Pesanan PO Produksi (SPK Sedang Diproses) --}}
-            @if ($offlineSale->is_po && in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_SPK_PROCESSING]) && $offlineSale->spks->isNotEmpty())
+            @if ($offlineSale->is_po && in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_SPK_PROCESSING]) && $activeSpks->isNotEmpty())
                 @php
-                    $firstSpk = $offlineSale->spks->first();
+                    $firstSpk = $activeSpks->first();
                 @endphp
                 <div class="alert alert-primary d-flex align-items-center justify-content-between gap-3 mb-3 py-3" style="background-color: #eff6ff; border-color: #93c5fd; color: #1e40af;">
                     <div class="d-flex align-items-center gap-3">
@@ -128,15 +131,15 @@
                                     </span>
                                 @endif
                                 <span class="badge bg-primary bg-opacity-10 text-primary">
-                                    {{ $offlineSale->spks->count() }} SPK Diterbitkan
+                                    {{ $activeSpks->count() }} SPK Diterbitkan
                                 </span>
                             </div>
-                            <small class="d-block mt-1">Pesanan PO ini memiliki <strong>{{ $offlineSale->spks->count() }} SPK Produksi</strong> di bawah Kode Produksi <strong>{{ $firstSpk?->no_produksi ?: '-' }}</strong> dan sedang dalam proses pengerjaan oleh Tim Produksi.</small>
+                            <small class="d-block mt-1">Pesanan PO ini memiliki <strong>{{ $activeSpks->count() }} SPK Produksi</strong> di bawah Kode Produksi <strong>{{ $firstSpk?->no_produksi ?: '-' }}</strong> dan sedang dalam proses pengerjaan oleh Tim Produksi.</small>
                         </div>
                     </div>
-                    @if($offlineSale->spks && $offlineSale->spks->count() > 0)
+                    @if($activeSpks->count() > 0)
                         <div class="d-flex gap-1 flex-wrap justify-content-end">
-                            @foreach($offlineSale->spks as $spkItem)
+                            @foreach($activeSpks as $spkItem)
                                 <a href="{{ route('spks.show', $spkItem->id) }}" target="_blank" class="btn btn-sm btn-primary text-white text-nowrap">
                                     <i class="fas fa-external-link-alt me-1"></i> SPK #{{ $spkItem->no_spk }} ({{ $spkItem->kategori ?: ($spkItem->items->first()?->nama_produk ?: 'Item') }})
                                 </a>
@@ -725,7 +728,7 @@
 @endif
 
 {{-- Modal Terbitkan SPK Produksi (Full Screen) --}}
-@if($offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && $offlineSale->spks->isEmpty())
+@if($offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && $offlineSale->spks->where('is_batal', false)->isEmpty())
 <div class="modal fade" id="modalCreateSpkShow" tabindex="-1" aria-labelledby="modalCreateSpkShowLabel" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
         <form action="{{ route('offline_sales.create_spk', $offlineSale->id) }}" method="POST" class="modal-content border-0" style="display: flex; flex-direction: column; height: 100%; max-height: 100vh; overflow: hidden;">

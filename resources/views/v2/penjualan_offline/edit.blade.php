@@ -44,11 +44,11 @@
     </div>
 </div>
 
-@if ($offlineSale->is_po && $offlineSale->spks()->exists())
+@if ($offlineSale->is_po && $offlineSale->activeSpks()->exists())
     <div class="alert alert-info border d-flex align-items-center gap-2 mb-3 py-2 px-3 shadow-sm rounded-3">
         <i class="bi bi-info-circle-fill text-info fs-5"></i>
         <div class="small">
-            <strong>Catatan SPK Produksi:</strong> Transaksi PO ini memiliki <strong>{{ $offlineSale->spks()->count() }} SPK</strong> aktif. Jika Anda mengubah daftar item atau kuantitas, pastikan untuk memeriksa SPK terkait di antrean produksi.
+            <strong>Catatan SPK Produksi:</strong> Transaksi PO ini memiliki <strong>{{ $offlineSale->activeSpks()->count() }} SPK</strong> aktif. Jika Anda mengubah daftar item atau kuantitas, pastikan untuk memeriksa SPK terkait di antrean produksi.
         </div>
     </div>
 @endif

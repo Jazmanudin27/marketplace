@@ -133,15 +133,17 @@
         {{-- Ringkasan Kalkulasi --}}
         @php
             $grandTotalQty = 0; $grandTotalSold = 0; $grandTotalRemaining = 0;
-            $grandTotalHpp = 0; $grandTotalProfit = 0; $allDeductions = collect();
+            $grandTotalHpp = 0; $grandTotalRemainingHpp = 0; $grandTotalProfit = 0; $allDeductions = collect();
             foreach($consignment->items as $item) {
                 $qTitip = (int)$item->qty_received;
                 $qSold  = (int)($item->qty_sold ?? 0);
-                $grandTotalQty       += $qTitip;
-                $grandTotalSold      += $qSold;
-                $grandTotalRemaining += max(0, $qTitip - $qSold);
-                $grandTotalHpp       += $qTitip * $item->unit_cost_price;
-                $grandTotalProfit    += $qTitip * ($item->unit_selling_price - $item->unit_cost_price);
+                $qRem   = max(0, $qTitip - $qSold);
+                $grandTotalQty          += $qTitip;
+                $grandTotalSold         += $qSold;
+                $grandTotalRemaining    += $qRem;
+                $grandTotalHpp          += $qTitip * $item->unit_cost_price;
+                $grandTotalRemainingHpp += $qRem * $item->unit_cost_price;
+                $grandTotalProfit       += $qTitip * ($item->unit_selling_price - $item->unit_cost_price);
                 if ($item->deductions && $item->deductions->isNotEmpty()) {
                     $allDeductions = $allDeductions->concat($item->deductions);
                 }
@@ -161,7 +163,10 @@
             </div>
             <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted">Sisa Stok Gudang</span>
-                <strong class="text-warning">{{ number_format($grandTotalRemaining) }} PCS</strong>
+                <div class="text-end">
+                    <strong class="text-warning d-block">{{ number_format($grandTotalRemaining) }} PCS</strong>
+                    <small class="text-muted font-monospace">Rp {{ number_format($grandTotalRemainingHpp, 0, ',', '.') }}</small>
+                </div>
             </div>
             <div class="d-flex justify-content-between mb-2">
                 <span class="text-muted">Modal HPP</span>
@@ -256,6 +261,9 @@
                                         <span class="badge {{ $qtyRemaining > 0 ? 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' : 'bg-light text-muted border' }} px-2.5 py-1 fw-bold mt-1" style="font-size: 0.82rem;">
                                             {{ number_format($qtyRemaining) }} PCS
                                         </span>
+                                        <small class="text-muted d-block mt-0.5 font-monospace" style="font-size: 0.7rem;">
+                                            Rp {{ number_format($qtyRemaining * $item->unit_cost_price, 0, ',', '.') }}
+                                        </small>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-3">

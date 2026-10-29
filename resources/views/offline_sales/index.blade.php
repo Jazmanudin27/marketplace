@@ -249,8 +249,9 @@
                                         @endif
 
                                         @php
+                                            $activeSpks = $sale->spks->where('is_batal', false);
                                             $showCreateSpkBtn = $sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED 
-                                                && $sale->spks->isEmpty();
+                                                && $activeSpks->isEmpty();
                                         @endphp
                                         @if ($showCreateSpkBtn)
                                             <button type="button" class="btn btn-sm btn-warning text-dark py-1 px-2 fw-bold"
@@ -263,8 +264,8 @@
                                                 <i class="fas fa-hammer"></i>
                                             </button>
                                         @endif
-                                        @if ($sale->status === \App\Models\OfflineSale::STATUS_SPK_PROCESSING && $sale->spks->isNotEmpty())
-                                            @php $firstSpk = $sale->spks->first(); @endphp
+                                        @if ($sale->status === \App\Models\OfflineSale::STATUS_SPK_PROCESSING && $activeSpks->isNotEmpty())
+                                            @php $firstSpk = $activeSpks->first(); @endphp
                                             <a href="{{ route('spks.show', $firstSpk->id) }}" target="_blank"
                                                 class="btn btn-sm btn-outline-primary py-1 px-2"
                                                 title="Lihat SPK Produksi ({{ $firstSpk->no_produksi ?: $firstSpk->no_spk }})">

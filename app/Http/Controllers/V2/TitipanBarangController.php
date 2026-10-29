@@ -69,10 +69,12 @@ class TitipanBarangController extends Controller
                 )
                 ->first();
 
-            $totalQtySoldAll   = (int) ($itemsSummary->total_qty_sold ?? 0);
-            $totalAmountToPay  = (float) ($itemsSummary->total_amount_sold ?? 0); // Total nilai yang harus disetorkan (HPP)
-            $totalQtyTitipAll  = (int) ($itemsSummary->total_qty_received ?? 0);
-            $totalAmountHppAll = (float) ($itemsSummary->total_amount_received ?? 0);
+            $totalQtySoldAll     = (int) ($itemsSummary->total_qty_sold ?? 0);
+            $totalAmountToPay    = (float) ($itemsSummary->total_amount_sold ?? 0); // Total nilai yang harus disetorkan (HPP)
+            $totalQtyTitipAll    = (int) ($itemsSummary->total_qty_received ?? 0);
+            $totalAmountHppAll   = (float) ($itemsSummary->total_amount_received ?? 0);
+            $totalRemainingAll   = max(0, $totalQtyTitipAll - $totalQtySoldAll);
+            $totalRemainingHppAll = max(0, $totalAmountHppAll - $totalAmountToPay); // Sisa Nilai HPP Stok di Gudang
 
             // Hitung juga nominal yang sudah disetor agar tahu sisa yang belum disetor
             $totalAmountSettled = (float) SupplierConsignmentSettlementItem::whereHas('settlement', function($q) use ($tenantId, $request) {
@@ -141,6 +143,9 @@ class TitipanBarangController extends Controller
                     $settlementHistory = collect();
                 }
 
+                $totalQtySisa = max(0, $totalQtyMasuk - $totalQtyLaku);
+                $sisaStokRp   = max(0, $totalTitipanRp - $totalTerjualRp);
+
                 $supplierSummaries[] = [
                     'supplier_id'         => $sup->id,
                     'supplier_name'       => $sup->name,
@@ -148,6 +153,8 @@ class TitipanBarangController extends Controller
                     'total_invoices'      => $supConsignmentIds->count(),
                     'total_qty_masuk'     => $totalQtyMasuk,
                     'total_qty_laku'      => $totalQtyLaku,
+                    'total_qty_sisa'      => $totalQtySisa,
+                    'sisa_stok_rp'        => $sisaStokRp,
                     'total_titipan_rp'    => $totalTitipanRp,
                     'total_terjual_rp'    => $totalTerjualRp,
                     'setor_rp'            => $setorRp,
@@ -167,6 +174,8 @@ class TitipanBarangController extends Controller
                 'totalAmountToPay',
                 'totalQtyTitipAll',
                 'totalAmountHppAll',
+                'totalRemainingAll',
+                'totalRemainingHppAll',
                 'totalAmountSettled',
                 'totalAmountUnsettled',
                 'supplierSummaries'

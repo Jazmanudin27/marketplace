@@ -47,8 +47,11 @@
                 <i class="bi bi-printer me-1"></i> Cetak Invoice
             </a>
             @if ($sale->status !== 'cancelled')
-                @if ($sale->spks->isNotEmpty())
-                    @php $firstSpk = $sale->spks->first(); @endphp
+                @php
+                    $activeSpks = $sale->spks->where('is_batal', false);
+                @endphp
+                @if ($activeSpks->isNotEmpty())
+                    @php $firstSpk = $activeSpks->first(); @endphp
                     <a href="{{ route('spks.show', $firstSpk->id) }}" target="_blank"
                         class="btn btn-sm btn-info text-white px-3 fw-semibold">
                         <i class="bi bi-gear-wide-connected me-1"></i> Lihat SPK

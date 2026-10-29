@@ -536,16 +536,10 @@
                                     <hr class="dropdown-divider my-1">
                                 </li>
                                 <li>
-                                    @if ($spk->is_batal || strtolower($spk->tahap_saat_ini ?? '') === 'batal')
-                                        <button type="button" class="dropdown-item py-2 small fw-semibold text-muted" disabled>
-                                            <i class="fas fa-ban me-2 text-muted"></i> SPK Sudah Dibatalkan
-                                        </button>
-                                    @else
-                                        <button type="button" class="dropdown-item py-2 small fw-semibold text-danger"
-                                            data-bs-toggle="modal" data-bs-target="#modalBatalSpk">
-                                            <i class="fas fa-ban me-2"></i> Batalkan SPK
-                                        </button>
-                                    @endif
+                                    <button type="button" class="dropdown-item py-2 small fw-semibold text-danger"
+                                        data-bs-toggle="modal" data-bs-target="#modalBatalSpk">
+                                        <i class="fas fa-trash-alt me-2"></i> Hapus SPK (Permanen)
+                                    </button>
                                 </li>
                             </ul>
                         </div>
@@ -2324,46 +2318,35 @@
         <option value="ALL SIZE">
     </datalist>
 
-    {{-- Modal Batalkan SPK --}}
-    @if (!$spk->is_batal && strtolower($spk->tahap_saat_ini ?? '') !== 'batal')
-        <div class="modal fade" id="modalBatalSpk" tabindex="-1" aria-labelledby="modalBatalSpkLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow-lg rounded-4">
-                    <form action="{{ route('spks.batal', $spk) }}" method="POST">
-                        @csrf
-                        <div class="modal-header border-0 pb-0">
-                            <h5 class="modal-title fw-bold text-danger d-flex align-items-center gap-2" id="modalBatalSpkLabel">
-                                <i class="fas fa-exclamation-triangle"></i> Konfirmasi Batalkan SPK
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    {{-- Modal Hapus SPK Permanen --}}
+    <div class="modal fade" id="modalBatalSpk" tabindex="-1" aria-labelledby="modalBatalSpkLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <form action="{{ route('spks.batal', $spk) }}" method="POST">
+                    @csrf
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold text-danger d-flex align-items-center gap-2" id="modalBatalSpkLabel">
+                            <i class="fas fa-trash-alt"></i> Hapus SPK #{{ $spk->no_spk }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <div class="alert alert-danger border-0 rounded-3 small mb-0">
+                            <i class="fas fa-exclamation-triangle me-1"></i> Data SPK <strong>#{{ $spk->no_spk }}</strong> akan <strong>dihapus permanen</strong> dari database. Alokasi stok bahan baku akan dikembalikan ke gudang dan Anda dapat menerbitkan SPK baru pada Penjualan Offline terkait.
                         </div>
-                        <div class="modal-body py-3">
-                            <p class="text-secondary small mb-3">
-                                Anda akan membatalkan SPK <strong>#{{ $spk->no_spk }}</strong>. 
-                                Data SPK dan riwayat proses tidak akan dihapus permanen, namun status SPK akan ditandai sebagai 
-                                <span class="badge bg-danger">DIBATALKAN</span> dan alokasi stok bahan baku akan dikembalikan.
-                            </p>
-                            <div class="mb-3">
-                                <label for="alasan_batal" class="form-label small fw-bold text-dark">
-                                    Alasan Pembatalan <span class="text-danger">*</span>
-                                </label>
-                                <textarea name="alasan_batal" id="alasan_batal" class="form-control" rows="3" 
-                                    placeholder="Contoh: Klien membatalkan pesanan, kesalahan spesifikasi bahan, salah input Qty..." required></textarea>
-                            </div>
-                        </div>
-                        <div class="modal-footer border-0 pt-0">
-                            <button type="button" class="btn btn-sm btn-light border fw-semibold px-3" data-bs-dismiss="modal">
-                                Batal
-                            </button>
-                            <button type="submit" class="btn btn-sm btn-danger fw-bold px-3">
-                                <i class="fas fa-ban me-1"></i> Ya, Batalkan SPK
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-sm btn-light border fw-semibold px-3" data-bs-dismiss="modal">
+                            Batal
+                        </button>
+                        <button type="submit" class="btn btn-sm btn-danger fw-bold px-3">
+                            <i class="fas fa-trash-alt me-1"></i> Ya, Hapus SPK
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
-    @endif
+    </div>
 @endsection
 
 @push('scripts')
