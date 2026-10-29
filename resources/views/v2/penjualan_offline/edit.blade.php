@@ -602,20 +602,25 @@ document.addEventListener('DOMContentLoaded', function() {
             ajax: {
                 url: '{{ route("v2.penjualan_offline.search_products") }}',
                 dataType: 'json',
-                delay: 300,
+                delay: 250,
                 data: function(params) {
                     return {
-                        q: params.term || '',
-                        page: params.page || 1
+                        q: params.term || ''
                     };
                 },
-                processResults: function(data, params) {
-                    params.page = params.page || 1;
+                processResults: function(data) {
+                    var items = (data && data.results) ? data.results : ((data && data.products) ? data.products : []);
                     return {
-                        results: data.results || [],
-                        pagination: {
-                            more: (params.page * 20) < (data.total_count || 0)
-                        }
+                        results: items.map(function(item) {
+                            return {
+                                id: item.id,
+                                text: item.text || (item.name + ' [SKU: ' + (item.sku || '-') + '] - Stok: ' + item.stock + ' pcs - Rp ' + Number(item.price || 0).toLocaleString('id-ID')),
+                                name: item.name,
+                                sku: item.sku,
+                                price: item.price,
+                                stock: item.stock
+                            };
+                        })
                     };
                 },
                 cache: true

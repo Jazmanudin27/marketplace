@@ -261,20 +261,29 @@ class PenjualanOfflineController extends Controller
             ->limit(100)
             ->get();
 
+        $results = $products->map(function ($p) {
+            $price = (float) ($p->selling_price ?? $p->price ?? 0);
+            $sku = $p->sku ?: '-';
+            $stock = (int) ($p->stock ?? 0);
+            $formattedPrice = number_format($price, 0, ',', '.');
+            $displayText = "{$p->name} [SKU: {$sku}] - Stok: {$stock} pcs - Rp {$formattedPrice}";
+
+            return [
+                'id'            => $p->id,
+                'text'          => $displayText,
+                'name'          => $p->name,
+                'sku'           => $sku,
+                'stock'         => $stock,
+                'price'         => $price,
+                'selling_price' => $price,
+                'unit'          => $p->unit ?? 'pcs',
+            ];
+        });
+
         return response()->json([
             'success'  => true,
-            'products' => $products->map(function ($p) {
-                $price = (float) ($p->selling_price ?? $p->price ?? 0);
-                return [
-                    'id'            => $p->id,
-                    'name'          => $p->name,
-                    'sku'           => $p->sku ?: '-',
-                    'stock'         => (int) ($p->stock ?? 0),
-                    'price'         => $price,
-                    'selling_price' => $price,
-                    'unit'          => $p->unit ?? 'pcs',
-                ];
-            })
+            'results'  => $results,
+            'products' => $results,
         ]);
     }
 

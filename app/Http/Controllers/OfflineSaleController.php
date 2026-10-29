@@ -141,21 +141,31 @@ class OfflineSaleController extends Controller
             ->limit(100)
             ->get();
 
+        $results = $products->map(function ($p) {
+            $resellerPrice = (float) ($p->reseller_price && $p->reseller_price > 0 ? $p->reseller_price : $p->price);
+            $price = (float) ($p->price ?? 0);
+            $sku = $p->sku ?: '-';
+            $stock = (int) ($p->stock ?? 0);
+            $formattedPrice = number_format($price, 0, ',', '.');
+            $displayText = "{$p->name} [SKU: {$sku}] - Stok: {$stock} pcs - Rp {$formattedPrice}";
+
+            return [
+                'id'             => $p->id,
+                'text'           => $displayText,
+                'name'           => $p->name,
+                'sku'            => $sku,
+                'stock'          => $stock,
+                'price'          => $price,
+                'reseller_price' => $resellerPrice,
+                'is_preorder'    => (bool) $p->is_preorder,
+                'unit'           => $p->unit ?? 'Pcs',
+            ];
+        });
+
         return response()->json([
             'success'  => true,
-            'products' => $products->map(function ($p) {
-                $resellerPrice = (float) ($p->reseller_price && $p->reseller_price > 0 ? $p->reseller_price : $p->price);
-                return [
-                    'id'             => $p->id,
-                    'name'           => $p->name,
-                    'sku'            => $p->sku ?: '-',
-                    'stock'          => (int) ($p->stock ?? 0),
-                    'price'          => (float) ($p->price ?? 0),
-                    'reseller_price' => $resellerPrice,
-                    'is_preorder'    => (bool) $p->is_preorder,
-                    'unit'           => $p->unit ?? 'Pcs',
-                ];
-            })
+            'results'  => $results,
+            'products' => $results,
         ]);
     }
 
