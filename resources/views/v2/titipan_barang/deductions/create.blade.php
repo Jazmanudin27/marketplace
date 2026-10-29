@@ -487,38 +487,69 @@ function findMatchingConsignmentItem(rawScan) {
         pool = pool.filter(it => it.supplier_id === supplierFilter);
     }
 
-    // 1. Cek Format Label Sticker: KNS|{ref}|ITEM-{id}|{sku}
-    if (scan.includes('ITEM-')) {
-        const parts = scan.split('|');
+    let parsedItemId = null;
+    let parsedBatchRef = '';
+    let parsedSku = '';
+
+    // Deteksi Format Label Sticker: KNS|{ref}|ITEM-{id}|{sku} atau variasi pipe
+    if (scan.includes('|')) {
+        const parts = scan.split('|').map(s => s.trim()).filter(Boolean);
         for (let p of parts) {
-            if (p.startsWith('ITEM-')) {
-                const itemId = parseInt(p.replace('ITEM-', ''));
-                const matched = pool.find(it => it.id === itemId);
-                if (matched) return matched;
+            if (/^ITEM-\d+$/i.test(p)) {
+                parsedItemId = parseInt(p.replace(/ITEM-/i, ''));
+            } else if (/^KNS-\d+/i.test(p)) {
+                parsedBatchRef = p;
+            } else if (!/^KNS$/i.test(p)) {
+                parsedSku = p;
             }
         }
+    } else if (/^ITEM-\d+$/i.test(scan)) {
+        parsedItemId = parseInt(scan.replace(/ITEM-/i, ''));
+    } else {
+        parsedSku = scan;
     }
 
-    // 2. Cek Match Exact SKU (Case-Insensitive)
-    const matchedBySku = pool.find(it => it.sku.toLowerCase() === scan.toLowerCase());
+    // 1. Prioritas Utama: Cocokkan by Item ID jika ada di pool
+    if (parsedItemId) {
+        const matchedById = pool.find(it => it.id === parsedItemId);
+        if (matchedById) return matchedById;
+    }
+
+    // 2. Fallback KNS QR: Cocokkan Batch Ref + SKU (jika ID di database sudah berubah/re-index)
+    if (parsedBatchRef && parsedSku) {
+        const matchedByBatchAndSku = pool.find(it => 
+            it.batch_ref.toLowerCase() === parsedBatchRef.toLowerCase() && 
+            it.sku.toLowerCase() === parsedSku.toLowerCase()
+        );
+        if (matchedByBatchAndSku) return matchedByBatchAndSku;
+    }
+
+    // 3. Fallback: Cocokkan SKU yang diekstrak dari QR atau barcode biasa
+    const targetSku = (parsedSku || scan).toLowerCase();
+    const matchedBySku = pool.find(it => it.sku.toLowerCase() === targetSku);
     if (matchedBySku) return matchedBySku;
 
-    // 3. Cek Match Barcode Master Produk
-    const matchedByBarcode = pool.find(it => it.barcode && it.barcode.toLowerCase() === scan.toLowerCase());
+    // 4. Cocokkan Barcode Master Produk
+    const matchedByBarcode = pool.find(it => it.barcode && it.barcode.toLowerCase() === targetSku);
     if (matchedByBarcode) return matchedByBarcode;
 
-    // 4. Cek Match Batch Ref
-    const matchedByBatch = pool.find(it => it.batch_ref.toLowerCase() === scan.toLowerCase());
-    if (matchedByBatch) return matchedByBatch;
+    // 5. Cocokkan Batch Ref saja
+    if (parsedBatchRef || scan.startsWith('KNS-')) {
+        const targetBatch = (parsedBatchRef || scan).toLowerCase();
+        const matchedByBatch = pool.find(it => it.batch_ref.toLowerCase() === targetBatch);
+        if (matchedByBatch) return matchedByBatch;
+    }
 
-    // 5. Cek jika scan cocok di pool global (supplier lain)
+    // 6. Cek jika scan cocok di pool global (supplier lain tapi terfilter oleh dropdown supplier)
     if (supplierFilter) {
-        const foundOther = availableConsignmentItems.find(it => 
-            it.sku.toLowerCase() === scan.toLowerCase() || 
-            (it.barcode && it.barcode.toLowerCase() === scan.toLowerCase())
-        );
+        const foundOther = availableConsignmentItems.find(it => {
+            if (parsedItemId && it.id === parsedItemId) return true;
+            if (parsedBatchRef && parsedSku && it.batch_ref.toLowerCase() === parsedBatchRef.toLowerCase() && it.sku.toLowerCase() === parsedSku.toLowerCase()) return true;
+            if (targetSku && (it.sku.toLowerCase() === targetSku || (it.barcode && it.barcode.toLowerCase() === targetSku))) return true;
+            return false;
+        });
         if (foundOther) {
-            showFeedback(`Produk ditemukan di Supplier: ${foundOther.supplier_name}. Ubah filter supplier untuk memilih batch ini.`, false);
+            showFeedback(`Produk ditemukan di Supplier: "${foundOther.supplier_name}". Ubah filter supplier ke Semua Supplier untuk memilih batch ini.`, false);
             return null;
         }
     }
