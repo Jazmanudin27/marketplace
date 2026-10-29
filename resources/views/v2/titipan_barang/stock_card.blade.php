@@ -160,15 +160,15 @@
             </div>
         </div>
 
-        {{-- Profit Toko --}}
+        {{-- Total Modal HPP --}}
         <div class="col-6 col-md-3">
-            <div class="ks-kpi-card border-start border-success border-3" style="background: linear-gradient(135deg,#f0fdf4,#fff);">
-                <div class="ks-kpi-title text-success">Profit Toko</div>
+            <div class="ks-kpi-card border-start border-success border-3">
+                <div class="ks-kpi-title text-success">Total Modal HPP</div>
                 <div class="ks-kpi-value text-success font-monospace" style="font-size:0.95rem;">
-                    Rp {{ number_format($totalProfitAll, 0, ',', '.') }}
+                    Rp {{ number_format($totalHppAll, 0, ',', '.') }}
                 </div>
-                <div class="ks-kpi-sub">dari selisih jual-titip</div>
-                <i class="bi bi-graph-up-arrow ks-kpi-icon text-success"></i>
+                <div class="ks-kpi-sub">Akumulasi modal barang titipan</div>
+                <i class="bi bi-wallet2 ks-kpi-icon text-success"></i>
             </div>
         </div>
     </div>
@@ -223,9 +223,9 @@
                                 </span>
                             </div>
                             <div class="border-start ps-3 text-end">
-                                <span class="text-muted d-block small" style="font-size:0.68rem; font-weight: 600;">HARGA JUAL TOKO</span>
-                                <span class="font-monospace fw-bold text-primary" style="font-size:0.85rem;">
-                                    Rp {{ number_format($row['unit_selling'], 0, ',', '.') }}
+                                <span class="text-muted d-block small" style="font-size:0.68rem; font-weight: 600;">TOTAL HPP</span>
+                                <span class="font-monospace fw-bold text-success" style="font-size:0.85rem;">
+                                    Rp {{ number_format($row['subtotal_hpp'], 0, ',', '.') }}
                                 </span>
                             </div>
                         </div>
@@ -260,9 +260,9 @@
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="p-2 rounded-2 bg-light border text-center">
-                                    <span class="text-muted d-block" style="font-size: 0.65rem; font-weight: 600;">PROFIT TOKO</span>
-                                    <span class="font-monospace fw-bold text-success d-block mt-0.5" style="font-size: 0.85rem;">
-                                        +Rp {{ number_format($row['profit_total'], 0, ',', '.') }}
+                                    <span class="text-muted d-block" style="font-size: 0.65rem; font-weight: 600;">HPP SISA STOK</span>
+                                    <span class="font-monospace fw-bold text-warning-emphasis d-block mt-0.5" style="font-size: 0.85rem;">
+                                        Rp {{ number_format($row['subtotal_hpp_rem'], 0, ',', '.') }}
                                     </span>
                                 </div>
                             </div>
@@ -295,8 +295,8 @@
                             <strong class="font-monospace text-dark">Rp {{ number_format($totalPaidAmountAll, 0, ',', '.') }}</strong>
                         </div>
                         <div class="border-start ps-3">
-                            <span class="text-muted small me-1">Profit Toko:</span>
-                            <strong class="font-monospace text-success fs-6">+Rp {{ number_format($totalProfitAll, 0, ',', '.') }}</strong>
+                            <span class="text-muted small me-1">Total Modal HPP:</span>
+                            <strong class="font-monospace text-success fs-6">Rp {{ number_format($totalHppAll, 0, ',', '.') }}</strong>
                         </div>
                     </div>
                 </div>

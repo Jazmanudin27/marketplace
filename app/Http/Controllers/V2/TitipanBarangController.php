@@ -590,14 +590,15 @@ class TitipanBarangController extends Controller
             $selectedSupplierId = $suppliers->first()->id;
         }
 
-        $reportData         = [];
-        $totalReceivedAll   = 0;
-        $totalSoldAll       = 0;
-        $totalRemainingAll  = 0;
-        $totalSettledAll    = 0;
-        $totalUnsettledAll  = 0;
-        $totalPaidAmountAll = 0;
-        $totalProfitAll     = 0;
+        $reportData             = [];
+        $totalReceivedAll       = 0;
+        $totalSoldAll           = 0;
+        $totalRemainingAll      = 0;
+        $totalHppAll            = 0;
+        $totalHppRemainingAll   = 0;
+        $totalSettledAll        = 0;
+        $totalUnsettledAll      = 0;
+        $totalPaidAmountAll     = 0;
 
         $itemsQuery = SupplierConsignmentItem::whereHas('consignment', function ($q) use ($tenantId, $selectedSupplierId) {
             $q->where('tenant_id', $tenantId)
@@ -640,15 +641,17 @@ class TitipanBarangController extends Controller
 
             $nominalPaid      = $qtySettledTotal * $unitCost;
             $nominalUnsettled = $qtyUnsettledTotal * $unitCost;
-            $profitTotal      = $qtySoldTotal * ($unitSelling - $unitCost);
+            $subtotalHpp      = $qtyReceivedTotal * $unitCost;
+            $subtotalHppRem   = $qtyRemainingTotal * $unitCost;
 
-            $totalReceivedAll  += $qtyReceivedTotal;
-            $totalSoldAll      += $qtySoldTotal;
-            $totalRemainingAll += $qtyRemainingTotal;
-            $totalSettledAll   += $qtySettledTotal;
-            $totalUnsettledAll += $qtyUnsettledTotal;
-            $totalPaidAmountAll+= $nominalPaid;
-            $totalProfitAll    += $profitTotal;
+            $totalReceivedAll     += $qtyReceivedTotal;
+            $totalSoldAll         += $qtySoldTotal;
+            $totalRemainingAll    += $qtyRemainingTotal;
+            $totalHppAll          += $subtotalHpp;
+            $totalHppRemainingAll += $subtotalHppRem;
+            $totalSettledAll      += $qtySettledTotal;
+            $totalUnsettledAll    += $qtyUnsettledTotal;
+            $totalPaidAmountAll   += $nominalPaid;
 
             $reportData[] = [
                 'product_id'        => $product->id,
@@ -657,16 +660,16 @@ class TitipanBarangController extends Controller
                 'supplier_name'     => $supplierName,
                 'unit'              => $product->unit ?: 'PCS',
                 'unit_cost'         => $unitCost,
-                'unit_selling'      => $unitSelling,
                 'qty_received'      => $qtyReceivedTotal,
                 'current_stock'     => $qtyRemainingTotal, // Sisa Gudang = Masuk - Terjual
                 'qty_sold'          => $qtySoldTotal,
                 'qty_remaining'     => $qtyRemainingTotal,
+                'subtotal_hpp'      => $subtotalHpp,
+                'subtotal_hpp_rem'  => $subtotalHppRem,
                 'qty_settled'       => $qtySettledTotal,
                 'qty_unsettled'     => $qtyUnsettledTotal,
                 'nominal_paid'      => $nominalPaid,
                 'nominal_unsettled' => $nominalUnsettled,
-                'profit_total'      => $profitTotal,
             ];
         }
 
@@ -690,10 +693,11 @@ class TitipanBarangController extends Controller
             'totalReceivedAll',
             'totalSoldAll',
             'totalRemainingAll',
+            'totalHppAll',
+            'totalHppRemainingAll',
             'totalSettledAll',
             'totalUnsettledAll',
-            'totalPaidAmountAll',
-            'totalProfitAll'
+            'totalPaidAmountAll'
         ));
     }
 
