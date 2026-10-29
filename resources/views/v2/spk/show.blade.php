@@ -2329,7 +2329,7 @@
         <div class="modal fade" id="modalBatalSpk" tabindex="-1" aria-labelledby="modalBatalSpkLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg rounded-4">
-                    <form action="{{ Route::has('v2.spk.batal') ? route('v2.spk.batal', $spk) : route('spks.batal', $spk) }}" method="POST">
+                    <form action="{{ route('spks.batal', $spk) }}" method="POST">
                         @csrf
                         <div class="modal-header border-0 pb-0">
                             <h5 class="modal-title fw-bold text-danger d-flex align-items-center gap-2" id="modalBatalSpkLabel">

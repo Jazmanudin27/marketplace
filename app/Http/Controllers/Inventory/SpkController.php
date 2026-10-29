@@ -24,6 +24,7 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
 class SpkController extends Controller
@@ -1935,9 +1936,15 @@ class SpkController extends Controller
             ]);
         }
 
-        $redirectUrl = (request()->has('from_v2') || request()->routeIs('spk.*'))
-            ? (Route::has('v2.spk.index') ? route('v2.spk.index') : route('spk.index'))
-            : (Route::has('v2.spk.index') ? route('v2.spk.index') : route('spks.index'));
+        if (Route::has('v2.spk.index')) {
+            $redirectUrl = route('v2.spk.index');
+        } elseif (Route::has('spk.index')) {
+            $redirectUrl = route('spk.index');
+        } elseif (Route::has('spks.index')) {
+            $redirectUrl = route('spks.index');
+        } else {
+            $redirectUrl = url('/spks');
+        }
 
         return redirect($redirectUrl)
             ->with('success', 'SPK #' . $spk->no_spk . ' berhasil dibatalkan.');

@@ -580,7 +580,7 @@
                         <div class="modal fade text-start" id="modalBatalSpk{{ $row->id }}" tabindex="-1" aria-labelledby="modalBatalSpkLabel{{ $row->id }}" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered">
                                 <div class="modal-content rounded-4 border-0 shadow">
-                                    <form action="{{ Route::has('v2.spk.batal') ? route('v2.spk.batal', $row) : route('spks.batal', $row) }}" method="POST">
+                                    <form action="{{ route('spks.batal', $row) }}" method="POST">
                                         @csrf
                                         <div class="modal-header border-0 pb-0">
                                             <h6 class="modal-title fw-bold text-danger d-flex align-items-center gap-2" id="modalBatalSpkLabel{{ $row->id }}">
