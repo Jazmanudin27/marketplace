@@ -292,7 +292,7 @@
                         </li>
                         <li>
                             <a class="dropdown-item {{ request()->routeIs('v2.titipan_barang.settlement.*') || request()->routeIs('supplier_consignments.settlement.*') ? 'active' : '' }}"
-                               href="{{ route('v2.titipan_barang.settlement.create') }}">
+                               href="{{ route('v2.titipan_barang.settlement.index') }}">
                                 <i class="bi bi-cash-stack me-2 text-warning"></i> Pembayaran / Setoran Titipan
                             </a>
                         </li>

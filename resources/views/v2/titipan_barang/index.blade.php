@@ -63,7 +63,7 @@
                 master</p>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
-            <a href="{{ route('v2.titipan_barang.settlement.create') }}"
+            <a href="{{ route('v2.titipan_barang.settlement.index') }}"
                 class="btn btn-sm btn-outline-success py-1.5 px-3 rounded-2 fw-semibold">
                 <i class="bi bi-cash-stack me-1"></i> Pembayaran / Setoran
             </a>
@@ -223,13 +223,14 @@
                     <thead class="bg-light bg-opacity-75 text-uppercase fw-bold text-secondary border-bottom"
                         style="font-size: 0.72rem; letter-spacing: 0.04em;">
                         <tr>
-                            <th class="ps-3.5 py-2.5" style="width: 23%;">SUPPLIER</th>
-                            <th class="text-center py-2.5" style="width: 9%;">JUMLAH NOTA</th>
-                            <th class="text-end py-2.5" style="width: 15%;">TOTAL TITIPAN (RP)</th>
-                            <th class="text-center py-2.5" style="width: 13%;">SISA STOK GUDANG</th>
-                            <th class="text-end py-2.5" style="width: 15%;">SUDAH DISETOR (RP)</th>
-                            <th class="text-end py-2.5" style="width: 15%;">SISA WAJIB SETOR (RP)</th>
-                            <th class="text-center pe-3.5 py-2.5" style="width: 10%;">AKSI</th>
+                            <th class="ps-3.5 py-2.5" style="width: 20%;">SUPPLIER</th>
+                            <th class="text-center py-2.5" style="width: 8%;">NOTA</th>
+                            <th class="text-end py-2.5" style="width: 14%;">TOTAL TITIPAN</th>
+                            <th class="text-center py-2.5" style="width: 12%;">TOTAL TERJUAL</th>
+                            <th class="text-center py-2.5" style="width: 12%;">SISA STOK</th>
+                            <th class="text-end py-2.5" style="width: 12%;">SUDAH DISETOR</th>
+                            <th class="text-end py-2.5" style="width: 13%;">SISA BELUM SETOR</th>
+                            <th class="text-center pe-3.5 py-2.5" style="width: 9%;">AKSI</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y">
@@ -263,8 +264,21 @@
                                         Rp {{ number_format($sRow['total_titipan_rp'], 0, ',', '.') }}
                                     </span>
                                     <small class="text-muted" style="font-size:0.71rem;">
-                                        Total <strong>{{ number_format($sRow['total_qty_masuk']) }}</strong> PCS Masuk
+                                        Total <strong>{{ number_format($sRow['total_qty_masuk']) }}</strong> PCS
                                     </small>
+                                </td>
+                                <td class="text-center py-3">
+                                    @if (($sRow['total_qty_laku'] ?? 0) > 0)
+                                        <span
+                                            class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-1 fw-bold d-inline-block">
+                                            {{ number_format($sRow['total_qty_laku'] ?? 0) }} PCS
+                                        </span>
+                                        <small class="text-muted d-block mt-0.5 font-monospace" style="font-size:0.71rem;">
+                                            Rp {{ number_format($sRow['total_terjual_rp'] ?? 0, 0, ',', '.') }}
+                                        </small>
+                                    @else
+                                        <span class="text-muted small">0 PCS</span>
+                                    @endif
                                 </td>
                                 <td class="text-center py-3">
                                     <span
