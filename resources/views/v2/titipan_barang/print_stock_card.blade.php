@@ -22,9 +22,9 @@
             color: #0f172a;
             margin: 0;
             padding: 15px;
-            font-size: 10px;
+            font-size: 12px;
             background: #fff;
-            line-height: 1.2;
+            line-height: 1.25;
         }
 
         /* ERP Header Standard */
@@ -37,7 +37,7 @@
 
         .header h1 {
             margin: 0 0 4px 0;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 900;
             letter-spacing: 0.5px;
             color: #000;
@@ -46,7 +46,7 @@
 
         .header p {
             margin: 0;
-            font-size: 11px;
+            font-size: 13px;
             color: #64748b;
         }
 
@@ -66,8 +66,8 @@
 
         .info-box table td {
             border: none;
-            padding: 3px 6px;
-            font-size: 11px;
+            padding: 4px 6px;
+            font-size: 13px;
             color: #0f172a;
         }
 
@@ -75,13 +75,13 @@
         table.data-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9px;
+            font-size: 11px;
         }
 
         table.data-table th,
         table.data-table td {
             border: 1px solid #000;
-            padding: 5px 6px;
+            padding: 6px 7px;
             text-align: left;
             vertical-align: middle;
         }
@@ -91,7 +91,7 @@
             background-color: #2563eb !important;
             color: #ffffff !important;
             font-weight: 800;
-            font-size: 9px;
+            font-size: 11px;
             text-transform: uppercase;
             text-align: center !important;
         }
@@ -100,7 +100,7 @@
             background-color: #16a34a !important;
             color: #ffffff !important;
             font-weight: 800;
-            font-size: 9px;
+            font-size: 11px;
             text-transform: uppercase;
             text-align: center !important;
         }
@@ -109,7 +109,7 @@
             background-color: #dc2626 !important;
             color: #ffffff !important;
             font-weight: 800;
-            font-size: 9px;
+            font-size: 11px;
             text-transform: uppercase;
             text-align: center !important;
         }
@@ -118,7 +118,7 @@
             background-color: #ea580c !important;
             color: #ffffff !important;
             font-weight: 800;
-            font-size: 9px;
+            font-size: 11px;
             text-transform: uppercase;
             text-align: center !important;
         }
@@ -257,7 +257,7 @@
         @if(count($reportData) > 0)
             <tfoot>
                 <tr style="background-color: #e2e8f0; font-weight: 800;">
-                    <td colspan="3" class="text-center" style="font-weight: 800; font-size: 9.5px;">TOTAL</td>
+                    <td colspan="3" class="text-center" style="font-weight: 800; font-size: 11.5px;">TOTAL</td>
                     <td class="text-right font-mono">{{ number_format($totalReceivedAll) }} PCS</td>
                     <td class="text-right font-mono">Rp {{ number_format($totalHppAll, 0, ',', '.') }}</td>
                     <td class="text-right font-mono">{{ number_format($totalSoldAll) }} PCS</td>
