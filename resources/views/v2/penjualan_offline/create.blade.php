@@ -60,9 +60,9 @@
                 <div class="card-body p-3">
                     <div class="row g-2 align-items-end">
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-secondary mb-1">Cari / Pilih Produk Master <span class="badge bg-light text-muted border py-0 px-1" style="font-size: 0.68rem;">Maks. 100</span></label>
-                            <select id="select_product" class="form-select form-select-sm select2" data-placeholder="-- Ketik Nama Produk atau SKU (Maks. 100 Produk) --">
-                                <option value="">-- Ketik Nama Produk atau SKU (Maks. 100 Produk) --</option>
+                            <label class="form-label small fw-semibold text-secondary mb-1">Cari / Pilih Produk Master</label>
+                            <select id="select_product" class="form-select form-select-sm no-select2" data-placeholder="-- Ketik Nama Produk atau SKU --">
+                                <option value="">-- Ketik Nama Produk atau SKU --</option>
                                 @foreach($products as $prod)
                                     <option value="{{ $prod->id }}"
                                             data-name="{{ $prod->name }}"
@@ -323,10 +323,24 @@ document.addEventListener('DOMContentLoaded', function() {
     applyRupiahFormatEvent(paidInput, calculateTotals);
 
     // Otomatis isi harga saat produk master dipilih & bisa langsung diedit
-    function onProductSelected() {
-        const opt = selectProduct.options[selectProduct.selectedIndex];
+    function onProductSelected(e) {
+        let rawPrice = 0;
+        let opt = selectProduct.options[selectProduct.selectedIndex];
+        
+        if (e && e.params && e.params.data) {
+            const data = e.params.data;
+            rawPrice = parseFloat(data.price) || 0;
+            if (opt) {
+                opt.dataset.name = data.name || data.text;
+                opt.dataset.sku = data.sku || '-';
+                opt.dataset.price = data.price || 0;
+                opt.dataset.stock = data.stock || 0;
+            }
+        } else if (opt && opt.value) {
+            rawPrice = parseFloat(opt.dataset.price) || 0;
+        }
+
         if (opt && opt.value) {
-            let rawPrice = parseFloat(opt.dataset.price) || 0;
             inputPrice.value = formatRupiah(rawPrice);
             inputQty.focus();
         } else {
@@ -336,7 +350,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     selectProduct.addEventListener('change', onProductSelected);
     if (typeof jQuery !== 'undefined') {
-        $('#select_product').on('select2:select change', onProductSelected);
+        $('#select_product').on('select2:select', function(e) {
+            onProductSelected(e);
+        });
+        $('#select_product').on('change', function() {
+            onProductSelected();
+        });
     }
 
     // Quick Cash buttons
@@ -369,8 +388,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const prodId = parseInt(opt.value);
-        const prodName = opt.dataset.name;
-        const prodSku = opt.dataset.sku;
+        const prodName = opt.dataset.name || opt.text || ('Produk #' + prodId);
+        const prodSku = opt.dataset.sku || '-';
         const qty = parseInt(inputQty.value) || 1;
         const price = parseRupiah(inputPrice.value);
 
@@ -564,6 +583,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 width: '100%'
             });
         }
+
+        // Inisialisasi Select2 AJAX untuk #select_product (tampil 100 awal, search ke seluruh database via AJAX)
+        $('#select_product').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: '-- Ketik Nama Produk atau SKU --',
+            allowClear: true,
+            ajax: {
+                url: '{{ route("v2.penjualan_offline.search_products") }}',
+                dataType: 'json',
+                delay: 300,
+                data: function(params) {
+                    return {
+                        q: params.term || '',
+                        page: params.page || 1
+                    };
+                },
+                processResults: function(data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data.results || [],
+                        pagination: {
+                            more: (params.page * 20) < (data.total_count || 0)
+                        }
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 0
+        });
     }
 
     function escapeHtml(str) {

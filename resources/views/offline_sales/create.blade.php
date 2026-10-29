@@ -183,11 +183,10 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label small fw-semibold text-secondary mb-0">Cari Produk <span class="text-danger">*</span></label>
-                                <span class="badge bg-light text-muted border py-0 px-1" style="font-size: 0.68rem;">Maks. 100 Produk</span>
                             </div>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light"><i class="fas fa-search text-muted"></i></span>
-                                <input type="text" id="product-search" class="form-control form-control-sm" placeholder="Cari nama produk atau SKU (100 produk)..." disabled>
+                                <input type="text" id="product-search" class="form-control form-control-sm" placeholder="Cari nama produk atau SKU..." disabled>
                             </div>
                         </div>
 
@@ -490,9 +489,11 @@
             return parseInt(clean, 10) || 0;
         }
 
-        // Pencarian produk
+        // Pencarian produk (filter lokal + AJAX server-side jika cari ke seluruh master)
+        let searchTimeout = null;
         $('#product-search').on('input', function() {
-            const q = $(this).val().toLowerCase();
+            const rawQ = $(this).val().trim();
+            const q = rawQ.toLowerCase();
             let matchCount = 0;
             $('.product-row').each(function() {
                 const name = ($(this).attr('data-name') || '').toLowerCase();
@@ -508,6 +509,74 @@
                     $(this).addClass('d-none');
                 }
             });
+
+            // Jika kata kunci minimal 2 karakter, cari ke server database via AJAX
+            clearTimeout(searchTimeout);
+            if (rawQ.length >= 2) {
+                searchTimeout = setTimeout(function() {
+                    $.ajax({
+                        url: '{{ route("offline_sales.search_products") }}',
+                        data: { q: rawQ },
+                        dataType: 'json',
+                        success: function(res) {
+                            if (res && res.results && res.results.length > 0) {
+                                res.results.forEach(function(item) {
+                                    // Jika belum ada di list DOM, tambahkan
+                                    if ($('.product-row[data-id="' + item.id + '"]').length === 0) {
+                                        const normalPrice = parseFloat(item.price) || 0;
+                                        const resPrice = parseFloat(item.reseller_price) || normalPrice;
+                                        const isDropship = isDropshipCustomer;
+                                        const normalFormatted = 'Rp ' + normalPrice.toLocaleString('id-ID');
+                                        const dropshipFormatted = 'Rp ' + resPrice.toLocaleString('id-ID');
+
+                                        const rowHtml = `
+                                            <a href="javascript:void(0)" class="list-group-item list-group-item-action product-row d-flex justify-content-between align-items-center py-2 px-3 text-decoration-none"
+                                                data-id="${item.id}"
+                                                data-name="${item.name}" data-sku="${item.sku || ''}"
+                                                data-price="${normalPrice}" data-reseller-price="${resPrice}"
+                                                data-stock="${item.stock || 0}" data-is-po="${item.is_po || 0}">
+                                                <div>
+                                                    <div class="fw-semibold text-dark small">${item.name}</div>
+                                                    <div class="text-muted small font-monospace">
+                                                        ${item.sku || '-'} &bull; Stok: <span class="fw-bold">${item.stock || 0}</span> Pcs
+                                                    </div>
+                                                </div>
+                                                <div class="text-end text-nowrap">
+                                                    <div class="price-normal-display fw-bold text-success font-monospace small" style="${isDropship ? 'display: none;' : ''}">
+                                                        ${normalFormatted}
+                                                    </div>
+                                                    <div class="price-dropship-display fw-bold text-warning font-monospace small" style="${isDropship ? '' : 'display: none;'}">
+                                                        <span class="badge bg-warning text-dark me-1">Dropship</span>
+                                                        ${dropshipFormatted}
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        `;
+                                        $('#product-list').append(rowHtml);
+                                    }
+                                });
+
+                                // Re-filter tampilan agar item yang baru ditambahkan langsung terlihat
+                                let currentMatches = 0;
+                                $('.product-row').each(function() {
+                                    const name = ($(this).attr('data-name') || '').toLowerCase();
+                                    const sku = ($(this).attr('data-sku') || '').toLowerCase();
+                                    if (name.includes(q) || sku.includes(q)) {
+                                        if (currentMatches < 10) {
+                                            $(this).removeClass('d-none');
+                                            currentMatches++;
+                                        } else {
+                                            $(this).addClass('d-none');
+                                        }
+                                    } else {
+                                        $(this).addClass('d-none');
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }, 350);
+            }
         });
 
         // AJAX quick customer creation

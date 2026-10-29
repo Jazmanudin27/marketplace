@@ -246,6 +246,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/pesanan', [\App\Http\Controllers\V2\PesananController::class, 'index'])->name('pesanan.index');
 
         // Penjualan Offline (POS Store) V2
+        Route::get('/penjualan-offline/search-products', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'searchProducts'])->name('penjualan_offline.search_products');
         Route::get('/penjualan-offline', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'index'])->name('penjualan_offline.index');
         Route::get('/penjualan-offline/create', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'create'])->name('penjualan_offline.create');
         Route::post('/penjualan-offline', [\App\Http\Controllers\V2\PenjualanOfflineController::class, 'store'])->name('penjualan_offline.store');
@@ -929,6 +930,7 @@ Route::middleware('auth')->group(function () {
 
     // Penjualan Offline (Manual Order)
     Route::middleware('permission:manage-offline-sales')->group(function () {
+        Route::get('/offline-sales/search-products', [OfflineSaleController::class, 'searchProducts'])->name('offline_sales.search_products');
         Route::get('/offline-sales', [OfflineSaleController::class, 'index'])->name('offline_sales.index');
         Route::get('/offline-sales/create', [OfflineSaleController::class, 'create'])->name('offline_sales.create');
         Route::post('/offline-sales', [OfflineSaleController::class, 'store'])->name('offline_sales.store');

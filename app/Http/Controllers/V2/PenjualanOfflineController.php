@@ -235,6 +235,50 @@ class PenjualanOfflineController extends Controller
     }
 
     /**
+     * Cari produk Master untuk Penjualan Offline (POS) via AJAX Select2.
+     */
+    public function searchProducts(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $search = trim($request->input('q', ''));
+
+        $query = MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_active', true);
+
+        if (!empty($search)) {
+            $hasBarcode = \Illuminate\Support\Facades\Schema::hasColumn('master_products', 'barcode');
+            $query->where(function ($q) use ($search, $hasBarcode) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('sku', 'like', '%' . $search . '%')
+                  ->orWhere('sku_induk', 'like', '%' . $search . '%');
+                if ($hasBarcode) {
+                    $q->orWhere('barcode', 'like', '%' . $search . '%');
+                }
+            });
+        }
+
+        $products = $query->orderBy('name')
+            ->limit(100)
+            ->get();
+
+        return response()->json([
+            'success'  => true,
+            'products' => $products->map(function ($p) {
+                $price = (float) ($p->selling_price ?? $p->price ?? 0);
+                return [
+                    'id'            => $p->id,
+                    'name'          => $p->name,
+                    'sku'           => $p->sku ?: '-',
+                    'stock'         => (int) ($p->stock ?? 0),
+                    'price'         => $price,
+                    'selling_price' => $price,
+                    'unit'          => $p->unit ?? 'pcs',
+                ];
+            })
+        ]);
+    }
+
+    /**
      * Show form to create new offline POS sale (V2).
      */
     public function create()

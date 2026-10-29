@@ -114,6 +114,51 @@ class OfflineSaleController extends Controller
         return view('offline_sales.index', compact('sales', 'bankAccounts', 'overdueFollowUpCount'));
     }
 
+    /**
+     * Cari produk Master via AJAX untuk Penjualan Offline V1.
+     */
+    public function searchProducts(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $search = trim($request->input('q', ''));
+
+        $query = MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_active', true);
+
+        if (!empty($search)) {
+            $hasBarcode = \Illuminate\Support\Facades\Schema::hasColumn('master_products', 'barcode');
+            $query->where(function ($q) use ($search, $hasBarcode) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('sku', 'like', '%' . $search . '%')
+                  ->orWhere('sku_induk', 'like', '%' . $search . '%');
+                if ($hasBarcode) {
+                    $q->orWhere('barcode', 'like', '%' . $search . '%');
+                }
+            });
+        }
+
+        $products = $query->orderBy('name')
+            ->limit(100)
+            ->get();
+
+        return response()->json([
+            'success'  => true,
+            'products' => $products->map(function ($p) {
+                $resellerPrice = (float) ($p->reseller_price && $p->reseller_price > 0 ? $p->reseller_price : $p->price);
+                return [
+                    'id'             => $p->id,
+                    'name'           => $p->name,
+                    'sku'            => $p->sku ?: '-',
+                    'stock'          => (int) ($p->stock ?? 0),
+                    'price'          => (float) ($p->price ?? 0),
+                    'reseller_price' => $resellerPrice,
+                    'is_preorder'    => (bool) $p->is_preorder,
+                    'unit'           => $p->unit ?? 'Pcs',
+                ];
+            })
+        ]);
+    }
+
     public function create()
     {
         $tenantId = Auth::user()->tenant_id;
