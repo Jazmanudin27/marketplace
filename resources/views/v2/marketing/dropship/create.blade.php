@@ -254,6 +254,25 @@
 
         tbody.appendChild(tr);
 
+        if (window.initV2Select2) {
+            window.initV2Select2(tr);
+        } else if (typeof jQuery !== 'undefined' && jQuery.fn.select2) {
+            $(tr).find('.item-product-select').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: '-- Pilih Produk Master --'
+            });
+        }
+
+        const selectElem = tr.querySelector('.item-product-select');
+        const handleProductChange = function() {
+            onProductSelect(rowIndex, selectElem);
+        };
+        selectElem.addEventListener('change', handleProductChange);
+        if (typeof jQuery !== 'undefined') {
+            $(selectElem).on('select2:select change', handleProductChange);
+        }
+
         if (productId) {
             calculateSubtotal(rowIndex);
         } else {
@@ -264,6 +283,10 @@
     function removeRowItem(idx) {
         const row = document.getElementById('row_' + idx);
         if (row) {
+            const selectElem = row.querySelector('.item-product-select');
+            if (selectElem && typeof jQuery !== 'undefined' && $(selectElem).hasClass('select2-hidden-accessible')) {
+                $(selectElem).select2('destroy');
+            }
             row.remove();
             calculateGrandTotal();
         }
