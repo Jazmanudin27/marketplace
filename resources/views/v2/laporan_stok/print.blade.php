@@ -583,11 +583,12 @@
             <thead>
                 <tr>
                     <th class="bg-blue" style="width: 3%;">No</th>
-                    <th class="bg-blue" style="width: 14%;">SKU</th>
+                    <th class="bg-blue" style="width: 13%;">SKU</th>
                     <th class="bg-blue">Nama Produk</th>
-                    <th class="bg-blue" style="width: 10%;">Status &amp; PO</th>
-                    <th class="bg-blue" style="width: 16%;">Toko / Marketplace Terhubung</th>
-                    <th class="bg-green" style="width: 8%;">Stok Gudang</th>
+                    <th class="bg-blue" style="width: 8%; text-align: center;">Tipe</th>
+                    <th class="bg-green" style="width: 9%; text-align: right;">Stok Gudang</th>
+                    <th class="bg-orange" style="width: 9%; text-align: right; background-color: #ea580c !important; color: #fff;">Stok Titipan</th>
+                    <th class="bg-cyan" style="width: 9%; text-align: right; background-color: #0891b2 !important; color: #fff;">Jumlah Stok</th>
                     @foreach($stores as $store)
                         @php
                             $channelCode = strtolower($store->channel->code ?? $store->channel->name ?? '');
@@ -612,7 +613,9 @@
             <tbody>
                 @forelse($products as $index => $product)
                     @php
-                        $stokGudang = (int) $product->stock;
+                        $stokGudang  = (int) ($product->stok_gudang ?? $product->stock);
+                        $stokTitipan = (int) ($product->stok_titipan ?? 0);
+                        $jumlahStok  = (int) ($product->jumlah_stok ?? ($stokGudang + $stokTitipan));
                         $ledgerUrl = route('reports.ledger.print', [
                             'product_id' => $product->id,
                             'start_date' => now()->startOfMonth()->format('Y-m-d'),
@@ -624,7 +627,7 @@
                         <td class="text-center">{{ $index + 1 }}</td>
                         <td>
                             <a href="{{ $ledgerUrl }}" target="_blank" class="product-link" title="Buka Kartu Stok {{ $product->name }}">
-                                {{ $product->sku ?? '-' }}
+                                <strong>{{ $product->sku ?? '-' }}</strong>
                             </a>
                         </td>
                         <td>
@@ -634,34 +637,22 @@
                         </td>
                         <td class="text-center">
                             @if($product->is_preorder)
-                                <span style="color: #c2410c; font-weight: bold;">⏳ PO ({{ $product->preorder_days ?: 7 }}hr)</span>
+                                <span style="color: #c2410c; font-weight: bold; font-size: 10px;">⏳ PO</span>
                             @else
-                                <span style="color: #16a34a; font-weight: bold;">📦 Ready</span>
+                                <span style="color: #16a34a; font-weight: bold; font-size: 10px;">📦 Ready</span>
                             @endif
                             @if($product->is_bundle)
-                                <span style="color: #7c3aed; font-weight: bold; font-size: 10px; display: block;">🎁 Bundle</span>
-                            @endif
-                        </td>
-                        <td>
-                            @php
-                                $connectedStoreList = $product->marketplaceProducts
-                                    ->map(fn($mp) => $mp->store)
-                                    ->filter()
-                                    ->unique('id')
-                                    ->map(function($st) {
-                                        $chName = ucfirst($st->channel->name ?? $st->channel->code ?? 'MP');
-                                        return "{$st->store_name} ({$chName})";
-                                    })
-                                    ->implode(', ');
-                            @endphp
-                            @if ($connectedStoreList)
-                                <span style="font-size: 10px; font-weight: 600; color: #0f172a;">{{ $connectedStoreList }}</span>
-                            @else
-                                <span style="color: #94a3b8; font-style: italic; font-size: 10px;">- Belum Terhubung -</span>
+                                <span style="color: #7c3aed; font-weight: bold; font-size: 9px; display: block;">🎁 Bundle</span>
                             @endif
                         </td>
                         <td class="text-right" style="background-color: #f0fdf4;">
                             <strong style="color: #15803d; font-size: 12px;">{{ number_format($stokGudang, 0, ',', '.') }}</strong>
+                        </td>
+                        <td class="text-right" style="background-color: #fff7ed;">
+                            <strong style="color: #c2410c; font-size: 12px;">{{ number_format($stokTitipan, 0, ',', '.') }}</strong>
+                        </td>
+                        <td class="text-right" style="background-color: #ecfeff;">
+                            <strong style="color: #0e7490; font-size: 12px;">{{ number_format($jumlahStok, 0, ',', '.') }}</strong>
                         </td>
                         @foreach($stores as $store)
                             @php
@@ -697,7 +688,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="{{ 7 + count($stores) }}" class="text-center" style="padding: 30px; color: #64748b;">
+                        <td colspan="{{ 8 + count($stores) }}" class="text-center" style="padding: 30px; color: #64748b;">
                             Tidak ada data barang yang sesuai dengan filter yang dipilih.
                         </td>
                     </tr>

@@ -804,11 +804,31 @@
                         </label>
                         <div class="p-3 bg-light rounded-3 border">
                             <div class="row g-2.5">
+                                {{-- Jenis Produk --}}
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-muted small fw-semibold mb-1">Jenis Produk</label>
+                                    <select name="is_bundle" id="modalFilterBundle" class="form-select form-select-sm">
+                                        <option value="">Semua Jenis (Single &amp; BUNDLE)</option>
+                                        <option value="0" {{ request('is_bundle') === '0' || $currentTab === 'single' ? 'selected' : '' }}>📦 Single (Produk Standar)</option>
+                                        <option value="1" {{ request('is_bundle') === '1' || $currentTab === 'bundle' ? 'selected' : '' }}>🎁 BUNDLE / Paket Set</option>
+                                    </select>
+                                </div>
+
+                                {{-- Status PO --}}
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-muted small fw-semibold mb-1">Tipe Pre-Order (PO)</label>
+                                    <select name="po_status" id="modalFilterPO" class="form-select form-select-sm">
+                                        <option value="">Semua Tipe (PO &amp; Reguler)</option>
+                                        <option value="1" {{ request('po_status') === '1' || request('is_preorder') === '1' || $currentTab === 'po' ? 'selected' : '' }}>⏳ Pre-Order (PO)</option>
+                                        <option value="0" {{ request('po_status') === '0' || request('is_preorder') === '0' || $currentTab === 'ready' ? 'selected' : '' }}>📦 Reguler (Bukan PO)</option>
+                                    </select>
+                                </div>
+
                                 {{-- Kategori --}}
-                                <div class="col-12 col-md-4">
+                                <div class="col-12 col-md-6">
                                     <label class="form-label text-muted small fw-semibold mb-1">Kategori Produk</label>
                                     <select name="category_id" id="modalFilterCategory" class="form-select form-select-sm">
-                                        <option value="">Semua Kategori</option>
+                                        <option value="">-- Semua Kategori --</option>
                                         @foreach($categories as $cat)
                                             <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>
                                                 {{ $cat->name }}
@@ -818,10 +838,10 @@
                                 </div>
 
                                 {{-- Brand / Merk --}}
-                                <div class="col-6 col-md-4">
-                                    <label class="form-label text-muted small fw-semibold mb-1">Brand / Merk</label>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-muted small fw-semibold mb-1">Brand / Merek</label>
                                     <select name="brand_id" id="modalFilterBrand" class="form-select form-select-sm">
-                                        <option value="">Semua Brand</option>
+                                        <option value="">-- Semua Brand --</option>
                                         @foreach($brands as $br)
                                             <option value="{{ $br->id }}" {{ request('brand_id') == $br->id ? 'selected' : '' }}>
                                                 {{ $br->name }}
@@ -830,77 +850,27 @@
                                     </select>
                                 </div>
 
-                                {{-- Toko Marketplace --}}
-                                <div class="col-6 col-md-4">
-                                    <label class="form-label text-muted small fw-semibold mb-1">Toko Marketplace</label>
-                                    <select name="store_id" id="modalFilterStore" class="form-select form-select-sm">
-                                        <option value="">Semua Toko</option>
-                                        @foreach($allStores as $st)
-                                            <option value="{{ $st->id }}" {{ request('store_id') == $st->id ? 'selected' : '' }}>
-                                                {{ $st->store_name }} ({{ $st->channel->name ?? 'MP' }})
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                {{-- Rentang Tanggal --}}
+                                <div class="col-6 col-md-6">
+                                    <label class="form-label text-muted small fw-semibold mb-1">
+                                        <i class="bi bi-calendar-check me-1"></i>Dari Tanggal
+                                    </label>
+                                    <input type="date" name="start_date" id="modalFilterStartDate" class="form-control form-control-sm" value="{{ request('start_date') }}">
                                 </div>
-
-                                {{-- Jenis Produk --}}
-                                <div class="col-6 col-md-3">
-                                    <label class="form-label text-muted small fw-semibold mb-1">Jenis Produk</label>
-                                    <select name="is_bundle" id="modalFilterBundle" class="form-select form-select-sm">
-                                        <option value="">Semua Jenis</option>
-                                        <option value="0" {{ request('is_bundle') === '0' || $currentTab === 'single' ? 'selected' : '' }}>Single (Utama)</option>
-                                        <option value="1" {{ request('is_bundle') === '1' || $currentTab === 'bundle' ? 'selected' : '' }}>Paket (Bundle)</option>
-                                    </select>
-                                </div>
-
-                                {{-- Status PO --}}
-                                <div class="col-6 col-md-3">
-                                    <label class="form-label text-muted small fw-semibold mb-1">Tipe Stok / PO</label>
-                                    <select name="is_preorder" id="modalFilterPO" class="form-select form-select-sm">
-                                        <option value="">Semua Tipe</option>
-                                        <option value="0" {{ request('is_preorder') === '0' || $currentTab === 'ready' ? 'selected' : '' }}>Ready Stock</option>
-                                        <option value="1" {{ request('is_preorder') === '1' || $currentTab === 'po' ? 'selected' : '' }}>Pre-Order (PO)</option>
-                                    </select>
-                                </div>
-
-                                {{-- Urutan / Sort By --}}
-                                <div class="col-6 col-md-3">
-                                    <label class="form-label text-muted small fw-semibold mb-1">Urutan Data</label>
-                                    <select name="sort_by" id="modalFilterSort" class="form-select form-select-sm">
-                                        <option value="name_asc" selected>Nama Produk (A - Z)</option>
-                                        <option value="name_desc">Nama Produk (Z - A)</option>
-                                        <option value="stock_desc">Stok Terbanyak</option>
-                                        <option value="stock_asc">Stok Tersedikit</option>
-                                        <option value="sku_asc">SKU (A - Z)</option>
-                                    </select>
-                                </div>
-
-                                {{-- Pencarian Keyword --}}
-                                <div class="col-6 col-md-3">
-                                    <label class="form-label text-muted small fw-semibold mb-1">Cari Kata Kunci</label>
-                                    <input type="text" name="search" id="modalFilterSearch" class="form-control form-control-sm"
-                                           placeholder="Nama / SKU..." value="{{ request('name') ?: (request('sku') ?: request('search')) }}">
+                                <div class="col-6 col-md-6">
+                                    <label class="form-label text-muted small fw-semibold mb-1">
+                                        <i class="bi bi-calendar-check me-1"></i>Sampai Tanggal
+                                    </label>
+                                    <input type="date" name="end_date" id="modalFilterEndDate" class="form-control form-control-sm" value="{{ request('end_date') }}">
                                 </div>
                             </div>
 
                             {{-- Checklist Spesial --}}
                             <div class="d-flex align-items-center gap-3 mt-3 pt-2 border-top flex-wrap">
                                 <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
-                                    <input class="form-check-input" type="checkbox" name="hide_zero_stock" value="1" id="modalHideZero" {{ request('hide_zero_stock') ? 'checked' : '' }}>
+                                    <input class="form-check-input" type="checkbox" name="hide_zero_stock" value="1" id="modalHideZero" checked>
                                     <label class="form-check-label fw-semibold text-secondary" for="modalHideZero">
-                                        Sembunyikan Stok 0
-                                    </label>
-                                </div>
-                                <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
-                                    <input class="form-check-input" type="checkbox" name="only_diff" value="1" id="modalOnlyDiff" {{ request('only_diff') || request('only_different') || $currentTab === 'diff' ? 'checked' : '' }}>
-                                    <label class="form-check-label fw-semibold text-danger" for="modalOnlyDiff">
-                                        Hanya Ada Selisih
-                                    </label>
-                                </div>
-                                <div class="form-check form-switch mb-0" style="font-size: 0.76rem;">
-                                    <input class="form-check-input" type="checkbox" name="low_stock" value="1" id="modalLowStock" {{ request('low_stock') || request('only_low') || $currentTab === 'low' ? 'checked' : '' }}>
-                                    <label class="form-check-label fw-semibold text-warning-emphasis" for="modalLowStock">
-                                        Hanya Stok &lt; 10 PCS
+                                        Sembunyikan / Hilangkan Produk Stok 0 (Tanpa Mutasi)
                                     </label>
                                 </div>
                             </div>

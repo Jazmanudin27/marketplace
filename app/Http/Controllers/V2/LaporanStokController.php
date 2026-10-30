@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Store;
 use App\Models\Channel;
 use App\Models\MasterProduct;
+use App\Models\SupplierConsignmentItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Jobs\PushStockToMarketplaces;
@@ -40,11 +41,15 @@ class LaporanStokController extends Controller
             });
         } elseif ($tab === 'bundle' || $request->get('is_bundle') === '1') {
             $query->where('is_bundle', true);
-        } elseif ($tab === 'ready' || $request->get('is_preorder') === '0') {
+        }
+
+        // Tipe Pre-Order (PO vs Reguler)
+        $poStatus = $request->get('po_status', $request->get('is_preorder'));
+        if ($tab === 'ready' || $poStatus === '0') {
             $query->where(function ($q) {
                 $q->where('is_preorder', false)->orWhereNull('is_preorder');
             });
-        } elseif ($tab === 'po' || $request->get('is_preorder') === '1') {
+        } elseif ($tab === 'po' || $poStatus === '1') {
             $query->where('is_preorder', true);
         }
 
@@ -224,6 +229,24 @@ class LaporanStokController extends Controller
         $products = $query->get();
         $format   = $request->get('report_format', 'standard');
 
+        // Hitung stok titipan konsinyasi (approved) per master product
+        $titipanItems = SupplierConsignmentItem::whereHas('consignment', function ($q) use ($tenantId) {
+            $q->where('tenant_id', $tenantId)->where('status', 'approved');
+        })->get()->groupBy('master_product_id');
+
+        foreach ($products as $p) {
+            $consGroup = $titipanItems->get($p->id);
+            $stokTitipan = 0;
+            if ($consGroup) {
+                $qtyRec = $consGroup->sum('qty_received');
+                $qtySold = (int) $consGroup->sum('qty_sold');
+                $stokTitipan = max(0, $qtyRec - $qtySold);
+            }
+            $p->stok_gudang  = (int) $p->stock;
+            $p->stok_titipan = $stokTitipan;
+            $p->jumlah_stok  = $p->stok_gudang + $stokTitipan;
+        }
+
         return view('v2.laporan_stok.print', compact('products', 'stores', 'format'));
     }
 
@@ -246,6 +269,24 @@ class LaporanStokController extends Controller
         $query    = $this->buildQuery($request, $tenantId);
         $products = $query->get();
         $format   = $request->get('report_format', 'standard');
+
+        // Hitung stok titipan konsinyasi (approved) per master product
+        $titipanItems = SupplierConsignmentItem::whereHas('consignment', function ($q) use ($tenantId) {
+            $q->where('tenant_id', $tenantId)->where('status', 'approved');
+        })->get()->groupBy('master_product_id');
+
+        foreach ($products as $p) {
+            $consGroup = $titipanItems->get($p->id);
+            $stokTitipan = 0;
+            if ($consGroup) {
+                $qtyRec = $consGroup->sum('qty_received');
+                $qtySold = (int) $consGroup->sum('qty_sold');
+                $stokTitipan = max(0, $qtyRec - $qtySold);
+            }
+            $p->stok_gudang  = (int) $p->stock;
+            $p->stok_titipan = $stokTitipan;
+            $p->jumlah_stok  = $p->stok_gudang + $stokTitipan;
+        }
 
         $filename = 'Laporan_Stok_' . ucfirst($format) . '_' . date('Ymd_His') . '.csv';
 
@@ -360,7 +401,7 @@ class LaporanStokController extends Controller
                     ], ';');
                 }
             } else {
-                // Format Standar / Lengkap (Semua Kolom & Marketplace)
+                // Format Standar / Lengkap: SKU, Nama Produk, Stok Gudang, Stok Titipan, Jumlah Stok
                 $headers = [
                     'NO',
                     'SKU',
@@ -370,7 +411,9 @@ class LaporanStokController extends Controller
                     'BRAND',
                     'JENIS',
                     'STATUS PO',
-                    'STOK FISIK GUDANG'
+                    'STOK GUDANG',
+                    'STOK TITIPAN',
+                    'JUMLAH STOK'
                 ];
                 foreach ($stores as $store) {
                     $ch = $store->channel->name ?? 'MP';
@@ -381,7 +424,10 @@ class LaporanStokController extends Controller
                 fputcsv($output, $headers, ';');
 
                 foreach ($products as $i => $p) {
-                    $gudangStock = (int)$p->stock;
+                    $gudangStock  = (int)($p->stok_gudang ?? $p->stock);
+                    $titipanStock = (int)($p->stok_titipan ?? 0);
+                    $totalStock   = (int)($p->jumlah_stok ?? ($gudangStock + $titipanStock));
+
                     $row = [
                         $i + 1,
                         $p->sku ?: '-',
@@ -391,7 +437,9 @@ class LaporanStokController extends Controller
                         $p->brand->name ?? '-',
                         $p->is_bundle ? 'Bundle' : 'Single',
                         $p->is_preorder ? 'PO' : 'Ready',
-                        $gudangStock
+                        $gudangStock,
+                        $titipanStock,
+                        $totalStock
                     ];
 
                     $hasDiff = false;
