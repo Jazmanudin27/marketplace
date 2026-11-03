@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Auth;
 
 class DropshipOrderPayment extends Model
 {
@@ -51,8 +52,9 @@ class DropshipOrderPayment extends Model
         };
     }
 
-    public static function generatePaymentNumber(int $tenantId): string
+    public static function generatePaymentNumber(?int $tenantId = null): string
     {
+        $tenantId = $tenantId ?? (Auth::user()?->tenant_id ?? 1);
         $prefix = 'PAY-DRP-' . date('Ymd') . '-';
         $last = self::where('tenant_id', $tenantId)
             ->where('payment_number', 'like', $prefix . '%')

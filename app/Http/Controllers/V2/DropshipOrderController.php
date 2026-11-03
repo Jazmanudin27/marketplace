@@ -576,7 +576,7 @@ class DropshipOrderController extends Controller
                 DropshipOrderPayment::create([
                     'tenant_id'           => $tenantId,
                     'dropship_order_id'   => $order->id,
-                    'payment_number'      => DropshipOrderPayment::generatePaymentNumber(),
+                    'payment_number'      => DropshipOrderPayment::generatePaymentNumber($tenantId),
                     'payment_date'        => $request->payment_date,
                     'amount'              => $amount,
                     'payment_method'      => $request->payment_method,
